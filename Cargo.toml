@@ -1,0 +1,15 @@
+[package]
+name = "sphinx-swarm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bollard = "0.13"
+bollard-stubs = "1.42.0-rc.3"
+tokio = { version = "1.7", features = ["time", "net", "io-util", "macros"] }
+futures-core = "0.3"
+futures-util = "0.3"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+anyhow = "1"
