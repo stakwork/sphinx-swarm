@@ -1,26 +1,27 @@
 mod api;
 mod images;
+mod modes;
 mod utils;
 
-use api::*;
 use bollard::Docker;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
+    simple_logger::SimpleLogger::new()
+        .with_utc_timestamps()
+        .with_module_level("bollard", log::LevelFilter::Off)
+        .with_module_level("want", log::LevelFilter::Off)
+        .with_module_level("mio", log::LevelFilter::Off)
+        .init()
+        .unwrap();
     let docker = Docker::connect_with_socket_defaults().unwrap();
+    let mode = std::env::args().nth(1).expect("no mode given");
 
-    let btc1 = images::btc("bitcoind");
-    create_image(&docker, &btc1).await?;
-    let id = create_container(&docker, btc1).await?;
-    println!("ID {}", id);
-    start_container(&docker, &id).await?;
-    // remove_container(&docker, &id).await?;
-
-    let cln1 = images::cln_vls("cln1", 0, vec!["bitcoind"]);
-    create_image(&docker, &cln1).await?;
-    let id2 = create_container(&docker, cln1).await?;
-    println!("ID {}", id2);
-    start_container(&docker, &id2).await?;
+    match mode.as_str() {
+        "demo" => modes::demo::run(&docker).await?,
+        "down" => modes::down::run(&docker).await?,
+        _ => panic!("invalid mode"),
+    }
     // remove_container(&docker, &id2).await?;
 
     Ok(())

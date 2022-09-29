@@ -2,10 +2,21 @@ use anyhow::Result;
 use bollard::container::Config;
 use bollard::container::{CreateContainerOptions, RemoveContainerOptions};
 use bollard::image::CreateImageOptions;
+use bollard::service::ContainerSummary;
 use bollard::Docker;
 use futures_util::TryStreamExt;
 use serde::Serialize;
 use std::hash::Hash;
+
+pub async fn create_and_start<T: Into<String> + Eq + Hash + Serialize + Clone>(
+    docker: &Docker,
+    c: Config<T>,
+) -> Result<String> {
+    create_image(&docker, &c).await?;
+    let id = create_container(&docker, c).await?;
+    start_container(&docker, &id).await?;
+    Ok(id)
+}
 
 pub async fn create_image<T: Into<String> + Eq + Hash + Clone>(
     docker: &Docker,
@@ -40,6 +51,10 @@ pub async fn create_container<T: Into<String> + Eq + Hash + Clone + Serialize>(
 
 pub async fn start_container(docker: &Docker, id: &str) -> Result<()> {
     Ok(docker.start_container::<String>(id, None).await?)
+}
+
+pub async fn list_containers(docker: &Docker) -> Result<Vec<ContainerSummary>> {
+    Ok(docker.list_containers::<String>(None).await?)
 }
 
 pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
