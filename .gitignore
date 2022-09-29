@@ -2,3 +2,4 @@
 vol/*
 !vol/**/.gitkeep
 .DS_Store
+notes.md

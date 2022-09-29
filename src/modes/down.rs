@@ -1,5 +1,5 @@
 use crate::api::*;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bollard::Docker;
 
 pub async fn run(docker: &Docker) -> Result<()> {
