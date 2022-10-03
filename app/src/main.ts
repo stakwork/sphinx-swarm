@@ -1,6 +1,6 @@
-import App from "./App.svelte";
+import Wrap from "./Wrap.svelte";
 
-const app = new App({
+const app = new Wrap({
   target: document.body,
 });
 

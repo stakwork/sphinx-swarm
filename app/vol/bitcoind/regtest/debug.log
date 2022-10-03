@@ -1,0 +1,311 @@
+
+
+
+
+
+2022-10-01T20:11:51Z Bitcoin Core version v23.0.0 (release build)
+2022-10-01T20:11:51Z Validating signatures for all blocks.
+2022-10-01T20:11:51Z Setting nMinimumChainWork=0000000000000000000000000000000000000000000000000000000000000000
+2022-10-01T20:11:51Z Using the 'sse4(1way),sse41(4way),avx2(8way)' SHA256 implementation
+2022-10-01T20:11:51Z Using RdRand as an additional entropy source
+2022-10-01T20:11:51Z Default data directory /home/bitcoin/.bitcoin
+2022-10-01T20:11:51Z Using data directory /home/bitcoin/.bitcoin/regtest
+2022-10-01T20:11:51Z Config file: /home/bitcoin/.bitcoin/bitcoin.conf (not found, skipping)
+2022-10-01T20:11:51Z Command-line arg: datadir="/home/bitcoin/.bitcoin"
+2022-10-01T20:11:51Z Command-line arg: regtest="1"
+2022-10-01T20:11:51Z Command-line arg: rpcallowip="0.0.0.0/0"
+2022-10-01T20:11:51Z Command-line arg: rpcbind=****
+2022-10-01T20:11:51Z Command-line arg: rpcpassword=****
+2022-10-01T20:11:51Z Command-line arg: rpcport="18443"
+2022-10-01T20:11:51Z Command-line arg: rpcuser=****
+2022-10-01T20:11:51Z Command-line arg: server=""
+2022-10-01T20:11:51Z Using at most 125 automatic connections (1048576 file descriptors available)
+2022-10-01T20:11:51Z Using 16 MiB out of 32/2 requested for signature cache, able to store 524288 elements
+2022-10-01T20:11:51Z Using 16 MiB out of 32/2 requested for script execution cache, able to store 524288 elements
+2022-10-01T20:11:51Z Script verification uses 7 additional threads
+2022-10-01T20:11:51Z scheduler thread start
+2022-10-01T20:11:51Z WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet
+2022-10-01T20:11:51Z HTTP: creating work queue of depth 16
+2022-10-01T20:11:51Z Config options rpcuser and rpcpassword will soon be deprecated. Locally-run instances may remove rpcuser to use cookie-based auth, or may be replaced with rpcauth. Please see share/rpcauth for rpcauth auth generation.
+2022-10-01T20:11:51Z HTTP: starting 4 worker threads
+2022-10-01T20:11:51Z Using wallet directory /home/bitcoin/.bitcoin/regtest/wallets
+2022-10-01T20:11:51Z init message: Verifying wallet(s)…
+2022-10-01T20:11:51Z Using /16 prefix for IP bucketing
+2022-10-01T20:11:51Z init message: Loading P2P addresses…
+2022-10-01T20:11:51Z Creating peers.dat because the file was not found ("/home/bitcoin/.bitcoin/regtest/peers.dat")
+2022-10-01T20:11:51Z init message: Loading banlist…
+2022-10-01T20:11:51Z Recreating the banlist database
+2022-10-01T20:11:51Z SetNetworkActive: true
+2022-10-01T20:11:51Z Failed to read fee estimates from /home/bitcoin/.bitcoin/regtest/fee_estimates.dat. Continue anyway.
+2022-10-01T20:11:52Z Cache configuration:
+2022-10-01T20:11:52Z * Using 2.0 MiB for block index database
+2022-10-01T20:11:52Z * Using 8.0 MiB for chain state database
+2022-10-01T20:11:52Z * Using 440.0 MiB for in-memory UTXO set (plus up to 286.1 MiB of unused mempool space)
+2022-10-01T20:11:52Z init message: Loading block index…
+2022-10-01T20:11:52Z Switching active chainstate to Chainstate [ibd] @ height -1 (null)
+2022-10-01T20:11:52Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/blocks/index
+2022-10-01T20:11:52Z Opened LevelDB successfully
+2022-10-01T20:11:52Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/blocks/index: 0000000000000000
+2022-10-01T20:11:52Z LoadBlockIndexDB: last block file = 0
+2022-10-01T20:11:52Z LoadBlockIndexDB: last block file info: CBlockFileInfo(blocks=0, size=0, heights=0...0, time=1970-01-01...1970-01-01)
+2022-10-01T20:11:52Z Checking all blk files are present...
+2022-10-01T20:11:52Z Initializing databases...
+2022-10-01T20:11:52Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/chainstate
+2022-10-01T20:11:52Z Opened LevelDB successfully
+2022-10-01T20:11:52Z Wrote new obfuscate key for /home/bitcoin/.bitcoin/regtest/chainstate: f39ccbad3b4e8613
+2022-10-01T20:11:52Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/chainstate: f39ccbad3b4e8613
+2022-10-01T20:11:52Z init message: Verifying blocks…
+2022-10-01T20:11:52Z  block index              50ms
+2022-10-01T20:11:52Z loadblk thread start
+2022-10-01T20:11:52Z UpdateTip: new best=0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206 height=0 version=0x00000001 log2_work=1.000000 tx=1 date='2011-02-02T23:16:42Z' progress=1.000000 cache=0.0MiB(0txo)
+2022-10-01T20:11:52Z block tree size = 1
+2022-10-01T20:11:52Z nBestHeight = 0
+2022-10-01T20:11:52Z Failed to open mempool file from disk. Continuing anyway.
+2022-10-01T20:11:52Z loadblk thread exit
+2022-10-01T20:11:52Z Bound to 127.0.0.1:18445
+2022-10-01T20:11:52Z Bound to [::]:18444
+2022-10-01T20:11:52Z torcontrol thread start
+2022-10-01T20:11:52Z Bound to 0.0.0.0:18444
+2022-10-01T20:11:52Z 0 block-relay-only anchors will be tried for connections.
+2022-10-01T20:11:52Z init message: Starting network threads…
+2022-10-01T20:11:52Z net thread start
+2022-10-01T20:11:52Z dnsseed thread start
+2022-10-01T20:11:52Z Loading addresses from DNS seed dummySeed.invalid.
+2022-10-01T20:11:52Z init message: Done loading
+2022-10-01T20:11:52Z addcon thread start
+2022-10-01T20:11:52Z msghand thread start
+2022-10-01T20:11:52Z opencon thread start
+2022-10-01T20:11:52Z 0 addresses found from DNS seeds
+2022-10-01T20:11:52Z dnsseed thread exit
+
+
+
+
+
+2022-10-01T20:12:34Z Bitcoin Core version v23.0.0 (release build)
+2022-10-01T20:12:34Z Validating signatures for all blocks.
+2022-10-01T20:12:34Z Setting nMinimumChainWork=0000000000000000000000000000000000000000000000000000000000000000
+2022-10-01T20:12:34Z Using the 'sse4(1way),sse41(4way),avx2(8way)' SHA256 implementation
+2022-10-01T20:12:34Z Using RdRand as an additional entropy source
+2022-10-01T20:12:34Z Default data directory /home/bitcoin/.bitcoin
+2022-10-01T20:12:34Z Using data directory /home/bitcoin/.bitcoin/regtest
+2022-10-01T20:12:34Z Config file: /home/bitcoin/.bitcoin/bitcoin.conf (not found, skipping)
+2022-10-01T20:12:34Z Command-line arg: datadir="/home/bitcoin/.bitcoin"
+2022-10-01T20:12:34Z Command-line arg: regtest="1"
+2022-10-01T20:12:34Z Command-line arg: rpcallowip="0.0.0.0/0"
+2022-10-01T20:12:34Z Command-line arg: rpcbind=****
+2022-10-01T20:12:34Z Command-line arg: rpcpassword=****
+2022-10-01T20:12:34Z Command-line arg: rpcport="18443"
+2022-10-01T20:12:34Z Command-line arg: rpcuser=****
+2022-10-01T20:12:34Z Command-line arg: server=""
+2022-10-01T20:12:34Z Using at most 125 automatic connections (1048576 file descriptors available)
+2022-10-01T20:12:34Z Using 16 MiB out of 32/2 requested for signature cache, able to store 524288 elements
+2022-10-01T20:12:34Z Using 16 MiB out of 32/2 requested for script execution cache, able to store 524288 elements
+2022-10-01T20:12:34Z Script verification uses 7 additional threads
+2022-10-01T20:12:34Z scheduler thread start
+2022-10-01T20:12:34Z WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet
+2022-10-01T20:12:34Z HTTP: creating work queue of depth 16
+2022-10-01T20:12:34Z Config options rpcuser and rpcpassword will soon be deprecated. Locally-run instances may remove rpcuser to use cookie-based auth, or may be replaced with rpcauth. Please see share/rpcauth for rpcauth auth generation.
+2022-10-01T20:12:34Z HTTP: starting 4 worker threads
+2022-10-01T20:12:34Z Using wallet directory /home/bitcoin/.bitcoin/regtest/wallets
+2022-10-01T20:12:34Z init message: Verifying wallet(s)…
+2022-10-01T20:12:34Z Using /16 prefix for IP bucketing
+2022-10-01T20:12:34Z init message: Loading P2P addresses…
+2022-10-01T20:12:34Z Loaded 0 addresses from peers.dat  2ms
+2022-10-01T20:12:34Z init message: Loading banlist…
+2022-10-01T20:12:34Z SetNetworkActive: true
+2022-10-01T20:12:34Z Failed to read fee estimates from /home/bitcoin/.bitcoin/regtest/fee_estimates.dat. Continue anyway.
+2022-10-01T20:12:34Z Cache configuration:
+2022-10-01T20:12:34Z * Using 2.0 MiB for block index database
+2022-10-01T20:12:34Z * Using 8.0 MiB for chain state database
+2022-10-01T20:12:34Z * Using 440.0 MiB for in-memory UTXO set (plus up to 286.1 MiB of unused mempool space)
+2022-10-01T20:12:34Z init message: Loading block index…
+2022-10-01T20:12:34Z Switching active chainstate to Chainstate [ibd] @ height -1 (null)
+2022-10-01T20:12:34Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/blocks/index
+2022-10-01T20:12:34Z Opened LevelDB successfully
+2022-10-01T20:12:34Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/blocks/index: 0000000000000000
+2022-10-01T20:12:34Z LoadBlockIndexDB: last block file = 0
+2022-10-01T20:12:34Z LoadBlockIndexDB: last block file info: CBlockFileInfo(blocks=0, size=0, heights=0...0, time=1970-01-01...1970-01-01)
+2022-10-01T20:12:34Z Checking all blk files are present...
+2022-10-01T20:12:34Z Initializing databases...
+2022-10-01T20:12:34Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/chainstate
+2022-10-01T20:12:34Z Opened LevelDB successfully
+2022-10-01T20:12:34Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/chainstate: f39ccbad3b4e8613
+2022-10-01T20:12:34Z init message: Verifying blocks…
+2022-10-01T20:12:34Z  block index              34ms
+2022-10-01T20:12:34Z loadblk thread start
+2022-10-01T20:12:34Z UpdateTip: new best=0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206 height=0 version=0x00000001 log2_work=1.000000 tx=1 date='2011-02-02T23:16:42Z' progress=1.000000 cache=0.0MiB(0txo)
+2022-10-01T20:12:34Z block tree size = 1
+2022-10-01T20:12:34Z nBestHeight = 0
+2022-10-01T20:12:34Z Failed to open mempool file from disk. Continuing anyway.
+2022-10-01T20:12:34Z loadblk thread exit
+2022-10-01T20:12:34Z Bound to 127.0.0.1:18445
+2022-10-01T20:12:34Z torcontrol thread start
+2022-10-01T20:12:34Z Bound to [::]:18444
+2022-10-01T20:12:34Z Bound to 0.0.0.0:18444
+2022-10-01T20:12:34Z 0 block-relay-only anchors will be tried for connections.
+2022-10-01T20:12:34Z init message: Starting network threads…
+2022-10-01T20:12:34Z net thread start
+2022-10-01T20:12:34Z dnsseed thread start
+2022-10-01T20:12:34Z Loading addresses from DNS seed dummySeed.invalid.
+2022-10-01T20:12:34Z opencon thread start
+2022-10-01T20:12:34Z addcon thread start
+2022-10-01T20:12:34Z msghand thread start
+2022-10-01T20:12:34Z init message: Done loading
+2022-10-01T20:12:34Z 0 addresses found from DNS seeds
+2022-10-01T20:12:34Z dnsseed thread exit
+2022-10-01T20:13:35Z Adding fixed seeds as 60 seconds have passed and addrman is empty
+
+
+
+
+
+2022-10-01T21:44:38Z Bitcoin Core version v23.0.0 (release build)
+2022-10-01T21:44:38Z Validating signatures for all blocks.
+2022-10-01T21:44:38Z Setting nMinimumChainWork=0000000000000000000000000000000000000000000000000000000000000000
+2022-10-01T21:44:38Z Using the 'sse4(1way),sse41(4way),avx2(8way)' SHA256 implementation
+2022-10-01T21:44:38Z Using RdRand as an additional entropy source
+2022-10-01T21:44:38Z Default data directory /home/bitcoin/.bitcoin
+2022-10-01T21:44:38Z Using data directory /home/bitcoin/.bitcoin/regtest
+2022-10-01T21:44:38Z Config file: /home/bitcoin/.bitcoin/bitcoin.conf (not found, skipping)
+2022-10-01T21:44:38Z Command-line arg: datadir="/home/bitcoin/.bitcoin"
+2022-10-01T21:44:38Z Command-line arg: regtest="1"
+2022-10-01T21:44:38Z Command-line arg: rpcallowip="0.0.0.0/0"
+2022-10-01T21:44:38Z Command-line arg: rpcbind=****
+2022-10-01T21:44:38Z Command-line arg: rpcpassword=****
+2022-10-01T21:44:38Z Command-line arg: rpcport="18443"
+2022-10-01T21:44:38Z Command-line arg: rpcuser=****
+2022-10-01T21:44:38Z Command-line arg: server=""
+2022-10-01T21:44:38Z Using at most 125 automatic connections (1048576 file descriptors available)
+2022-10-01T21:44:38Z Using 16 MiB out of 32/2 requested for signature cache, able to store 524288 elements
+2022-10-01T21:44:38Z Using 16 MiB out of 32/2 requested for script execution cache, able to store 524288 elements
+2022-10-01T21:44:38Z Script verification uses 7 additional threads
+2022-10-01T21:44:38Z scheduler thread start
+2022-10-01T21:44:38Z WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet
+2022-10-01T21:44:38Z HTTP: creating work queue of depth 16
+2022-10-01T21:44:38Z Config options rpcuser and rpcpassword will soon be deprecated. Locally-run instances may remove rpcuser to use cookie-based auth, or may be replaced with rpcauth. Please see share/rpcauth for rpcauth auth generation.
+2022-10-01T21:44:38Z HTTP: starting 4 worker threads
+2022-10-01T21:44:38Z Using wallet directory /home/bitcoin/.bitcoin/regtest/wallets
+2022-10-01T21:44:38Z init message: Verifying wallet(s)…
+2022-10-01T21:44:38Z Using /16 prefix for IP bucketing
+2022-10-01T21:44:38Z init message: Loading P2P addresses…
+2022-10-01T21:44:38Z Loaded 0 addresses from peers.dat  2ms
+2022-10-01T21:44:38Z init message: Loading banlist…
+2022-10-01T21:44:38Z SetNetworkActive: true
+2022-10-01T21:44:38Z Failed to read fee estimates from /home/bitcoin/.bitcoin/regtest/fee_estimates.dat. Continue anyway.
+2022-10-01T21:44:38Z Cache configuration:
+2022-10-01T21:44:38Z * Using 2.0 MiB for block index database
+2022-10-01T21:44:38Z * Using 8.0 MiB for chain state database
+2022-10-01T21:44:38Z * Using 440.0 MiB for in-memory UTXO set (plus up to 286.1 MiB of unused mempool space)
+2022-10-01T21:44:38Z init message: Loading block index…
+2022-10-01T21:44:38Z Switching active chainstate to Chainstate [ibd] @ height -1 (null)
+2022-10-01T21:44:38Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/blocks/index
+2022-10-01T21:44:38Z Opened LevelDB successfully
+2022-10-01T21:44:38Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/blocks/index: 0000000000000000
+2022-10-01T21:44:38Z LoadBlockIndexDB: last block file = 0
+2022-10-01T21:44:38Z LoadBlockIndexDB: last block file info: CBlockFileInfo(blocks=0, size=0, heights=0...0, time=1970-01-01...1970-01-01)
+2022-10-01T21:44:38Z Checking all blk files are present...
+2022-10-01T21:44:38Z Initializing databases...
+2022-10-01T21:44:38Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/chainstate
+2022-10-01T21:44:38Z Opened LevelDB successfully
+2022-10-01T21:44:38Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/chainstate: f39ccbad3b4e8613
+2022-10-01T21:44:38Z init message: Verifying blocks…
+2022-10-01T21:44:38Z  block index              49ms
+2022-10-01T21:44:38Z loadblk thread start
+2022-10-01T21:44:38Z UpdateTip: new best=0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206 height=0 version=0x00000001 log2_work=1.000000 tx=1 date='2011-02-02T23:16:42Z' progress=1.000000 cache=0.0MiB(0txo)
+2022-10-01T21:44:38Z block tree size = 1
+2022-10-01T21:44:38Z nBestHeight = 0
+2022-10-01T21:44:38Z Failed to open mempool file from disk. Continuing anyway.
+2022-10-01T21:44:38Z loadblk thread exit
+2022-10-01T21:44:38Z Bound to 127.0.0.1:18445
+2022-10-01T21:44:38Z Bound to [::]:18444
+2022-10-01T21:44:38Z torcontrol thread start
+2022-10-01T21:44:38Z Bound to 0.0.0.0:18444
+2022-10-01T21:44:38Z 0 block-relay-only anchors will be tried for connections.
+2022-10-01T21:44:38Z init message: Starting network threads…
+2022-10-01T21:44:38Z net thread start
+2022-10-01T21:44:38Z dnsseed thread start
+2022-10-01T21:44:38Z Loading addresses from DNS seed dummySeed.invalid.
+2022-10-01T21:44:38Z init message: Done loading
+2022-10-01T21:44:38Z addcon thread start
+2022-10-01T21:44:38Z msghand thread start
+2022-10-01T21:44:38Z opencon thread start
+2022-10-01T21:44:39Z 0 addresses found from DNS seeds
+2022-10-01T21:44:39Z dnsseed thread exit
+
+
+
+
+
+2022-10-02T17:23:14Z Bitcoin Core version v23.0.0 (release build)
+2022-10-02T17:23:14Z Validating signatures for all blocks.
+2022-10-02T17:23:14Z Setting nMinimumChainWork=0000000000000000000000000000000000000000000000000000000000000000
+2022-10-02T17:23:14Z Using the 'sse4(1way),sse41(4way),avx2(8way)' SHA256 implementation
+2022-10-02T17:23:14Z Using RdRand as an additional entropy source
+2022-10-02T17:23:14Z Default data directory /home/bitcoin/.bitcoin
+2022-10-02T17:23:14Z Using data directory /home/bitcoin/.bitcoin/regtest
+2022-10-02T17:23:14Z Config file: /home/bitcoin/.bitcoin/bitcoin.conf (not found, skipping)
+2022-10-02T17:23:14Z Command-line arg: datadir="/home/bitcoin/.bitcoin"
+2022-10-02T17:23:14Z Command-line arg: regtest="1"
+2022-10-02T17:23:14Z Command-line arg: rpcallowip="0.0.0.0/0"
+2022-10-02T17:23:14Z Command-line arg: rpcbind=****
+2022-10-02T17:23:14Z Command-line arg: rpcpassword=****
+2022-10-02T17:23:14Z Command-line arg: rpcport="18443"
+2022-10-02T17:23:14Z Command-line arg: rpcuser=****
+2022-10-02T17:23:14Z Command-line arg: server=""
+2022-10-02T17:23:14Z Using at most 125 automatic connections (1048576 file descriptors available)
+2022-10-02T17:23:14Z Using 16 MiB out of 32/2 requested for signature cache, able to store 524288 elements
+2022-10-02T17:23:14Z Using 16 MiB out of 32/2 requested for script execution cache, able to store 524288 elements
+2022-10-02T17:23:14Z Script verification uses 7 additional threads
+2022-10-02T17:23:14Z scheduler thread start
+2022-10-02T17:23:14Z WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet
+2022-10-02T17:23:14Z HTTP: creating work queue of depth 16
+2022-10-02T17:23:14Z Config options rpcuser and rpcpassword will soon be deprecated. Locally-run instances may remove rpcuser to use cookie-based auth, or may be replaced with rpcauth. Please see share/rpcauth for rpcauth auth generation.
+2022-10-02T17:23:14Z HTTP: starting 4 worker threads
+2022-10-02T17:23:14Z Using wallet directory /home/bitcoin/.bitcoin/regtest/wallets
+2022-10-02T17:23:14Z init message: Verifying wallet(s)…
+2022-10-02T17:23:14Z Using /16 prefix for IP bucketing
+2022-10-02T17:23:14Z init message: Loading P2P addresses…
+2022-10-02T17:23:14Z Loaded 0 addresses from peers.dat  1ms
+2022-10-02T17:23:14Z init message: Loading banlist…
+2022-10-02T17:23:14Z SetNetworkActive: true
+2022-10-02T17:23:14Z Failed to read fee estimates from /home/bitcoin/.bitcoin/regtest/fee_estimates.dat. Continue anyway.
+2022-10-02T17:23:14Z Cache configuration:
+2022-10-02T17:23:14Z * Using 2.0 MiB for block index database
+2022-10-02T17:23:14Z * Using 8.0 MiB for chain state database
+2022-10-02T17:23:14Z * Using 440.0 MiB for in-memory UTXO set (plus up to 286.1 MiB of unused mempool space)
+2022-10-02T17:23:14Z init message: Loading block index…
+2022-10-02T17:23:14Z Switching active chainstate to Chainstate [ibd] @ height -1 (null)
+2022-10-02T17:23:14Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/blocks/index
+2022-10-02T17:23:14Z Opened LevelDB successfully
+2022-10-02T17:23:14Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/blocks/index: 0000000000000000
+2022-10-02T17:23:14Z LoadBlockIndexDB: last block file = 0
+2022-10-02T17:23:14Z LoadBlockIndexDB: last block file info: CBlockFileInfo(blocks=0, size=0, heights=0...0, time=1970-01-01...1970-01-01)
+2022-10-02T17:23:14Z Checking all blk files are present...
+2022-10-02T17:23:14Z Initializing databases...
+2022-10-02T17:23:14Z Opening LevelDB in /home/bitcoin/.bitcoin/regtest/chainstate
+2022-10-02T17:23:14Z Opened LevelDB successfully
+2022-10-02T17:23:14Z Using obfuscation key for /home/bitcoin/.bitcoin/regtest/chainstate: f39ccbad3b4e8613
+2022-10-02T17:23:14Z init message: Verifying blocks…
+2022-10-02T17:23:14Z  block index              32ms
+2022-10-02T17:23:14Z loadblk thread start
+2022-10-02T17:23:14Z UpdateTip: new best=0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206 height=0 version=0x00000001 log2_work=1.000000 tx=1 date='2011-02-02T23:16:42Z' progress=1.000000 cache=0.0MiB(0txo)
+2022-10-02T17:23:14Z block tree size = 1
+2022-10-02T17:23:14Z nBestHeight = 0
+2022-10-02T17:23:14Z Failed to open mempool file from disk. Continuing anyway.
+2022-10-02T17:23:14Z loadblk thread exit
+2022-10-02T17:23:14Z Bound to 127.0.0.1:18445
+2022-10-02T17:23:14Z torcontrol thread start
+2022-10-02T17:23:14Z Bound to [::]:18444
+2022-10-02T17:23:14Z Bound to 0.0.0.0:18444
+2022-10-02T17:23:14Z 0 block-relay-only anchors will be tried for connections.
+2022-10-02T17:23:14Z init message: Starting network threads…
+2022-10-02T17:23:14Z net thread start
+2022-10-02T17:23:14Z dnsseed thread start
+2022-10-02T17:23:14Z Loading addresses from DNS seed dummySeed.invalid.
+2022-10-02T17:23:14Z init message: Done loading
+2022-10-02T17:23:14Z addcon thread start
+2022-10-02T17:23:14Z msghand thread start
+2022-10-02T17:23:14Z opencon thread start
+2022-10-02T17:23:14Z 0 addresses found from DNS seeds
+2022-10-02T17:23:14Z dnsseed thread exit

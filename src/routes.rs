@@ -1,59 +1,94 @@
-use rocket::fairing::{Fairing, Info, Kind};
-use rocket::fs::{relative, FileServer};
-use rocket::http::Header;
-use rocket::tokio::sync::{mpsc, oneshot};
+use crate::env::check_env;
+use crate::logs::{get_log_tx, LogChans, LOGS};
+use fairing::{Fairing, Info, Kind};
+use fs::{relative, FileServer};
+use response::stream::{Event, EventStream};
+use rocket::serde::json::json;
 use rocket::*;
+use std::sync::Arc;
+use tokio::sync::{broadcast::error::RecvError, mpsc, oneshot, Mutex};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub struct Channel {
-    pub sequence: u16,
-    pub sender: mpsc::Sender<ChannelRequest>,
-}
-
 /// Responses are received on the oneshot sender
 #[derive(Debug)]
-pub struct ChannelRequest {
-    pub topic: String,
-    pub message: Vec<u8>,
-    pub reply_tx: oneshot::Sender<ChannelReply>,
+pub struct CmdRequest {
+    pub tag: String,
+    pub message: String,
+    pub reply_tx: oneshot::Sender<String>,
 }
-impl ChannelRequest {
-    pub fn new(topic: &str, message: Vec<u8>) -> (Self, oneshot::Receiver<ChannelReply>) {
+impl CmdRequest {
+    pub fn new(tag: &str, message: &str) -> (Self, oneshot::Receiver<String>) {
         let (reply_tx, reply_rx) = oneshot::channel();
-        let cr = ChannelRequest {
-            topic: topic.to_string(),
-            message,
+        let cr = CmdRequest {
+            tag: tag.to_string(),
+            message: message.to_string(),
             reply_tx,
         };
         (cr, reply_rx)
     }
 }
 
-// mpsc reply
-#[derive(Debug)]
-pub struct ChannelReply {
-    pub reply: Vec<u8>,
-}
-
-#[post("/control?<msg>")]
-pub async fn control(sender: &State<mpsc::Sender<ChannelRequest>>, msg: &str) -> Result<String> {
-    let message = hex::decode(msg)?;
-    let (request, reply_rx) = ChannelRequest::new("ASDF", message);
+#[get("/cmd?<tag>&<txt>")]
+pub async fn cmd(sender: &State<mpsc::Sender<CmdRequest>>, tag: &str, txt: &str) -> Result<String> {
+    let final_txt = check_env(tag, txt).await;
+    let (request, reply_rx) = CmdRequest::new(tag, &final_txt);
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    Ok(hex::encode(reply.reply).to_string())
+    Ok(transform_reply(&reply))
 }
 
-pub async fn launch_rocket(tx: mpsc::Sender<ChannelRequest>) -> Result<Rocket<Ignite>> {
+fn transform_reply(reply: &str) -> String {
+    let no_exec = "OCI runtime exec failed: exec failed: unable to start container process: exec:";
+    if reply.starts_with(no_exec) {
+        return reply.replace(no_exec, "").to_string();
+    }
+    reply.to_string()
+}
+
+#[get("/logs?<tag>")]
+async fn logs(tag: &str) -> Result<String> {
+    let lgs = LOGS.lock().await;
+    let ret = lgs.get(tag).unwrap_or(&Vec::new()).clone();
+    Ok(json!(ret).to_string())
+}
+
+#[get("/logstream?<tag>")]
+async fn logstream(
+    log_txs: &State<Arc<Mutex<LogChans>>>,
+    mut end: Shutdown,
+    tag: &str,
+) -> EventStream![] {
+    let log_tx = get_log_tx(tag, log_txs).await;
+    let mut rx = log_tx.subscribe();
+    EventStream! {
+        loop {
+            let msg = tokio::select! {
+                msg = rx.recv() => match msg {
+                    Ok(lo) => lo,
+                    Err(RecvError::Closed) => break,
+                    Err(RecvError::Lagged(_)) => continue,
+                },
+                _ = &mut end => break,
+            };
+
+            yield Event::json(&msg);
+        }
+    }
+}
+
+pub async fn launch_rocket(
+    tx: mpsc::Sender<CmdRequest>,
+    log_txs: Arc<Mutex<LogChans>>,
+) -> Result<Rocket<Ignite>> {
     Ok(rocket::build()
         .mount("/", FileServer::from(relative!("app/public")))
-        .mount("/api/", routes![control])
+        .mount("/api/", routes![cmd, logstream, logs])
         .attach(CORS)
         .manage(tx)
+        .manage(log_txs)
         .launch()
         .await?)
-    // .manage(error_tx)
 }
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -92,12 +127,15 @@ impl Fairing for CORS {
     }
 
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
-        response.set_header(Header::new(
+        response.set_header(http::Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(http::Header::new(
             "Access-Control-Allow-Methods",
             "POST, GET, PATCH, OPTIONS",
         ));
-        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+        response.set_header(http::Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(http::Header::new(
+            "Access-Control-Allow-Credentials",
+            "true",
+        ));
     }
 }

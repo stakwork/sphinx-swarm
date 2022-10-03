@@ -1,10 +1,10 @@
-mod api;
+pub mod dock;
+mod env;
 mod images;
+mod logs;
 mod modes;
 mod routes;
 mod utils;
-
-use bollard::Docker;
 
 #[rocket::main]
 async fn main() {
@@ -17,12 +17,13 @@ async fn main() {
         .with_module_level("_", log::LevelFilter::Error)
         .init()
         .unwrap();
-    let docker = Docker::connect_with_socket_defaults().unwrap();
     let mode = std::env::args().nth(1).expect("no mode given");
 
+    let d = dock::er();
     match match mode.as_str() {
-        "demo" => modes::demo::run(&docker).await,
-        "down" => modes::down::run(&docker).await,
+        "demo" => modes::demo::run(d).await,
+        "down" => modes::down::run(d).await,
+        "test" => modes::test::run(d).await,
         _ => panic!("invalid mode"),
     } {
         Ok(_) => (),
