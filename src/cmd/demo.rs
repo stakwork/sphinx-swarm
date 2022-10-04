@@ -36,7 +36,8 @@ pub async fn run(docker: Docker) -> Result<()> {
     let mut log_txs = logs::new_log_chans();
     for (tag, i) in NODES.iter() {
         let name = format!("cln{}", i);
-        let cln1 = images::cln_vls(&name, *i as u16, vec!["bitcoind"], network);
+        let index = (*i as u16) * 3u16;
+        let cln1 = images::cln_vls(&name, index, vec!["bitcoind"], network);
         let id = create_and_start(&docker, cln1).await?;
         id_map.insert(tag, id);
         // streaming logs

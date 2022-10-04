@@ -58,10 +58,12 @@ export async function get_logs(tag) {
 }
 
 export function logstream(tag) {
-  subscribe(`${root}/logstream?tag=${tag}`);
+  subscribe(`${root}/logstream?tag=${tag}`, (msg) => {
+    logs.update((r) => [msg, ...r]);
+  });
 }
 
-function subscribe(uri: string) {
+function subscribe(uri: string, cb: (string) => void) {
   var retryTime = 1;
 
   function connect(uri) {
@@ -70,7 +72,7 @@ function subscribe(uri: string) {
     events.addEventListener("message", (ev) => {
       try {
         console.log(ev.data);
-        logs.update((r) => [...r, ev.data]);
+        cb(ev.data);
       } catch (e) {
         console.log("could parse incoming msg", e);
       }
