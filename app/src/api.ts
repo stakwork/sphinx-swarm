@@ -1,3 +1,4 @@
+import { strip } from "ansicolor";
 import { writable, get, derived } from "svelte/store";
 
 export const rez = writable<string[]>([]);
@@ -63,14 +64,15 @@ export async function get_logs(tag) {
   const r = await fetch(`${root}/logs?tag=${tag}`);
   const lg = await r.json();
   if (Array.isArray(lg)) {
-    logs.set(lg.reverse());
+    let cleanlogs = lg.map((l) => strip(l).trim());
+    logs.set(cleanlogs.reverse());
   }
   return lg;
 }
 
 export function logstream(tag) {
   subscribe(`${root}/logstream?tag=${tag}`, (msg) => {
-    logs.update((r) => [msg.trim(), ...r]);
+    logs.update((r) => [strip(msg), ...r]);
   });
 }
 
@@ -82,7 +84,8 @@ function subscribe(uri: string, cb: (string) => void) {
 
     events.addEventListener("message", (ev) => {
       try {
-        cb(clean_incoming(ev.data));
+        let dat = JSON.parse(ev.data);
+        cb(dat.trim());
       } catch (e) {
         console.log("could parse incoming msg", e);
       }
@@ -103,18 +106,4 @@ function subscribe(uri: string, cb: (string) => void) {
   }
 
   connect(uri);
-}
-
-function clean_incoming(s: string): string {
-  let ret = s;
-  if (s.startsWith('"') && s.endsWith('"')) {
-    ret = s
-      .substring(1) // remove first "
-      .substring(0, s.length - 2) // remove last "
-      .trim(); // remove \n
-  }
-  if (ret.endsWith("\\n")) {
-    ret = ret.substring(0, ret.length - 2); // remove escaped newline
-  }
-  return ret;
 }

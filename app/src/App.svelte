@@ -2,6 +2,7 @@
   import { rez, send_cmd, logs, info } from "./api";
   import Btn from "./Btn.svelte";
   import { cmds } from "./cmds";
+  import Cmd from "./Cmd.svelte";
 
   function send(txt: string) {
     if (txt === "clear\n") {
@@ -37,8 +38,8 @@
 <section>
   <h5>Terminal</h5>
   <p>
-    {#each $rez as cmd}
-      <div class="log">{cmd}</div>
+    {#each $rez as term}
+      <div class="log">{term}</div>
     {/each}
   </p>
   <div class="txt-wrap">
@@ -55,13 +56,13 @@
   <section class="help-section">
     <h5>Node info</h5>
     <div class="break" />
-    <div class="info">Peering Address: <span>{$info.peering}</span></div>
-    <div class="info">MQTT Broker: <span>{$info.broker}</span></div>
+    <Cmd label="Peering Address:" cmd={$info.peering} />
+    <Cmd label="MQTT Broker:" cmd={$info.broker} />
     <div class="break" />
     <h5>Command Examples</h5>
     <div class="break" />
     {#each cmds as cmd}
-      <div class="info cli">{cmd}</div>
+      <Cmd {cmd} />
     {/each}
   </section>
 {/if}
@@ -153,19 +154,6 @@
     align-items: flex-start;
     justify-content: flex-start;
     padding: 0.1rem 1rem;
-  }
-  .info {
-    margin: 0.25rem 0;
-    color: #7f7f7f;
-    font-size: 13px;
-  }
-  .cli {
-    color: #ddd;
-    margin-bottom: 0.5rem;
-  }
-  .info span {
-    font-weight: bold;
-    color: white;
   }
   .break {
     height: 1rem;
