@@ -1,17 +1,16 @@
 <script>
   import App from "./App.svelte";
-  import { nodes, tag, login } from "./api";
+  import { tag, login } from "./api";
 
   let ctag = "";
   async function keypress(e) {
     if (e.key === "Enter") {
-      console.log(ctag);
       if (!(await login(ctag))) {
         console.error("invalid password");
       }
     }
   }
-  $: console.log($nodes);
+  // $: console.log($nodes);
 </script>
 
 <main>
@@ -25,7 +24,6 @@
 <style>
   main {
     background: black;
-    padding: 1em 0.5rem;
     position: fixed;
     top: 0;
     left: 0;

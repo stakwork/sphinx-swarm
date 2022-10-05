@@ -1,5 +1,5 @@
 use crate::routes::CmdRequest;
-use crate::{dock::*, images, logs, routes};
+use crate::{dock::*, env, images, logs, routes};
 use anyhow::Result;
 use base58::ToBase58;
 use bollard::Docker;
@@ -17,7 +17,8 @@ const N: u8 = 1;
 static NODES: Lazy<HashMap<String, u8>> = Lazy::new(|| {
     let mut n = HashMap::new();
     for i in 1..1 + N {
-        n.insert(smallhash(&i), i);
+        let idx = i * 3;
+        n.insert(smallhash(&idx), idx);
     }
     write_nodes_file(&n);
     n
@@ -36,10 +37,11 @@ pub async fn run(docker: Docker) -> Result<()> {
     let mut log_txs = logs::new_log_chans();
     for (tag, i) in NODES.iter() {
         let name = format!("cln{}", i);
-        let index = (*i as u16) * 3u16;
-        let cln1 = images::cln_vls(&name, index, vec!["bitcoind"], network);
+        let cln1 = images::cln_vls(&name, *i as u16, vec!["bitcoind"], network);
         let id = create_and_start(&docker, cln1).await?;
         id_map.insert(tag, id);
+        // add in default env var $CLN
+        env::add_to_env(tag, "CLN", &format!("lightning-cli --network={}", network)).await;
         // streaming logs
         let mut stream = logs_stream(&docker, &name);
         let (log_tx, _) = broadcast::channel(1000);

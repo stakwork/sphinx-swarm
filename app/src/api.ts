@@ -1,4 +1,4 @@
-import { writable, get } from "svelte/store";
+import { writable, get, derived } from "svelte/store";
 
 export const rez = writable<string[]>([]);
 
@@ -10,8 +10,19 @@ export const tag = writable<string>("");
 
 export const connected = writable<boolean>(false);
 
+export const info = derived([nodes, tag], ([$nodes, $tag]) => {
+  let idx = $nodes[$tag];
+  return {
+    peering: `cln${idx}:${9735 + idx}`,
+    broker: `${IP}:${1883 + idx}`,
+    control: 5000 + idx,
+    grpc: 10019 + idx,
+  };
+});
+
 const IS_DEV = window.location.host === "localhost:8080";
-const DEV_TAG = "2kuKw8";
+const DEV_TAG = "2rN4H3";
+const IP = "IP";
 
 let root = "/api";
 if (IS_DEV) {
@@ -59,7 +70,7 @@ export async function get_logs(tag) {
 
 export function logstream(tag) {
   subscribe(`${root}/logstream?tag=${tag}`, (msg) => {
-    logs.update((r) => [msg, ...r]);
+    logs.update((r) => [msg.trim(), ...r]);
   });
 }
 
@@ -71,8 +82,7 @@ function subscribe(uri: string, cb: (string) => void) {
 
     events.addEventListener("message", (ev) => {
       try {
-        console.log(ev.data);
-        cb(ev.data);
+        cb(clean_incoming(ev.data));
       } catch (e) {
         console.log("could parse incoming msg", e);
       }
@@ -93,4 +103,18 @@ function subscribe(uri: string, cb: (string) => void) {
   }
 
   connect(uri);
+}
+
+function clean_incoming(s: string): string {
+  let ret = s;
+  if (s.startsWith('"') && s.endsWith('"')) {
+    ret = s
+      .substring(1) // remove first "
+      .substring(0, s.length - 2) // remove last "
+      .trim(); // remove \n
+  }
+  if (ret.endsWith("\\n")) {
+    ret = ret.substring(0, ret.length - 2); // remove escaped newline
+  }
+  return ret;
 }

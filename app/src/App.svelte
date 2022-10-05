@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { rez, send_cmd, logs } from "./api";
+  import { rez, send_cmd, logs, info } from "./api";
+  import Btn from "./Btn.svelte";
+  import { cmds } from "./cmds";
 
   function send(txt: string) {
     if (txt === "clear\n") {
@@ -20,6 +22,8 @@
       }, 1);
     }
   }
+
+  let help = false;
 </script>
 
 <section>
@@ -47,22 +51,45 @@
     <span>$</span>
   </div>
 </section>
+{#if help}
+  <section class="help-section">
+    <h5>Node info</h5>
+    <div class="break" />
+    <div class="info">Peering Address: <span>{$info.peering}</span></div>
+    <div class="info">MQTT Broker: <span>{$info.broker}</span></div>
+    <div class="break" />
+    <h5>Command Examples</h5>
+    <div class="break" />
+    {#each cmds as cmd}
+      <div class="info cli">{cmd}</div>
+    {/each}
+  </section>
+{/if}
+
+<Btn
+  content={help ? "X" : "</>"}
+  style="position:absolute;top:3px;right:1rem;"
+  on:click={() => (help = !help)}
+/>
 
 <style>
   section {
     height: 100vh;
-    width: 50%;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    margin: 0 0.4rem;
+    margin: 1rem;
+  }
+  section:first-child {
+    margin-right: 0;
   }
   h5 {
     color: grey;
     text-transform: uppercase;
     font-size: 1em;
-    font-weight: 200;
+    font-weight: 300;
     margin: 0;
     width: 100%;
     margin-top: 5px;
@@ -106,7 +133,7 @@
   .txt-wrap {
     border: 1px solid white;
     border-radius: 2px;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.86rem;
     width: 100%;
     height: 100%;
     max-height: 100px;
@@ -118,5 +145,29 @@
     left: 8px;
     top: 7px;
     color: white;
+  }
+  .help-section {
+    margin: 0;
+    border-left: 1px solid white;
+    background: rgb(34, 34, 54);
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0.1rem 1rem;
+  }
+  .info {
+    margin: 0.25rem 0;
+    color: #7f7f7f;
+    font-size: 13px;
+  }
+  .cli {
+    color: #ddd;
+    margin-bottom: 0.5rem;
+  }
+  .info span {
+    font-weight: bold;
+    color: white;
+  }
+  .break {
+    height: 1rem;
   }
 </style>

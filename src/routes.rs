@@ -31,7 +31,11 @@ impl CmdRequest {
 
 #[get("/cmd?<tag>&<txt>")]
 pub async fn cmd(sender: &State<mpsc::Sender<CmdRequest>>, tag: &str, txt: &str) -> Result<String> {
-    let final_txt = check_env(tag, txt).await;
+    let (final_txt, skip) = check_env(tag, txt).await;
+    if skip {
+        // dont process the "export" cmd
+        return Ok("".to_string());
+    }
     let (request, reply_rx) = CmdRequest::new(tag, &final_txt);
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
