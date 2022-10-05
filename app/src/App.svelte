@@ -3,6 +3,12 @@
   import Btn from "./Btn.svelte";
   import { cmds } from "./cmds";
   import Cmd from "./Cmd.svelte";
+  import { onMount } from "svelte";
+
+  let textarea;
+  onMount(function () {
+    textarea.focus();
+  });
 
   function send(txt: string) {
     if (txt === "clear\n") {
@@ -44,7 +50,7 @@
   </p>
   <div class="txt-wrap">
     <textarea
-      autofocus
+      bind:this={textarea}
       bind:value={txt}
       on:keypress={keypress}
       placeholder="Type commands here"
