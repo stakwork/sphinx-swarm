@@ -13,7 +13,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::sync::Arc;
 
-const N: u8 = 1;
+const N: u8 = 6;
 static NODES: Lazy<HashMap<String, u8>> = Lazy::new(|| {
     let mut n = HashMap::new();
     for i in 1..1 + N {
@@ -92,9 +92,9 @@ fn write_nodes_file(n: &HashMap<String, u8>) {
     file.write_all(st.as_bytes()).expect("write failed");
 }
 
-// first 4 bytes of hash
+// first 2 bytes of hash
 fn smallhash<T: Hash>(t: &T) -> String {
-    do_hash(&t)[..4].to_vec().to_base58()
+    do_hash(&t)[..2].to_vec().to_base58()
 }
 fn do_hash<T: Hash>(t: &T) -> [u8; 8] {
     let mut s = DefaultHasher::new();

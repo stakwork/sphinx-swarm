@@ -22,8 +22,8 @@ export const info = derived([nodes, tag], ([$nodes, $tag]) => {
 });
 
 const IS_DEV = window.location.host === "localhost:8080";
-const DEV_TAG = "2rN4H3";
-const IP = "IP";
+const DEV_TAG = "sphinx-6We";
+const IP = "44.211.127.45";
 
 let root = "/api";
 if (IS_DEV) {
@@ -49,7 +49,10 @@ fetch(`nodes.json`)
     if (IS_DEV) login(DEV_TAG);
   });
 
-export async function login(n): Promise<boolean> {
+export async function login(nn: string): Promise<boolean> {
+  if (!nn.includes("-")) return false;
+  const n = nn.split("-")[1];
+  if (!n) return false;
   const current_nodes = get(nodes);
   if (current_nodes[n]) {
     tag.set(n);

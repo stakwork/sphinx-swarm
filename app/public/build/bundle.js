@@ -1206,8 +1206,8 @@ var app = (function () {
         };
     });
     const IS_DEV = window.location.host === "localhost:8080";
-    const DEV_TAG = "2rN4H3";
-    const IP = "IP";
+    const DEV_TAG = "sphinx-6We";
+    const IP = "44.211.127.45";
     let root = "/api";
     if (IS_DEV) {
         root = "http://localhost:8000/api";
@@ -1231,7 +1231,12 @@ var app = (function () {
         if (IS_DEV)
             login(DEV_TAG);
     });
-    async function login(n) {
+    async function login(nn) {
+        if (!nn.includes("-"))
+            return false;
+        const n = nn.split("-")[1];
+        if (!n)
+            return false;
         const current_nodes = get_store_value(nodes);
         if (current_nodes[n]) {
             tag.set(n);
@@ -1416,7 +1421,7 @@ var app = (function () {
 
     const file$2 = "src/Cmd.svelte";
 
-    // (16:2) {#if label}
+    // (26:2) {#if label}
     function create_if_block$2(ctx) {
     	let span;
     	let t;
@@ -1426,7 +1431,7 @@ var app = (function () {
     			span = element("span");
     			t = text(/*label*/ ctx[0]);
     			attr_dev(span, "class", "svelte-1cjg4lc");
-    			add_location(span, file$2, 15, 13, 324);
+    			add_location(span, file$2, 25, 13, 475);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -1444,7 +1449,7 @@ var app = (function () {
     		block,
     		id: create_if_block$2.name,
     		type: "if",
-    		source: "(16:2) {#if label}",
+    		source: "(26:2) {#if label}",
     		ctx
     	});
 
@@ -1455,6 +1460,7 @@ var app = (function () {
     	let div;
     	let svg;
     	let path;
+    	let svg_style_value;
     	let t0;
     	let t1;
     	let span;
@@ -1474,14 +1480,15 @@ var app = (function () {
     			span = element("span");
     			t2 = text(/*cmd*/ ctx[1]);
     			attr_dev(path, "d", "M22 6v16h-16v-16h16zm2-2h-20v20h20v-20zm-24 17v-21h21v2h-19v19h-2z");
-    			add_location(path, file$2, 11, 4, 212);
+    			add_location(path, file$2, 21, 4, 363);
     			attr_dev(svg, "class", "copy svelte-1cjg4lc");
     			attr_dev(svg, "viewBox", "0 0 24 24");
-    			add_location(svg, file$2, 10, 2, 153);
+    			attr_dev(svg, "style", svg_style_value = `transform:scale(${/*scale*/ ctx[2]},${/*scale*/ ctx[2]})`);
+    			add_location(svg, file$2, 15, 2, 240);
     			attr_dev(span, "class", "svelte-1cjg4lc");
-    			add_location(span, file$2, 16, 2, 352);
+    			add_location(span, file$2, 26, 2, 503);
     			attr_dev(div, "class", "cmd svelte-1cjg4lc");
-    			add_location(div, file$2, 9, 0, 133);
+    			add_location(div, file$2, 14, 0, 220);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1497,11 +1504,15 @@ var app = (function () {
     			append_dev(span, t2);
 
     			if (!mounted) {
-    				dispose = listen_dev(svg, "click", /*copy*/ ctx[2], false, false, false);
+    				dispose = listen_dev(svg, "click", /*copy*/ ctx[3], false, false, false);
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
+    			if (dirty & /*scale*/ 4 && svg_style_value !== (svg_style_value = `transform:scale(${/*scale*/ ctx[2]},${/*scale*/ ctx[2]})`)) {
+    				attr_dev(svg, "style", svg_style_value);
+    			}
+
     			if (/*label*/ ctx[0]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
@@ -1543,9 +1554,18 @@ var app = (function () {
     	validate_slots('Cmd', slots, []);
     	let { label = "" } = $$props;
     	let { cmd = "" } = $$props;
+    	let scale = 1;
 
     	function copy() {
+    		$$invalidate(2, scale = 1.4);
     		navigator.clipboard.writeText(cmd);
+
+    		setTimeout(
+    			() => {
+    				$$invalidate(2, scale = 1);
+    			},
+    			101
+    		);
     	}
 
     	const writable_props = ['label', 'cmd'];
@@ -1559,18 +1579,19 @@ var app = (function () {
     		if ('cmd' in $$props) $$invalidate(1, cmd = $$props.cmd);
     	};
 
-    	$$self.$capture_state = () => ({ label, cmd, copy });
+    	$$self.$capture_state = () => ({ label, cmd, scale, copy });
 
     	$$self.$inject_state = $$props => {
     		if ('label' in $$props) $$invalidate(0, label = $$props.label);
     		if ('cmd' in $$props) $$invalidate(1, cmd = $$props.cmd);
+    		if ('scale' in $$props) $$invalidate(2, scale = $$props.scale);
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [label, cmd, copy];
+    	return [label, cmd, scale, copy];
     }
 
     class Cmd extends SvelteComponentDev {
