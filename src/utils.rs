@@ -1,4 +1,6 @@
-use bollard_stubs::models::{HostConfig, PortBinding, PortMap};
+use bollard::container::NetworkingConfig;
+use bollard::network::CreateNetworkOptions;
+use bollard_stubs::models::{EndpointSettings, HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
 use std::collections::HashMap;
 
 pub fn host_config(
@@ -10,7 +12,7 @@ pub fn host_config(
     let mut c = HostConfig {
         binds: volumes(name, vols),
         port_bindings: host_port(ports),
-        extra_hosts: Some(vec!["host.docker.internal:127.17.0.1".to_string()]),
+        extra_hosts: Some(vec!["host.docker.internal:host-gateway".to_string()]),
         ..Default::default()
     };
     if let Some(ls) = links {
@@ -54,4 +56,39 @@ fn host_port(ports_in: Vec<&str>) -> Option<PortMap> {
         );
     }
     Some(ports)
+}
+
+pub fn _bridge_network() -> CreateNetworkOptions<String> {
+    CreateNetworkOptions {
+        name: _NET.to_string(),
+        driver: "bridge".to_string(),
+        ipam: Ipam {
+            driver: Some("default".to_string()),
+            config: Some(vec![IpamConfig {
+                subnet: Some("172.17.0.0/16".to_string()),
+                gateway: Some("172.17.0.1".to_string()),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
+pub const _NET: &str = "bridge";
+
+pub fn _net_config(alias: &str, idx: u8) -> Option<NetworkingConfig<String>> {
+    println!("{:?}", idx.to_be_bytes());
+    let mac_end = hex::encode(idx.to_be_bytes());
+    let mut endpoints_config = HashMap::new();
+    endpoints_config.insert(
+        _NET.to_string(),
+        EndpointSettings {
+            ip_address: Some(format!("172.17.0.{}/16", idx)),
+            mac_address: Some(format!("02:42:ac:11:00:{}", mac_end)),
+            aliases: Some(vec![alias.to_string()]),
+            ..Default::default() // links=['container2']
+        },
+    );
+    Some(NetworkingConfig { endpoints_config })
 }
