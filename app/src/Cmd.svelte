@@ -40,7 +40,7 @@
   .cmd {
     margin: 0.25rem 0;
     color: #7f7f7f;
-    font-size: 13px;
+    font-size: 16px;
     margin-bottom: 0.5rem;
   }
   .cmd span:last-child {

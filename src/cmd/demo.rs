@@ -42,6 +42,7 @@ pub async fn run(docker: Docker) -> Result<()> {
         id_map.insert(tag, id);
         // add in default env var $CLN
         env::add_to_env(tag, "CLN", &format!("lightning-cli --network={}", network)).await;
+        env::add_to_env(tag, "HOST", "host.docker.internal").await;
         // streaming logs
         let mut stream = logs_stream(&docker, &name);
         let (log_tx, _) = broadcast::channel(1000);

@@ -14,7 +14,7 @@ export const connected = writable<boolean>(false);
 export const info = derived([nodes, tag], ([$nodes, $tag]) => {
   let idx = $nodes[$tag];
   return {
-    peering: `cln${idx}:${9735 + idx}`,
+    peering: `${9735 + idx}`,
     broker: `${IP}:${1883 + idx}`,
     control: 5000 + idx,
     grpc: 10019 + idx,

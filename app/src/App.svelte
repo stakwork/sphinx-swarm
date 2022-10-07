@@ -30,10 +30,10 @@
     }
   }
 
-  let help = false;
+  let help = true;
 </script>
 
-<section>
+<section style={`width:${help ? "38" : "50"}%`}>
   <h5>Core Lightning Logs</h5>
   <p>
     {#each $logs as log}
@@ -41,7 +41,7 @@
     {/each}
   </p>
 </section>
-<section>
+<section style={`width:${help ? "38" : "50"}%`}>
   <h5>Terminal</h5>
   <p>
     {#each $rez as term}
@@ -62,7 +62,7 @@
   <section class="help-section">
     <h5>Node info</h5>
     <div class="break" />
-    <Cmd label="Peering Address:" cmd={$info.peering} />
+    <Cmd label="Peering Port:" cmd={$info.peering} />
     <Cmd label="MQTT Broker:" cmd={$info.broker} />
     <div class="break" />
     <h5>Command Examples</h5>
@@ -111,7 +111,7 @@
     outline: none;
     color: white;
     font-family: Courier, sans-serif;
-    font-size: 17px;
+    font-size: 20px;
     resize: none;
     background: rgb(34, 34, 54);
   }
@@ -124,7 +124,7 @@
     background: rgb(34, 34, 54);
     color: #ddd;
     font-family: Courier, sans-serif;
-    font-size: 14px;
+    font-size: 17px;
     display: flex;
     flex-direction: column-reverse;
     align-items: center;
@@ -134,7 +134,7 @@
     text-align: left;
     padding: 2px 5px;
     width: 100%;
-    font-size: 14px;
+    font-size: 17px;
     margin: 1px 0;
   }
   .txt-wrap {
@@ -150,7 +150,7 @@
   .txt-wrap span {
     position: absolute;
     left: 8px;
-    top: 7px;
+    top: 10px;
     color: white;
   }
   .help-section {
@@ -160,6 +160,7 @@
     align-items: flex-start;
     justify-content: flex-start;
     padding: 0.1rem 1rem;
+    width: 24%;
   }
   .break {
     height: 1rem;

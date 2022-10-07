@@ -1,6 +1,9 @@
 export const cmds = [
   "$CLN getinfo",
   "$CLN newaddr",
-  "export FRIEND_PUBKEY=xxx",
-  "$CLN connect $FRIEND_PUBKEY cln3 9738",
+  "export PUBKEY=***",
+  "$CLN connect $PUBKEY $HOST 9738",
+  "$CLN fundchannel $CHAN_ID 100000",
+  "$CLN keysend $PUBKEY 1000",
+  "$CLN listfunds",
 ];
