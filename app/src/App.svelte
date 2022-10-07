@@ -45,7 +45,7 @@
   <h5>Terminal</h5>
   <p>
     {#each $rez as term}
-      <div class="log">{term}</div>
+      <pre class="log">{term}</pre>
     {/each}
   </p>
   <div class="txt-wrap">

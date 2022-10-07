@@ -35,18 +35,35 @@ export async function send_cmd(txt: string) {
   if (!ctag) return console.error("not logged in");
   const r = await fetch(`${root}/cmd?txt=${txt}&tag=${ctag}`);
   const newtxt = await r.text();
-  const txts = newtxt.split("\n").filter((a) => a);
-  if (txts.length) {
-    rez.update((r) => [...txts, ...r]);
+  console.log(newtxt);
+  if (newtxt.startsWith("{")) {
+    rez.update((r) => [newtxt, ...r]);
+  } else {
+    const txts = newtxt.split("\n").filter((a) => a);
+    if (txts.length) {
+      rez.update((r) => [...txts.reverse(), ...r]);
+    }
   }
   return newtxt;
 }
 
+function getParams() {
+  const ps = new URLSearchParams(window.location.search);
+  const r: { [k: string]: any } = {};
+  for (const [k, v] of ps) {
+    r[k] = v;
+  }
+  return r;
+}
 fetch(`nodes.json`)
   .then((r) => r.json())
   .then((data) => {
     nodes.set(data);
-    if (IS_DEV) login(DEV_TAG);
+    let params = getParams();
+    if (params.pwd && IS_DEV) {
+      login(`sphinx-${params.pwd}`);
+    }
+    // if (IS_DEV) login(DEV_TAG);
   });
 
 export async function login(nn: string): Promise<boolean> {

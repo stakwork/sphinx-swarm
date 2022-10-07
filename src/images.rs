@@ -58,6 +58,7 @@ pub fn cln_vls(name: &str, idx: u16, links: Vec<&str>, network: &str) -> Config<
     Config {
         image: Some(format!("sphinxlightning/sphinx-cln-vls:{}", version)),
         hostname: Some(name.to_string()),
+        domainname: Some(name.to_string()),
         cmd: Some(vec![
             format!("--alias=sphinx-{}", name),
             format!("--addr=0.0.0.0:{}", ps.main),
