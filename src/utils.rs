@@ -1,6 +1,6 @@
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
-use bollard_stubs::models::{EndpointSettings, HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
+use bollard_stubs::models::{HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
 use std::collections::HashMap;
 
 pub fn host_config(
@@ -58,15 +58,17 @@ fn host_port(ports_in: Vec<&str>) -> Option<PortMap> {
     Some(ports)
 }
 
-pub fn _bridge_network() -> CreateNetworkOptions<String> {
+pub fn _custom_network() -> CreateNetworkOptions<String> {
     CreateNetworkOptions {
         name: _NET.to_string(),
-        driver: "bridge".to_string(),
+        driver: "default".to_string(),
+        attachable: true,
         ipam: Ipam {
             driver: Some("default".to_string()),
             config: Some(vec![IpamConfig {
-                subnet: Some("172.17.0.0/16".to_string()),
-                gateway: Some("172.17.0.1".to_string()),
+                subnet: Some("172.18.0.0/16".to_string()),
+                gateway: Some("172.18.0.1".to_string()),
+                ip_range: Some("172.18.5.0/24".to_string()),
                 ..Default::default()
             }]),
             ..Default::default()
@@ -75,20 +77,10 @@ pub fn _bridge_network() -> CreateNetworkOptions<String> {
     }
 }
 
-pub const _NET: &str = "bridge";
+pub const _NET: &str = "network1";
 
-pub fn _net_config(alias: &str, idx: u8) -> Option<NetworkingConfig<String>> {
-    println!("{:?}", idx.to_be_bytes());
-    let mac_end = hex::encode(idx.to_be_bytes());
+pub fn _net_config() -> Option<NetworkingConfig<String>> {
     let mut endpoints_config = HashMap::new();
-    endpoints_config.insert(
-        _NET.to_string(),
-        EndpointSettings {
-            ip_address: Some(format!("172.17.0.{}/16", idx)),
-            mac_address: Some(format!("02:42:ac:11:00:{}", mac_end)),
-            aliases: Some(vec![alias.to_string()]),
-            ..Default::default() // links=['container2']
-        },
-    );
+    endpoints_config.insert(_NET.to_string(), Default::default());
     Some(NetworkingConfig { endpoints_config })
 }
