@@ -10,6 +10,7 @@ pub fn host_config(
     let mut c = HostConfig {
         binds: volumes(name, vols),
         port_bindings: host_port(ports),
+        extra_hosts: Some(vec!["host.docker.internal:127.17.0.1".to_string()]),
         ..Default::default()
     };
     if let Some(ls) = links {

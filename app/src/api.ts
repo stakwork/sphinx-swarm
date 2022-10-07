@@ -60,7 +60,7 @@ fetch(`nodes.json`)
   .then((data) => {
     nodes.set(data);
     let params = getParams();
-    if (params.pwd && IS_DEV) {
+    if (params.pwd) {
       login(`sphinx-${params.pwd}`);
     }
     // if (IS_DEV) login(DEV_TAG);
