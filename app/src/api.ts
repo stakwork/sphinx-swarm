@@ -15,7 +15,8 @@ export const info = derived([nodes, tag], ([$nodes, $tag]) => {
   let idx = $nodes[$tag];
   return {
     peering: `${9735 + idx}`,
-    broker: `${IP}:${1883 + idx}`,
+    broker_ip: `${IP}`,
+    broker_port: `${1883 + idx}`,
     control: 5000 + idx,
     grpc: 10019 + idx,
   };

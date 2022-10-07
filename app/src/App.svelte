@@ -63,7 +63,8 @@
     <h5>Node info</h5>
     <div class="break" />
     <Cmd label="Peering Port:" cmd={$info.peering} />
-    <Cmd label="MQTT Broker:" cmd={$info.broker} />
+    <Cmd label="MQTT IP:" cmd={$info.broker_ip} />
+    <Cmd label="MQTT Port:" cmd={$info.broker_port} />
     <div class="break" />
     <h5>Command Examples</h5>
     <div class="break" />

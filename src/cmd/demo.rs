@@ -13,7 +13,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::sync::Arc;
 
-const N: u8 = 5;
+const N: u8 = 35;
 static NODES: Lazy<HashMap<String, u8>> = Lazy::new(|| {
     let mut n = HashMap::new();
     for i in 1..1 + N {
