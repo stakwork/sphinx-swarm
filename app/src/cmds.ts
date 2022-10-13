@@ -4,6 +4,6 @@ export const cmds = [
   "export PUBKEY=***",
   "$CLN connect $PUBKEY $HOST 9738",
   "$CLN fundchannel $PUBKEY 100000",
-  "$CLN keysend $PUBKEY 1000000",
+  "$CLN keysend $PUBKEY 10000",
   "$CLN listfunds",
 ];
