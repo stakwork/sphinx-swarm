@@ -45,8 +45,8 @@ fn vls_ports(idx: u16) -> Ports {
 }
 
 pub fn cln_vls(name: &str, idx: u16, links: Vec<&str>, network: &str) -> Config<String> {
-    let version = "0.1.4"; // docker tag
-    let cln_version = "v0.11.0.1-792-g17cc61c";
+    let version = "0.1.5"; // docker tag
+    let cln_version = "v0.11.0.1-793-g243f8e3";
     let ps = vls_ports(idx);
     let ports = vec![
         ps.main.as_str(),
