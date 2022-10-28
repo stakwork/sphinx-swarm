@@ -4,6 +4,36 @@ use bollard::container::Config;
 // ports are tcp
 // volumes are mapped to {PWD}/vol/{name}:
 
+pub fn postgres() -> Config<String> {
+    let name = "postgres";
+    Config {
+        image: Some("postgres".to_string()),
+        hostname: Some(name.to_string()),
+        host_config: host_config(name, vec![], vec![], None),
+        ..Default::default()
+    }
+}
+
+pub fn relay(name: &str) -> Config<String> {
+    let relay_version = "v2.2.10".to_string();
+    Config {
+        image: Some(format!("sphinxlightning/sphinx-relay:{}", relay_version)),
+        hostname: Some(name.to_string()),
+        host_config: host_config(name, vec![], vec![], None),
+        ..Default::default()
+    }
+}
+
+pub fn proxy(name: &str) -> Config<String> {
+    let proxy_version = "v0.1.0".to_string();
+    Config {
+        image: Some(format!("sphinxlightning/sphinx-proxy:{}", proxy_version)),
+        hostname: Some(name.to_string()),
+        host_config: host_config(name, vec![], vec![], None),
+        ..Default::default()
+    }
+}
+
 pub fn btc(name: &str, network: &str) -> Config<String> {
     let btc_version = "23.0";
     let ports = vec!["18443"];
