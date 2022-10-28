@@ -1,5 +1,7 @@
-use crate::routes::CmdRequest;
-use crate::{dock::*, env, images, logs, routes};
+mod routes;
+
+use crate::rocket_utils::*;
+use crate::{dock::*, env, images, logs};
 use anyhow::Result;
 use base58::ToBase58;
 use bollard::Docker;
@@ -74,7 +76,8 @@ pub async fn run(docker: Docker) -> Result<()> {
     });
 
     // launch rocket
-    log::info!("🚀");
+    let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
+    log::info!("🚀 => http://localhost:{}", port);
     let log_txs = Arc::new(Mutex::new(log_txs));
     let _r = routes::launch_rocket(tx.clone(), log_txs).await;
 
@@ -86,7 +89,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     Ok(())
 }
 
-const NODES_FILE_PATH: &str = "app/public/nodes.json";
+const NODES_FILE_PATH: &str = "src/cmd/demo/app/public/nodes.json";
 fn write_nodes_file(n: &HashMap<String, u8>) {
     let st = serde_json::to_string_pretty(n).expect("failed to make json string");
     let mut file = File::create(NODES_FILE_PATH).expect("create failed");

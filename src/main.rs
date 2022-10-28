@@ -4,7 +4,7 @@ mod cmd;
 mod env;
 mod images;
 mod logs;
-mod routes;
+mod rocket_utils;
 mod utils;
 
 #[rocket::main]
@@ -25,6 +25,7 @@ async fn main() {
         "demo" => cmd::demo::run(d).await,
         "down" => cmd::down::run(d).await,
         "test" => cmd::test::run(d).await,
+        "stack" => cmd::stack::run(d).await,
         _ => panic!("invalid cmd"),
     } {
         Ok(_) => (),
