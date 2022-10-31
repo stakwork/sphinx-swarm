@@ -4,13 +4,14 @@ use bollard_stubs::models::{HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
 use std::collections::HashMap;
 
 pub fn host_config(
+    project: &str,
     name: &str,
     ports: Vec<&str>,
     vols: Vec<&str>,
     links: Option<Vec<&str>>,
 ) -> Option<HostConfig> {
     let mut c = HostConfig {
-        binds: volumes(name, vols),
+        binds: volumes(project, name, vols),
         port_bindings: host_port(ports),
         extra_hosts: Some(vec!["host.docker.internal:host-gateway".to_string()]),
         ..Default::default()
@@ -33,11 +34,12 @@ pub fn expose(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
     Some(h)
 }
 
-fn volumes(name: &str, ins: Vec<&str>) -> Option<Vec<String>> {
+// DIR/vol/{project}/{container_name}:{dir}
+fn volumes(project: &str, name: &str, dirs: Vec<&str>) -> Option<Vec<String>> {
     let pwd = std::env::current_dir().unwrap_or_default();
     let mut fulls: Vec<String> = Vec::new();
-    for i in ins {
-        let path = format!("{}/vol/{}:{}", pwd.to_string_lossy(), name, i);
+    for i in dirs {
+        let path = format!("{}/vol/{}/{}:{}", pwd.to_string_lossy(), project, name, i);
         fulls.push(path);
     }
     Some(fulls)
@@ -50,8 +52,8 @@ fn host_port(ports_in: Vec<&str>) -> Option<PortMap> {
             tcp_port(port),
             Some(vec![PortBinding {
                 host_port: Some(port.to_string()),
-                // host_ip: None,
                 host_ip: Some("0.0.0.0".to_string()),
+                // host_ip: None,
             }]),
         );
     }

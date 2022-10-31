@@ -4,7 +4,8 @@ use anyhow::Result;
 use bollard::Docker;
 
 pub async fn run(docker: Docker) -> Result<()> {
-    let btc1 = images::btc("bitcoind", "regtest");
+    let btc_node = images::BtcNode::new("bitcoind", "regtest", "foo", "bar");
+    let btc1 = images::btc("test", &btc_node);
     let _id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
     let logs = container_logs(&docker, "bitcoind").await;

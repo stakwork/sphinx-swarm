@@ -1,5 +1,6 @@
 mod routes;
 
+use crate::images::BtcNode;
 use crate::rocket_utils::*;
 use crate::{dock::*, env, images, logs};
 use anyhow::Result;
@@ -27,10 +28,12 @@ static NODES: Lazy<HashMap<String, u8>> = Lazy::new(|| {
 });
 
 pub async fn run(docker: Docker) -> Result<()> {
+    let proj = "demo";
     let network = "regtest";
 
     // btc setup
-    let btc1 = images::btc("bitcoind", network);
+    let btc_node = BtcNode::new("bitcoind", network, "foo", "bar");
+    let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
@@ -39,7 +42,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let mut log_txs = logs::new_log_chans();
     for (tag, i) in NODES.iter() {
         let name = format!("cln{}", i);
-        let cln1 = images::cln_vls(&name, *i as u16, vec!["bitcoind"], network);
+        let cln1 = images::cln_vls(proj, &name, network, *i as u16, &btc_node);
         let id = create_and_start(&docker, cln1).await?;
         id_map.insert(tag, id);
         // add in default env var $CLN

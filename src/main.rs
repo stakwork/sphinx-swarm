@@ -1,7 +1,9 @@
 pub mod dock;
 
 mod cmd;
+mod config;
 mod env;
+mod grpc;
 mod images;
 mod logs;
 mod rocket_utils;
@@ -15,6 +17,11 @@ async fn main() {
         .with_module_level("want", log::LevelFilter::Off)
         .with_module_level("mio", log::LevelFilter::Off)
         .with_module_level("rocket", log::LevelFilter::Error)
+        .with_module_level("hyper", log::LevelFilter::Error)
+        .with_module_level("tracing", log::LevelFilter::Error)
+        .with_module_level("tokio_util", log::LevelFilter::Error)
+        .with_module_level("tonic", log::LevelFilter::Error)
+        .with_module_level("h2", log::LevelFilter::Error)
         .with_module_level("_", log::LevelFilter::Error)
         .init()
         .unwrap();
