@@ -17,7 +17,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
-    // btc setup
+    // lnd setup
     let http_port = "38881";
     let lnd_node = images::LndNode::new("lnd1", network, "10009", "/root/.lnd");
     let lnd1 = images::lnd(proj, &lnd_node, &btc_node, Some(http_port));
