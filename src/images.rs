@@ -55,7 +55,7 @@ impl RelayNode {
     }
 }
 
-pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode) -> Config<String> {
+pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode, http_port: Option<&str>) -> Config<String> {
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -63,29 +63,33 @@ pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode) -> Config<String> {
         _ => "regtest",
     };
     let version = "v0.14.3-beta.rc1".to_string();
-    let ports = vec!["9735", &lnd.port, "38881"];
+    let mut ports = vec!["9735", &lnd.port];
     let vols = vec!["/root/.lnd"];
+    let mut cmd = vec![
+        format!("--bitcoin.{}", network).to_string(),
+        format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
+        format!("--tlsextradomain={}.sphinx", lnd.name).to_string(),
+        format!("--alias={}", &lnd.name).to_string(),
+        format!("--bitcoind.rpcuser={}", &btc.user).to_string(),
+        format!("--bitcoind.rpcpass={}", &btc.pass).to_string(),
+        format!("--bitcoind.rpchost={}.sphinx", &btc.name).to_string(),
+        format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name).to_string(),
+        format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name).to_string(),
+        "--debuglevel=info".to_string(),
+        "--accept-keysend".to_string(),
+        "--bitcoin.active".to_string(),
+        "--bitcoin.node=bitcoind".to_string(),
+        "--bitcoin.defaultchanconfs=2".to_string(),
+    ];
+    if let Some(hp) = http_port {
+        ports.push(hp);
+        cmd.push(format!("--restlisten=0.0.0.0:{}", hp).to_string());
+    }
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
         hostname: Some(format!("{}.sphinx", &lnd.name)),
         host_config: host_config(project, &lnd.name, ports, vols, None),
-        cmd: Some(vec![
-            format!("--bitcoin.{}", network).to_string(),
-            format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
-            format!("--restlisten=0.0.0.0:38881").to_string(),
-            format!("--tlsextradomain={}.sphinx", lnd.name).to_string(),
-            format!("--alias={}", &lnd.name).to_string(),
-            format!("--bitcoind.rpcuser={}", &btc.user).to_string(),
-            format!("--bitcoind.rpcpass={}", &btc.pass).to_string(),
-            format!("--bitcoind.rpchost={}.sphinx", &btc.name).to_string(),
-            format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name).to_string(),
-            format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name).to_string(),
-            "--debuglevel=info".to_string(),
-            "--accept-keysend".to_string(),
-            "--bitcoin.active".to_string(),
-            "--bitcoin.node=bitcoind".to_string(),
-            "--bitcoin.defaultchanconfs=2".to_string(),
-        ]),
+        cmd: Some(cmd),
         ..Default::default()
     }
 }

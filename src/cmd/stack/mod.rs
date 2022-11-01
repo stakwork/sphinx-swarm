@@ -18,14 +18,14 @@ pub async fn run(docker: Docker) -> Result<()> {
     log::info!("created bitcoind");
 
     // btc setup
+    let http_port = "38881";
     let lnd_node = images::LndNode::new("lnd1", network, "10009", "/root/.lnd");
-    let lnd1 = images::lnd(proj, &lnd_node, &btc_node);
+    let lnd1 = images::lnd(proj, &lnd_node, &btc_node, Some(http_port));
     let lnd_id = create_and_start(&docker, lnd1).await?;
     log::info!("created LND");
 
-    let mut lnd_grpc = grpc::lnd::Lnd::new("10009").await?;
-    let res = lnd_grpc.init_wallet().await?;
-    println!("WALLET INITTED {:?}", res);
+    let unlocker = grpc::lnd::LndUnlocker::new(http_port).await?;
+    let res = unlocker.init_wallet().await?;
 
     let (tx, _rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();

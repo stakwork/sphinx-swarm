@@ -13,7 +13,7 @@ mod utils;
 async fn main() {
     simple_logger::SimpleLogger::new()
         .with_utc_timestamps()
-        .with_module_level("bollard", log::LevelFilter::Off)
+        .with_module_level("bollard", log::LevelFilter::Warn)
         .with_module_level("want", log::LevelFilter::Off)
         .with_module_level("mio", log::LevelFilter::Off)
         .with_module_level("rocket", log::LevelFilter::Error)
