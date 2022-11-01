@@ -3,3 +3,7 @@ vol/*
 !vol/**/.gitkeep
 .DS_Store
 notes.md
+frontend/node_modules
+frontend/.svelte-kit
+frontend/package-lock.json
+.idea
