@@ -1,12 +1,20 @@
 <script lang="ts">
   import { onMount } from "svelte";
+	import { createScene } from "./scene";
+
+  let el;
+
+  onMount(() => {
+    createScene(el)
+  });
+
 </script>
 
-<main>
+<main >
   <header>
     <div class="lefty logo-wrap">Sphinx Stack</div>
   </header>
-  <div class="body">body</div>
+	<canvas bind:this={el}></canvas>
 </main>
 
 <style>
@@ -28,8 +36,16 @@
     align-items: center;
   }
   .body {
-    display: flex;
-    height: 100%;
+  /* tell our scene container to take up the full page */
+  position: absolute;
+  width: 100%;
+  height: 100%;
+
+  /*
+    Set the container's background color to the same as the scene's
+    background to prevent flashing on load
+  */
+  background-color: skyblue;
   }
   .lefty {
     width: 15rem;
