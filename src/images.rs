@@ -59,7 +59,6 @@ pub struct ProxyNode {
     pub network: String,
     pub port: String,
     pub admin_port: String,
-    pub dir: String,
     pub admin_token: String,
     pub store_key: String,
 }
@@ -68,7 +67,6 @@ impl ProxyNode {
         name: &str,
         network: &str,
         port: &str,
-        dir: &str,
         admin_port: &str,
         admin_token: &str,
         store_key: &str,
@@ -77,7 +75,6 @@ impl ProxyNode {
             name: name.to_string(),
             network: network.to_string(),
             port: port.to_string(),
-            dir: dir.to_string(),
             admin_port: admin_port.to_string(),
             admin_token: admin_token.to_string(),
             store_key: store_key.to_string(),
@@ -164,7 +161,7 @@ pub fn relay(
 
 pub fn proxy(project: &str, proxy: &ProxyNode, lnd: &LndNode) -> Config<String> {
     let img = "sphinxlightning/sphinx-proxy";
-    let version = "0.1.1".to_string();
+    let version = "0.1.2".to_string();
     // let img = "sphinx-proxy";
     // let version = "latest";
     let macpath = format!(

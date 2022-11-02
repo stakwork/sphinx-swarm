@@ -42,7 +42,6 @@ pub async fn run(docker: Docker) -> Result<()> {
         "proxy1",
         network,
         "11111",
-        "/proxy",
         "5050",
         &secrets.proxy_admin_token,
         &secrets.proxy_store_key,

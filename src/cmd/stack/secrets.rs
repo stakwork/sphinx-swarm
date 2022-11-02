@@ -17,12 +17,13 @@ fn random_secrets() -> Secrets {
         "broccoli", "cable", "balcony", "exclude", "maple", "luggage", "dragon", "erosion",
         "basic", "census", "earn", "ripple", "gossip", "record", "monster",
     ];
+    // store key is 16 bytes to hex
     Secrets {
         bitcoind_pass: "asdfasdf".to_string(),
         lnd1_mnemonic: mnemonic.iter().map(|s| s.to_string()).collect(),
         lnd1_password: "asdfasdf".to_string(),
         proxy_admin_token: "asdfasdf".to_string(),
-        proxy_store_key: "asdfasdf".to_string(),
+        proxy_store_key: "4967BC837D7EFF47B4BC890328F5A495".to_string(),
     }
 }
 
