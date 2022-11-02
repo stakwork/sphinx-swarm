@@ -1,7 +1,5 @@
-use crate::env::check_env;
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use crate::rocket_utils::{Error, Result, *};
-use fs::{relative, FileServer};
 use response::stream::{Event, EventStream};
 use rocket::serde::json::json;
 use rocket::*;
@@ -10,23 +8,10 @@ use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 
 #[get("/cmd?<tag>&<txt>")]
 pub async fn cmd(sender: &State<mpsc::Sender<CmdRequest>>, tag: &str, txt: &str) -> Result<String> {
-    let (final_txt, skip) = check_env(tag, txt).await;
-    if skip {
-        // dont process the "export" cmd
-        return Ok("".to_string());
-    }
-    let (request, reply_rx) = CmdRequest::new(tag, &final_txt);
+    let (request, reply_rx) = CmdRequest::new(tag, &txt);
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    Ok(transform_reply(&reply))
-}
-
-fn transform_reply(reply: &str) -> String {
-    let no_exec = "OCI runtime exec failed: exec failed: unable to start container process: exec:";
-    if reply.starts_with(no_exec) {
-        return reply.replace(no_exec, "").to_string();
-    }
-    reply.to_string()
+    Ok(reply)
 }
 
 #[get("/logs?<tag>")]
