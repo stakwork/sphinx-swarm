@@ -1,3 +1,4 @@
+mod secrets;
 mod srv;
 
 use crate::grpc::lnd::unlocker::LndUnlocker;
@@ -12,9 +13,10 @@ use tokio::sync::{mpsc, Mutex};
 pub async fn run(docker: Docker) -> Result<()> {
     let proj = "stack";
     let network = "regtest";
+    let secrets = secrets::load_secrets(proj);
 
     // btc setup
-    let btc_node = images::BtcNode::new("bitcoind", network, "foo", "bar");
+    let btc_node = images::BtcNode::new("bitcoind", network, "sphinx", &secrets.bitcoind_pass);
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
@@ -29,16 +31,12 @@ pub async fn run(docker: Docker) -> Result<()> {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
     let cert_path = "vol/stack/lnd1/tls.cert";
-    let password = "asdfasdf";
-    let mnemonic = vec![
-        "above", "hair", "trigger", "live", "innocent", "monster", "surprise", "discover", "art",
-        "broccoli", "cable", "balcony", "exclude", "maple", "luggage", "dragon", "erosion",
-        "basic", "census", "earn", "ripple", "gossip", "record", "monster",
-    ];
     let unlocker = LndUnlocker::new(http_port, cert_path).await?;
-    let res = unlocker.init_wallet(password, mnemonic).await?;
+    let res = unlocker
+        .init_wallet(&secrets.lnd1_password, secrets.lnd1_mnemonic)
+        .await?;
     log::info!("RES {:?}", res);
-    let _ = unlocker.unlock_wallet(password).await?;
+    let _ = unlocker.unlock_wallet(&secrets.lnd1_password).await?;
 
     let (tx, _rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();

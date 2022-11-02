@@ -1,6 +1,7 @@
 use crate::config;
 use crate::utils::{expose, exposed_ports, host_config};
 use bollard::container::Config;
+use reqwest::Proxy;
 
 // ports are tcp
 // volumes are mapped to {PWD}/vol/{name}:
@@ -51,6 +52,22 @@ impl RelayNode {
         Self {
             name: name.to_string(),
             port: port.to_string(),
+        }
+    }
+}
+pub struct ProxyNode {
+    pub name: String,
+    pub port: String,
+    pub admin_port: String,
+    pub dir: String,
+}
+impl ProxyNode {
+    pub fn new(name: &str, port: &str, admin_port: &str, dir: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            port: port.to_string(),
+            admin_port: admin_port.to_string(),
+            dir: dir.to_string(),
         }
     }
 }
@@ -109,11 +126,18 @@ pub fn postgres(project: &str) -> Config<String> {
     }
 }
 
-pub fn relay(project: &str, relay: &RelayNode, lnd: &LndNode) -> Config<String> {
+pub fn relay(
+    project: &str,
+    relay: &RelayNode,
+    lnd: &LndNode,
+    proxy: &ProxyNode,
+    proxy_admin_token: &str,
+) -> Config<String> {
     let relay_version = "v2.2.10".to_string();
     let vols = vec!["creds"];
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
+    conf.proxy(&proxy, proxy_admin_token);
     let img = "sphinx-relay";
     // let img = "sphinxlightning/sphinx-relay";
     Config {
@@ -125,18 +149,23 @@ pub fn relay(project: &str, relay: &RelayNode, lnd: &LndNode) -> Config<String> 
     }
 }
 
-pub fn proxy(project: &str, name: &str, network: &str, links: Vec<&str>) -> Config<String> {
+pub fn proxy(
+    project: &str,
+    name: &str,
+    network: &str,
+    lnd: &LndNode,
+    admin_token: &str,
+    store_key: &str,
+) -> Config<String> {
     let proxy_version = "v0.1.0".to_string();
     let macpath = format!(
         "--macaroon-location=/lnd/.lnd/data/chain/bitcoin/{}/admin.macaroon",
         network
     );
+    let lnd_host = format!("{}.sphinx", lnd.name);
+    let links = vec![lnd_host.as_str()];
     let port = "11111";
-    let store_key = "4967BC847DDEFF47C4BC890038F5A495";
-    let admin_token = "r46bnf8ibrhbb424heba";
     let admin_port = "5050";
-    let lnd_name = "proxy-lnd.sphinx";
-    let lnd_port = "10012";
     let vols = vec!["cert", "badger", "macaroons"];
     Config {
         image: Some(format!("sphinxlightning/sphinx-proxy:{}", proxy_version)),
@@ -145,14 +174,14 @@ pub fn proxy(project: &str, name: &str, network: &str, links: Vec<&str>) -> Conf
         cmd: Some(vec![
             "/app/sphinx-proxy".to_string(),
             macpath.to_string(),
-            format!("--bitcoin.{}", network).to_string(),
-            format!("--rpclisten=0.0.0.0:{}", port).to_string(),
-            format!("--store-key={}", store_key).to_string(),
-            format!("--admin-token={}", admin_token).to_string(),
-            format!("--admin-port={}", admin_port).to_string(),
-            format!("--lnd-ip={}", lnd_name).to_string(),
-            format!("--lnd-port={}", lnd_port).to_string(),
-            format!("--tlsextradomain={}", name).to_string(),
+            format!("--bitcoin.{}", network),
+            format!("--rpclisten=0.0.0.0:{}", port),
+            format!("--store-key={}", store_key),
+            format!("--admin-token={}", admin_token),
+            format!("--admin-port={}", admin_port),
+            format!("--lnd-ip={}", &lnd.name),
+            format!("--lnd-port={}", &lnd.port),
+            format!("--tlsextradomain={}", name),
             "--tlscertpath=/cert/tls.cert".to_string(),
             "--tlskeypath=/cert/tls.key".to_string(),
             "--tls-location=/lnd/.lnd/tls.cert".to_string(),

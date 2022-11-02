@@ -1,4 +1,4 @@
-use crate::images::LndNode;
+use crate::images::{LndNode, ProxyNode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -76,18 +76,18 @@ impl RelayConfig {
         }
     }
     pub fn lnd(&mut self, lnd: &LndNode) {
-        self.lnd_ip = lnd.name.to_string();
+        self.lnd_ip = format!("{}.sphinx", lnd.name);
         self.lnd_port = lnd.port.to_string();
         self.tls_location = format!("{}/tls.cert", lnd.dir).to_string();
         self.macaroon_location =
             format!("{}/data/chain/bitcoin/regtest/admin.macaroon", lnd.dir).to_string();
     }
-    pub fn proxy(&mut self, ip: &str, port: &str, dir: &str, token: &str) {
-        self.proxy_lnd_ip = Some(ip.to_string());
-        self.proxy_lnd_port = Some(port.to_string());
-        self.proxy_admin_token = Some(token.to_string());
-        self.proxy_macaroons_dir = Some(format!("{}/macaroons", dir));
-        self.proxy_tls_location = Some(format!("{}/cert/tls.cert", dir));
+    pub fn proxy(&mut self, proxy: &ProxyNode, admin_token: &str) {
+        self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
+        self.proxy_lnd_port = Some(proxy.port.clone());
+        self.proxy_admin_token = Some(admin_token.to_string());
+        self.proxy_macaroons_dir = Some(format!("{}/macaroons", proxy.dir));
+        self.proxy_tls_location = Some(format!("{}/cert/tls.cert", proxy.dir));
     }
 }
 

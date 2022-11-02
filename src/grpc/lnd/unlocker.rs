@@ -41,9 +41,8 @@ impl LndUnlocker {
     pub async fn init_wallet(
         &self,
         password: &str,
-        mnemonic: Vec<&str>,
+        cipher_seed_mnemonic: Vec<String>,
     ) -> Result<InitWalletResponse> {
-        let cipher_seed_mnemonic = mnemonic.iter().map(|s| s.to_string()).collect();
         let wallet_password = base64::encode(password.as_bytes());
         let body = InitWalletRequest {
             cipher_seed_mnemonic,
