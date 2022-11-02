@@ -38,6 +38,19 @@ pub async fn run(docker: Docker) -> Result<()> {
     log::info!("RES {:?}", res);
     let _ = unlocker.unlock_wallet(&secrets.lnd1_password).await?;
 
+    let proxy_node = images::ProxyNode::new(
+        "proxy1",
+        network,
+        "11111",
+        "/proxy",
+        "5050",
+        &secrets.proxy_admin_token,
+        &secrets.proxy_store_key,
+    );
+    let proxy1 = images::proxy(proj, &proxy_node, &lnd_node);
+    let proxy_id = create_and_start(&docker, proxy1).await?;
+    log::info!("created PROXY");
+
     let (tx, _rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
 
@@ -50,6 +63,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     // shutdown containers
     remove_container(&docker, &btc_id).await?;
     remove_container(&docker, &lnd_id).await?;
+    remove_container(&docker, &proxy_id).await?;
 
     Ok(())
 }

@@ -11,8 +11,6 @@ pub struct Secrets {
     pub proxy_store_key: String,
 }
 
-const SECRETS_PATH: &str = "/secrets.json";
-
 fn random_secrets() -> Secrets {
     let mnemonic = vec![
         "above", "hair", "trigger", "live", "innocent", "monster", "surprise", "discover", "art",
@@ -29,7 +27,7 @@ fn random_secrets() -> Secrets {
 }
 
 pub fn load_secrets(project: &str) -> Secrets {
-    let path = format!("vol/{}/{}.json", project, SECRETS_PATH);
+    let path = format!("vol/{}/secrets.json", project);
     let rs = random_secrets();
     match fs::read(path.clone()) {
         Ok(data) => match serde_json::from_slice(&data) {
