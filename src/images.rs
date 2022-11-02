@@ -140,20 +140,34 @@ pub fn relay(
     project: &str,
     relay: &RelayNode,
     lnd: &LndNode,
-    proxy: &ProxyNode,
-    proxy_admin_token: &str,
+    proxy: Option<&ProxyNode>,
 ) -> Config<String> {
-    let relay_version = "v2.2.10".to_string();
+    let img = "sphinx-relay";
+    let version = "latest";
+    // let img = "sphinxlightning/sphinx-relay";
+    // let version = "v2.2.10".to_string();
     let vols = vec!["/creds"];
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
-    conf.proxy(&proxy, proxy_admin_token);
-    let img = "sphinx-relay";
-    // let img = "sphinxlightning/sphinx-relay";
+    // add the LND volumes
+    let mut extra_vols = default_volumes(project, &lnd.name, vec![lnd.dir.as_str()]);
+    if let Some(p) = proxy {
+        let root_dir = "/proxy";
+        conf.proxy(&p, root_dir);
+        let more_vols = default_volumes(project, &p.name, vec![root_dir]);
+        extra_vols.extend(more_vols);
+    }
     Config {
-        image: Some(format!("{}:{}", img, relay_version)),
+        image: Some(format!("{}:{}", img, version)),
         hostname: Some(format!("{}.sphinx", &relay.name)),
-        host_config: host_config(project, &relay.name, vec![&relay.port], vols, None, None),
+        host_config: host_config(
+            project,
+            &relay.name,
+            vec![&relay.port],
+            vols,
+            Some(extra_vols),
+            None,
+        ),
         env: Some(config::relay_env_config(&conf)),
         ..Default::default()
     }

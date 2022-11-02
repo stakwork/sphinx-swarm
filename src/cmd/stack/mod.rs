@@ -56,6 +56,10 @@ pub async fn run(docker: Docker) -> Result<()> {
     let proxy_id = create_and_start(&docker, proxy1).await?;
     log::info!("created PROXY");
 
+    let relay_node = images::RelayNode::new("relay1", "3000");
+    let relay1 = images::relay(proj, &relay_node, &lnd_node, Some(&proxy_node));
+    let relay_id = create_and_start(&docker, relay1).await?;
+
     let (tx, _rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
 
@@ -69,6 +73,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     remove_container(&docker, &btc_id).await?;
     remove_container(&docker, &lnd_id).await?;
     remove_container(&docker, &proxy_id).await?;
+    remove_container(&docker, &relay_id).await?;
 
     Ok(())
 }

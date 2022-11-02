@@ -82,12 +82,12 @@ impl RelayConfig {
         self.macaroon_location =
             format!("{}/data/chain/bitcoin/regtest/admin.macaroon", lnd.dir).to_string();
     }
-    pub fn proxy(&mut self, proxy: &ProxyNode, admin_token: &str) {
+    pub fn proxy(&mut self, proxy: &ProxyNode, root_dir: &str) {
         self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
         self.proxy_lnd_port = Some(proxy.port.clone());
-        self.proxy_admin_token = Some(admin_token.to_string());
-        self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
-        self.proxy_tls_location = Some("/proxy/cert/tls.cert".to_string());
+        self.proxy_admin_token = Some(proxy.admin_token.clone());
+        self.proxy_macaroons_dir = Some(format!("{}/macaroons", root_dir));
+        self.proxy_tls_location = Some(format!("{}/cert/tls.cert", root_dir));
     }
 }
 
