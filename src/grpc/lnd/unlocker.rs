@@ -23,6 +23,12 @@ pub struct UnlockWalletRequest {
     wallet_password: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GenSeedResponse {
+    pub cipher_seed_mnemonic: Option<Vec<String>>,
+    pub message: Option<String>,
+}
+
 impl LndUnlocker {
     pub async fn new(port: &str, cert_path: &str) -> Result<Self> {
         let cont = std::fs::read(cert_path)?;
@@ -37,6 +43,19 @@ impl LndUnlocker {
             url: format!("localhost:{}", port),
             client,
         })
+    }
+    pub async fn gen_seed(&self) -> Result<GenSeedResponse> {
+        let route = format!("https://{}/v1/genseed", self.url);
+        match self
+            .client
+            .get(route.as_str())
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+        {
+            Ok(res) => Ok(res.json().await?),
+            Err(e) => Err(anyhow::anyhow!("UNLOCK ERR {:?}", e)),
+        }
     }
     pub async fn init_wallet(
         &self,

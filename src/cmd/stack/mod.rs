@@ -32,12 +32,18 @@ pub async fn run(docker: Docker) -> Result<()> {
 
     let cert_path = "vol/stack/lnd1/tls.cert";
     let unlocker = LndUnlocker::new(http_port, cert_path).await?;
-    let res = unlocker
-        .init_wallet(&secrets.lnd1_password, secrets.lnd1_mnemonic)
-        .await?;
-    log::info!("RES {:?}", res);
-    let _ = unlocker.unlock_wallet(&secrets.lnd1_password).await?;
-
+    if let Some(_) = secrets.lnd1_mnemonic {
+        let _ = unlocker.unlock_wallet(&secrets.lnd1_password).await?;
+        log::info!("LND WALLET UNLOCKED!");
+    } else {
+        let seed = unlocker.gen_seed().await?;
+        let mnemonic = seed.cipher_seed_mnemonic.expect("no mnemonic");
+        let _ = unlocker
+            .init_wallet(&secrets.lnd1_password, mnemonic.clone())
+            .await?;
+        log::info!("LND WALLET INITIALIZED!");
+        secrets::add_mnemonic_to_secrets(proj, mnemonic.clone());
+    };
     let proxy_node = images::ProxyNode::new(
         "proxy1",
         network,
