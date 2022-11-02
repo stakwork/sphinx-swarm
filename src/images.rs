@@ -63,7 +63,8 @@ pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode, http_port: Option<&str>)
         _ => "regtest",
     };
     let version = "v0.14.3-beta.rc1".to_string();
-    let mut ports = vec!["9735", &lnd.port];
+    let peering_port = "9735";
+    let mut ports = vec![peering_port, lnd.port.as_str()];
     let vols = vec!["/root/.lnd"];
     let mut cmd = vec![
         format!("--bitcoin.{}", network).to_string(),
@@ -83,7 +84,8 @@ pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode, http_port: Option<&str>)
     ];
     if let Some(hp) = http_port {
         ports.push(hp);
-        cmd.push(format!("--restlisten=0.0.0.0:{}", hp).to_string());
+        let rest_host = "0.0.0.0";
+        cmd.push(format!("--restlisten={}:{}", rest_host, hp).to_string());
     }
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
