@@ -7,6 +7,7 @@ mod grpc;
 mod images;
 mod logs;
 mod rocket_utils;
+mod routes;
 mod utils;
 
 #[rocket::main]
@@ -17,7 +18,7 @@ async fn main() {
         .with_module_level("want", log::LevelFilter::Off)
         .with_module_level("mio", log::LevelFilter::Off)
         .with_module_level("rocket", log::LevelFilter::Error)
-        .with_module_level("hyper", log::LevelFilter::Error)
+        .with_module_level("hyper", log::LevelFilter::Warn)
         .with_module_level("tracing", log::LevelFilter::Error)
         .with_module_level("tokio_util", log::LevelFilter::Error)
         .with_module_level("tonic", log::LevelFilter::Error)

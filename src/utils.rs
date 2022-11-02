@@ -1,7 +1,15 @@
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
+
+pub fn exposed_ports(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
+    let mut ps = HashMap::new();
+    for port in ports {
+        ps.insert(tcp_port(port), HashMap::new());
+    }
+    Some(ps)
+}
 
 pub fn host_config(
     project: &str,

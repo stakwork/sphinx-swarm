@@ -1,4 +1,4 @@
-mod routes;
+mod srv;
 
 use crate::images::BtcNode;
 use crate::rocket_utils::*;
@@ -82,7 +82,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
     log::info!("🚀 => http://localhost:{}", port);
     let log_txs = Arc::new(Mutex::new(log_txs));
-    let _r = routes::launch_rocket(tx.clone(), log_txs).await;
+    let _r = srv::launch_rocket(tx.clone(), log_txs).await;
 
     // shutdown containers
     remove_container(&docker_arc, &btc_id).await?;

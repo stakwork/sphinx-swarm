@@ -1,11 +1,13 @@
-mod routes;
+mod srv;
 
+use crate::grpc::lnd::unlocker::LndUnlocker;
 use crate::rocket_utils::CmdRequest;
-use crate::{dock::*, grpc, images, logs};
+use crate::{dock::*, images, logs};
 use anyhow::Result;
 use bollard::Docker;
-use rocket::tokio::sync::{mpsc, Mutex};
+use rocket::tokio;
 use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
 
 pub async fn run(docker: Docker) -> Result<()> {
     let proj = "stack";
@@ -24,8 +26,19 @@ pub async fn run(docker: Docker) -> Result<()> {
     let lnd_id = create_and_start(&docker, lnd1).await?;
     log::info!("created LND");
 
-    let unlocker = grpc::lnd::LndUnlocker::new(http_port).await?;
-    let res = unlocker.init_wallet().await?;
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+    let cert_path = "vol/stack/lnd1/tls.cert";
+    let password = "asdfasdf";
+    let mnemonic = vec![
+        "above", "hair", "trigger", "live", "innocent", "monster", "surprise", "discover", "art",
+        "broccoli", "cable", "balcony", "exclude", "maple", "luggage", "dragon", "erosion",
+        "basic", "census", "earn", "ripple", "gossip", "record", "monster",
+    ];
+    let unlocker = LndUnlocker::new(http_port, cert_path).await?;
+    let res = unlocker.init_wallet(password, mnemonic).await?;
+    log::info!("RES {:?}", res);
+    let _ = unlocker.unlock_wallet(password).await?;
 
     let (tx, _rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
@@ -34,7 +47,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
     log::info!("🚀 => http://localhost:{}", port);
     let log_txs = Arc::new(Mutex::new(log_txs));
-    let _r = routes::launch_rocket(tx.clone(), log_txs).await;
+    let _r = srv::launch_rocket(tx.clone(), log_txs).await;
 
     // shutdown containers
     remove_container(&docker, &btc_id).await?;

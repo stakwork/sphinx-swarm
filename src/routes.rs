@@ -30,14 +30,14 @@ fn transform_reply(reply: &str) -> String {
 }
 
 #[get("/logs?<tag>")]
-async fn logs(tag: &str) -> Result<String> {
+pub async fn logs(tag: &str) -> Result<String> {
     let lgs = LOGS.lock().await;
     let ret = lgs.get(tag).unwrap_or(&Vec::new()).clone();
     Ok(json!(ret).to_string())
 }
 
 #[get("/logstream?<tag>")]
-async fn logstream(
+pub async fn logstream(
     log_txs: &State<Arc<Mutex<LogChans>>>,
     mut end: Shutdown,
     tag: &str,
@@ -58,18 +58,4 @@ async fn logstream(
             yield Event::json(&msg);
         }
     }
-}
-
-pub async fn launch_rocket(
-    tx: mpsc::Sender<CmdRequest>,
-    log_txs: Arc<Mutex<LogChans>>,
-) -> Result<Rocket<Ignite>> {
-    Ok(rocket::build()
-        .mount("/", FileServer::from(relative!("src/cmd/demo/app/public")))
-        .mount("/api/", routes![cmd, logstream, logs])
-        .attach(CORS)
-        .manage(tx)
-        .manage(log_txs)
-        .launch()
-        .await?)
 }

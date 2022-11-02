@@ -1,5 +1,5 @@
 use crate::config;
-use crate::utils::{expose, host_config};
+use crate::utils::{expose, exposed_ports, host_config};
 use bollard::container::Config;
 
 // ports are tcp
@@ -66,6 +66,8 @@ pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode, http_port: Option<&str>)
     let peering_port = "9735";
     let mut ports = vec![peering_port, lnd.port.as_str()];
     let vols = vec!["/root/.lnd"];
+    let btc_link = format!("{}.sphinx", &btc.name);
+    let links = Some(vec![btc_link.as_str()]);
     let mut cmd = vec![
         format!("--bitcoin.{}", network).to_string(),
         format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
@@ -90,7 +92,8 @@ pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode, http_port: Option<&str>)
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
         hostname: Some(format!("{}.sphinx", &lnd.name)),
-        host_config: host_config(project, &lnd.name, ports, vols, None),
+        exposed_ports: exposed_ports(ports.clone()),
+        host_config: host_config(project, &lnd.name, ports, vols, links),
         cmd: Some(cmd),
         ..Default::default()
     }
@@ -168,19 +171,25 @@ pub fn proxy(project: &str, name: &str, network: &str, links: Vec<&str>) -> Conf
 
 pub fn btc(project: &str, node: &BtcNode) -> Config<String> {
     let btc_version = "23.0";
-    let ports = vec!["18443"];
+    let ports = vec!["18443", "28332", "28333"];
     let vols = vec!["/home/bitcoin/.bitcoin"];
     Config {
         image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
         hostname: Some(format!("{}.sphinx", &node.name)),
         cmd: Some(vec![
             format!("-{}=1", node.network),
-            format!("-rpcpassword={}", node.pass).to_string(),
-            format!("-rpcuser={}", node.pass).to_string(),
+            format!("-rpcuser={}", node.user),
+            format!("-rpcpassword={}", node.pass),
+            format!("-rpcbind={}.sphinx", node.name),
             "-rpcallowip=0.0.0.0/0".to_string(),
             "-rpcbind=0.0.0.0".to_string(),
             "-rpcport=18443".to_string(),
             "-server".to_string(),
+            "-rpcallowip=0.0.0.0/0".to_string(),
+            "-fallbackfee=0.0002".to_string(),
+            "-zmqpubhashblock=tcp://0.0.0.0:28332".to_string(),
+            "-zmqpubhashtx=tcp://0.0.0.0:28333".to_string(),
+            "-rpcbind=127.0.0.1".to_string(),
         ]),
         host_config: host_config(project, &node.name, ports, vols, None),
         ..Default::default()
