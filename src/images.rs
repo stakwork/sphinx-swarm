@@ -215,7 +215,7 @@ pub fn proxy(project: &str, proxy: &ProxyNode, lnd: &LndNode) -> Config<String> 
             format!("--store-key={}", &proxy.store_key),
             format!("--admin-token={}", &proxy.admin_token),
             format!("--admin-port={}", &proxy.admin_port),
-            format!("--lnd-ip={}", &lnd.name),
+            format!("--lnd-ip={}.sphinx", &lnd.name),
             format!("--lnd-port={}", &lnd.port),
             format!("--tlsextradomain={}.sphinx", proxy.name),
             "--tlscertpath=/proxy/tls.cert".to_string(),
