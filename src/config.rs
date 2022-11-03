@@ -114,7 +114,7 @@ impl Default for RelayConfig {
             node_http_port: "3000".to_string(),
             tribes_mqtt_port: "1883".to_string(),
             db_dialect: "sqlite".to_string(),
-            db_storage: "/relay/sphinx.db".to_string(),
+            db_storage: "/relay/data/sphinx.db".to_string(),
             node_http_protocol: None,
             tribes_insecure: None,
             transport_private_key_location: None,

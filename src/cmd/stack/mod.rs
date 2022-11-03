@@ -37,6 +37,9 @@ pub async fn run(docker: Docker) -> Result<()> {
         log::info!("LND WALLET UNLOCKED!");
     } else {
         let seed = unlocker.gen_seed().await?;
+        if let Some(msg) = seed.message {
+            log::error!("gen seed error: {}", msg);
+        }
         let mnemonic = seed.cipher_seed_mnemonic.expect("no mnemonic");
         let _ = unlocker
             .init_wallet(&secrets.lnd1_password, mnemonic.clone())
