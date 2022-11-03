@@ -68,7 +68,7 @@ pub struct RelayConfig {
 }
 
 impl RelayConfig {
-    pub fn new(name: &str, port: &str) -> Self {
+    pub fn new(_name: &str, port: &str) -> Self {
         Self {
             node_http_port: port.to_string(),
             public_url: format!("127.0.0.1:{}", port).to_string(),
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn test_relay_config() {
         let mut c = RelayConfig::new("relay", "3000");
-        c.lnd(&LndNode::new("lnd", "regtest", "10009", "/.lnd/"));
+        c.lnd(&LndNode::new("lnd", "regtest", "10009"));
         relay_env_config(&c);
         assert!(true == true)
     }

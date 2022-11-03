@@ -23,7 +23,7 @@ pub async fn run(docker: Docker) -> Result<()> {
 
     // lnd setup
     let http_port = "8881";
-    let lnd_node = images::LndNode::new("lnd1", network, "10009", "/root/.lnd");
+    let lnd_node = images::LndNode::new("lnd1", network, "10009");
     let lnd1 = images::lnd(proj, &lnd_node, &btc_node, Some(http_port));
     let lnd_id = create_and_start(&docker, lnd1).await?;
     log::info!("created LND");
@@ -47,14 +47,9 @@ pub async fn run(docker: Docker) -> Result<()> {
         log::info!("LND WALLET INITIALIZED!");
         secrets::add_mnemonic_to_secrets(proj, mnemonic.clone());
     };
-    let proxy_node = images::ProxyNode::new(
-        "proxy1",
-        network,
-        "11111",
-        "5050",
-        &secrets.proxy_admin_token,
-        &secrets.proxy_store_key,
-    );
+    let token = secrets.proxy_admin_token;
+    let storekey = secrets.proxy_store_key;
+    let proxy_node = images::ProxyNode::new("proxy1", network, "11111", "5050", &token, &storekey);
     let proxy1 = images::proxy(proj, &proxy_node, &lnd_node);
     let proxy_id = create_and_start(&docker, proxy1).await?;
     log::info!("created PROXY");

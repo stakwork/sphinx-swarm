@@ -9,7 +9,7 @@ pub fn host_config(
     ports: Vec<&str>,
     root_vol: &str,
     extra_vols: Option<Vec<String>>,
-    links: Option<Vec<&str>>,
+    links: Option<Vec<String>>,
 ) -> Option<HostConfig> {
     let mut dvols = vec![volume_string(project, name, root_vol)];
     if let Some(evs) = extra_vols {
@@ -19,12 +19,14 @@ pub fn host_config(
         binds: Some(dvols),
         port_bindings: host_port(ports),
         extra_hosts: Some(vec!["host.docker.internal:host-gateway".to_string()]),
+        links,
         ..Default::default()
     };
-    if let Some(ls) = links {
-        c.links = Some(ls.iter().map(|l| l.to_string()).collect());
-    }
     Some(c)
+}
+
+pub fn domain(name: &str) -> String {
+    format!("{}.sphinx", name)
 }
 
 pub fn exposed_ports(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
@@ -51,17 +53,6 @@ pub fn expose(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
     format!("{}/vol/{}/{}:{}", pwd.to_string_lossy(), project, name, dir)
-}
-
-// DIR/vol/{project}/{container_name}:{dir}
-pub fn default_volumes(project: &str, name: &str, dirs: Vec<&str>) -> Vec<String> {
-    let pwd = std::env::current_dir().unwrap_or_default();
-    let mut fulls: Vec<String> = Vec::new();
-    for i in dirs {
-        let path = format!("{}/vol/{}/{}:{}", pwd.to_string_lossy(), project, name, i);
-        fulls.push(path);
-    }
-    fulls
 }
 
 pub fn files_volume() -> String {
