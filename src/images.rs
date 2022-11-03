@@ -30,7 +30,6 @@ pub struct LndNode {
     pub name: String,
     pub network: String,
     pub port: String,
-    // pub dir: String,
 }
 impl LndNode {
     pub fn new(name: &str, network: &str, port: &str, dir: &str) -> Self {
@@ -38,7 +37,6 @@ impl LndNode {
             name: name.to_string(),
             network: network.to_string(),
             port: port.to_string(),
-            // dir: dir.to_string(),
         }
     }
 }
@@ -147,16 +145,15 @@ pub fn relay(
     let version = "latest";
     // let img = "sphinxlightning/sphinx-relay";
     // let version = "v2.2.10".to_string();
-    let root_vol = "/relay"; // vec!["/creds"];
+    let root_vol = "/relay";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
     // add the LND volumes
     let lnd_vol = volume_string(project, &lnd.name, "/lnd");
-    let mut extra_vols = vec![lnd_vol]; //default_volumes(project, &lnd.name, vec![lnd.dir.as_str()]);
+    let mut extra_vols = vec![lnd_vol];
     if let Some(p) = proxy {
         conf.proxy(&p);
         let proxy_vol = volume_string(project, &p.name, "/proxy");
-        // let more_vols = default_volumes(project, &p.name, vec![root_dir]);
         extra_vols.push(proxy_vol);
     }
     Config {
