@@ -24,7 +24,7 @@
   main {
     font-size: 2rem;
     height: 80vh;
-    width: 20rem;
+    width: 23rem;
     border: 1px solid #bfbfbf;
     border-radius: 1rem;
     position: fixed;

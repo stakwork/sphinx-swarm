@@ -47,7 +47,7 @@ pub fn load_secrets(project: &str) -> Secrets {
         Err(_e) => {
             let prefix = path.parent().unwrap();
             fs::create_dir_all(prefix).unwrap();
-            put_secrets(path, &rs);
+            put_secrets(project, &rs);
             rs
         }
     }
@@ -59,7 +59,9 @@ fn get_secrets(project: &str) -> Secrets {
     let data = fs::read(path.clone()).unwrap();
     serde_json::from_slice(&data).unwrap()
 }
-fn put_secrets(path: &Path, rs: &Secrets) {
+fn put_secrets(project: &str, rs: &Secrets) {
+    let path_str = format!("vol/{}/secrets.json", project);
+    let path = Path::new(&path_str);
     let st = serde_json::to_string_pretty(rs).expect("failed to make json string");
     let mut file = File::create(path).expect("create failed");
     file.write_all(st.as_bytes()).expect("write failed");
@@ -67,7 +69,5 @@ fn put_secrets(path: &Path, rs: &Secrets) {
 pub fn add_mnemonic_to_secrets(project: &str, mnemonic: Vec<String>) {
     let mut secrets = get_secrets(project);
     secrets.lnd1_mnemonic = Some(mnemonic);
-    let path_str = format!("vol/{}/secrets.json", project);
-    let path = Path::new(&path_str);
-    put_secrets(path, &secrets);
+    put_secrets(project, &secrets);
 }
