@@ -1,8 +1,12 @@
 <script lang="ts">
-  import Flow from "./Flow.svelte";
+  //import Flow from "./Flow.svelte";
   import { selectedNode } from "./store";
   import Controls from "./Controls.svelte";
+	import Svelvet from "./Svelvet.svelte";
 
+let w = 600, h = 600
+
+	$: console.log(w,h);
   $: console.log($selectedNode);
 </script>
 
@@ -13,8 +17,8 @@
       <div class="title">{$selectedNode.name}</div>
     {/if}
   </header>
-  <div class="body">
-    <Flow fixed />
+  <div class="body" bind:clientWidth={w} bind:clientHeight={h}>
+					{#key w && h}<Svelvet width={w} height={h} />{/key}
     <Controls />
   </div>
 </main>

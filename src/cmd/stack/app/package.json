@@ -29,6 +29,7 @@
   "dependencies": {
     "@types/drawflow": "^0.0.4",
     "drawflow": "^0.0.59",
-    "sirv-cli": "^2.0.0"
+    "sirv-cli": "^2.0.0",
+    "svelvet": "^4.0.3"
   }
 }
