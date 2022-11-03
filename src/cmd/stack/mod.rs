@@ -1,7 +1,7 @@
 mod secrets;
 mod srv;
 
-use crate::grpc::lnd::unlocker::LndUnlocker;
+use crate::conn::lnd::unlocker::LndUnlocker;
 use crate::rocket_utils::CmdRequest;
 use crate::{dock::*, images, logs};
 use anyhow::Result;

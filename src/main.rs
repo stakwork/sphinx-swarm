@@ -2,8 +2,8 @@ pub mod dock;
 
 mod cmd;
 mod config;
+mod conn;
 mod env;
-mod grpc;
 mod images;
 mod logs;
 mod rocket_utils;
