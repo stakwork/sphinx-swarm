@@ -1,0 +1,75 @@
+.drawflow-node {
+  padding:0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center;
+}
+.drawflow-node .inputs {
+  position: absolute;
+  left: 14px;
+}
+.drawflow-node .outputs {
+  position: absolute;
+  right: 14px;
+}
+
+.drawflow_content_node {
+  height: 100%;
+}
+.content-title {
+  font-size: 18px;
+  border-bottom:1px solid grey;
+  padding:10px;
+}
+.content-title-simple {
+  font-size: 18px;
+  padding:10px;
+}
+.content-body{
+  font-size: 16px;
+  padding:10px;
+}
+
+.flow-lnd {
+  height: 88px;
+  margin-top: -15px;
+}
+.flow-lnd, .flow-lnd > .inputs > div, .flow-lnd > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #dd00dd !important;
+  border-radius: 50%;
+}
+.conn-lnd {
+  stroke: rgb(197, 197, 85) !important;
+}
+
+
+.flow-proxy, .flow-proxy > .inputs > div, .flow-proxy > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #006fdd !important;
+  border-radius: 50%;
+}
+.conn-proxy {
+  stroke: rgb(162, 162, 162) !important;
+  stroke-width: 1px !important;
+}
+
+
+.flow-relay, .flow-relay > .inputs > div, .flow-relay > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #b7dd00 !important;
+}
+
+
+.flow-mqtt, .flow-mqtt > .inputs > div, .flow-mqtt > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #00c735 !important;
+}
+.flow-auth, .flow-auth > .inputs > div, .flow-auth > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #44e400 !important;
+}
+.flow-tribes, .flow-tribes > .inputs > div, .flow-tribes > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #1300e5 !important;
+}
+.flow-meme, .flow-meme > .inputs > div, .flow-meme > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #b91d53 !important;
+}
+.flow-postgres, .flow-postgres > .inputs > div, .flow-postgres > .outputs > div {
+  border: var(--dfNodeBorderSize) solid #b36500 !important;
+}
