@@ -78,16 +78,15 @@ impl RelayConfig {
     pub fn lnd(&mut self, lnd: &LndNode) {
         self.lnd_ip = format!("{}.sphinx", lnd.name);
         self.lnd_port = lnd.port.to_string();
-        self.tls_location = format!("{}/tls.cert", lnd.dir).to_string();
-        self.macaroon_location =
-            format!("{}/data/chain/bitcoin/regtest/admin.macaroon", lnd.dir).to_string();
+        self.tls_location = "/lnd/tls.cert".to_string();
+        self.macaroon_location = "/lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string();
     }
-    pub fn proxy(&mut self, proxy: &ProxyNode, root_dir: &str) {
+    pub fn proxy(&mut self, proxy: &ProxyNode) {
         self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
         self.proxy_lnd_port = Some(proxy.port.clone());
         self.proxy_admin_token = Some(proxy.admin_token.clone());
-        self.proxy_macaroons_dir = Some(format!("{}/macaroons", root_dir));
-        self.proxy_tls_location = Some(format!("{}/cert/tls.cert", root_dir));
+        self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
+        self.proxy_tls_location = Some("/proxy/cert/tls.cert".to_string());
     }
 }
 

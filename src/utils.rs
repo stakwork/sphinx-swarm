@@ -7,11 +7,11 @@ pub fn host_config(
     project: &str,
     name: &str,
     ports: Vec<&str>,
-    vols: Vec<&str>,
+    root_vol: &str,
     extra_vols: Option<Vec<String>>,
     links: Option<Vec<&str>>,
 ) -> Option<HostConfig> {
-    let mut dvols = default_volumes(project, name, vols);
+    let mut dvols = vec![volume_string(project, name, root_vol)];
     if let Some(evs) = extra_vols {
         dvols.extend(evs);
     }
@@ -45,6 +45,12 @@ pub fn expose(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
         h.insert(tcp_port(p), HashMap::<(), ()>::new());
     }
     Some(h)
+}
+
+// DIR/vol/{project}/{container_name}:{dir}
+pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
+    let pwd = std::env::current_dir().unwrap_or_default();
+    format!("{}/vol/{}/{}:{}", pwd.to_string_lossy(), project, name, dir)
 }
 
 // DIR/vol/{project}/{container_name}:{dir}
