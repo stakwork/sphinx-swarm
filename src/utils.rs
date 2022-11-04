@@ -1,6 +1,7 @@
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
+use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 
 pub fn host_config(
@@ -99,4 +100,32 @@ pub fn _net_config() -> Option<NetworkingConfig<String>> {
     let mut endpoints_config = HashMap::new();
     endpoints_config.insert(_NET.to_string(), Default::default());
     Some(NetworkingConfig { endpoints_config })
+}
+
+pub fn load_json<T: DeserializeOwned + Serialize>(file: &str, default: T) -> T {
+    let path = std::path::Path::new(&file);
+    match std::fs::read(path.clone()) {
+        Ok(data) => match serde_json::from_slice(&data) {
+            Ok(d) => d,
+            Err(_) => default,
+        },
+        Err(_e) => {
+            let prefix = path.parent().unwrap();
+            std::fs::create_dir_all(prefix).unwrap();
+            put_json(file, &default);
+            default
+        }
+    }
+}
+pub fn get_json<T: DeserializeOwned>(file: &str) -> T {
+    let path = std::path::Path::new(&file);
+    let data = std::fs::read(path.clone()).unwrap();
+    serde_json::from_slice(&data).unwrap()
+}
+pub fn put_json<T: Serialize>(file: &str, rs: &T) {
+    use std::io::Write;
+    let path = std::path::Path::new(&file);
+    let st = serde_json::to_string_pretty(rs).expect("failed to make json string");
+    let mut file = std::fs::File::create(path).expect("create failed");
+    file.write_all(st.as_bytes()).expect("write failed");
 }

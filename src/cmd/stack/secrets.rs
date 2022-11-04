@@ -1,3 +1,4 @@
+use crate::utils;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
@@ -36,35 +37,17 @@ fn random_word(n: usize) -> String {
 }
 
 pub fn load_secrets(project: &str) -> Secrets {
-    let path_str = format!("vol/{}/secrets.json", project);
-    let path = Path::new(&path_str);
-    let rs = random_secrets();
-    match fs::read(path.clone()) {
-        Ok(data) => match serde_json::from_slice(&data) {
-            Ok(d) => d,
-            Err(_) => rs,
-        },
-        Err(_e) => {
-            let prefix = path.parent().unwrap();
-            fs::create_dir_all(prefix).unwrap();
-            put_secrets(project, &rs);
-            rs
-        }
-    }
+    let def = random_secrets();
+    let path = format!("vol/{}/secrets.json", project);
+    utils::load_json(&path, def)
 }
-
 fn get_secrets(project: &str) -> Secrets {
-    let path_str = format!("vol/{}/secrets.json", project);
-    let path = Path::new(&path_str);
-    let data = fs::read(path.clone()).unwrap();
-    serde_json::from_slice(&data).unwrap()
+    let path = format!("vol/{}/secrets.json", project);
+    utils::get_json(&path)
 }
 fn put_secrets(project: &str, rs: &Secrets) {
-    let path_str = format!("vol/{}/secrets.json", project);
-    let path = Path::new(&path_str);
-    let st = serde_json::to_string_pretty(rs).expect("failed to make json string");
-    let mut file = File::create(path).expect("create failed");
-    file.write_all(st.as_bytes()).expect("write failed");
+    let path = format!("vol/{}/secrets.json", project);
+    utils::put_json(&path, rs)
 }
 pub fn add_mnemonic_to_secrets(project: &str, mnemonic: Vec<String>) {
     let mut secrets = get_secrets(project);

@@ -5,18 +5,18 @@ use bollard::container::Config;
 // ports are tcp
 // volumes are mapped to {PWD}/vol/{name}:
 
-pub enum _Node {
-    Btc(BtcNode),
-    Lnd(LndNode),
-    Relay(RelayNode),
+pub enum _Image {
+    Btc(BtcImage),
+    Lnd(LndImage),
+    Relay(RelayImage),
 }
-pub struct BtcNode {
+pub struct BtcImage {
     pub name: String,
     pub network: String,
     pub user: String,
     pub pass: String,
 }
-impl BtcNode {
+impl BtcImage {
     pub fn new(name: &str, network: &str, user: &str, pass: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -26,12 +26,12 @@ impl BtcNode {
         }
     }
 }
-pub struct LndNode {
+pub struct LndImage {
     pub name: String,
     pub network: String,
     pub port: String,
 }
-impl LndNode {
+impl LndImage {
     pub fn new(name: &str, network: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -40,11 +40,11 @@ impl LndNode {
         }
     }
 }
-pub struct RelayNode {
+pub struct RelayImage {
     pub name: String,
     pub port: String,
 }
-impl RelayNode {
+impl RelayImage {
     pub fn new(name: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -52,7 +52,7 @@ impl RelayNode {
         }
     }
 }
-pub struct ProxyNode {
+pub struct ProxyImage {
     pub name: String,
     pub network: String,
     pub port: String,
@@ -61,7 +61,7 @@ pub struct ProxyNode {
     pub store_key: String,
     pub new_nodes: Option<String>, // for relay
 }
-impl ProxyNode {
+impl ProxyImage {
     pub fn new(
         name: &str,
         network: &str,
@@ -85,7 +85,12 @@ impl ProxyNode {
     }
 }
 
-pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode, http_port: Option<&str>) -> Config<String> {
+pub fn lnd(
+    project: &str,
+    lnd: &LndImage,
+    btc: &BtcImage,
+    http_port: Option<&str>,
+) -> Config<String> {
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -141,9 +146,9 @@ pub fn postgres(project: &str) -> Config<String> {
 
 pub fn relay(
     project: &str,
-    relay: &RelayNode,
-    lnd: &LndNode,
-    proxy: Option<&ProxyNode>,
+    relay: &RelayImage,
+    lnd: &LndImage,
+    proxy: Option<&ProxyImage>,
 ) -> Config<String> {
     let img = "sphinx-relay";
     let version = "latest";
@@ -179,7 +184,7 @@ pub fn relay(
     }
 }
 
-pub fn proxy(project: &str, proxy: &ProxyNode, lnd: &LndNode) -> Config<String> {
+pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String> {
     let img = "sphinxlightning/sphinx-proxy";
     let version = "0.1.2".to_string();
     // let img = "sphinx-proxy";
@@ -235,7 +240,7 @@ pub fn proxy(project: &str, proxy: &ProxyNode, lnd: &LndNode) -> Config<String> 
     }
 }
 
-pub fn btc(project: &str, node: &BtcNode) -> Config<String> {
+pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     let btc_version = "23.0";
     let ports = vec!["18443", "28332", "28333"];
     let root_vol = "/home/bitcoin/.bitcoin";
@@ -287,7 +292,7 @@ pub fn cln_vls(
     name: &str,
     network: &str,
     idx: u16,
-    btc: &BtcNode,
+    btc: &BtcImage,
 ) -> Config<String> {
     let version = "0.1.5"; // docker tag
     let cln_version = "v0.11.0.1-793-g243f8e3";

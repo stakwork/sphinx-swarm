@@ -1,8 +1,32 @@
-use crate::images::{LndNode, ProxyNode};
+use crate::images::{LndImage, ProxyImage};
+use crate::utils;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
+
+#[derive(Serialize, Deserialize)]
+pub enum Kind {
+    Relay,
+    Lnd,
+    Proxy,
+    Cln,
+}
+#[derive(Serialize, Deserialize)]
+pub struct Node {
+    kind: Kind,
+    name: String,
+    links: Vec<String>,
+}
+impl Node {
+    pub fn new(name: &str, kind: Kind, links: Vec<&str>) -> Self {
+        Self {
+            kind,
+            name: name.to_string(),
+            links: links.iter().map(|l| l.to_string()).collect(),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -17,9 +41,7 @@ pub struct Config {
     // external meme provider
     pub meme: Option<String>,
     // extra lnd+relay instances
-    pub lnds: Vec<ImageConfig>,
-    // extra cln+relay instances
-    pub clns: Vec<ImageConfig>,
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,10 +57,27 @@ impl Default for Config {
             postgres: None,
             tribes: None,
             meme: None,
-            lnds: vec![],
-            clns: vec![],
+            nodes: vec![
+                Node::new("relay1", Kind::Relay, vec!["proxy1", "lnd1"]),
+                Node::new("proxy1", Kind::Proxy, vec!["lnd1"]),
+                Node::new("lnd1", Kind::Lnd, vec![]),
+            ],
         }
     }
+}
+
+pub fn load_config(project: &str) -> Config {
+    let def: Config = Default::default();
+    let path = format!("vol/{}/config.json", project);
+    utils::load_json(&path, def)
+}
+fn get_config(project: &str) -> Config {
+    let path = format!("vol/{}/config.json", project);
+    utils::get_json(&path)
+}
+fn put_config(project: &str, rs: &Config) {
+    let path = format!("vol/{}/config.json", project);
+    utils::put_json(&path, rs)
 }
 
 // #[serde(skip_serializing_if = "Option::is_none")]
@@ -78,13 +117,13 @@ impl RelayConfig {
             ..Default::default()
         }
     }
-    pub fn lnd(&mut self, lnd: &LndNode) {
+    pub fn lnd(&mut self, lnd: &LndImage) {
         self.lnd_ip = format!("{}.sphinx", lnd.name);
         self.lnd_port = lnd.port.to_string();
         self.tls_location = "/lnd/tls.cert".to_string();
         self.macaroon_location = "/lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string();
     }
-    pub fn proxy(&mut self, proxy: &ProxyNode) {
+    pub fn proxy(&mut self, proxy: &ProxyImage) {
         self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
         self.proxy_lnd_port = Some(proxy.port.clone());
         self.proxy_admin_token = Some(proxy.admin_token.clone());
@@ -160,7 +199,7 @@ mod tests {
     #[test]
     fn test_relay_config() {
         let mut c = RelayConfig::new("relay", "3000");
-        c.lnd(&LndNode::new("lnd", "regtest", "10009"));
+        c.lnd(&LndImage::new("lnd", "regtest", "10009"));
         relay_env_config(&c);
         assert!(true == true)
     }

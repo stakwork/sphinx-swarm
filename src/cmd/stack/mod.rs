@@ -6,7 +6,7 @@ use crate::rocket_utils::CmdRequest;
 use crate::{dock::*, images, logs};
 use anyhow::Result;
 use bollard::Docker;
-use images::{BtcNode, LndNode, ProxyNode, RelayNode};
+use images::{BtcImage, LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -17,14 +17,14 @@ pub async fn run(docker: Docker) -> Result<()> {
     let secrets = secrets::load_secrets(proj);
 
     // BITCOIND
-    let btc_node = BtcNode::new("bitcoind", network, "sphinx", &secrets.bitcoind_pass);
+    let btc_node = BtcImage::new("bitcoind", network, "sphinx", &secrets.bitcoind_pass);
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
     // LND
     let http_port = "8881";
-    let lnd_node = LndNode::new("lnd1", network, "10009");
+    let lnd_node = LndImage::new("lnd1", network, "10009");
     let lnd1 = images::lnd(proj, &lnd_node, &btc_node, Some(http_port));
     let lnd_id = create_and_start(&docker, lnd1).await?;
     log::info!("created LND");
@@ -53,14 +53,14 @@ pub async fn run(docker: Docker) -> Result<()> {
     // PROXY
     let token = secrets.proxy_admin_token;
     let storekey = secrets.proxy_store_key;
-    let mut proxy_node = ProxyNode::new("proxy1", network, "11111", "5050", &token, &storekey);
+    let mut proxy_node = ProxyImage::new("proxy1", network, "11111", "5050", &token, &storekey);
     proxy_node.new_nodes(Some("0".to_string()));
     let proxy1 = images::proxy(proj, &proxy_node, &lnd_node);
     let proxy_id = create_and_start(&docker, proxy1).await?;
     log::info!("created PROXY");
 
     // RELAY
-    let relay_node = RelayNode::new("relay1", "3000");
+    let relay_node = RelayImage::new("relay1", "3000");
     let relay1 = images::relay(proj, &relay_node, &lnd_node, Some(&proxy_node));
     let relay_id = create_and_start(&docker, relay1).await?;
 
