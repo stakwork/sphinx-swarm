@@ -15,14 +15,13 @@ pub fn host_config(
     if let Some(evs) = extra_vols {
         dvols.extend(evs);
     }
-    let mut c = HostConfig {
+    Some(HostConfig {
         binds: Some(dvols),
         port_bindings: host_port(ports),
         extra_hosts: Some(vec!["host.docker.internal:host-gateway".to_string()]),
         links,
         ..Default::default()
-    };
-    Some(c)
+    })
 }
 
 pub fn domain(name: &str) -> String {

@@ -65,6 +65,9 @@ pub struct RelayConfig {
     pub proxy_lnd_ip: Option<String>,
     pub proxy_lnd_port: Option<String>,
     pub proxy_admin_token: Option<String>,
+    pub proxy_admin_url: Option<String>,
+    pub proxy_new_nodes: Option<String>,
+    pub proxy_initial_sats: Option<String>,
 }
 
 impl RelayConfig {
@@ -86,7 +89,9 @@ impl RelayConfig {
         self.proxy_lnd_port = Some(proxy.port.clone());
         self.proxy_admin_token = Some(proxy.admin_token.clone());
         self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
-        self.proxy_tls_location = Some("/proxy/cert/tls.cert".to_string());
+        self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
+        self.proxy_admin_url = proxy.admin_url.clone();
+        self.proxy_new_nodes = proxy.new_nodes.clone();
     }
 }
 
@@ -124,6 +129,9 @@ impl Default for RelayConfig {
             proxy_lnd_ip: None,
             proxy_lnd_port: None,
             proxy_admin_token: None,
+            proxy_admin_url: None,
+            proxy_new_nodes: None,
+            proxy_initial_sats: None,
         }
     }
 }

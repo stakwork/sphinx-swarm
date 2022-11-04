@@ -6,6 +6,7 @@ use crate::rocket_utils::CmdRequest;
 use crate::{dock::*, images, logs};
 use anyhow::Result;
 use bollard::Docker;
+use images::{BtcNode, LndNode, ProxyNode, RelayNode};
 use rocket::tokio;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -15,21 +16,22 @@ pub async fn run(docker: Docker) -> Result<()> {
     let network = "regtest";
     let secrets = secrets::load_secrets(proj);
 
-    // btc setup
-    let btc_node = images::BtcNode::new("bitcoind", network, "sphinx", &secrets.bitcoind_pass);
+    // BITCOIND
+    let btc_node = BtcNode::new("bitcoind", network, "sphinx", &secrets.bitcoind_pass);
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
-    // lnd setup
+    // LND
     let http_port = "8881";
-    let lnd_node = images::LndNode::new("lnd1", network, "10009");
+    let lnd_node = LndNode::new("lnd1", network, "10009");
     let lnd1 = images::lnd(proj, &lnd_node, &btc_node, Some(http_port));
     let lnd_id = create_and_start(&docker, lnd1).await?;
     log::info!("created LND");
 
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
+    // INIT LND
     let cert_path = "vol/stack/lnd1/tls.cert";
     let unlocker = LndUnlocker::new(http_port, cert_path).await?;
     if let Some(_) = secrets.lnd1_mnemonic {
@@ -47,14 +49,18 @@ pub async fn run(docker: Docker) -> Result<()> {
         log::info!("LND WALLET INITIALIZED!");
         secrets::add_mnemonic_to_secrets(proj, mnemonic.clone());
     };
+
+    // PROXY
     let token = secrets.proxy_admin_token;
     let storekey = secrets.proxy_store_key;
-    let proxy_node = images::ProxyNode::new("proxy1", network, "11111", "5050", &token, &storekey);
+    let mut proxy_node = ProxyNode::new("proxy1", network, "11111", "5050", &token, &storekey);
+    proxy_node.relay_config(Some("proxy1.sphinx".to_string()), Some("0".to_string()));
     let proxy1 = images::proxy(proj, &proxy_node, &lnd_node);
     let proxy_id = create_and_start(&docker, proxy1).await?;
     log::info!("created PROXY");
 
-    let relay_node = images::RelayNode::new("relay1", "3000");
+    // RELAY
+    let relay_node = RelayNode::new("relay1", "3000");
     let relay1 = images::relay(proj, &relay_node, &lnd_node, Some(&proxy_node));
     let relay_id = create_and_start(&docker, relay1).await?;
 
