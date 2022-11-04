@@ -65,10 +65,13 @@ pub struct RelayConfig {
     pub proxy_lnd_ip: Option<String>,
     pub proxy_lnd_port: Option<String>,
     pub proxy_admin_token: Option<String>,
+    pub proxy_admin_url: Option<String>,
+    pub proxy_new_nodes: Option<String>,
+    pub proxy_initial_sats: Option<String>,
 }
 
 impl RelayConfig {
-    pub fn new(name: &str, port: &str) -> Self {
+    pub fn new(_name: &str, port: &str) -> Self {
         Self {
             node_http_port: port.to_string(),
             public_url: format!("127.0.0.1:{}", port).to_string(),
@@ -78,16 +81,17 @@ impl RelayConfig {
     pub fn lnd(&mut self, lnd: &LndNode) {
         self.lnd_ip = format!("{}.sphinx", lnd.name);
         self.lnd_port = lnd.port.to_string();
-        self.tls_location = format!("{}/tls.cert", lnd.dir).to_string();
-        self.macaroon_location =
-            format!("{}/data/chain/bitcoin/regtest/admin.macaroon", lnd.dir).to_string();
+        self.tls_location = "/lnd/tls.cert".to_string();
+        self.macaroon_location = "/lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string();
     }
-    pub fn proxy(&mut self, proxy: &ProxyNode, root_dir: &str) {
+    pub fn proxy(&mut self, proxy: &ProxyNode) {
         self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
         self.proxy_lnd_port = Some(proxy.port.clone());
         self.proxy_admin_token = Some(proxy.admin_token.clone());
-        self.proxy_macaroons_dir = Some(format!("{}/macaroons", root_dir));
-        self.proxy_tls_location = Some(format!("{}/cert/tls.cert", root_dir));
+        self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
+        self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
+        self.proxy_admin_url = Some(format!("{}.sphinx:{}", proxy.name, proxy.admin_port));
+        self.proxy_new_nodes = proxy.new_nodes.clone();
     }
 }
 
@@ -115,7 +119,7 @@ impl Default for RelayConfig {
             node_http_port: "3000".to_string(),
             tribes_mqtt_port: "1883".to_string(),
             db_dialect: "sqlite".to_string(),
-            db_storage: "/relay/sphinx.db".to_string(),
+            db_storage: "/relay/data/sphinx.db".to_string(),
             node_http_protocol: None,
             tribes_insecure: None,
             transport_private_key_location: None,
@@ -125,6 +129,9 @@ impl Default for RelayConfig {
             proxy_lnd_ip: None,
             proxy_lnd_port: None,
             proxy_admin_token: None,
+            proxy_admin_url: None,
+            proxy_new_nodes: None,
+            proxy_initial_sats: None,
         }
     }
 }
@@ -153,7 +160,7 @@ mod tests {
     #[test]
     fn test_relay_config() {
         let mut c = RelayConfig::new("relay", "3000");
-        c.lnd(&LndNode::new("lnd", "regtest", "10009", "/.lnd/"));
+        c.lnd(&LndNode::new("lnd", "regtest", "10009"));
         relay_env_config(&c);
         assert!(true == true)
     }
