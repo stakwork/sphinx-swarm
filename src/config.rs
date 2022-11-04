@@ -90,7 +90,7 @@ impl RelayConfig {
         self.proxy_admin_token = Some(proxy.admin_token.clone());
         self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
         self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
-        self.proxy_admin_url = proxy.admin_url.clone();
+        self.proxy_admin_url = Some(format!("{}.sphinx:{}", proxy.name, proxy.admin_port));
         self.proxy_new_nodes = proxy.new_nodes.clone();
     }
 }

@@ -59,7 +59,6 @@ pub struct ProxyNode {
     pub admin_port: String,
     pub admin_token: String,
     pub store_key: String,
-    pub admin_url: Option<String>, // for relay
     pub new_nodes: Option<String>, // for relay
 }
 impl ProxyNode {
@@ -78,12 +77,10 @@ impl ProxyNode {
             admin_port: admin_port.to_string(),
             admin_token: admin_token.to_string(),
             store_key: store_key.to_string(),
-            admin_url: None,
             new_nodes: None,
         }
     }
-    pub fn relay_config(&mut self, admin_url: Option<String>, new_nodes: Option<String>) {
-        self.admin_url = admin_url;
+    pub fn new_nodes(&mut self, new_nodes: Option<String>) {
         self.new_nodes = new_nodes;
     }
 }

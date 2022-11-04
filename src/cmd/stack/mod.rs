@@ -54,7 +54,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let token = secrets.proxy_admin_token;
     let storekey = secrets.proxy_store_key;
     let mut proxy_node = ProxyNode::new("proxy1", network, "11111", "5050", &token, &storekey);
-    proxy_node.relay_config(Some("proxy1.sphinx".to_string()), Some("0".to_string()));
+    proxy_node.new_nodes(Some("0".to_string()));
     let proxy1 = images::proxy(proj, &proxy_node, &lnd_node);
     let proxy_id = create_and_start(&docker, proxy1).await?;
     log::info!("created PROXY");
