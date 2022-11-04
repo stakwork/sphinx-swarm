@@ -1,9 +1,34 @@
 use crate::images::{LndImage, ProxyImage};
 use crate::utils;
+use once_cell::sync::Lazy;
+use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
+
+pub static CONFIG: Lazy<Mutex<Config>> = Lazy::new(|| Mutex::new(Default::default()));
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Config {
+    // "bitcoin" or "regtest"
+    pub network: String,
+    // external bitcoind provider
+    pub bitcoind: Option<String>,
+    // external postgres provider
+    pub postgres: Option<String>,
+    // external tribes provider
+    pub tribes: Option<String>,
+    // external meme provider
+    pub meme: Option<String>,
+    // extra lnd+relay instances
+    pub nodes: Vec<Node>,
+}
+
+// pub async fn get_conf() -> &'static Config {
+//     let conf = CONFIG.lock().await;
+//     &conf
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Kind {
@@ -22,6 +47,7 @@ pub struct Node {
     kind: Kind,
     name: String,
     links: Vec<String>,
+    // image?
 }
 impl Node {
     pub fn new(name: &str, kind: Kind, links: Vec<&str>) -> Self {
@@ -33,31 +59,10 @@ impl Node {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Config {
-    // "bitcoin" or "regtest"
-    pub network: String,
-    // external bitcoind provider
-    pub bitcoind: Option<String>,
-    // external postgres provider
-    pub postgres: Option<String>,
-    // external tribes provider
-    pub tribes: Option<String>,
-    // external meme provider
-    pub meme: Option<String>,
-    // extra lnd+relay instances
-    pub nodes: Vec<Node>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ImageConfig {
-    pub name: String,
-}
-
 impl Default for Config {
     fn default() -> Self {
         Config {
-            network: "bitcoin".to_string(),
+            network: "regtest".to_string(),
             bitcoind: None,
             postgres: None,
             tribes: None,
@@ -71,16 +76,16 @@ impl Default for Config {
     }
 }
 
-pub fn load_config(project: &str) -> Config {
+pub fn load_config_file(project: &str) -> Config {
     let def: Config = Default::default();
     let path = format!("vol/{}/config.json", project);
     utils::load_json(&path, def)
 }
-fn get_config(project: &str) -> Config {
+fn get_config_file(project: &str) -> Config {
     let path = format!("vol/{}/config.json", project);
     utils::get_json(&path)
 }
-fn put_config(project: &str, rs: &Config) {
+fn put_config_file(project: &str, rs: &Config) {
     let path = format!("vol/{}/config.json", project);
     utils::put_json(&path, rs)
 }

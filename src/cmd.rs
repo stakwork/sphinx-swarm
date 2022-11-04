@@ -17,7 +17,7 @@ pub enum RelayCmd {
 #[serde(tag = "type", content = "data")]
 pub enum Cmd {
     Swarm(SwarmCmd),
-    Relay((String, RelayCmd)), // service, command
+    Relay(RelayCmd), // service, command
 }
 
 #[cfg(test)]
@@ -34,7 +34,7 @@ mod tests {
         )));
         println!("{}", serde_json::to_string(&c).unwrap());
 
-        let c2 = Cmd::Relay(("relay1".to_string(), RelayCmd::AddUser("evan".to_string())));
+        let c2 = Cmd::Relay(RelayCmd::AddUser("evan".to_string()));
         println!("{}", serde_json::to_string(&c2).unwrap());
 
         assert!(true == true)

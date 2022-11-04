@@ -1,9 +1,10 @@
+mod handler;
 mod secrets;
 mod srv;
 
 use crate::conn::lnd::unlocker::LndUnlocker;
 use crate::rocket_utils::CmdRequest;
-use crate::{dock::*, images, logs};
+use crate::{cmd::Cmd, dock::*, images, logs};
 use anyhow::Result;
 use bollard::Docker;
 use images::{BtcImage, LndImage, ProxyImage, RelayImage};
@@ -64,8 +65,20 @@ pub async fn run(docker: Docker) -> Result<()> {
     let relay1 = images::relay(proj, &relay_node, &lnd_node, Some(&proxy_node));
     let relay_id = create_and_start(&docker, relay1).await?;
 
-    let (tx, _rx) = mpsc::channel::<CmdRequest>(1000);
+    let (tx, mut rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
+
+    tokio::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
+                handler::handle(cmd, &msg.tag).await;
+            } else {
+                msg.reply_tx
+                    .send("Invalid command".to_string())
+                    .expect("couldnt send cmd reply");
+            }
+        }
+    });
 
     // launch rocket
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());

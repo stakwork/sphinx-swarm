@@ -8,7 +8,7 @@ use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 
 #[get("/cmd?<tag>&<txt>")]
 pub async fn cmd(sender: &State<mpsc::Sender<CmdRequest>>, tag: &str, txt: &str) -> Result<String> {
-    let (request, reply_rx) = CmdRequest::new(tag, &txt);
+    let (request, reply_rx) = CmdRequest::new(tag, txt);
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     Ok(reply)
