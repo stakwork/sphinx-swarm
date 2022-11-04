@@ -5,14 +5,19 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Kind {
+    Bitcoind,
     Relay,
     Lnd,
     Proxy,
     Cln,
+    Tribes,
+    Mqtt,
+    Auth,
+    Meme,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Node {
     kind: Kind,
     name: String,
