@@ -1,17 +1,22 @@
 <script lang="ts">
-    import ResourceCard from "./components/ResourceCard.svelte";
-    import Divider from "./components/Divider.svelte";
-    import CardBody from "./components/CardBody.svelte";
+    import * as cheerio from "cheerio";
 
     import Svelvet from "svelvet";
 
-    const height = window.innerHeight - 150;
-    const width = window.innerWidth - 600;
+    $: height = window.innerHeight - 150;
+    $: width = window.innerWidth - 600;
 
     $: node = "";
     $: number = "";
     $: links = "";
+    $: nodeName = "";
     let display = "none";
+
+    const nodeCallback = (node) => {
+        const htmlData = cheerio.load(node.data.html);
+        nodeName = htmlData("p.node-text").text();
+        display = "block";
+    }
 
     const initialNodes = [
         {
@@ -26,10 +31,7 @@
             height: 120,
             bgColor: "#D4A74E",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         },
         {
             id: 2,
@@ -43,10 +45,7 @@
             height: 125,
             bgColor: "#618AFF",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         },
         {
             id: 3,
@@ -60,10 +59,7 @@
             height: 125,
             bgColor: "#49C998",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         },
         {
             id: 4,
@@ -77,10 +73,7 @@
             height: 125,
             bgColor: "#FF6161",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         },
         {
             id: 5,
@@ -94,10 +87,7 @@
             height: 125,
             bgColor: "#660066",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         },
         {
             id: 6,
@@ -111,10 +101,7 @@
             height: 125,
             bgColor: "#9D61FF",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         },
         {
             id: 7,
@@ -128,10 +115,7 @@
             height: 125,
             bgColor: "#9D61FF",
             borderRadius: 10,
-            clickCallback: node => {
-                console.log(node)
-                display = "block";
-            }
+            clickCallback: nodeCallback
         }
     ];
 
@@ -152,6 +136,7 @@
     <div class="body">
         <div class="container">
             <section class="node-form">
+                <h3 class="node-title">{nodeName}</h3>
                 <form class="content" style="display: {display}">
                     <label>Name</label>
                     <input type="text" bind:value={node} />
@@ -207,6 +192,12 @@
         margin-right: 50px;
         width: calc(28vw - 30px);
         box-shadow: 0 1.5px 3px 0 rgba(211, 211, 211, 0.2), 0 2px 8px 0 rgba(211, 211, 211, 0.19);
+    }
+
+    .node-form .node-title {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+        font-weight: bold;
     }
 
     label {
