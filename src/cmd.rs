@@ -19,6 +19,7 @@ pub enum SwarmCmd {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum RelayCmd {
+    ListUsers,
     AddUser,
 }
 

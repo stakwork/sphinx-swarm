@@ -5,8 +5,12 @@
   import * as api from "./api";
   import { onMount } from "svelte";
 
+  async function getConfig() {
+    const conf = await api.swarm.get_config();
+    console.log(conf);
+  }
   onMount(() => {
-    api.swarm.get_config();
+    getConfig();
   });
 
   $: console.log($selectedNode);

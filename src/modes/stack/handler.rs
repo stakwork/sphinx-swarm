@@ -22,6 +22,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 // hit new relay add user in proxy route
                 None
             }
+            RelayCmd::ListUsers => None,
         },
     };
     match ret {

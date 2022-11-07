@@ -7,3 +7,7 @@ async function relayCmd(cmd: Cmd, content?: any) {
 export async function list_users() {
   return await relayCmd("ListUsers");
 }
+
+export async function add_user() {
+  return await relayCmd("AddUser");
+}
