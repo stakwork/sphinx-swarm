@@ -12,7 +12,6 @@ body {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
-
 html {
 	font-size: 13px;
 }
@@ -51,4 +50,10 @@ html {
 }
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before{
 	background:#7d89ff !important;
+}
+
+.container {
+	display: flex;
+	flex-direction: row;
+	padding: 50px;
 }
