@@ -7,14 +7,21 @@ if (IS_DEV) {
 
 type CmdType = "Swarm" | "Relay";
 
-export async function send_cmd(type: CmdType, data: any) {
+export type Cmd = "GetConfig" | "ListUsers";
+
+interface CmdData {
+  cmd: Cmd;
+  content?: any;
+}
+
+export async function send_cmd(type: CmdType, data: CmdData) {
   const txt = JSON.stringify({ type, data });
-  console.log("send ", txt);
   const r = await fetch(`${root}/cmd?txt=${txt}&tag=SWARM`);
   const result = await r.json();
-  console.log(result);
+  return result;
 }
 
 import * as swarm from "./swarm";
+import * as relay from "./relay";
 
-export { swarm };
+export { swarm, relay };

@@ -19,7 +19,7 @@ pub enum SwarmCmd {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum RelayCmd {
-    AddUser(String),
+    AddUser,
 }
 
 #[cfg(test)]
@@ -32,7 +32,7 @@ mod tests {
         let c = Cmd::Swarm(SwarmCmd::AddNode(Node::new(Image::Btc(btc), vec![])));
         println!("{}", serde_json::to_string(&c).unwrap());
 
-        let c2 = Cmd::Relay(RelayCmd::AddUser("evan".to_string()));
+        let c2 = Cmd::Relay(RelayCmd::AddUser);
         println!("{}", serde_json::to_string(&c2).unwrap());
 
         let c3 = Cmd::Swarm(SwarmCmd::GetConfig);

@@ -15,33 +15,38 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
+async fn add_node(
+    proj: &str,
+    node: &NodeKind,
+    docker: &Docker,
+    ids: &mut HashMap<String, String>,
+) -> Result<()> {
+    match node {
+        NodeKind::External(url) => {
+            // log::info!("external url {}", url);
+        }
+        NodeKind::Internal(n) => match n.image.clone() {
+            Image::Btc(btc) => {
+                let btc1 = images::btc(proj, &btc);
+                let btc_id = create_and_start(&docker, btc1).await?;
+                ids.insert(btc.name, btc_id);
+                log::info!("created bitcoind");
+            }
+            Image::Lnd(lnd) => (),
+            Image::Proxy(proxy) => (),
+            Image::Relay(relay) => (),
+            _ => log::warn!("nodes iter invalid node type"),
+        },
+    }
+    Ok(())
+}
+
 // return a map of name:docker_id
 async fn build_stack(docker: Docker, conf: Config) -> Result<HashMap<String, String>> {
     let proj = "stack";
     let mut ids = HashMap::new();
-    // match conf.bitcoind {
-    //     OptNode::External(_) => (),
-    //     OptNode::Internal(btc) => {
-    //         let img = btc.image.as_btc()?;
-    //         let btc1 = images::btc(proj, &img);
-    //         let btc_id = create_and_start(&docker, btc1).await?;
-    //         ids.insert(img.name, btc_id);
-    //         log::info!("created bitcoind");
-    //     }
-    // }
-    // HERE match tribes, meme and postgres too
     for node in conf.nodes.iter() {
-        match node {
-            NodeKind::External(url) => {
-                // log::info!("external url {}", url);
-            }
-            NodeKind::Internal(n) => match n.image.clone() {
-                Image::Lnd(lnd) => (),
-                Image::Proxy(proxy) => (),
-                Image::Relay(relay) => (),
-                _ => log::warn!("nodes iter invalid node type"),
-            },
-        }
+        add_node(proj, node, &docker, &mut ids).await?;
     }
     Ok(ids)
 }
@@ -107,10 +112,11 @@ pub async fn run(docker: Docker) -> Result<()> {
     let (tx, mut rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
 
+    let docker2 = docker.clone();
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                match handler::handle(cmd, &msg.tag).await {
+                match handler::handle(cmd, &msg.tag, &docker2).await {
                     Ok(res) => {
                         let _ = msg.reply_tx.send(res);
                     }

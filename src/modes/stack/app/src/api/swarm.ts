@@ -1,5 +1,9 @@
-import { send_cmd } from ".";
+import { send_cmd, Cmd } from ".";
+
+async function swarmCmd(cmd: Cmd, content?: any) {
+  return await send_cmd("Swarm", { cmd, content });
+}
 
 export async function get_config() {
-  send_cmd("Swarm", { cmd: "GetConfig" });
+  return await swarmCmd("GetConfig");
 }
