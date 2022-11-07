@@ -2,15 +2,49 @@ mod handler;
 mod secrets;
 mod srv;
 
+use crate::config::{Config, NodeKind};
 use crate::conn::lnd::unlocker::LndUnlocker;
+use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::{cmd::Cmd, dock::*, images, logs};
 use anyhow::Result;
 use bollard::Docker;
 use images::{BtcImage, LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+
+// return a map of name:docker_id
+async fn build_stack(docker: Docker, conf: Config) -> Result<HashMap<String, String>> {
+    let proj = "stack";
+    let mut ids = HashMap::new();
+    // match conf.bitcoind {
+    //     OptNode::External(_) => (),
+    //     OptNode::Internal(btc) => {
+    //         let img = btc.image.as_btc()?;
+    //         let btc1 = images::btc(proj, &img);
+    //         let btc_id = create_and_start(&docker, btc1).await?;
+    //         ids.insert(img.name, btc_id);
+    //         log::info!("created bitcoind");
+    //     }
+    // }
+    // HERE match tribes, meme and postgres too
+    for node in conf.nodes.iter() {
+        match node {
+            NodeKind::External(url) => {
+                // log::info!("external url {}", url);
+            }
+            NodeKind::Internal(n) => match n.image.clone() {
+                Image::Lnd(lnd) => (),
+                Image::Proxy(proxy) => (),
+                Image::Relay(relay) => (),
+                _ => log::warn!("nodes iter invalid node type"),
+            },
+        }
+    }
+    Ok(ids)
+}
 
 pub async fn run(docker: Docker) -> Result<()> {
     let proj = "stack";
@@ -18,15 +52,21 @@ pub async fn run(docker: Docker) -> Result<()> {
     let secrets = secrets::load_secrets(proj);
 
     // BITCOIND
-    let btc_node = BtcImage::new("bitcoind", network, "sphinx", &secrets.bitcoind_pass);
+    let btc_node = BtcImage::new(
+        "bitcoind",
+        network,
+        "sphinx",
+        secrets.get("bitcoin_pass").unwrap(),
+    );
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
     // LND
-    let http_port = "8881";
-    let lnd_node = LndImage::new("lnd1", network, "10009");
-    let lnd1 = images::lnd(proj, &lnd_node, &btc_node, Some(http_port));
+    let lnd_http_port = "8881";
+    let mut lnd_node = LndImage::new("lnd1", network, "10009");
+    lnd_node.http_port = Some(lnd_http_port.to_string());
+    let lnd1 = images::lnd(proj, &lnd_node, &btc_node);
     let lnd_id = create_and_start(&docker, lnd1).await?;
     log::info!("created LND");
 
@@ -34,9 +74,10 @@ pub async fn run(docker: Docker) -> Result<()> {
 
     // INIT LND
     let cert_path = "vol/stack/lnd1/tls.cert";
-    let unlocker = LndUnlocker::new(http_port, cert_path).await?;
-    if let Some(_) = secrets.lnd1_mnemonic {
-        let _ = unlocker.unlock_wallet(&secrets.lnd1_password).await?;
+    let unlocker = LndUnlocker::new(lnd_http_port, cert_path).await?;
+    let lnd_pass = secrets.get("lnd1_password").unwrap();
+    if let Some(_) = secrets.get("lnd1_mnemonic") {
+        let _ = unlocker.unlock_wallet(lnd_pass).await?;
         log::info!("LND WALLET UNLOCKED!");
     } else {
         let seed = unlocker.gen_seed().await?;
@@ -44,16 +85,14 @@ pub async fn run(docker: Docker) -> Result<()> {
             log::error!("gen seed error: {}", msg);
         }
         let mnemonic = seed.cipher_seed_mnemonic.expect("no mnemonic");
-        let _ = unlocker
-            .init_wallet(&secrets.lnd1_password, mnemonic.clone())
-            .await?;
+        let _ = unlocker.init_wallet(lnd_pass, mnemonic.clone()).await?;
         log::info!("LND WALLET INITIALIZED!");
-        secrets::add_mnemonic_to_secrets(proj, mnemonic.clone());
+        secrets::add_to_secrets(proj, "lnd1_mnemonic", &mnemonic.clone().join(" "));
     };
 
     // PROXY
-    let token = secrets.proxy_admin_token;
-    let storekey = secrets.proxy_store_key;
+    let token = secrets.get("proxy_admin_token").unwrap();
+    let storekey = secrets.get("proxy_store_key").unwrap();
     let mut proxy_node = ProxyImage::new("proxy1", network, "11111", "5050", &token, &storekey);
     proxy_node.new_nodes(Some("0".to_string()));
     let proxy1 = images::proxy(proj, &proxy_node, &lnd_node);
@@ -71,10 +110,19 @@ pub async fn run(docker: Docker) -> Result<()> {
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                handler::handle(cmd, &msg.tag).await;
+                match handler::handle(cmd, &msg.tag).await {
+                    Ok(res) => {
+                        let _ = msg.reply_tx.send(res);
+                    }
+                    Err(err) => {
+                        msg.reply_tx
+                            .send(fmt_err(&err.to_string()))
+                            .expect("couldnt send cmd reply");
+                    }
+                }
             } else {
                 msg.reply_tx
-                    .send("Invalid command".to_string())
+                    .send(fmt_err("Invalid Command"))
                     .expect("couldnt send cmd reply");
             }
         }
@@ -93,4 +141,8 @@ pub async fn run(docker: Docker) -> Result<()> {
     remove_container(&docker, &relay_id).await?;
 
     Ok(())
+}
+
+fn fmt_err(err: &str) -> String {
+    format!("{{\"error\":\"{}\"}}", err.to_string())
 }

@@ -1,4 +1,4 @@
-use crate::images::{LndImage, ProxyImage};
+use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
 use crate::utils;
 use once_cell::sync::Lazy;
 use rocket::tokio::sync::Mutex;
@@ -13,47 +13,26 @@ pub static CONFIG: Lazy<Mutex<Config>> = Lazy::new(|| Mutex::new(Default::defaul
 pub struct Config {
     // "bitcoin" or "regtest"
     pub network: String,
-    // external bitcoind provider
-    pub bitcoind: Option<String>,
-    // external postgres provider
-    pub postgres: Option<String>,
-    // external tribes provider
-    pub tribes: Option<String>,
-    // external meme provider
-    pub meme: Option<String>,
-    // extra lnd+relay instances
-    pub nodes: Vec<Node>,
+    pub nodes: Vec<NodeKind>,
 }
 
-// pub async fn get_conf() -> &'static Config {
-//     let conf = CONFIG.lock().await;
-//     &conf
-// }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum Kind {
-    Bitcoind,
-    Relay,
-    Lnd,
-    Proxy,
-    Cln,
-    Tribes,
-    Mqtt,
-    Auth,
-    Meme,
+// optional node, could be external
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "place")]
+pub enum NodeKind {
+    Internal(Node),
+    External(ExternalNode),
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Node {
-    kind: Kind,
-    name: String,
-    links: Vec<String>,
-    // image?
+    pub image: Image,
+    pub links: Vec<String>,
 }
 impl Node {
-    pub fn new(name: &str, kind: Kind, links: Vec<&str>) -> Self {
+    pub fn new(image: Image, links: Vec<&str>) -> Self {
         Self {
-            kind,
-            name: name.to_string(),
+            image: image,
             links: links.iter().map(|l| l.to_string()).collect(),
         }
     }
@@ -61,17 +40,52 @@ impl Node {
 
 impl Default for Config {
     fn default() -> Self {
-        Config {
-            network: "regtest".to_string(),
-            bitcoind: None,
-            postgres: None,
-            tribes: None,
-            meme: None,
-            nodes: vec![
-                Node::new("relay1", Kind::Relay, vec!["proxy1", "lnd1"]),
-                Node::new("proxy1", Kind::Proxy, vec!["lnd1"]),
-                Node::new("lnd1", Kind::Lnd, vec![]),
-            ],
+        let network = "regtest".to_string();
+        let bitcoind = BtcImage::new("bitcoind", &network, "user", "password");
+        let relay = RelayImage::new("relay1", "3000");
+        let proxy = ProxyImage::new("proxy1", &network, "11111", "5050", "TOKEN", "AAAAAAAAAA");
+        let mut lnd = LndImage::new("lnd1", &network, "10009");
+        lnd.http_port = Some("8881".to_string());
+        let internal_nodes = vec![
+            Node::new(Image::Btc(bitcoind), vec![]),
+            Node::new(Image::Lnd(lnd), vec!["bitcoind"]),
+            Node::new(Image::Proxy(proxy), vec!["lnd1"]),
+            Node::new(Image::Relay(relay), vec!["proxy1", "lnd1"]),
+        ];
+        let mut nodes: Vec<NodeKind> = internal_nodes
+            .iter()
+            .map(|n| NodeKind::Internal(n.to_owned()))
+            .collect();
+        nodes.push(NodeKind::External(ExternalNode::new(
+            ExternalNodeType::Tribes,
+            "tribes.sphinx.chat",
+        )));
+        nodes.push(NodeKind::External(ExternalNode::new(
+            ExternalNodeType::Meme,
+            "meme.sphinx.chat",
+        )));
+        Config { network, nodes }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ExternalNodeType {
+    Bitcoind,
+    Tribes,
+    Meme,
+    Postgres,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ExternalNode {
+    #[serde(rename = "type")]
+    pub kind: ExternalNodeType,
+    pub url: String,
+}
+impl ExternalNode {
+    pub fn new(kind: ExternalNodeType, url: &str) -> Self {
+        Self {
+            kind,
+            url: url.to_string(),
         }
     }
 }
@@ -214,3 +228,8 @@ mod tests {
         assert!(true == true)
     }
 }
+
+// pub async fn get_conf() -> &'static Config {
+//     let conf = CONFIG.lock().await;
+//     &conf
+// }

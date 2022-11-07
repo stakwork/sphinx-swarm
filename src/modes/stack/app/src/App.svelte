@@ -2,6 +2,12 @@
   import Flow from "./Flow.svelte";
   import { selectedNode } from "./store";
   import Controls from "./Controls.svelte";
+  import * as api from "./api";
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    api.swarm.get_config();
+  });
 
   $: console.log($selectedNode);
 </script>

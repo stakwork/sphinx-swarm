@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub fn host_config(
     project: &str,
     name: &str,
-    ports: Vec<&str>,
+    ports: Vec<String>,
     root_vol: &str,
     extra_vols: Option<Vec<String>>,
     links: Option<Vec<String>>,
@@ -29,24 +29,16 @@ pub fn domain(name: &str) -> String {
     format!("{}.sphinx", name)
 }
 
-pub fn exposed_ports(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
+pub fn exposed_ports(ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
     let mut ps = HashMap::new();
     for port in ports {
-        ps.insert(tcp_port(port), HashMap::new());
+        ps.insert(tcp_port(&port), HashMap::new());
     }
     Some(ps)
 }
 
 fn tcp_port(p: &str) -> String {
     format!("{}/tcp", p).to_string()
-}
-
-pub fn expose(ports: Vec<&str>) -> Option<HashMap<String, HashMap<(), ()>>> {
-    let mut h = HashMap::new();
-    for p in ports {
-        h.insert(tcp_port(p), HashMap::<(), ()>::new());
-    }
-    Some(h)
 }
 
 // DIR/vol/{project}/{container_name}:{dir}
@@ -60,11 +52,11 @@ pub fn files_volume() -> String {
     format!("{}/files:/files", pwd.to_string_lossy())
 }
 
-fn host_port(ports_in: Vec<&str>) -> Option<PortMap> {
+fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
     let mut ports = PortMap::new();
     for port in ports_in {
         ports.insert(
-            tcp_port(port),
+            tcp_port(&port),
             Some(vec![PortBinding {
                 host_port: Some(port.to_string()),
                 host_ip: Some("0.0.0.0".to_string()),

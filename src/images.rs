@@ -1,15 +1,21 @@
 use crate::config;
-use crate::utils::{domain, expose, exposed_ports, files_volume, host_config, volume_string};
+use crate::utils::{domain, exposed_ports, files_volume, host_config, volume_string};
 use bollard::container::Config;
+use serde::{Deserialize, Serialize};
 
 // ports are tcp
 // volumes are mapped to {PWD}/vol/{name}:
 
-pub enum _Image {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum Image {
     Btc(BtcImage),
     Lnd(LndImage),
     Relay(RelayImage),
+    Proxy(ProxyImage),
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BtcImage {
     pub name: String,
     pub network: String,
@@ -26,10 +32,13 @@ impl BtcImage {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LndImage {
     pub name: String,
     pub network: String,
     pub port: String,
+    pub http_port: Option<String>,
 }
 impl LndImage {
     pub fn new(name: &str, network: &str, port: &str) -> Self {
@@ -37,9 +46,12 @@ impl LndImage {
             name: name.to_string(),
             network: network.to_string(),
             port: port.to_string(),
+            http_port: None,
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelayImage {
     pub name: String,
     pub port: String,
@@ -52,6 +64,8 @@ impl RelayImage {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProxyImage {
     pub name: String,
     pub network: String,
@@ -61,6 +75,7 @@ pub struct ProxyImage {
     pub store_key: String,
     pub new_nodes: Option<String>, // for relay
 }
+
 impl ProxyImage {
     pub fn new(
         name: &str,
@@ -85,12 +100,7 @@ impl ProxyImage {
     }
 }
 
-pub fn lnd(
-    project: &str,
-    lnd: &LndImage,
-    btc: &BtcImage,
-    http_port: Option<&str>,
-) -> Config<String> {
+pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -99,7 +109,7 @@ pub fn lnd(
     };
     let version = "v0.14.3-beta.rc1".to_string();
     let peering_port = "9735";
-    let mut ports = vec![peering_port, lnd.port.as_str()];
+    let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     let root_vol = "/root/.lnd";
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
@@ -118,8 +128,8 @@ pub fn lnd(
         "--bitcoin.node=bitcoind".to_string(),
         "--bitcoin.defaultchanconfs=2".to_string(),
     ];
-    if let Some(hp) = http_port {
-        ports.push(hp);
+    if let Some(hp) = lnd.http_port.clone() {
+        ports.push(hp.clone());
         let rest_host = "0.0.0.0";
         cmd.push(format!("--restlisten={}:{}", rest_host, hp).to_string());
     }
@@ -170,11 +180,11 @@ pub fn relay(
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&relay.name)),
-        exposed_ports: exposed_ports(vec![relay.port.as_str()]),
+        exposed_ports: exposed_ports(vec![relay.port.clone()]),
         host_config: host_config(
             project,
             &relay.name,
-            vec![&relay.port],
+            vec![relay.port.clone()],
             root_vol,
             Some(extra_vols),
             Some(links),
@@ -201,7 +211,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
     let lnd_vol = volume_string(project, &lnd.name, "/lnd");
     extra_vols.push(lnd_vol);
     extra_vols.push(files_volume());
-    let ports = vec![proxy.port.as_str(), proxy.admin_port.as_str()];
+    let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
@@ -242,7 +252,11 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
 
 pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     let btc_version = "23.0";
-    let ports = vec!["18443", "28332", "28333"];
+    let ports = vec![
+        "18443".to_string(),
+        "28332".to_string(),
+        "28333".to_string(),
+    ];
     let root_vol = "/home/bitcoin/.bitcoin";
     // let vols = vec!["/home/bitcoin/.bitcoin"];
     Config {
@@ -298,10 +312,10 @@ pub fn cln_vls(
     let cln_version = "v0.11.0.1-793-g243f8e3";
     let ps = vls_ports(idx);
     let ports = vec![
-        ps.main.as_str(),
-        ps.grpc.as_str(),
-        ps.mqtt.as_str(),
-        ps.http.as_str(),
+        ps.main.clone(),
+        ps.grpc.clone(),
+        ps.mqtt.clone(),
+        ps.http.clone(),
     ];
     let root_vol = "/root/.lightning";
     let links = Some(vec![domain(&btc.name)]);
@@ -322,7 +336,7 @@ pub fn cln_vls(
             "--accept-htlc-tlv-types=133773310".to_string(),
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker".to_string(),
         ]),
-        exposed_ports: expose(ports.clone()),
+        exposed_ports: exposed_ports(ports.clone()),
         env: Some(vec![
             "EXPOSE_TCP=true".to_string(),
             format!("GREENLIGHT_VERSION={cln_version}"),
@@ -333,5 +347,14 @@ pub fn cln_vls(
         ]),
         host_config: host_config(project, name, ports, root_vol, None, links),
         ..Default::default()
+    }
+}
+
+impl Image {
+    pub fn as_btc(&self) -> anyhow::Result<BtcImage> {
+        match self {
+            Image::Btc(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not BTC".to_string())),
+        }
     }
 }
