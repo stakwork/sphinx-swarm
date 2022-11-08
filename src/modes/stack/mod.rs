@@ -2,12 +2,12 @@ mod handler;
 mod secrets;
 mod srv;
 
-use crate::config::{Config, NodeKind};
+use crate::config::{Config, Node};
 use crate::conn::lnd::unlocker::LndUnlocker;
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::{cmd::Cmd, dock::*, images, logs};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bollard::Docker;
 use images::{BtcImage, LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
@@ -17,26 +17,49 @@ use tokio::sync::{mpsc, Mutex};
 
 async fn add_node(
     proj: &str,
-    node: &NodeKind,
+    node: &Node,
+    nodes: Vec<Node>,
     docker: &Docker,
     ids: &mut HashMap<String, String>,
 ) -> Result<()> {
+    if let Node::External(n) = node {
+        log::info!("external url {}", n.url);
+        return Ok(());
+    }
+    let node = node.as_internal()?;
     match node {
-        NodeKind::External(url) => {
-            // log::info!("external url {}", url);
+        Image::Btc(btc) => {
+            let btc1 = images::btc(proj, &btc);
+            let btc_id = create_and_start(&docker, btc1).await?;
+            ids.insert(btc.name, btc_id);
+            log::info!("created bitcoind");
         }
-        NodeKind::Internal(n) => match n.image.clone() {
-            Image::Btc(btc) => {
-                let btc1 = images::btc(proj, &btc);
-                let btc_id = create_and_start(&docker, btc1).await?;
-                ids.insert(btc.name, btc_id);
-                log::info!("created bitcoind");
-            }
-            Image::Lnd(lnd) => (),
-            Image::Proxy(proxy) => (),
-            Image::Relay(relay) => (),
-            _ => log::warn!("nodes iter invalid node type"),
-        },
+        Image::Lnd(lnd) => {
+            let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
+            let btc = nodes
+                .iter()
+                .find(|n| &n.name() == btc_name)
+                .context("No BTC found for LND")?
+                .as_btc()?;
+            let lnd1 = images::lnd(proj, &lnd, &btc);
+            let lnd_id = create_and_start(&docker, lnd1).await?;
+            ids.insert(lnd.name, lnd_id.clone());
+            log::info!("created LND {}", lnd_id);
+        }
+        Image::Proxy(proxy) => {
+            let lnd_name = proxy.links.get(0).context("Proxy requires a LND")?;
+            let lnd = nodes
+                .iter()
+                .find(|n| &n.name() == lnd_name)
+                .context("No LND found for Proxy")?
+                .as_lnd()?;
+            let proxy1 = images::proxy(proj, &proxy, &lnd);
+            let proxy_id = create_and_start(&docker, proxy1).await?;
+            ids.insert(proxy.name, proxy_id.clone());
+            log::info!("created Proxy {}", proxy_id);
+        }
+        Image::Relay(relay) => (),
+        _ => log::warn!("nodes iter invalid node type"),
     }
     Ok(())
 }
@@ -45,8 +68,8 @@ async fn add_node(
 async fn build_stack(docker: Docker, conf: Config) -> Result<HashMap<String, String>> {
     let proj = "stack";
     let mut ids = HashMap::new();
-    for node in conf.nodes.iter() {
-        add_node(proj, node, &docker, &mut ids).await?;
+    for node in conf.nodes.clone().iter() {
+        add_node(proj, &node, conf.nodes.clone(), &docker, &mut ids).await?;
     }
     Ok(ids)
 }

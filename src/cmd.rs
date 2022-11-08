@@ -1,5 +1,4 @@
-use crate::config::Node;
-use crate::images::{BtcImage, Image};
+use crate::images::Image;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -13,7 +12,7 @@ pub enum Cmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
-    AddNode(Node),
+    AddNode(Image),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -26,11 +25,12 @@ pub enum RelayCmd {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::images::BtcImage;
 
     #[test]
     fn test_cmd() {
         let btc = BtcImage::new("bicoind", "regtest", "user", "password");
-        let c = Cmd::Swarm(SwarmCmd::AddNode(Node::new(Image::Btc(btc), vec![])));
+        let c = Cmd::Swarm(SwarmCmd::AddNode(Image::Btc(btc)));
         println!("{}", serde_json::to_string(&c).unwrap());
 
         let c2 = Cmd::Relay(RelayCmd::AddUser);

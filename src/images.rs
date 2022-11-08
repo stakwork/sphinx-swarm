@@ -3,8 +3,8 @@ use crate::utils::{domain, exposed_ports, files_volume, host_config, volume_stri
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-// ports are tcp
 // volumes are mapped to {PWD}/vol/{name}:
+// ports are tcp
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
@@ -13,6 +13,19 @@ pub enum Image {
     Lnd(LndImage),
     Relay(RelayImage),
     Proxy(ProxyImage),
+}
+
+pub type Links = Vec<String>;
+
+impl Image {
+    pub fn name(&self) -> String {
+        match self {
+            Image::Btc(n) => n.name.clone(),
+            Image::Lnd(n) => n.name.clone(),
+            Image::Relay(n) => n.name.clone(),
+            Image::Proxy(n) => n.name.clone(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -39,6 +52,7 @@ pub struct LndImage {
     pub network: String,
     pub port: String,
     pub http_port: Option<String>,
+    pub links: Links,
 }
 impl LndImage {
     pub fn new(name: &str, network: &str, port: &str) -> Self {
@@ -47,7 +61,11 @@ impl LndImage {
             network: network.to_string(),
             port: port.to_string(),
             http_port: None,
+            links: vec![],
         }
+    }
+    pub fn links(&mut self, links: Vec<&str>) {
+        self.links = strarr(links)
     }
 }
 
@@ -55,13 +73,18 @@ impl LndImage {
 pub struct RelayImage {
     pub name: String,
     pub port: String,
+    pub links: Links,
 }
 impl RelayImage {
     pub fn new(name: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             port: port.to_string(),
+            links: vec![],
         }
+    }
+    pub fn links(&mut self, links: Vec<&str>) {
+        self.links = strarr(links)
     }
 }
 
@@ -71,9 +94,10 @@ pub struct ProxyImage {
     pub network: String,
     pub port: String,
     pub admin_port: String,
-    pub admin_token: String,
-    pub store_key: String,
+    pub admin_token: Option<String>,
+    pub store_key: Option<String>,
     pub new_nodes: Option<String>, // for relay
+    pub links: Links,
 }
 
 impl ProxyImage {
@@ -90,13 +114,17 @@ impl ProxyImage {
             network: network.to_string(),
             port: port.to_string(),
             admin_port: admin_port.to_string(),
-            admin_token: admin_token.to_string(),
-            store_key: store_key.to_string(),
+            admin_token: Some(admin_token.to_string()),
+            store_key: Some(store_key.to_string()),
             new_nodes: None,
+            links: vec![],
         }
     }
     pub fn new_nodes(&mut self, new_nodes: Option<String>) {
         self.new_nodes = new_nodes;
+    }
+    pub fn links(&mut self, links: Vec<&str>) {
+        self.links = strarr(links)
     }
 }
 
@@ -212,6 +240,32 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
     extra_vols.push(lnd_vol);
     extra_vols.push(files_volume());
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
+    let mut cmd = vec![
+        "/app/sphinx-proxy".to_string(),
+        "--configfile=/files/lnd_proxy.conf".to_string(),
+        macpath.to_string(),
+        "--bitcoin.active".to_string(),
+        "--bitcoin.basefee=0".to_string(),
+        format!("--bitcoin.{}", &proxy.network),
+        format!("--rpclisten=0.0.0.0:{}", &proxy.port),
+        format!("--admin-port={}", &proxy.admin_port),
+        format!("--lnd-ip={}.sphinx", &lnd.name),
+        format!("--lnd-port={}", &lnd.port),
+        format!("--tlsextradomain={}.sphinx", proxy.name),
+        "--tlscertpath=/proxy/tls.cert".to_string(),
+        "--tlskeypath=/proxy/tls.key".to_string(),
+        "--tls-location=/lnd/tls.cert".to_string(),
+        "--unlock-pwd=hi123456".to_string(),
+        "--server-macaroons-dir=/proxy/macaroons".to_string(),
+        "--channels-start=2".to_string(),
+        "--initial-msat=500000".to_string(),
+    ];
+    if let Some(at) = &proxy.admin_token {
+        cmd.push(format!("--admin-token={}", &at));
+    }
+    if let Some(sk) = &proxy.store_key {
+        cmd.push(format!("--store-key={}", &sk));
+    }
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
@@ -224,28 +278,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
             Some(extra_vols),
             Some(links),
         ),
-        cmd: Some(vec![
-            "/app/sphinx-proxy".to_string(),
-            "--configfile=/files/lnd_proxy.conf".to_string(),
-            macpath.to_string(),
-            "--bitcoin.active".to_string(),
-            "--bitcoin.basefee=0".to_string(),
-            format!("--bitcoin.{}", &proxy.network),
-            format!("--rpclisten=0.0.0.0:{}", &proxy.port),
-            format!("--store-key={}", &proxy.store_key),
-            format!("--admin-token={}", &proxy.admin_token),
-            format!("--admin-port={}", &proxy.admin_port),
-            format!("--lnd-ip={}.sphinx", &lnd.name),
-            format!("--lnd-port={}", &lnd.port),
-            format!("--tlsextradomain={}.sphinx", proxy.name),
-            "--tlscertpath=/proxy/tls.cert".to_string(),
-            "--tlskeypath=/proxy/tls.key".to_string(),
-            "--tls-location=/lnd/tls.cert".to_string(),
-            "--unlock-pwd=hi123456".to_string(),
-            "--server-macaroons-dir=/proxy/macaroons".to_string(),
-            "--channels-start=2".to_string(),
-            "--initial-msat=500000".to_string(),
-        ]),
+        cmd: Some(cmd),
         ..Default::default()
     }
 }
@@ -357,4 +390,8 @@ impl Image {
             _ => Err(anyhow::anyhow!("Not BTC".to_string())),
         }
     }
+}
+
+fn strarr(i: Vec<&str>) -> Vec<String> {
+    i.iter().map(|s| s.to_string()).collect()
 }

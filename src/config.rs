@@ -1,5 +1,6 @@
 use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
 use crate::utils;
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
@@ -13,27 +14,40 @@ pub static CONFIG: Lazy<Mutex<Config>> = Lazy::new(|| Mutex::new(Default::defaul
 pub struct Config {
     // "bitcoin" or "regtest"
     pub network: String,
-    pub nodes: Vec<NodeKind>,
+    pub nodes: Vec<Node>,
 }
 
 // optional node, could be external
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "place")]
-pub enum NodeKind {
-    Internal(Node),
+pub enum Node {
+    Internal(Image),
     External(ExternalNode),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Node {
-    pub image: Image,
-    pub links: Vec<String>,
-}
 impl Node {
-    pub fn new(image: Image, links: Vec<&str>) -> Self {
-        Self {
-            image: image,
-            links: links.iter().map(|l| l.to_string()).collect(),
+    pub fn name(&self) -> String {
+        match self {
+            Node::Internal(n) => n.name(),
+            Node::External(n) => n.url.clone(),
+        }
+    }
+    pub fn as_internal(&self) -> Result<Image> {
+        match self {
+            Node::Internal(n) => Ok(n.clone()),
+            Node::External(n) => Err(anyhow::anyhow!("not an internal node".to_string())),
+        }
+    }
+    pub fn as_btc(&self) -> Result<BtcImage> {
+        match self.as_internal()? {
+            Image::Btc(i) => Ok(i),
+            _ => Err(anyhow::anyhow!("not a BTC image".to_string())),
+        }
+    }
+    pub fn as_lnd(&self) -> Result<LndImage> {
+        match self.as_internal()? {
+            Image::Lnd(i) => Ok(i),
+            _ => Err(anyhow::anyhow!("not a LND image".to_string())),
         }
     }
 }
@@ -42,25 +56,28 @@ impl Default for Config {
     fn default() -> Self {
         let network = "regtest".to_string();
         let bitcoind = BtcImage::new("bitcoind", &network, "user", "password");
-        let relay = RelayImage::new("relay1", "3000");
-        let proxy = ProxyImage::new("proxy1", &network, "11111", "5050", "TOKEN", "AAAAAAAAAA");
+        let mut relay = RelayImage::new("relay1", "3000");
+        relay.links(vec!["proxy1", "lnd1"]);
+        let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050", "TOKEN", "AAAAAAAAAA");
+        proxy.links(vec!["lnd1"]);
         let mut lnd = LndImage::new("lnd1", &network, "10009");
         lnd.http_port = Some("8881".to_string());
+        lnd.links(vec!["bitcoind"]);
         let internal_nodes = vec![
-            Node::new(Image::Btc(bitcoind), vec![]),
-            Node::new(Image::Lnd(lnd), vec!["bitcoind"]),
-            Node::new(Image::Proxy(proxy), vec!["lnd1"]),
-            Node::new(Image::Relay(relay), vec!["proxy1", "lnd1"]),
+            Image::Btc(bitcoind),
+            Image::Lnd(lnd),
+            Image::Proxy(proxy),
+            Image::Relay(relay),
         ];
-        let mut nodes: Vec<NodeKind> = internal_nodes
+        let mut nodes: Vec<Node> = internal_nodes
             .iter()
-            .map(|n| NodeKind::Internal(n.to_owned()))
+            .map(|n| Node::Internal(n.to_owned()))
             .collect();
-        nodes.push(NodeKind::External(ExternalNode::new(
+        nodes.push(Node::External(ExternalNode::new(
             ExternalNodeType::Tribes,
             "tribes.sphinx.chat",
         )));
-        nodes.push(NodeKind::External(ExternalNode::new(
+        nodes.push(Node::External(ExternalNode::new(
             ExternalNodeType::Meme,
             "meme.sphinx.chat",
         )));
@@ -150,7 +167,7 @@ impl RelayConfig {
     pub fn proxy(&mut self, proxy: &ProxyImage) {
         self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
         self.proxy_lnd_port = Some(proxy.port.clone());
-        self.proxy_admin_token = Some(proxy.admin_token.clone());
+        self.proxy_admin_token = proxy.admin_token.clone();
         self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
         self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
         self.proxy_admin_url = Some(format!("{}.sphinx:{}", proxy.name, proxy.admin_port));
