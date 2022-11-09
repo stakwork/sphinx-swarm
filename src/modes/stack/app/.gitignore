@@ -1,0 +1,10 @@
+/node_modules/
+/public/build/
+
+.DS_Store
+
+yarn.lock
+package-lock.json
+notes.md
+
+sphinx_wasm_bg.wasm

@@ -1,22 +1,22 @@
 use crate::config;
-use crate::utils::{expose, host_config};
+use crate::utils::{domain, expose, exposed_ports, files_volume, host_config, volume_string};
 use bollard::container::Config;
 
 // ports are tcp
 // volumes are mapped to {PWD}/vol/{name}:
 
-pub enum Node {
-    Btc(BtcNode),
-    Lnd(LndNode),
-    Relay(RelayNode),
+pub enum _Image {
+    Btc(BtcImage),
+    Lnd(LndImage),
+    Relay(RelayImage),
 }
-pub struct BtcNode {
+pub struct BtcImage {
     pub name: String,
     pub network: String,
     pub user: String,
     pub pass: String,
 }
-impl BtcNode {
+impl BtcImage {
     pub fn new(name: &str, network: &str, user: &str, pass: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -26,27 +26,25 @@ impl BtcNode {
         }
     }
 }
-pub struct LndNode {
+pub struct LndImage {
     pub name: String,
     pub network: String,
     pub port: String,
-    pub dir: String,
 }
-impl LndNode {
-    pub fn new(name: &str, network: &str, port: &str, dir: &str) -> Self {
+impl LndImage {
+    pub fn new(name: &str, network: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             network: network.to_string(),
             port: port.to_string(),
-            dir: dir.to_string(),
         }
     }
 }
-pub struct RelayNode {
+pub struct RelayImage {
     pub name: String,
     pub port: String,
 }
-impl RelayNode {
+impl RelayImage {
     pub fn new(name: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -54,8 +52,45 @@ impl RelayNode {
         }
     }
 }
+pub struct ProxyImage {
+    pub name: String,
+    pub network: String,
+    pub port: String,
+    pub admin_port: String,
+    pub admin_token: String,
+    pub store_key: String,
+    pub new_nodes: Option<String>, // for relay
+}
+impl ProxyImage {
+    pub fn new(
+        name: &str,
+        network: &str,
+        port: &str,
+        admin_port: &str,
+        admin_token: &str,
+        store_key: &str,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            network: network.to_string(),
+            port: port.to_string(),
+            admin_port: admin_port.to_string(),
+            admin_token: admin_token.to_string(),
+            store_key: store_key.to_string(),
+            new_nodes: None,
+        }
+    }
+    pub fn new_nodes(&mut self, new_nodes: Option<String>) {
+        self.new_nodes = new_nodes;
+    }
+}
 
-pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode) -> Config<String> {
+pub fn lnd(
+    project: &str,
+    lnd: &LndImage,
+    btc: &BtcImage,
+    http_port: Option<&str>,
+) -> Config<String> {
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -63,120 +98,172 @@ pub fn lnd(project: &str, lnd: &LndNode, btc: &BtcNode) -> Config<String> {
         _ => "regtest",
     };
     let version = "v0.14.3-beta.rc1".to_string();
-    let ports = vec!["9735", &lnd.port, "38881"];
-    let vols = vec!["/root/.lnd"];
+    let peering_port = "9735";
+    let mut ports = vec![peering_port, lnd.port.as_str()];
+    let root_vol = "/root/.lnd";
+    let links = Some(vec![domain(&btc.name)]);
+    let mut cmd = vec![
+        format!("--bitcoin.{}", network).to_string(),
+        format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
+        format!("--tlsextradomain={}.sphinx", lnd.name).to_string(),
+        format!("--alias={}", &lnd.name).to_string(),
+        format!("--bitcoind.rpcuser={}", &btc.user).to_string(),
+        format!("--bitcoind.rpcpass={}", &btc.pass).to_string(),
+        format!("--bitcoind.rpchost={}.sphinx", &btc.name).to_string(),
+        format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name).to_string(),
+        format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name).to_string(),
+        "--debuglevel=info".to_string(),
+        "--accept-keysend".to_string(),
+        "--bitcoin.active".to_string(),
+        "--bitcoin.node=bitcoind".to_string(),
+        "--bitcoin.defaultchanconfs=2".to_string(),
+    ];
+    if let Some(hp) = http_port {
+        ports.push(hp);
+        let rest_host = "0.0.0.0";
+        cmd.push(format!("--restlisten={}:{}", rest_host, hp).to_string());
+    }
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
-        hostname: Some(format!("{}.sphinx", &lnd.name)),
-        host_config: host_config(project, &lnd.name, ports, vols, None),
-        cmd: Some(vec![
-            format!("--bitcoin.{}", network).to_string(),
-            format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
-            format!("--restlisten=0.0.0.0:38881").to_string(),
-            format!("--tlsextradomain={}.sphinx", lnd.name).to_string(),
-            format!("--alias={}", &lnd.name).to_string(),
-            format!("--bitcoind.rpcuser={}", &btc.user).to_string(),
-            format!("--bitcoind.rpcpass={}", &btc.pass).to_string(),
-            format!("--bitcoind.rpchost={}.sphinx", &btc.name).to_string(),
-            format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name).to_string(),
-            format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name).to_string(),
-            "--debuglevel=info".to_string(),
-            "--accept-keysend".to_string(),
-            "--bitcoin.active".to_string(),
-            "--bitcoin.node=bitcoind".to_string(),
-            "--bitcoin.defaultchanconfs=2".to_string(),
-        ]),
+        hostname: Some(domain(&lnd.name)),
+        exposed_ports: exposed_ports(ports.clone()),
+        host_config: host_config(project, &lnd.name, ports, root_vol, None, links),
+        cmd: Some(cmd),
         ..Default::default()
     }
 }
 
 pub fn postgres(project: &str) -> Config<String> {
     let name = "postgres";
+    let root_vol = "/var/lib/postgresql/data";
     Config {
         image: Some("postgres".to_string()),
-        hostname: Some(format!("{}.sphinx", name)),
-        host_config: host_config(project, name, vec![], vec![], None),
+        hostname: Some(domain(name)),
+        host_config: host_config(project, name, vec![], root_vol, None, None),
         ..Default::default()
     }
 }
 
-pub fn relay(project: &str, relay: &RelayNode, lnd: &LndNode) -> Config<String> {
-    let relay_version = "v2.2.10".to_string();
-    let vols = vec!["creds"];
+pub fn relay(
+    project: &str,
+    relay: &RelayImage,
+    lnd: &LndImage,
+    proxy: Option<&ProxyImage>,
+) -> Config<String> {
+    let img = "sphinx-relay";
+    let version = "latest";
+    // let img = "sphinxlightning/sphinx-relay";
+    // let version = "v2.2.10".to_string();
+    let root_vol = "/relay/data";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
-    let img = "sphinx-relay";
-    // let img = "sphinxlightning/sphinx-relay";
+    // add the LND volumes
+    let lnd_vol = volume_string(project, &lnd.name, "/lnd");
+    let mut extra_vols = vec![lnd_vol];
+    let mut links = vec![domain(&lnd.name)];
+    if let Some(p) = proxy {
+        conf.proxy(&p);
+        let proxy_vol = volume_string(project, &p.name, "/proxy");
+        extra_vols.push(proxy_vol);
+        links.push(domain(&p.name));
+    }
     Config {
-        image: Some(format!("{}:{}", img, relay_version)),
-        hostname: Some(format!("{}.sphinx", &relay.name)),
-        host_config: host_config(project, &relay.name, vec![&relay.port], vols, None),
+        image: Some(format!("{}:{}", img, version)),
+        hostname: Some(domain(&relay.name)),
+        exposed_ports: exposed_ports(vec![relay.port.as_str()]),
+        host_config: host_config(
+            project,
+            &relay.name,
+            vec![&relay.port],
+            root_vol,
+            Some(extra_vols),
+            Some(links),
+        ),
         env: Some(config::relay_env_config(&conf)),
         ..Default::default()
     }
 }
 
-pub fn proxy(project: &str, name: &str, network: &str, links: Vec<&str>) -> Config<String> {
-    let proxy_version = "v0.1.0".to_string();
+pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String> {
+    let img = "sphinxlightning/sphinx-proxy";
+    let version = "0.1.2".to_string();
+    // let img = "sphinx-proxy";
+    // let version = "latest";
     let macpath = format!(
-        "--macaroon-location=/lnd/.lnd/data/chain/bitcoin/{}/admin.macaroon",
-        network
+        "--macaroon-location=/lnd/data/chain/bitcoin/{}/admin.macaroon",
+        proxy.network
     );
-    let port = "11111";
-    let store_key = "4967BC847DDEFF47C4BC890038F5A495";
-    let admin_token = "r46bnf8ibrhbb424heba";
-    let admin_port = "5050";
-    let lnd_name = "proxy-lnd.sphinx";
-    let lnd_port = "10012";
-    let vols = vec!["cert", "badger", "macaroons"];
+    let links = vec![domain(&lnd.name)];
+    // let vols = vec!["/cert", "/badger", "/macaroons"];
+    let root_vol = "/proxy";
+    let badger_vol = volume_string(project, &format!("{}/badger", &proxy.name), "/badger");
+    let mut extra_vols = vec![badger_vol];
+    let lnd_vol = volume_string(project, &lnd.name, "/lnd");
+    extra_vols.push(lnd_vol);
+    extra_vols.push(files_volume());
+    let ports = vec![proxy.port.as_str(), proxy.admin_port.as_str()];
     Config {
-        image: Some(format!("sphinxlightning/sphinx-proxy:{}", proxy_version)),
-        hostname: Some(format!("{}.sphinx", name)),
-        host_config: host_config(project, name, vec![port, admin_port], vols, Some(links)),
+        image: Some(format!("{}:{}", img, version)),
+        hostname: Some(domain(&proxy.name)),
+        exposed_ports: exposed_ports(ports.clone()),
+        host_config: host_config(
+            project,
+            &proxy.name,
+            ports,
+            root_vol,
+            Some(extra_vols),
+            Some(links),
+        ),
         cmd: Some(vec![
             "/app/sphinx-proxy".to_string(),
+            "--configfile=/files/lnd_proxy.conf".to_string(),
             macpath.to_string(),
-            format!("--bitcoin.{}", network).to_string(),
-            format!("--rpclisten=0.0.0.0:{}", port).to_string(),
-            format!("--store-key={}", store_key).to_string(),
-            format!("--admin-token={}", admin_token).to_string(),
-            format!("--admin-port={}", admin_port).to_string(),
-            format!("--lnd-ip={}", lnd_name).to_string(),
-            format!("--lnd-port={}", lnd_port).to_string(),
-            format!("--tlsextradomain={}", name).to_string(),
-            "--tlscertpath=/cert/tls.cert".to_string(),
-            "--tlskeypath=/cert/tls.key".to_string(),
-            "--tls-location=/lnd/.lnd/tls.cert".to_string(),
             "--bitcoin.active".to_string(),
             "--bitcoin.basefee=0".to_string(),
+            format!("--bitcoin.{}", &proxy.network),
+            format!("--rpclisten=0.0.0.0:{}", &proxy.port),
+            format!("--store-key={}", &proxy.store_key),
+            format!("--admin-token={}", &proxy.admin_token),
+            format!("--admin-port={}", &proxy.admin_port),
+            format!("--lnd-ip={}.sphinx", &lnd.name),
+            format!("--lnd-port={}", &lnd.port),
+            format!("--tlsextradomain={}.sphinx", proxy.name),
+            "--tlscertpath=/proxy/tls.cert".to_string(),
+            "--tlskeypath=/proxy/tls.key".to_string(),
+            "--tls-location=/lnd/tls.cert".to_string(),
             "--unlock-pwd=hi123456".to_string(),
-            "--server-macaroons-dir=/macaroons".to_string(),
+            "--server-macaroons-dir=/proxy/macaroons".to_string(),
             "--channels-start=2".to_string(),
             "--initial-msat=500000".to_string(),
-            "--admin-pubkey=030841d1519f19c68e80efc5ef5af3460ca4bfa17486fda9baca878b9ef255358f"
-                .to_string(),
         ]),
         ..Default::default()
     }
 }
 
-pub fn btc(project: &str, node: &BtcNode) -> Config<String> {
+pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     let btc_version = "23.0";
-    let ports = vec!["18443"];
-    let vols = vec!["/home/bitcoin/.bitcoin"];
+    let ports = vec!["18443", "28332", "28333"];
+    let root_vol = "/home/bitcoin/.bitcoin";
+    // let vols = vec!["/home/bitcoin/.bitcoin"];
     Config {
         image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
-        hostname: Some(format!("{}.sphinx", &node.name)),
+        hostname: Some(domain(&node.name)),
         cmd: Some(vec![
             format!("-{}=1", node.network),
-            format!("-rpcpassword={}", node.pass).to_string(),
-            format!("-rpcuser={}", node.pass).to_string(),
+            format!("-rpcuser={}", node.user),
+            format!("-rpcpassword={}", node.pass),
+            format!("-rpcbind={}.sphinx", node.name),
             "-rpcallowip=0.0.0.0/0".to_string(),
             "-rpcbind=0.0.0.0".to_string(),
             "-rpcport=18443".to_string(),
             "-server".to_string(),
+            "-rpcallowip=0.0.0.0/0".to_string(),
+            "-fallbackfee=0.0002".to_string(),
+            "-zmqpubhashblock=tcp://0.0.0.0:28332".to_string(),
+            "-zmqpubhashtx=tcp://0.0.0.0:28333".to_string(),
+            "-rpcbind=127.0.0.1".to_string(),
         ]),
-        host_config: host_config(project, &node.name, ports, vols, None),
+        host_config: host_config(project, &node.name, ports, root_vol, None, None),
         ..Default::default()
     }
 }
@@ -205,7 +292,7 @@ pub fn cln_vls(
     name: &str,
     network: &str,
     idx: u16,
-    btc: &BtcNode,
+    btc: &BtcImage,
 ) -> Config<String> {
     let version = "0.1.5"; // docker tag
     let cln_version = "v0.11.0.1-793-g243f8e3";
@@ -216,12 +303,11 @@ pub fn cln_vls(
         ps.mqtt.as_str(),
         ps.http.as_str(),
     ];
-    let vols = vec!["/root/.lightning"];
-    let btc_link = format!("{}.sphinx", &btc.name);
-    let links = Some(vec![btc_link.as_str()]);
+    let root_vol = "/root/.lightning";
+    let links = Some(vec![domain(&btc.name)]);
     Config {
         image: Some(format!("sphinxlightning/sphinx-cln-vls:{}", version)),
-        hostname: Some(format!("{}.sphinx", name)),
+        hostname: Some(domain(name)),
         domainname: Some(name.to_string()),
         cmd: Some(vec![
             format!("--alias=sphinx-{}", name),
@@ -245,7 +331,7 @@ pub fn cln_vls(
             format!("BROKER_MQTT_PORT={}", ps.mqtt),
             format!("BROKER_HTTP_PORT={}", ps.http),
         ]),
-        host_config: host_config(project, name, ports, vols, links),
+        host_config: host_config(project, name, ports, root_vol, None, links),
         ..Default::default()
     }
 }

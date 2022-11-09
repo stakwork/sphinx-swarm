@@ -55,5 +55,5 @@ html {
 .container {
 	display: flex;
 	flex-direction: row;
-	padding: 0px;
+	padding: 50px;
 }

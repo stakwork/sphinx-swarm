@@ -1,10 +1,15 @@
-use crate::images::LndNode;
+use crate::images::{LndImage, ProxyImage};
+use crate::utils;
+use once_cell::sync::Lazy;
+use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 
-#[derive(Serialize, Deserialize)]
+pub static CONFIG: Lazy<Mutex<Config>> = Lazy::new(|| Mutex::new(Default::default()));
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     // "bitcoin" or "regtest"
     pub network: String,
@@ -17,28 +22,72 @@ pub struct Config {
     // external meme provider
     pub meme: Option<String>,
     // extra lnd+relay instances
-    pub lnds: Vec<ImageConfig>,
-    // extra cln+relay instances
-    pub clns: Vec<ImageConfig>,
+    pub nodes: Vec<Node>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ImageConfig {
-    pub name: String,
+// pub async fn get_conf() -> &'static Config {
+//     let conf = CONFIG.lock().await;
+//     &conf
+// }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Kind {
+    Bitcoind,
+    Relay,
+    Lnd,
+    Proxy,
+    Cln,
+    Tribes,
+    Mqtt,
+    Auth,
+    Meme,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Node {
+    kind: Kind,
+    name: String,
+    links: Vec<String>,
+    // image?
+}
+impl Node {
+    pub fn new(name: &str, kind: Kind, links: Vec<&str>) -> Self {
+        Self {
+            kind,
+            name: name.to_string(),
+            links: links.iter().map(|l| l.to_string()).collect(),
+        }
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
-            network: "bitcoin".to_string(),
+            network: "regtest".to_string(),
             bitcoind: None,
             postgres: None,
             tribes: None,
             meme: None,
-            lnds: vec![],
-            clns: vec![],
+            nodes: vec![
+                Node::new("relay1", Kind::Relay, vec!["proxy1", "lnd1"]),
+                Node::new("proxy1", Kind::Proxy, vec!["lnd1"]),
+                Node::new("lnd1", Kind::Lnd, vec![]),
+            ],
         }
     }
+}
+
+pub fn load_config_file(project: &str) -> Config {
+    let def: Config = Default::default();
+    let path = format!("vol/{}/config.json", project);
+    utils::load_json(&path, def)
+}
+fn get_config_file(project: &str) -> Config {
+    let path = format!("vol/{}/config.json", project);
+    utils::get_json(&path)
+}
+fn put_config_file(project: &str, rs: &Config) {
+    let path = format!("vol/{}/config.json", project);
+    utils::put_json(&path, rs)
 }
 
 // #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,29 +114,33 @@ pub struct RelayConfig {
     pub proxy_lnd_ip: Option<String>,
     pub proxy_lnd_port: Option<String>,
     pub proxy_admin_token: Option<String>,
+    pub proxy_admin_url: Option<String>,
+    pub proxy_new_nodes: Option<String>,
+    pub proxy_initial_sats: Option<String>,
 }
 
 impl RelayConfig {
-    pub fn new(name: &str, port: &str) -> Self {
+    pub fn new(_name: &str, port: &str) -> Self {
         Self {
             node_http_port: port.to_string(),
             public_url: format!("127.0.0.1:{}", port).to_string(),
             ..Default::default()
         }
     }
-    pub fn lnd(&mut self, lnd: &LndNode) {
-        self.lnd_ip = lnd.name.to_string();
+    pub fn lnd(&mut self, lnd: &LndImage) {
+        self.lnd_ip = format!("{}.sphinx", lnd.name);
         self.lnd_port = lnd.port.to_string();
-        self.tls_location = format!("{}/tls.cert", lnd.dir).to_string();
-        self.macaroon_location =
-            format!("{}/data/chain/bitcoin/regtest/admin.macaroon", lnd.dir).to_string();
+        self.tls_location = "/lnd/tls.cert".to_string();
+        self.macaroon_location = "/lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string();
     }
-    pub fn proxy(&mut self, ip: &str, port: &str, dir: &str, token: &str) {
-        self.proxy_lnd_ip = Some(ip.to_string());
-        self.proxy_lnd_port = Some(port.to_string());
-        self.proxy_admin_token = Some(token.to_string());
-        self.proxy_macaroons_dir = Some(format!("{}/macaroons", dir));
-        self.proxy_tls_location = Some(format!("{}/cert/tls.cert", dir));
+    pub fn proxy(&mut self, proxy: &ProxyImage) {
+        self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
+        self.proxy_lnd_port = Some(proxy.port.clone());
+        self.proxy_admin_token = Some(proxy.admin_token.clone());
+        self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
+        self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
+        self.proxy_admin_url = Some(format!("{}.sphinx:{}", proxy.name, proxy.admin_port));
+        self.proxy_new_nodes = proxy.new_nodes.clone();
     }
 }
 
@@ -115,7 +168,7 @@ impl Default for RelayConfig {
             node_http_port: "3000".to_string(),
             tribes_mqtt_port: "1883".to_string(),
             db_dialect: "sqlite".to_string(),
-            db_storage: "/relay/sphinx.db".to_string(),
+            db_storage: "/relay/data/sphinx.db".to_string(),
             node_http_protocol: None,
             tribes_insecure: None,
             transport_private_key_location: None,
@@ -125,6 +178,9 @@ impl Default for RelayConfig {
             proxy_lnd_ip: None,
             proxy_lnd_port: None,
             proxy_admin_token: None,
+            proxy_admin_url: None,
+            proxy_new_nodes: None,
+            proxy_initial_sats: None,
         }
     }
 }
@@ -153,7 +209,7 @@ mod tests {
     #[test]
     fn test_relay_config() {
         let mut c = RelayConfig::new("relay", "3000");
-        c.lnd(&LndNode::new("lnd", "regtest", "10009", "/.lnd/"));
+        c.lnd(&LndImage::new("lnd", "regtest", "10009"));
         relay_env_config(&c);
         assert!(true == true)
     }

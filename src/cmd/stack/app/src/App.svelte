@@ -3,8 +3,8 @@
 
     import Svelvet from "svelvet";
 
-    $: height = window.innerHeight - 150;
-    $: width = window.innerWidth - 600;
+    $: height = window.innerHeight - 65;
+    $: width = window.innerWidth - 450;
 
     $: node = "";
     $: number = "";
@@ -131,7 +131,7 @@
 
 <main>
     <header>
-        <div class="lefty logo-wrap">Sphinx Stack</div>
+        <div class="lefty logo-wrap"><img class="logo" alt="Sphinx icon" src="swarm/logo.jpg"/></div>
     </header>
     <div class="body">
         <div class="container">
@@ -146,7 +146,7 @@
                     <input type="text" bind:value={links} />
                 </form>
             </section>
-            <Svelvet id="graph" nodes={initialNodes} edges={initialEdges} bgColor="#13181D" {width} {height}  movement={false}  />
+            <Svelvet nodes={initialNodes} edges={initialEdges} bgColor="#13181D" {width} {height}  movement={false}  />
         </div>
     </div>
 </main>
@@ -164,12 +164,18 @@
         height: 4.2rem;
         display: flex;
         align-items: center;
-        border-bottom: 1px dashed #bfbfbf;
+        border-bottom: 1px solid rgba(211, 211, 211, 0.2);
     }
 
     .logo-wrap {
         display: flex;
         align-items: center;
+    }
+
+    .logo-wrap .logo {
+        width: 70px;
+        padding: 12px;
+        margin-left: 2.5rem;
     }
 
     .body {
@@ -181,17 +187,16 @@
         width: 15rem;
         max-width: 15rem;
         height: 100%;
-        border-right: 1px dashed #bfbfbf;
+        /* border-right: 1px dashed #bfbfbf; */
     }
 
     .node-form {
-        padding: 20px;
+        padding: 50px;
         border-radius: 10px;
         align-items: center;
         max-height: calc(100vh);
-        margin-right: 50px;
+        margin-right: 0px;
         width: calc(28vw - 30px);
-        box-shadow: 0 1.5px 3px 0 rgba(211, 211, 211, 0.2), 0 2px 8px 0 rgba(211, 211, 211, 0.19);
     }
 
     .node-form .node-title {
