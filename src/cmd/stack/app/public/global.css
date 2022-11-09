@@ -15,11 +15,13 @@ body {
 html {
 	font-size: 13px;
 }
+
 @media only screen and (min-width: 400px) {
 	html {
 		font-size: 16px;
 	}
 }
+
 @media only screen and (min-width: 768px) {
 	html {
 		font-size: 19px;
@@ -29,31 +31,51 @@ html {
 .lefty .bx--assistive-text {
 	display: none !important;
 }
+
 .lefty button::before {
 	display: none !important;
 }
+
 .bx--btn--selected {
-	background:#7d89ff !important;
-}
-.bx--btn--selected:focus {
-	border-color: transparent !important;
-    box-shadow: none !important;
-}
-.bx--btn--primary {
-	background:#7d89ff !important;
-}
-.bx--btn--primary:hover {
-	background:#646fd4 !important;
-}
-.bx--btn--primary:disabled {
-	background:#525252 !important;
-}
-.bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before{
-	background:#7d89ff !important;
+	background: #7d89ff !important;
 }
 
-.container {
+.bx--btn--selected:focus {
+	border-color: transparent !important;
+	box-shadow: none !important;
+}
+
+.bx--btn--primary {
+	background: #7d89ff !important;
+}
+
+.bx--btn--primary:hover {
+	background: #646fd4 !important;
+}
+
+.bx--btn--primary:disabled {
+	background: #525252 !important;
+}
+
+.bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before {
+	background: #7d89ff !important;
+}
+
+.body .bx--text-input {
+	background: #13181D;
+}
+
+.body .bx--number input[type=number] {
+	background: #13181D;
+}
+
+.node-form .node-count a {
+	color: inherit;
+	text-decoration: none;
+}
+
+/* .container {
 	display: flex;
 	flex-direction: row;
 	padding: 0px;
-}
+} */

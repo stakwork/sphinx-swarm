@@ -31,6 +31,7 @@
     "cheerio": "^1.0.0-rc.12",
     "sirv-cli": "^2.0.0",
     "styled-components": "^5.3.6",
+    "svelte-routing": "^1.6.0",
     "svelvet": "^4.0.3"
   }
 }
