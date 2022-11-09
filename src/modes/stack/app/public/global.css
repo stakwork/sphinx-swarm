@@ -52,3 +52,15 @@ html {
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before{
 	background:#7d89ff !important;
 }
+
+
+
+.node-img {
+	width:50%;
+}
+.node-text {
+	color: #FFF; 
+	font-size: 0.8rem; 
+	margin-top: 0.8rem; 
+	font-weight: bold
+}

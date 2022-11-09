@@ -2,8 +2,10 @@
   import { selectedNode } from "./store";
   import Ctrl from "./Ctrl.svelte";
   import { controls } from "./controls";
+  import Users from "./Users.svelte";
 
   $: ctrls = $selectedNode && controls[$selectedNode.type];
+  $: type = $selectedNode && $selectedNode.type;
 </script>
 
 {#if ctrls}
@@ -11,6 +13,9 @@
     <header>
       {$selectedNode.name}
     </header>
+    {#if type === "Relay"}
+      <Users />
+    {/if}
     <div class="controls">
       {#each ctrls as ctrl}
         <Ctrl {...ctrl} />
@@ -29,7 +34,7 @@
     height: 80vh;
     width: 23rem;
     border: 1px solid #bfbfbf;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     position: fixed;
     right: 2rem;
     top: 6rem;

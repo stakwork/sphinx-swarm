@@ -8,10 +8,10 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 
-pub static CONFIG: Lazy<Mutex<Config>> = Lazy::new(|| Mutex::new(Default::default()));
+pub static STACK: Lazy<Mutex<Stack>> = Lazy::new(|| Mutex::new(Default::default()));
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
+pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
     pub nodes: Vec<Node>,
@@ -52,7 +52,7 @@ impl Node {
     }
 }
 
-impl Default for Config {
+impl Default for Stack {
     fn default() -> Self {
         let network = "regtest".to_string();
         let bitcoind = BtcImage::new("bitcoind", &network, "user", "password");
@@ -83,7 +83,7 @@ impl Default for Config {
             ExternalNodeType::Meme,
             "meme.sphinx.chat",
         )));
-        Config { network, nodes }
+        Stack { network, nodes }
     }
 }
 
@@ -111,16 +111,16 @@ impl ExternalNode {
     }
 }
 
-pub fn load_config_file(project: &str) -> Config {
-    let def: Config = Default::default();
+pub fn load_config_file(project: &str) -> Stack {
+    let def: Stack = Default::default();
     let path = format!("vol/{}/config.json", project);
     utils::load_json(&path, def)
 }
-fn get_config_file(project: &str) -> Config {
+fn get_config_file(project: &str) -> Stack {
     let path = format!("vol/{}/config.json", project);
     utils::get_json(&path)
 }
-fn put_config_file(project: &str, rs: &Config) {
+fn put_config_file(project: &str, rs: &Stack) {
     let path = format!("vol/{}/config.json", project);
     utils::put_json(&path, rs)
 }
@@ -221,7 +221,7 @@ impl Default for RelayConfig {
 }
 
 // using env instead of file
-pub fn _relay_config(project: &str, name: &str) -> Config {
+pub fn _relay_config(project: &str, name: &str) -> RelayConfig {
     let path = format!("vol/{}/{}.json", project, name);
     match fs::read(path.clone()) {
         Ok(data) => match serde_json::from_slice(&data) {

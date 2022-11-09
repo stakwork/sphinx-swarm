@@ -1,3 +1,18 @@
+export interface Stack {
+  network: Network;
+  nodes: Node[];
+}
+
+export interface Node {
+  name: string;
+  type: NodeType;
+  place: Place;
+  links?: string[];
+  network?: Network;
+  // any other optional field
+  [key: string]: string | string[];
+}
+
 export type NodeType =
   | "Btc"
   | "Lnd"
@@ -13,21 +28,7 @@ type Place = "Internal" | "External";
 
 type Network = "bitcoin" | "regtest";
 
-export interface Node {
-  name: string;
-  type: NodeType;
-  place: Place;
-  links?: string[];
-  network?: Network;
-  [key: string]: string | string[];
-}
-
-interface Config {
-  network: Network;
-  nodes: Node[];
-}
-
-const config: Config = {
+const stack: Stack = {
   network: "regtest",
   nodes: [
     {
@@ -64,7 +65,7 @@ const config: Config = {
       type: "Relay",
       name: "relay1",
       port: "3000",
-      links: ["proxy1", "lnd1"],
+      links: ["proxy1", "lnd1", "tribes", "memes"],
     },
     {
       name: "tribes",
@@ -81,53 +82,13 @@ const config: Config = {
   ],
 };
 
-export { config };
+const defaultPositions = [
+  [50, 50],
+  [220, 150],
+  [360, 80],
+  [520, 300],
+  [160, 350],
+  [360, 450],
+];
 
-// export interface Node {
-//   name: string;
-//   type: Types;
-//   x: number;
-//   y: number;
-//   outs: string[];
-//   controls?: Control[];
-//   data: string;
-// }
-
-// const nodes: Node[] = [
-//   {
-//     name: "Bitcoind",
-//     type: "bitcoind",
-//     x: 50,
-//     y: 150,
-//     outs: ["LND"],
-//     data: "",
-//   },
-//   {
-//     name: "LND",
-//     type: "lnd",
-//     x: 280,
-//     y: 200,
-//     outs: ["Proxy"],
-//     controls: lndControls,
-//     data: "2 channels",
-//   },
-//   {
-//     name: "Proxy",
-//     type: "proxy",
-//     x: 480,
-//     y: 201,
-//     outs: ["Relay"],
-//     controls: proxyControls,
-//     data: "56 users",
-//   },
-//   {
-//     name: "Relay",
-//     type: "relay",
-//     x: 700,
-//     y: 260,
-//     outs: [],
-//     controls: relayControls,
-//     data: "2 clients",
-//   },
-// ];
-// export default nodes;
+export { stack, defaultPositions };

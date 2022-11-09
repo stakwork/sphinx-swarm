@@ -1,5 +1,7 @@
 import { writable } from "svelte/store";
 import { localStorageStore } from "./storage";
-import type { Node } from "./nodes";
+import { Node, Stack, stack as initialStack } from "./nodes";
 
 export const selectedNode = writable<Node>();
+
+export const stack = writable<Stack>(initialStack);

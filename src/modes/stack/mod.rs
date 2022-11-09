@@ -2,7 +2,7 @@ mod handler;
 mod secrets;
 mod srv;
 
-use crate::config::{Config, Node};
+use crate::config::{Node, Stack};
 use crate::conn::lnd::unlocker::LndUnlocker;
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
@@ -65,11 +65,11 @@ async fn add_node(
 }
 
 // return a map of name:docker_id
-async fn build_stack(docker: Docker, conf: Config) -> Result<HashMap<String, String>> {
+async fn build_stack(docker: Docker, stack: Stack) -> Result<HashMap<String, String>> {
     let proj = "stack";
     let mut ids = HashMap::new();
-    for node in conf.nodes.clone().iter() {
-        add_node(proj, &node, conf.nodes.clone(), &docker, &mut ids).await?;
+    for node in stack.nodes.clone().iter() {
+        add_node(proj, &node, stack.nodes.clone(), &docker, &mut ids).await?;
     }
     Ok(ids)
 }
