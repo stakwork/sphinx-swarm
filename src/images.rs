@@ -33,6 +33,7 @@ pub struct BtcImage {
     pub name: String,
     pub network: String,
     pub user: String,
+    #[serde(skip_serializing)]
     pub pass: String,
 }
 impl BtcImage {
@@ -94,7 +95,9 @@ pub struct ProxyImage {
     pub network: String,
     pub port: String,
     pub admin_port: String,
+    #[serde(skip_serializing)]
     pub admin_token: Option<String>,
+    #[serde(skip_serializing)]
     pub store_key: Option<String>,
     pub new_nodes: Option<String>, // for relay
     pub links: Links,

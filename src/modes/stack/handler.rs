@@ -1,5 +1,5 @@
 use crate::cmd::{Cmd, RelayCmd, SwarmCmd};
-use crate::config::{Stack, STACK};
+use crate::config::STACK;
 use anyhow::Result;
 use bollard::Docker;
 
@@ -7,7 +7,7 @@ use bollard::Docker;
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
     // conf can be mutated in place
     let mut stack = STACK.lock().await;
-    // println!("CONF {:?}", conf);
+    // println!("STACK {:?}", stack);
 
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
