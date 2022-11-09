@@ -55,14 +55,20 @@ impl Node {
 impl Default for Stack {
     fn default() -> Self {
         let network = "regtest".to_string();
+        // bitcoind
         let bitcoind = BtcImage::new("bitcoind", &network, "sphinx");
-        let mut relay = RelayImage::new("relay1", "3000");
-        relay.links(vec!["proxy1", "lnd1"]);
-        let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050");
-        proxy.links(vec!["lnd1"]);
+        // lnd
         let mut lnd = LndImage::new("lnd1", &network, "10009");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
+        // proxy
+        let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050");
+        proxy.new_nodes(Some("0".to_string()));
+        proxy.links(vec!["lnd1"]);
+        // relay
+        let mut relay = RelayImage::new("relay1", "3000");
+        relay.links(vec!["proxy1", "lnd1"]);
+        // internal nodes
         let internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
@@ -73,6 +79,7 @@ impl Default for Stack {
             .iter()
             .map(|n| Node::Internal(n.to_owned()))
             .collect();
+        // external nodes
         nodes.push(Node::External(ExternalNode::new(
             "tribes",
             ExternalNodeType::Tribes,
