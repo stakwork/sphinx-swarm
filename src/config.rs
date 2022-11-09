@@ -74,10 +74,12 @@ impl Default for Config {
             .map(|n| Node::Internal(n.to_owned()))
             .collect();
         nodes.push(Node::External(ExternalNode::new(
+            "tribes",
             ExternalNodeType::Tribes,
             "tribes.sphinx.chat",
         )));
         nodes.push(Node::External(ExternalNode::new(
+            "memes",
             ExternalNodeType::Meme,
             "meme.sphinx.chat",
         )));
@@ -96,11 +98,13 @@ pub enum ExternalNodeType {
 pub struct ExternalNode {
     #[serde(rename = "type")]
     pub kind: ExternalNodeType,
+    pub name: String,
     pub url: String,
 }
 impl ExternalNode {
-    pub fn new(kind: ExternalNodeType, url: &str) -> Self {
+    pub fn new(name: &str, kind: ExternalNodeType, url: &str) -> Self {
         Self {
+            name: name.to_string(),
             kind,
             url: url.to_string(),
         }

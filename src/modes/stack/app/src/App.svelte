@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Flow from "./Flow.svelte";
   import { selectedNode } from "./store";
   import Controls from "./Controls.svelte";
   import * as api from "./api";
   import { onMount } from "svelte";
+  import Flow from "./Flow.svelte";
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
@@ -24,7 +24,7 @@
     {/if}
   </header>
   <div class="body">
-    <Flow fixed />
+    <Flow />
     <Controls />
   </div>
 </main>
@@ -39,6 +39,7 @@
   }
   header {
     height: 4.2rem;
+    min-height: 4.2rem;
     display: flex;
     align-items: center;
     border-bottom: 1px solid #bfbfbf;

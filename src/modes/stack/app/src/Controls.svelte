@@ -1,15 +1,18 @@
 <script lang="ts">
   import { selectedNode } from "./store";
   import Ctrl from "./Ctrl.svelte";
+  import { controls } from "./controls";
+
+  $: ctrls = $selectedNode && controls[$selectedNode.type];
 </script>
 
-{#if $selectedNode && $selectedNode.controls}
+{#if ctrls}
   <main>
     <header>
       {$selectedNode.name}
     </header>
     <div class="controls">
-      {#each $selectedNode.controls as ctrl}
+      {#each ctrls as ctrl}
         <Ctrl {...ctrl} />
         <div class="spacer" />
       {/each}

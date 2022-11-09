@@ -1,92 +1,56 @@
 <script lang="ts">
-  export let fixed = false;
-
-  import Drawflow from "drawflow";
-  import { onMount } from "svelte";
-  import nodes, { Node } from "./nodes";
+  import Svelvet from "svelvet";
+  import { config, Node, NodeType } from "./nodes";
+  import type { Node as SvelvetNode } from "svelvet";
   import { selectedNode } from "./store";
 
-  function click(e) {
-    // console.log(e);
-    e.path.forEach((el) => {
-      if (!el.className) return;
-      const classes: string[] = el.className.split(" ");
-      if (classes.includes("drawflow-node")) {
-        const lastClass = classes[classes.length - 1];
-        const wordz = lastClass.split("-");
-        const name = wordz[classes.length - 1];
-        const node = nodes.find((n) => n.name === name);
-        selectedNode.set(node);
-      }
+  const nodeCallback = (node) => {
+    const n = config.nodes.find((n) => n.name === node.data.name);
+    if (n) selectedNode.set(n);
+  };
+
+  export function toSvelvet(nodes: Node[], clickCallback): SvelvetNode[] {
+    return nodes.map((n, i) => {
+      return <SvelvetNode>{
+        id: i + 1,
+        position: { x: 140 * i + 25, y: 95 * i + 25 },
+        width: 102,
+        height: 120,
+        borderRadius: 10,
+        bgColor: colorz[n.type],
+        clickCallback,
+        data: { html: content(n.type), name: n.name },
+      };
     });
   }
 
-  function content(n: Node) {
-    if (!n.data) {
-      return `<div class="content-title-simple">${n.name}</div>`;
-    }
-    return `<div>
-        <div class="content-title">${n.name}</div>
-        <div class="content-body">${n.data}</div>
-      </div>`;
+  function content(t: NodeType) {
+    return `<section class='node-html'>
+    <img src='swarm/${t.toLowerCase()}.png' class='node-img' width='50%'></img>
+    <p style='color: #FFF; font-size: 0.8rem; margin-top: 10px; font-weight: bold'>${t}</p>
+  </section>`;
   }
 
-  function setConnectionClasses() {
-    const els = Array.from(
-      document.getElementsByClassName("connection input_1")
-    );
-    console.log(els);
-    let i = 0;
-    nodes.forEach((n) => {
-      n.outs.forEach((out) => {
-        let path = els[i] && (els[i].firstChild as any);
-        if (path) path.classList.add(`conn-${n.type}`);
-        i++;
-      });
-    });
-  }
+  const colorz = {
+    Btc: "#9D61FF",
+    Lnd: "#D4A74E",
+    Proxy: "#FF6161",
+    Relay: "#49C998",
+    Tribes: "#618AFF",
+    Meme: "#9D61FF",
+    Mqtt: "#660066",
+    Auth: "#9D61FF",
+    Postgres: "#9D61FF",
+  };
 
-  onMount(() => {
-    const id = document.getElementById("drawflow");
-    const editor = new Drawflow(id);
-    if (fixed) editor.editor_mode = "fixed";
-    editor.start();
-    nodes.forEach((n) => {
-      const ins = nodes.filter((nn) => nn.outs.includes(n.name));
-      editor.addNode(
-        n.name,
-        ins.length,
-        n.outs.length,
-        n.x,
-        n.y,
-        `flow-${n.type} flow-name-${n.name}`,
-        { name: n.name },
-        content(n),
-        false
-      );
-    });
-    nodes.forEach((n, i) => {
-      n.outs.forEach((c, ii) => {
-        const ids = editor.getNodesFromName(c);
-        if (ids.length) {
-          editor.addConnection(i + 1, ids[0], `output_${ii + 1}`, `input_1`);
-        }
-      });
-    });
-    editor.on("mouseMove", function (pos) {
-      // console.log("mouse: " + pos.x, pos.y);
-    });
-    editor.on("click", function (e) {
-      console.log(e);
-    });
-    window.setTimeout(() => {
-      setConnectionClasses();
-    }, 2);
-  });
+  $: nodes = toSvelvet(config.nodes, nodeCallback);
 </script>
 
-<div
-  id="drawflow"
-  on:click={click}
-  style="height:calc(100vh - 4.2rem);width:100vw;"
+<Svelvet
+  {nodes}
+  edges={[]}
+  bgColor="#13181D"
+  width={window.innerWidth}
+  height={window.innerHeight}
+  movement={false}
 />

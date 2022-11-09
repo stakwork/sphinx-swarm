@@ -6,7 +6,7 @@ export interface Control {
   items?: any[];
 }
 
-export const relayControls: Control[] = [
+const relayControls: Control[] = [
   {
     name: "Thing One",
     value: "item1",
@@ -19,7 +19,7 @@ export const relayControls: Control[] = [
   { name: "Thing 2", type: "number", value: 42 },
   { name: "Thing 3", type: "text", value: "Some Text" },
 ];
-export const lndControls: Control[] = [
+const lndControls: Control[] = [
   { name: "LND 2", type: "number", value: 42 },
   { name: "LND 3", type: "text", value: "Some Text" },
   {
@@ -32,7 +32,7 @@ export const lndControls: Control[] = [
     ],
   },
 ];
-export const proxyControls: Control[] = [
+const proxyControls: Control[] = [
   { name: "Proxy 3", type: "text", value: "Some Text" },
   {
     name: "Proxy One",
@@ -45,3 +45,9 @@ export const proxyControls: Control[] = [
   },
   { name: "Proxy 2", type: "number", value: 42 },
 ];
+
+export const controls = {
+  Relay: relayControls,
+  Proxy: proxyControls,
+  Lnd: lndControls,
+};
