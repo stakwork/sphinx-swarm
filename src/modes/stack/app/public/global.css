@@ -34,23 +34,23 @@ html {
 	display: none !important;
 }
 .bx--btn--selected {
-	background:#7d89ff !important;
+	background:#618AFF !important;
 }
 .bx--btn--selected:focus {
 	border-color: transparent !important;
     box-shadow: none !important;
 }
 .bx--btn--primary {
-	background:#7d89ff !important;
+	background:#618AFF !important;
 }
 .bx--btn--primary:hover {
-	background:#646fd4 !important;
+	background:#4574f7 !important;
 }
 .bx--btn--primary:disabled {
 	background:#525252 !important;
 }
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before{
-	background:#7d89ff !important;
+	background:#618AFF !important;
 }
 
 

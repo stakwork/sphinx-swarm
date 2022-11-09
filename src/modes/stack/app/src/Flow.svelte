@@ -52,7 +52,7 @@
     Proxy: "#FF6161",
     Relay: "#49C998",
     Tribes: "#618AFF",
-    Meme: "#9D61FF",
+    Meme: "#660066",
     Mqtt: "#660066",
     Auth: "#9D61FF",
     Postgres: "#9D61FF",
