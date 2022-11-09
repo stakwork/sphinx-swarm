@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn test_cmd() {
-        let btc = BtcImage::new("bicoind", "regtest", "user", "password");
+        let btc = BtcImage::new("bicoind", "regtest", "user");
         let c = Cmd::Swarm(SwarmCmd::AddNode(Image::Btc(btc)));
         println!("{}", serde_json::to_string(&c).unwrap());
 

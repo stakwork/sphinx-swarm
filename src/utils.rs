@@ -1,6 +1,8 @@
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
+use rocket::tokio::fs;
+use rocket::tokio::io::AsyncWriteExt;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 
@@ -94,30 +96,29 @@ pub fn _net_config() -> Option<NetworkingConfig<String>> {
     Some(NetworkingConfig { endpoints_config })
 }
 
-pub fn load_json<T: DeserializeOwned + Serialize>(file: &str, default: T) -> T {
+pub async fn load_json<T: DeserializeOwned + Serialize>(file: &str, default: T) -> T {
     let path = std::path::Path::new(&file);
-    match std::fs::read(path.clone()) {
+    match fs::read(path.clone()).await {
         Ok(data) => match serde_json::from_slice(&data) {
             Ok(d) => d,
             Err(_) => default,
         },
         Err(_e) => {
             let prefix = path.parent().unwrap();
-            std::fs::create_dir_all(prefix).unwrap();
-            put_json(file, &default);
+            fs::create_dir_all(prefix).await.unwrap();
+            put_json(file, &default).await;
             default
         }
     }
 }
-pub fn get_json<T: DeserializeOwned>(file: &str) -> T {
+pub async fn get_json<T: DeserializeOwned>(file: &str) -> T {
     let path = std::path::Path::new(&file);
-    let data = std::fs::read(path.clone()).unwrap();
+    let data = fs::read(path.clone()).await.unwrap();
     serde_json::from_slice(&data).unwrap()
 }
-pub fn put_json<T: Serialize>(file: &str, rs: &T) {
-    use std::io::Write;
+pub async fn put_json<T: Serialize>(file: &str, rs: &T) {
     let path = std::path::Path::new(&file);
     let st = serde_json::to_string_pretty(rs).expect("failed to make json string");
-    let mut file = std::fs::File::create(path).expect("create failed");
-    file.write_all(st.as_bytes()).expect("write failed");
+    let mut file = fs::File::create(path).await.expect("create failed");
+    file.write_all(st.as_bytes()).await.expect("write failed");
 }

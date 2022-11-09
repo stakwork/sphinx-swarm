@@ -32,7 +32,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let network = "regtest";
 
     // btc setup
-    let btc_node = BtcImage::new("bitcoind", network, "foo", "bar");
+    let btc_node = BtcImage::new("bitcoind", network, "foo");
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");

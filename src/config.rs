@@ -55,10 +55,10 @@ impl Node {
 impl Default for Stack {
     fn default() -> Self {
         let network = "regtest".to_string();
-        let bitcoind = BtcImage::new("bitcoind", &network, "user", "password");
+        let bitcoind = BtcImage::new("bitcoind", &network, "sphinx");
         let mut relay = RelayImage::new("relay1", "3000");
         relay.links(vec!["proxy1", "lnd1"]);
-        let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050", "TOKEN", "AAAAAAAAAA");
+        let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050");
         proxy.links(vec!["lnd1"]);
         let mut lnd = LndImage::new("lnd1", &network, "10009");
         lnd.http_port = Some("8881".to_string());
@@ -111,18 +111,17 @@ impl ExternalNode {
     }
 }
 
-pub fn load_config_file(project: &str) -> Stack {
-    let def: Stack = Default::default();
+pub async fn load_config_file(project: &str) -> Stack {
     let path = format!("vol/{}/config.json", project);
-    utils::load_json(&path, def)
+    utils::load_json(&path, Default::default()).await
 }
-fn get_config_file(project: &str) -> Stack {
+pub async fn get_config_file(project: &str) -> Stack {
     let path = format!("vol/{}/config.json", project);
-    utils::get_json(&path)
+    utils::get_json(&path).await
 }
-fn put_config_file(project: &str, rs: &Stack) {
+pub async fn put_config_file(project: &str, rs: &Stack) {
     let path = format!("vol/{}/config.json", project);
-    utils::put_json(&path, rs)
+    utils::put_json(&path, rs).await
 }
 
 // #[serde(skip_serializing_if = "Option::is_none")]

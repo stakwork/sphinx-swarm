@@ -1,4 +1,5 @@
 use crate::config;
+use crate::secrets;
 use crate::utils::{domain, exposed_ports, files_volume, host_config, volume_string};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
@@ -33,16 +34,15 @@ pub struct BtcImage {
     pub name: String,
     pub network: String,
     pub user: String,
-    #[serde(skip_serializing)]
     pub pass: String,
 }
 impl BtcImage {
-    pub fn new(name: &str, network: &str, user: &str, pass: &str) -> Self {
+    pub fn new(name: &str, network: &str, user: &str) -> Self {
         Self {
             name: name.to_string(),
             network: network.to_string(),
             user: user.to_string(),
-            pass: pass.to_string(),
+            pass: secrets::random_word(12),
         }
     }
 }
@@ -54,6 +54,7 @@ pub struct LndImage {
     pub port: String,
     pub http_port: Option<String>,
     pub links: Links,
+    pub unlock_password: String,
 }
 impl LndImage {
     pub fn new(name: &str, network: &str, port: &str) -> Self {
@@ -63,10 +64,14 @@ impl LndImage {
             port: port.to_string(),
             http_port: None,
             links: vec![],
+            unlock_password: secrets::random_word(12),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub fn unlock_password(&mut self, up: &str) {
+        self.unlock_password = up.to_string();
     }
 }
 
@@ -95,30 +100,21 @@ pub struct ProxyImage {
     pub network: String,
     pub port: String,
     pub admin_port: String,
-    #[serde(skip_serializing)]
     pub admin_token: Option<String>,
-    #[serde(skip_serializing)]
     pub store_key: Option<String>,
     pub new_nodes: Option<String>, // for relay
     pub links: Links,
 }
 
 impl ProxyImage {
-    pub fn new(
-        name: &str,
-        network: &str,
-        port: &str,
-        admin_port: &str,
-        admin_token: &str,
-        store_key: &str,
-    ) -> Self {
+    pub fn new(name: &str, network: &str, port: &str, admin_port: &str) -> Self {
         Self {
             name: name.to_string(),
             network: network.to_string(),
             port: port.to_string(),
             admin_port: admin_port.to_string(),
-            admin_token: Some(admin_token.to_string()),
-            store_key: Some(store_key.to_string()),
+            admin_token: Some(secrets::random_word(12)),
+            store_key: Some(secrets::hex_secret()),
             new_nodes: None,
             links: vec![],
         }

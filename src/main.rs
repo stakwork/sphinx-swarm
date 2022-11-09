@@ -9,6 +9,7 @@ mod logs;
 mod modes;
 mod rocket_utils;
 mod routes;
+mod secrets;
 mod utils;
 
 #[rocket::main]

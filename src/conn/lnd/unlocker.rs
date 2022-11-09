@@ -14,13 +14,17 @@ pub struct InitWalletRequest {
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InitWalletResponse {
-    admin_macaroon: Option<String>,
-    message: Option<String>,
+    pub admin_macaroon: Option<String>,
+    pub message: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UnlockWalletRequest {
     wallet_password: String,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UnlockWalletResponse {
+    pub message: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -80,7 +84,7 @@ impl LndUnlocker {
             Err(e) => Err(anyhow::anyhow!("INIT ERR {:?}", e)),
         }
     }
-    pub async fn unlock_wallet(&self, password: &str) -> Result<()> {
+    pub async fn unlock_wallet(&self, password: &str) -> Result<UnlockWalletResponse> {
         let wallet_password = base64::encode(password.as_bytes());
         let body = UnlockWalletRequest { wallet_password };
         let route = format!("https://{}/v1/unlockwallet", self.url);
@@ -92,7 +96,7 @@ impl LndUnlocker {
             .send()
             .await
         {
-            Ok(_) => Ok(()),
+            Ok(r) => Ok(r.json().await?),
             Err(e) => Err(anyhow::anyhow!("UNLOCK ERR {:?}", e)),
         }
     }
