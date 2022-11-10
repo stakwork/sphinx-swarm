@@ -28,6 +28,7 @@
 <style>
   header {
     margin-bottom: 1rem;
+    text-transform: capitalize;
   }
   main {
     font-size: 2rem;
@@ -36,7 +37,7 @@
     border: 1px solid #bfbfbf;
     border-radius: 0.5rem;
     position: fixed;
-    right: 2rem;
+    left: 2rem;
     top: 6rem;
     background: #161616;
     padding: 2rem;

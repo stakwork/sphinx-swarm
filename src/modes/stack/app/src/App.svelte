@@ -18,7 +18,9 @@
 
 <main>
   <header>
-    <div class="lefty logo-wrap">Sphinx Stack</div>
+    <div class="lefty logo-wrap">
+      <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
+    </div>
     {#if $selectedNode}
       <div class="title">{$selectedNode.name}</div>
     {/if}
@@ -42,12 +44,19 @@
     min-height: 4.2rem;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid #bfbfbf;
+    border-bottom: 1px solid rgba(211, 211, 211, 0.2);
   }
   .logo-wrap {
     display: flex;
     align-items: center;
   }
+
+  .logo-wrap .logo {
+    width: 70px;
+    padding: 12px;
+    margin-left: 2.5rem;
+  }
+
   .body {
     display: flex;
     height: 100%;
@@ -56,10 +65,11 @@
     width: 15rem;
     max-width: 15rem;
     height: 100%;
-    border-right: 1px solid #bfbfbf;
+    border-right: 1px solid rgba(211, 211, 211, 0.2);
   }
   .title {
     color: white;
     margin-left: 2rem;
+    text-transform: capitalize;
   }
 </style>

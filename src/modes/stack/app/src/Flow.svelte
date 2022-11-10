@@ -24,6 +24,7 @@
               source: idx + 1,
               target: i + 1,
               edgeColor: "#dddddd",
+              noHandle: true,
               type: ns[idx].place === "Internal" ? "bezier" : "straight",
               animate: ns[idx].place === "External",
             });
