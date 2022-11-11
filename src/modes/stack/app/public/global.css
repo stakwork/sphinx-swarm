@@ -10,6 +10,7 @@ body {
 	padding: 0px;
 	box-sizing: border-box;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	overflow: hidden;
 }
 
 
@@ -42,6 +43,9 @@ html {
 }
 .bx--btn--primary {
 	background:#618AFF !important;
+}
+.add-node-btn .bx--btn--primary {
+	background: #52B550 !important;
 }
 .bx--btn--primary:hover {
 	background:#4574f7 !important;

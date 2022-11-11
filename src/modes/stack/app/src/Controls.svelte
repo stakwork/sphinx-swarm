@@ -37,7 +37,7 @@
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
-    top: 4.1rem;
+    top: 4.14rem;
     background: #1A242E;
     padding: 2rem;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
