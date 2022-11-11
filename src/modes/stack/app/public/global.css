@@ -53,14 +53,23 @@ html {
 	background:#618AFF !important;
 }
 
-
+.node-html {
+	display: flex;
+	padding: 0px 30px;
+	flex-direction: row;
+	align-items: center;
+}
 
 .node-img {
-	width:50%;
+	width: 22%;
+	margin: 0;
+	padding: 0;
+	display: block;
 }
+
 .node-text {
 	color: #FFF; 
-	font-size: 0.8rem; 
-	margin-top: 0.8rem; 
-	font-weight: bold
+	font-size: 0.9rem; 
+	font-weight: bold;
+	margin-left: 25px;
 }

@@ -36,15 +36,16 @@
     height: 100vh;
     width: 100vw;
     display: flex;
-    background: #161616;
     flex-direction: column;
   }
   header {
     height: 4.2rem;
     min-height: 4.2rem;
     display: flex;
+    background: #1A242E;
     align-items: center;
-    border-bottom: 1px solid rgba(211, 211, 211, 0.2);
+    border-bottom: 1px solid #101317;
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
   .logo-wrap {
     display: flex;
@@ -65,7 +66,7 @@
     width: 15rem;
     max-width: 15rem;
     height: 100%;
-    border-right: 1px solid rgba(211, 211, 211, 0.2);
+    border-right: 1px solid #101317;
   }
   .title {
     color: white;

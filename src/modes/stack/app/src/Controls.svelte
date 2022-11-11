@@ -32,15 +32,15 @@
   }
   main {
     font-size: 2rem;
-    height: 80vh;
+    height: 100vh;
     width: 23rem;
-    border: 1px solid #bfbfbf;
-    border-radius: 0.5rem;
+    border-radius: 0rem;
     position: fixed;
-    left: 2rem;
-    top: 6rem;
-    background: #161616;
+    right: 0rem;
+    top: 4.1rem;
+    background: #1A242E;
     padding: 2rem;
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
   .spacer {
     margin-bottom: 1rem;

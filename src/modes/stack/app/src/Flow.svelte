@@ -24,7 +24,7 @@
               source: idx + 1,
               target: i + 1,
               edgeColor: "#dddddd",
-              noHandle: true,
+              // noHandle: true,
               type: ns[idx].place === "Internal" ? "bezier" : "straight",
               animate: ns[idx].place === "External",
             });
@@ -34,10 +34,11 @@
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },
-        width: 102,
-        height: 120,
-        borderRadius: 10,
-        bgColor: colorz[n.type],
+        width: 180,
+        height: 90,
+        borderRadius: 8,
+        // bgColor: colorz[n.type],
+        bgColor: "#1A242E",
         clickCallback,
         data: { html: content(n.type), name: n.name },
         sourcePosition: "right",
@@ -58,6 +59,7 @@
     Auth: "#9D61FF",
     Postgres: "#9D61FF",
   };
+
   function content(t: NodeType) {
     return `<section class='node-html'>
       <img src='swarm/${t.toLowerCase()}.png' class='node-img'></img>
@@ -71,7 +73,7 @@
 <Svelvet
   nodes={flow.nodes}
   edges={flow.edges}
-  bgColor="#13181D"
+  bgColor="#101317"
   width={window.innerWidth}
   height={window.innerHeight}
   movement={true}
