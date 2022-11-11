@@ -5,11 +5,12 @@ html, body {
 }
 
 body {
-	color: #333;
+	color: #13181D;
 	margin: 0;
 	padding: 0px;
 	box-sizing: border-box;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	overflow: hidden;
 }
 
 
@@ -43,6 +44,12 @@ html {
 .bx--btn--primary {
 	background:#618AFF !important;
 }
+.add-node-btn .bx--btn--primary {
+	background: #52B550 !important;
+}
+.add-node-btn .bx--btn--primary:hover {
+	background: #3ba839 !important;
+}
 .bx--btn--primary:hover {
 	background:#4574f7 !important;
 }
@@ -53,14 +60,23 @@ html {
 	background:#618AFF !important;
 }
 
-
+.node-html {
+	display: flex;
+	padding: 0px 30px;
+	flex-direction: row;
+	align-items: center;
+}
 
 .node-img {
-	width:50%;
+	width: 26%;
+	margin: 0;
+	padding: 0;
+	display: block;
 }
+
 .node-text {
 	color: #FFF; 
-	font-size: 0.8rem; 
-	margin-top: 0.8rem; 
-	font-weight: bold
+	font-size: 0.9rem; 
+	font-weight: bold;
+	margin-left: 25px;
 }
