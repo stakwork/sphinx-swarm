@@ -47,6 +47,9 @@ html {
 .add-node-btn .bx--btn--primary {
 	background: #52B550 !important;
 }
+.add-node-btn .bx--btn--primary:hover {
+	background: #3ba839 !important;
+}
 .bx--btn--primary:hover {
 	background:#4574f7 !important;
 }

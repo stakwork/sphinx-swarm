@@ -22,6 +22,7 @@
   <header>
     <div class="lefty logo-wrap">
       <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
+      <span class="stack-title">Sphinx Stack</span>
     </div>
     {#if $selectedNode}
       <div class="title">{$selectedNode.name}</div>
@@ -73,8 +74,8 @@
     height: 100%;
   }
   .lefty {
-    width: 15rem;
-    max-width: 15rem;
+    width: 18rem;
+    max-width: 18rem;
     height: 100%;
     border-right: 1px solid #101317;
   }
@@ -82,5 +83,11 @@
     color: white;
     margin-left: 2rem;
     text-transform: capitalize;
+  }
+  .stack-title {
+    color: white;
+    margin-left: 0.5rem;
+    text-transform: capitalize;
+    font-size: 1.2rem;
   }
 </style>

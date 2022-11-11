@@ -2,26 +2,28 @@
   import { selectedNode } from "./store";
   import Ctrl from "./Ctrl.svelte";
   import { controls } from "./controls";
-  import Users from "./Users.svelte";
+  import RelayControls from "./RelayControls.svelte";
 
-  $: ctrls = $selectedNode && controls[$selectedNode.type];
   $: type = $selectedNode && $selectedNode.type;
+  $: ctrls = $selectedNode && controls[type];
 </script>
 
 {#if ctrls}
   <main>
     <header>
-      <img src='swarm/relay.png' class='node-top-img' alt="node "/> {$selectedNode.name}
+      <img src={`swarm/${type}.png`} class="node-top-img" alt="node " />
+      {$selectedNode.name}
     </header>
     {#if type === "Relay"}
-      <Users />
+      <RelayControls />
+    {:else}
+      <div class="controls">
+        {#each ctrls as ctrl}
+          <Ctrl {...ctrl} />
+          <div class="spacer" />
+        {/each}
+      </div>
     {/if}
-    <div class="controls">
-      {#each ctrls as ctrl}
-        <Ctrl {...ctrl} />
-        <div class="spacer" />
-      {/each}
-    </div>
   </main>
 {/if}
 
@@ -41,12 +43,12 @@
   main {
     font-size: 2rem;
     height: 100vh;
-    width: 23rem;
+    width: 25rem;
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
     top: 4.14rem;
-    background: #1A242E;
+    background: #1a242e;
     padding: 2rem;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
