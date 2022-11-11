@@ -5,7 +5,7 @@ html, body {
 }
 
 body {
-	color: #13181D;;
+	color: #13181D;
 	margin: 0;
 	padding: 0px;
 	box-sizing: border-box;
@@ -65,7 +65,7 @@ html {
 }
 
 .node-img {
-	width: 22%;
+	width: 26%;
 	margin: 0;
 	padding: 0;
 	display: block;

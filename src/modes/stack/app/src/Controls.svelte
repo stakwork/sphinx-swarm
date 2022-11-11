@@ -11,7 +11,7 @@
 {#if ctrls}
   <main>
     <header>
-      {$selectedNode.name}
+      <img src='swarm/relay.png' class='node-top-img' alt="node "/> {$selectedNode.name}
     </header>
     {#if type === "Relay"}
       <Users />
@@ -29,6 +29,14 @@
   header {
     margin-bottom: 1rem;
     text-transform: capitalize;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+  }
+
+  header .node-top-img {
+    width: 1.25rem;
+    margin-right: 15px;
   }
   main {
     font-size: 2rem;
