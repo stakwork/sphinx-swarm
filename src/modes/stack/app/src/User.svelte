@@ -48,9 +48,14 @@
   </div>
   {#if selected}
     <div class="fields">
-      PUBKEY, ROUTE HINT, QR CODE
+      <p class="user-values-title">Pubkey</p>
+      <p class="pubkey user">{pubkey}</p>
+
+      <p class="user-values-title">Route hint</p>
+      <p class="pubkey user">{routeHint}</p>
+
       <p class="user-values-title">Invite QR code</p>
-      <QrCode value={pubkey} />
+      <QrCode padding={1.5} value={pubkey} />
     </div>
   {:else}
     <div class="pubkey collapsed">
@@ -112,6 +117,13 @@
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+  }
+
+  .pubkey.user {
+    max-width: 100%;
+    color: #FEFEFE;
+    margin-bottom: 0;
+    padding: 0;
   }
   .balance {
     font-size: 0.8rem;
