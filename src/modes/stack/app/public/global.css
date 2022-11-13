@@ -2,10 +2,10 @@ html, body {
 	position: relative;
 	width: 100%;
 	height: 100%;
+	color:white;
 }
 
 body {
-	color: #13181D;
 	margin: 0;
 	padding: 0px;
 	box-sizing: border-box;
@@ -79,4 +79,12 @@ html {
 	font-size: 0.9rem; 
 	font-weight: bold;
 	margin-left: 25px;
+}
+
+.bx--tab-content {
+	padding:0;
+}
+.bx--tabs {
+	display: flex;
+    justify-content: center;
 }
