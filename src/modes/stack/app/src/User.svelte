@@ -2,6 +2,7 @@
   import Login from "carbon-icons-svelte/lib/Login.svelte";
   import { Button } from "carbon-components-svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import QrCode from "svelte-qrcode";
 
   export let select = () => {};
   export let alias = "";
@@ -46,7 +47,11 @@
     </div>
   </div>
   {#if selected}
-    <div class="fields">PUBKEY, ROUTE HINT, QR CODE</div>
+    <div class="fields">
+      PUBKEY, ROUTE HINT, QR CODE
+      <p class="user-values-title">Invite QR code</p>
+      <QrCode value={pubkey} />
+    </div>
   {:else}
     <div class="pubkey collapsed">
       {pubkey}
@@ -134,5 +139,11 @@
   }
   .fields {
     padding: 1.5rem;
+  }
+  .user-values-title {
+    margin: 10px 0px;
+    color: grey;
+    font-size: 0.8rem;
+    font-weight: bold;
   }
 </style>
