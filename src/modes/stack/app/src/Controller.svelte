@@ -1,0 +1,49 @@
+<script lang="ts">
+  import { selectedNode } from "./store";
+  import Controls from "./Controls.svelte";
+  import { controls } from "./controls";
+  import RelayControls from "./RelayControls.svelte";
+
+  $: type = $selectedNode && $selectedNode.type;
+  $: ctrls = $selectedNode && controls[type];
+</script>
+
+{#if ctrls}
+  <main>
+    <header>
+      <img src={`swarm/${type}.png`} class="node-top-img" alt="node " />
+      {$selectedNode.name}
+    </header>
+    {#if type === "Relay"}
+      <RelayControls />
+    {:else}
+      <Controls {ctrls} />
+    {/if}
+  </main>
+{/if}
+
+<style>
+  main {
+    font-size: 1.5rem;
+    height: calc(100vh - 4.2rem);
+    overflow-y: auto;
+    width: 23rem;
+    border-radius: 0rem;
+    position: fixed;
+    right: 0rem;
+    top: 4.14rem;
+    background: #1a242e;
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+  }
+  header {
+    text-transform: capitalize;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+  }
+  header .node-top-img {
+    width: 1.25rem;
+    margin-right: 15px;
+  }
+</style>

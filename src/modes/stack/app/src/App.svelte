@@ -1,11 +1,11 @@
 <script lang="ts">
   import { selectedNode } from "./store";
-  import Controls from "./Controls.svelte";
   import * as api from "./api";
   import { onMount } from "svelte";
   import Flow from "./Flow.svelte";
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
+  import Controller from "./Controller.svelte";
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
@@ -33,7 +33,7 @@
   </header>
   <div class="body">
     <Flow />
-    <Controls />
+    <Controller />
   </div>
 </main>
 

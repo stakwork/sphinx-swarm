@@ -1,4 +1,4 @@
-import { send_cmd, Cmd } from ".";
+import { send_cmd, Cmd } from "./cmd";
 
 async function relayCmd(cmd: Cmd, content?: any) {
   return await send_cmd("Relay", { cmd, content });
