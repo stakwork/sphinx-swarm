@@ -19,18 +19,21 @@ export const initialUsers: User[] = [
     pubkey:
       "02290714deafd0cb33d2be3b634fc977a98a9c9fa1dd6c53cf17d99b350c08c67b",
     balance: 250000,
+    routeHint: "031863256ab7ce989e82453f38602018cd198753d8cb57d34224123449ba6c2f47:02736e7dad83d7205826649fc17db672ce08f8e87a2b47c7785ccbf79f24e91db0:1099729600212",
   },
   {
     alias: "Kevin",
     pubkey:
       "03bfe6723c06fb2b7546df1e8ca1a17ae5c504615da32c945425ccbe8d3ca6260d",
     balance: 133000,
+    routeHint: "",
   },
   {
     alias: "Tomas",
     pubkey:
       "027dbce35947a3dafc826de411d97990e9b16e78512d1a9e70e87dcc788c2631db",
     balance: 400000,
+    routeHint: "",
   },
   {
     pubkey:

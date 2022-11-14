@@ -121,6 +121,7 @@
     overflow: hidden;
     white-space: nowrap;
   }
+  
   .balance {
     font-size: 0.8rem;
     color: #ddd;
@@ -151,7 +152,7 @@
   .user-values-title {
     margin: 10px 0px;
     color: grey;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: bold;
   }
   .user-value {
@@ -159,8 +160,9 @@
     color: #fefefe;
     font-size: 0.7rem;
     max-width: 99%;
-    text-overflow: ellipsis;
-    overflow: hidden;
+    max-width: 100%;
+    color: #FEFEFE;
+    overflow-x: scroll;
     white-space: nowrap;
   }
   .empty-alias {
