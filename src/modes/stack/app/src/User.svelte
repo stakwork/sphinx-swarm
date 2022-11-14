@@ -1,7 +1,7 @@
 <script>
   import Login from "carbon-icons-svelte/lib/Login.svelte";
-  import { Button } from "carbon-components-svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import QrCode from "svelte-qrcode";
 
   export let select = () => {};
   export let alias = "";
@@ -38,7 +38,11 @@
           style={`background:${signedUp ? "#52B550" : "grey"};`}
         />
       </div>
-      <div class="alias">{alias}</div>
+      {#if alias}
+        <div class="alias">{alias}</div>
+      {:else}
+        <div class="empty-alias" />
+      {/if}
     </div>
     <div class="signed-up" style={`opacity:${signedUp ? 1 : "0.5"}`}>
       <Login size={12} />
@@ -46,7 +50,16 @@
     </div>
   </div>
   {#if selected}
-    <div class="fields">PUBKEY, ROUTE HINT, QR CODE</div>
+    <div class="fields">
+      <p class="user-values-title">Pubkey</p>
+      <p class="user-value">{pubkey}</p>
+      {#if routeHint}
+        <p class="user-values-title">Route hint</p>
+        <p class="user-value">{routeHint}</p>
+      {/if}
+      <p class="user-values-title">Invite QR code</p>
+      <QrCode padding={1.5} value={pubkey} />
+    </div>
   {:else}
     <div class="pubkey collapsed">
       {pubkey}
@@ -134,5 +147,25 @@
   }
   .fields {
     padding: 1.5rem;
+  }
+  .user-values-title {
+    margin: 10px 0px;
+    color: grey;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+  .user-value {
+    max-width: 100%;
+    color: #fefefe;
+    font-size: 0.7rem;
+    max-width: 99%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .empty-alias {
+    height: 0.85rem;
+    width: 6rem;
+    background: #263442;
   }
 </style>
