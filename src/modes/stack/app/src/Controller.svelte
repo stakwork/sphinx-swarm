@@ -11,7 +11,11 @@
 {#if ctrls}
   <main>
     <header>
-      <img src={`swarm/${type}.png`} class="node-top-img" alt="node " />
+      <img
+        src={`swarm/${type.toLowerCase()}.png`}
+        class="node-top-img"
+        alt="node "
+      />
       {$selectedNode.name}
     </header>
     {#if type === "Relay"}
