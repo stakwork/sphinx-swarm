@@ -46,12 +46,19 @@ fn tcp_port(p: &str) -> String {
 // DIR/vol/{project}/{container_name}:{dir}
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
-    format!("{}/vol/{}/{}:{}", pwd.to_string_lossy(), project, name, dir)
+    // ":z" is a fix for SELinux permissions. Can be shared
+    format!(
+        "{}/vol/{}/{}:{}:z",
+        pwd.to_string_lossy(),
+        project,
+        name,
+        dir
+    )
 }
 
 pub fn files_volume() -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
-    format!("{}/files:/files", pwd.to_string_lossy())
+    format!("{}/files:/files:z", pwd.to_string_lossy())
 }
 
 fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
