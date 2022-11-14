@@ -179,7 +179,8 @@
     color: #fefefe;
     overflow-x: scroll;
     white-space: nowrap;
-    margin-right: 1%;
+    margin-right: 1.2%;
+    padding-bottom: 11px;
   }
   .empty-alias {
     height: 0.85rem;
