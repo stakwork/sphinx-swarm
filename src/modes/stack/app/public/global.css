@@ -88,3 +88,8 @@ html {
 	display: flex;
     justify-content: center;
 }
+.copy-icon {
+	cursor: pointer;
+	width: 20px;
+	height: 20px;
+}

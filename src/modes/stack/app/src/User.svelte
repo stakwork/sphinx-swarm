@@ -1,6 +1,7 @@
 <script>
   import Login from "carbon-icons-svelte/lib/Login.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
   import QrCode from "svelte-qrcode";
 
   export let select = () => {};
@@ -17,6 +18,10 @@
   }
   function back() {
     select(null);
+  }
+  function copyToClipboard(value) {
+    navigator.clipboard.writeText(value);
+    // alert(value);
   }
 </script>
 
@@ -52,10 +57,18 @@
   {#if selected}
     <div class="fields">
       <p class="user-values-title">Pubkey</p>
-      <p class="user-value">{pubkey}</p>
+      <section class="value-wrap">
+        <p class="user-value" >{pubkey}</p>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <span on:click={copyToClipboard(pubkey)}><CopyIcon size={0} class="copy-icon" /></span>
+      </section>
       {#if routeHint}
         <p class="user-values-title">Route hint</p>
-        <p class="user-value">{routeHint}</p>
+        <section class="value-wrap">
+          <p class="user-value">{routeHint}</p>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <span on:click={copyToClipboard(routeHint)}><CopyIcon size={0} class="copy-icon" /></span>
+        </section>
       {/if}
       <p class="user-values-title">Invite QR code</p>
       <QrCode padding={1.5} value={pubkey} />
@@ -121,7 +134,7 @@
     overflow: hidden;
     white-space: nowrap;
   }
-  
+
   .balance {
     font-size: 0.8rem;
     color: #ddd;
@@ -155,15 +168,18 @@
     font-size: 0.78rem;
     font-weight: bold;
   }
+  .value-wrap {
+    display: flex;
+    align-items: center;
+  }
   .user-value {
-    max-width: 100%;
+    max-width: 97%;
     color: #fefefe;
     font-size: 0.7rem;
-    max-width: 99%;
-    max-width: 100%;
-    color: #FEFEFE;
+    color: #fefefe;
     overflow-x: scroll;
     white-space: nowrap;
+    margin-right: 1%;
   }
   .empty-alias {
     height: 0.85rem;
