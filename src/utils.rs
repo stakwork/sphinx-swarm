@@ -5,6 +5,7 @@ use rocket::tokio::fs;
 use rocket::tokio::io::AsyncWriteExt;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
+use std::env;
 
 pub fn host_config(
     project: &str,
@@ -25,6 +26,15 @@ pub fn host_config(
         links,
         ..Default::default()
     })
+}
+
+pub fn user() -> Option<String> {
+    let uid = std::env::var("DOCKER_USER_ID");
+    if let Ok(id) = uid {
+        Some(format!("{}:{}", id, id))
+    } else {
+        None
+    }
 }
 
 pub fn domain(name: &str) -> String {
