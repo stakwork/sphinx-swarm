@@ -3,9 +3,8 @@
   import * as api from "./api";
   import { onMount } from "svelte";
   import Flow from "./Flow.svelte";
-  import { Button } from "carbon-components-svelte";
-  import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Controller from "./Controller.svelte";
+  import AddNode from "./AddNode.svelte";
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
@@ -24,12 +23,12 @@
       <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
       <span class="stack-title">Sphinx Stack</span>
     </div>
+
     {#if $selectedNode}
       <div class="title">{$selectedNode.name}</div>
     {/if}
-    <section class="add-node-btn">
-      <Button type="submit" size="field" icon={Add}>Add New Node</Button>
-    </section>
+
+    <AddNode />
   </header>
   <div class="body">
     <Flow />
@@ -63,12 +62,6 @@
     padding: 12px;
     margin-left: 2.5rem;
   }
-
-  .add-node-btn {
-    margin-left: auto;
-    margin-right: 2.5rem;
-  }
-
   .body {
     display: flex;
     height: 100%;

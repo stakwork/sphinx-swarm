@@ -19,6 +19,7 @@ const relayControls: Control[] = [
   { name: "Thing 2", type: "number", value: 42 },
   { name: "Thing 3", type: "text", value: "Some Text" },
 ];
+
 const lndControls: Control[] = [
   { name: "LND 2", type: "number", value: 42 },
   { name: "LND 3", type: "text", value: "Some Text" },
@@ -32,6 +33,7 @@ const lndControls: Control[] = [
     ],
   },
 ];
+
 const proxyControls: Control[] = [
   { name: "Proxy 3", type: "text", value: "Some Text" },
   {
@@ -46,8 +48,79 @@ const proxyControls: Control[] = [
   { name: "Proxy 2", type: "number", value: 42 },
 ];
 
+const nodeItemTypes: Control[] = [
+  {
+    name: "Type",
+    type: "dropdown",
+    value: "",
+    items: [
+      {
+        id: "node1",
+        text: "Btc",
+      },
+      {
+        id: "node2",
+        text: "Lnd",
+      },
+      {
+        id: "node3",
+        text: "Proxy",
+      },
+      {
+        id: "node4",
+        text: "Relay",
+      },
+      {
+        id: "node5",
+        text: "Tribes",
+      },
+      {
+        id: "node6",
+        text: "Meme",
+      },
+      {
+        id: "node7",
+        text: "Auth",
+      },
+      {
+        id: "node8",
+        text: "Postgres",
+      },
+    ],
+  },
+  {
+    name: "Name",
+    type: "text",
+    value: "",
+  },
+  {
+    name: "Connections",
+    type: "dropdown",
+    value: "",
+    items: [
+      {
+        id: "con1",
+        text: "Btc",
+      },
+      {
+        id: "con2",
+        text: "Lnd",
+      },
+      {
+        id: "con3",
+        text: "Proxy",
+      },
+      {
+        id: "con4",
+        text: "Relay",
+      },
+    ]
+  }
+];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
   Lnd: lndControls,
+  NodeTypes: nodeItemTypes,
 };
