@@ -8,3 +8,7 @@ export const selectedNode = writable<Node>();
 export const stack = writable<Stack>(initialStack);
 
 export const users = writable<User[]>(initialUsers);
+
+export const nodeStore = writable<String>("");
+
+export const nodeConnections = writable<String>("");

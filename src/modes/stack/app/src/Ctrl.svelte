@@ -5,12 +5,14 @@
   export let type;
   export let items = [];
   export let name = "";
+  export let usefor = "";
+  export let selectedId = "";
 </script>
 
 {#if type === "number"}
   <NumberInput label={name} bind:value />
 {:else if type === "dropdown" && items}
-  <Dropdown titleText={name} selectedId={items[0].id} {items} bind:value />
+  <Dropdown titleText={name} bind:selectedId {items} />
 {:else if type === "text"}
   <TextInput labelText={name} placeholder={name} bind:value />
 {/if}

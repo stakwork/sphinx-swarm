@@ -109,13 +109,23 @@ html {
 
 .new-node-modal .bx--modal-container {
 	background: #1a242e;
-	border-radius: 20px;
 }
 
-/* .bx--modal-footer .bx--btn {
-	max-height: 2rem;
-} */
+.bx--modal-footer .bx--btn {
+	max-height: 42px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
 
 .bx--modal-footer .bx--btn.bx--btn--primary {
 	background: #618AFF !important;
+	width: 40%;
+	margin-right: 45px;
+}
+
+.bx--modal-footer .bx--btn.bx--btn--secondary {
+	width: 40%;
+	margin-left: 45px;
 }
