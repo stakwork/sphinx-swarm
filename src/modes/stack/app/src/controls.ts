@@ -1,12 +1,10 @@
 type ControlType = "dropdown" | "number" | "text";
-import { nodeStore } from "./store";
 
 export interface Control {
   type: ControlType;
   name: string;
   value: any;
   items?: any[];
-  usefor?: String;
 }
 
 const relayControls: Control[] = [
@@ -55,8 +53,7 @@ const nodeItemTypes: Control[] = [
   {
     name: "Type",
     type: "dropdown",
-    value: nodeStore,
-    usefor: "newnode",
+    value: "",
     items: [
       {
         id: "node1",
@@ -101,7 +98,6 @@ const nodeItemTypes: Control[] = [
     name: "Connections",
     type: "dropdown",
     value: "",
-    usefor: "nodeconnections",
     items: [
       {
         id: "con1",

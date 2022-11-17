@@ -1,12 +1,13 @@
 <script lang="ts">
   import { NumberInput, Dropdown, TextInput } from "carbon-components-svelte";
 
+
   export let value;
   export let type;
   export let items = [];
   export let name = "";
-  export let usefor = "";
   export let selectedId = "";
+
 </script>
 
 {#if type === "number"}

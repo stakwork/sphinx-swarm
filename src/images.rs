@@ -36,6 +36,7 @@ pub struct BtcImage {
     pub user: String,
     pub pass: String,
 }
+
 impl BtcImage {
     pub fn new(name: &str, network: &str, user: &str) -> Self {
         Self {

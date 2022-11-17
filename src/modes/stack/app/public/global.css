@@ -122,10 +122,18 @@ html {
 .bx--modal-footer .bx--btn.bx--btn--primary {
 	background: #618AFF !important;
 	width: 40%;
-	margin-right: 45px;
+	margin-right: 2.5rem;
 }
 
 .bx--modal-footer .bx--btn.bx--btn--secondary {
 	width: 40%;
-	margin-left: 45px;
+	margin-left: 2.5rem;
+}
+
+.spacer {
+	margin-bottom: 1rem;
+}
+
+.controls {
+	padding: 1.5rem;
 }
