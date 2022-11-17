@@ -74,8 +74,6 @@
         items={linkItems}
         label="Select node connections"
       />
-      <!-- {:else if type === "dropdown" && items && usefor === "nodeconnections"}
-  <Dropdown titleText={name} bind:selectedId items={getConnections(selectedId)} /> -->
     </section>
   </Modal>
 </section>

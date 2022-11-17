@@ -3,14 +3,13 @@
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
-  import {fade, scale} from 'svelte/transition'
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
 </script>
 
 {#if ctrls}
-  <main in:scale="{{duration: 500}}" out:fade="{{ duration: 500 }}" >
+  <div class="main">
     <header>
       <img src={`swarm/${type}.png`} class="node-top-img" alt="node " />
       {$selectedNode.name}
@@ -20,22 +19,33 @@
     {:else}
       <Controls {ctrls} />
     {/if}
-  </main>
+  </div>
 {/if}
 
 <style>
-  main {
+  @keyframes sidebar {
+    from {
+      transform: translateX(100px);
+    }
+    to {
+      transform: translateX(0px);
+    }
+  }
+
+  .main {
     font-size: 1.5rem;
     height: calc(100vh - 4.2rem);
     overflow-y: auto;
     width: 23rem;
+    transition: width 10s;
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
     top: 4.14rem;
     background: #1a242e;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
-    transform: translateX(0)
+    animation-name: sidebar;
+    animation-duration: 1s;
   }
   header {
     text-transform: capitalize;
