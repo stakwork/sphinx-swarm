@@ -18,7 +18,6 @@
   let items = ctrls[0].items;
 
   const availableConnections = {
-    Btc: ["****"],
     Lnd: ["Btc"],
     Proxy: ["Lnd"],
     Relay: ["Lnd", "Proxy", "Meme", "Tribes"],
@@ -34,13 +33,12 @@
 
   afterUpdate(() => {
     connections = availableConnections[getType(selectedId)];
-    console.log("Node Store After ===", selectedId, connections);
   });
 
   $: linkItems = connections && connections.map((c, i) =>({
     id: `conn${i}`,
     text: c
-  }))
+  })) || [];
 
 </script>
 
