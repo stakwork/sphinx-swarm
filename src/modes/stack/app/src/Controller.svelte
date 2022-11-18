@@ -3,7 +3,7 @@
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
-  import TribesControls from "./TribesControls.svelte";
+  import Tribes from "./Tribes.svelte";
   import { afterUpdate } from "svelte/internal";
 
   $: type = $selectedNode && $selectedNode.type;
@@ -19,7 +19,7 @@
     {#if type === "Relay"}
       <RelayControls />
     {:else if type === "Tribes"}
-      <TribesControls />
+      <Tribes />
     {:else}
       <Controls {ctrls} />
     {/if}
