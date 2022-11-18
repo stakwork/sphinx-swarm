@@ -35,6 +35,20 @@ const lndControls: Control[] = [
   },
 ];
 
+const tribesControls: Control[] = [
+  { name: "LND 2", type: "number", value: 42 },
+  { name: "LND 3", type: "text", value: "Some Text" },
+  {
+    name: "LND One",
+    value: "item1",
+    type: "dropdown",
+    items: [
+      { id: "item1", text: "blah blah" },
+      { id: "item2", text: "soemthing" },
+    ],
+  },
+];
+
 const proxyControls: Control[] = [
   { name: "Proxy 3", type: "text", value: "Some Text" },
   {
@@ -121,6 +135,7 @@ const nodeItemTypes: Control[] = [
 
 export const controls = {
   Relay: relayControls,
+  Tribes: tribesControls,
   Proxy: proxyControls,
   Lnd: lndControls,
   NodeTypes: nodeItemTypes,

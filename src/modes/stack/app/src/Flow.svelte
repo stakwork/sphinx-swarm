@@ -14,6 +14,7 @@
     clickCallback
   ): { edges: Edge[]; nodes: SvelvetNode[] } {
     const edges: Edge[] = [];
+    
     const nodes = ns.map((n, i) => {
       if (n.links && n.links.length) {
         n.links.forEach((link) => {
@@ -30,7 +31,9 @@
             });
         });
       }
+
       const pos = defaultPositions[i] || [150, 150];
+
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },

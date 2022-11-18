@@ -8,13 +8,13 @@
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
-    console.log(conf);
+    // console.log(conf);
   }
   onMount(() => {
     getConfig();
   });
 
-  $: console.log($selectedNode);
+  // $: console.log($selectedNode);
 </script>
 
 <main>

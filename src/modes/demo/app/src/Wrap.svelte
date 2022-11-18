@@ -10,7 +10,6 @@
       }
     }
   }
-  // $: console.log($nodes);
 </script>
 
 <main>
