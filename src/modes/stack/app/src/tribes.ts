@@ -11,13 +11,13 @@ export const initialTribes: Tribes[] = [
   {
     name: "Testing Sphinx",
     pricePerMessage: 0,
-    preview: "",
+    preview: "https://cache.sphinx.chat/?tribe=XuOp5B9kC3CcL52svtl_LJJJFbV1OTgnq7thtOjdKJMnOuETIw_hlLkVfonozVIwz5wADlya_i946GiKFZAgMto0cDuk",
     logo: "",
   },
   {
     name: "Sphinx Dev",
     pricePerMessage: 2,
-    preview: "",
+    preview: "https://cache.sphinx.chat/?tribe=XuOp5B9kC3CcL52svtl_LJJJFbV1OTgnq7thtOjdKJMnOuETIw_hlLkVfonozVIwz5wADlya_i946GiKFZAgMto0cDuk",
     logo: "",
   },
   {
@@ -35,7 +35,7 @@ export const initialTribes: Tribes[] = [
   {
     name: "Sport",
     pricePerMessage: 3,
-    preview: "",
+    preview: "https://cache.sphinx.chat/?tribe=XuOp5B9kC3CcL52svtl_LJJJFbV1OTgnq7thtOjdKJMnOuETIw_hlLkVfonozVIwz5wADlya_i946GiKFZAgMto0cDuk",
     logo: "",
   },
 ];
