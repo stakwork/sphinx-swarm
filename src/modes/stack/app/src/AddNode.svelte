@@ -28,7 +28,6 @@
     return item.text;
   }
 
-
   $: connections = availableConnections[getType(selectedId)];
 
   afterUpdate(() => {
