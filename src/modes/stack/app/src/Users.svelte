@@ -5,9 +5,21 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { users } from "./store";
   import User from "./User.svelte";
+  import { afterUpdate } from "svelte";
 
   let selectedPubkey = "";
+  $: usersState = [];
   $: selectedUser = $users.find((u) => u.pubkey === selectedPubkey);
+
+  let user = "";
+
+  afterUpdate(() => {
+    let result = $users.filter((u) => u.pubkey === user || u.alias === user);
+
+    if (result) {
+      usersState = structuredClone(result);
+    }
+  });
 </script>
 
 <div>
@@ -32,15 +44,30 @@
     </div>
     <div class="divider" />
     <section class="search-wrap">
-      <TextInput labelText="Search Users" class="users-search" placeholder="Enter user alias, or pubkey" />
-    </section>
-    {#each $users as user}
-      <User
-        {...user}
-        select={(pubkey) => (selectedPubkey = pubkey)}
-        selected={false}
+      <TextInput
+        labelText="Search Users"
+        class="users-search"
+        placeholder="Enter user alias, or pubkey"
+        bind:value={user}
       />
-    {/each}
+    </section>
+    {#if usersState.length}
+      {#each usersState as user}
+        <User
+          {...user}
+          select={(pubkey) => (selectedPubkey = pubkey)}
+          selected={false}
+        />
+      {/each}
+    {:else}
+      {#each $users as user}
+        <User
+          {...user}
+          select={(pubkey) => (selectedPubkey = pubkey)}
+          selected={false}
+        />
+      {/each}
+    {/if}
   {/if}
 </div>
 

@@ -8,7 +8,7 @@
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { controls } from "./controls";
-  import { afterUpdate, beforeUpdate } from "svelte";
+  import { afterUpdate } from "svelte";
 
   let open = false;
   let nameValue = "";
