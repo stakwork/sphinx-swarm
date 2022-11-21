@@ -1,7 +1,7 @@
 <script>
   export let add = () => {};
 
-  import { Button } from "carbon-components-svelte";
+  import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { users } from "./store";
   import User from "./User.svelte";
@@ -31,6 +31,9 @@
       >
     </div>
     <div class="divider" />
+    <section class="search-wrap">
+      <TextInput labelText="Search Users" class="users-search" placeholder="Enter user alias, or pubkey" />
+    </section>
     {#each $users as user}
       <User
         {...user}
@@ -62,5 +65,10 @@
     display: block;
     width: 100%;
     margin: 15px 0px;
+  }
+
+  .search-wrap {
+    margin: 0 1rem;
+    margin-bottom: 10px;
   }
 </style>

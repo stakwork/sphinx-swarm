@@ -137,3 +137,8 @@ html {
 .controls {
 	padding: 1.5rem;
 }
+
+
+.users-search.bx--text-input {
+	background-color: #101317;
+}
