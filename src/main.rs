@@ -2,12 +2,14 @@ pub mod dock;
 
 mod cmd;
 mod config;
+mod conn;
 mod env;
-mod grpc;
 mod images;
 mod logs;
+mod modes;
 mod rocket_utils;
 mod routes;
+mod secrets;
 mod utils;
 
 #[rocket::main]
@@ -30,10 +32,10 @@ async fn main() {
 
     let d = dock::er();
     match match cmd.as_str() {
-        "demo" => cmd::demo::run(d).await,
-        "down" => cmd::down::run(d).await,
-        "test" => cmd::test::run(d).await,
-        "stack" => cmd::stack::run(d).await,
+        "demo" => modes::demo::run(d).await,
+        "down" => modes::down::run(d).await,
+        "test" => modes::test::run(d).await,
+        "stack" => modes::stack::run(d).await,
         _ => panic!("invalid cmd"),
     } {
         Ok(_) => (),

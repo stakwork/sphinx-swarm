@@ -24,6 +24,8 @@ tonic = "0.8.2"
 prost = "0.11"
 reqwest = { version = "0.11", features = ["json", "default-tls"] }
 base64 = "0.13"
+bip39 = "1.0.1"
+rand = "0.8"
 
 [build-dependencies]
 tonic-build = "0.8.2"

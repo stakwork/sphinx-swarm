@@ -13,7 +13,10 @@ pub fn er() -> Docker {
 }
 
 pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<String> {
-    create_image(&docker, &c).await?;
+    // if it contains a "/" its from the registry
+    if c.image.clone().unwrap().contains("/") {
+        create_image(&docker, &c).await?;
+    }
     let id = create_container(&docker, c).await?;
     start_container(&docker, &id).await?;
     Ok(id)

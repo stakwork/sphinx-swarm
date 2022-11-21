@@ -1,0 +1,8 @@
+/node_modules/
+
+.DS_Store
+
+yarn.lock
+notes.md
+
+sphinx_wasm_bg.wasm
