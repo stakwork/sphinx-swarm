@@ -1,6 +1,7 @@
 mod srv;
 
 use crate::images::BtcImage;
+use crate::conn::bitcoin::bitcoin::get_info;
 use crate::rocket_utils::*;
 use crate::{dock::*, env, images, logs};
 use anyhow::Result;
@@ -33,6 +34,10 @@ pub async fn run(docker: Docker) -> Result<()> {
 
     // btc setup
     let btc_node = BtcImage::new("bitcoind", network, "foo");
+
+    get_info(&btc_node, "http://0.0.0.0".to_string(), "18443".to_string());
+
+    // Get Bitcoin Info 
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
