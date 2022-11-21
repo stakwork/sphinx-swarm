@@ -27,6 +27,7 @@ base64 = "0.13"
 bip39 = "1.0.1"
 rand = "0.8"
 bitcoincore-rpc = "0.16.0"
+bitcoincore-rpc-json = "0.16.0"
 
 [build-dependencies]
 tonic-build = "0.8.2"
