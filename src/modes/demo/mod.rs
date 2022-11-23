@@ -40,7 +40,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
-    get_info(&btc_node, "http://localhost".to_string(), "18443".to_string());
+    get_info(&btc_node, "localhost".to_string(), "18443".to_string()).await;
 
     // cln setup
     let mut id_map = HashMap::new();
