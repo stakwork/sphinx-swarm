@@ -6,9 +6,34 @@
   import { tribes } from "./store";
   import Tribe from "./Tribe.svelte";
   import { Dropdown } from "carbon-components-svelte";
+  import { afterUpdate } from "svelte";
 
   let selectedTribe = "";
   $: selectedTribe = $tribes.find((t) => t.name === selectedTribe);
+  let selectedId = "0";
+  let filterTribes = [];
+
+  const filterItems = [
+    { id: "0", text: "User count" },
+    { id: "1", text: "Recent messages" },
+    { id: "2", text: "Previewable" },
+  ];
+
+  afterUpdate(() => {
+    let filter = filterItems.find((item) => item.id === selectedId);
+
+    if (filter.text === "User count") {
+      filterTribes = $tribes.sort((a, b) => b.userCount - a.userCount);
+    } else if (filter.text === "Previewable") {
+      filterTribes = $tribes.sort((a, b) => {
+        if (b.preview > a.preview) return 1;
+        if (b.preview < a.preview) return -1;
+        return 0;
+      });
+    } else {
+      filterTribes = [];
+    }
+  });
 </script>
 
 <div>
@@ -37,22 +62,28 @@
         <Dropdown
           type="inline"
           titleText="Filter tribes by: "
-          selectedId="0"
-          items={[
-            { id: "0", text: "User count" },
-            { id: "1", text: "Recent messages" },
-            { id: "2", text: "Previewable" },
-          ]}
+          bind:selectedId
+          items={filterItems}
         />
       </aside>
     </section>
-    {#each $tribes as tribe}
-      <Tribe
-        {...tribe}
-        select={(name) => (selectedTribe = name)}
-        selected={false}
-      />
-    {/each}
+    {#if filterTribes.length > 0}
+      {#each filterTribes as tribe}
+        <Tribe
+          {...tribe}
+          select={(name) => (selectedTribe = name)}
+          selected={false}
+        />
+      {/each}
+    {:else}
+      {#each $tribes as tribe}
+        <Tribe
+          {...tribe}
+          select={(name) => (selectedTribe = name)}
+          selected={false}
+        />
+      {/each}
+    {/if}
   {/if}
 </div>
 

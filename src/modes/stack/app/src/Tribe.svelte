@@ -8,6 +8,7 @@
   export let logo = "";
   export let pricePerMessage = 0;
   export let selected = false;
+  export let userCount = 0;
 
   const defaultImage =
     "https://memes.sphinx.chat/public/HoQTHP3oOn0NAXOTqJEWb6HCtxIyN_14WGgiIgXpxWI=";
