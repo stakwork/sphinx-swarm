@@ -14,7 +14,7 @@
     "https://memes.sphinx.chat/public/HoQTHP3oOn0NAXOTqJEWb6HCtxIyN_14WGgiIgXpxWI=";
 
   function mainSelect() {
-    if (!selected) select(pubkey);
+    if (!selected) select(name);
   }
 
   function back() {
@@ -37,25 +37,27 @@
         <div class="back" on:click={back} on:keypress={() => {}}>
           <ArrowLeft size={24} />
         </div>
-      {/if}
-      {#if name}
-        <img
-          src={`${logo || defaultImage}`}
-          alt="Tribe logo"
-          class="tribe-logo"
-        />
-        <div class="name">{name}</div>
+        <h6>Tribe users {userCount}</h6>
+        {:else}
+        {#if name}
+          <img
+            src={`${logo || defaultImage}`}
+            alt="Tribe logo"
+            class="tribe-logo"
+          />
+          <div class="name">{name}</div>
 
-        {#if preview}
-          <a
-            href={preview}
-            class="preview-link"
-            target="_blank"
-            rel="noreferrer">Preview</a
-          >
+          {#if preview}
+            <a
+              href={preview}
+              class="preview-link"
+              target="_blank"
+              rel="noreferrer">Preview</a
+            >
+          {/if}
+          {:else}
+            <div class="empty-alias" />
         {/if}
-      {:else}
-        <div class="empty-alias" />
       {/if}
     </div>
   </div>
