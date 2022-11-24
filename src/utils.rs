@@ -5,6 +5,7 @@ use rocket::tokio::fs;
 use rocket::tokio::io::AsyncWriteExt;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
+use std::env;
 
 pub fn host_config(
     project: &str,
@@ -27,6 +28,15 @@ pub fn host_config(
     })
 }
 
+pub fn user() -> Option<String> {
+    let uid = std::env::var("DOCKER_USER_ID");
+    if let Ok(id) = uid {
+        Some(format!("{}:{}", id, id))
+    } else {
+        None
+    }
+}
+
 pub fn domain(name: &str) -> String {
     format!("{}.sphinx", name)
 }
@@ -46,12 +56,19 @@ fn tcp_port(p: &str) -> String {
 // DIR/vol/{project}/{container_name}:{dir}
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
-    format!("{}/vol/{}/{}:{}", pwd.to_string_lossy(), project, name, dir)
+    // ":z" is a fix for SELinux permissions. Can be shared
+    format!(
+        "{}/vol/{}/{}:{}:z",
+        pwd.to_string_lossy(),
+        project,
+        name,
+        dir
+    )
 }
 
 pub fn files_volume() -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
-    format!("{}/files:/files", pwd.to_string_lossy())
+    format!("{}/files:/files:z", pwd.to_string_lossy())
 }
 
 fn host_port(ports_in: Vec<String>) -> Option<PortMap> {

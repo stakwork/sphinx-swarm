@@ -1,6 +1,6 @@
 use crate::config;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, files_volume, host_config, volume_string};
+use crate::utils::{domain, exposed_ports, files_volume, host_config, user, volume_string};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -191,7 +191,7 @@ pub fn relay(
     // let img = "sphinx-relay";
     // let version = "latest";
     let img = "sphinxlightning/sphinx-relay";
-    let version = "v2.2.10".to_string();
+    let version = "v2.2.12".to_string();
     let root_vol = "/relay/data";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
@@ -208,6 +208,7 @@ pub fn relay(
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&relay.name)),
+        user: user(),
         exposed_ports: exposed_ports(vec![relay.port.clone()]),
         host_config: host_config(
             project,
@@ -269,6 +270,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
+        user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(
             project,
