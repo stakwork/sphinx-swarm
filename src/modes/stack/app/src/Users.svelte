@@ -8,17 +8,18 @@
   import { afterUpdate } from "svelte";
 
   let selectedPubkey = "";
-  $: usersState = [];
+  $: filteredUsers = $users;
   $: selectedUser = $users.find((u) => u.pubkey === selectedPubkey);
 
-  let user = "";
+  let searchTerm = "";
 
   afterUpdate(() => {
-    let result = $users.filter((u) => u.pubkey === user || u.alias === user);
-
-    if (result) {
-      usersState = structuredClone(result);
-    }
+    if (!searchTerm) return (filteredUsers = $users);
+    filteredUsers = $users.filter(
+      (u) =>
+        u.pubkey.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.alias && u.alias.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
   });
 </script>
 
@@ -47,27 +48,17 @@
       <TextInput
         labelText="Search Users"
         class="users-search"
-        placeholder="Enter user alias, or pubkey"
-        bind:value={user}
+        placeholder="Search by user alias or pubkey"
+        bind:value={searchTerm}
       />
     </section>
-    {#if usersState.length}
-      {#each usersState as user}
-        <User
-          {...user}
-          select={(pubkey) => (selectedPubkey = pubkey)}
-          selected={false}
-        />
-      {/each}
-    {:else}
-      {#each $users as user}
-        <User
-          {...user}
-          select={(pubkey) => (selectedPubkey = pubkey)}
-          selected={false}
-        />
-      {/each}
-    {/if}
+    {#each filteredUsers as user}
+      <User
+        {...user}
+        select={(pubkey) => (selectedPubkey = pubkey)}
+        selected={false}
+      />
+    {/each}
   {/if}
 </div>
 
