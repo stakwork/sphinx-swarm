@@ -31,39 +31,36 @@
   on:click={mainSelect}
   on:keypress={() => {}}
 >
-  <div class="top">
-    <div class="top-left">
-      {#if selected}
+  {#if selected}
+    <div class="top">
+      <div class="top-left">
         <div class="back" on:click={back} on:keypress={() => {}}>
           <ArrowLeft size={24} />
         </div>
         <h6>Tribe users {userCount}</h6>
-        {:else}
-        {#if name}
-          <img
-            src={`${logo || defaultImage}`}
-            alt="Tribe logo"
-            class="tribe-logo"
-          />
-          <div class="name">{name}</div>
-
-          {#if preview}
-            <a
-              href={preview}
-              class="preview-link"
-              target="_blank"
-              rel="noreferrer">Preview</a
-            >
-          {/if}
-          {:else}
-            <div class="empty-alias" />
-        {/if}
-      {/if}
+      </div>
     </div>
-  </div>
-  <div class="message-price">
-    Price per message: {`${pricePerMessage} sats`}
-  </div>
+  {:else if name}
+    <section class="tribedata-wrap">
+      <img
+        src={`${logo || defaultImage}`}
+        alt="Tribe logo"
+        class="tribe-logo"
+      />
+      <div class="name">{name}</div>
+
+      {#if preview}
+        <a href={preview} class="preview-link" target="_blank" rel="noreferrer"
+          >Preview</a
+        >
+      {/if}
+    </section>
+    <div class="message-price">
+      Price per message: {`${pricePerMessage} sats`}
+    </div>
+  {:else}
+    <div class="empty-alias" />
+  {/if}
 </div>
 
 <style>
@@ -79,6 +76,11 @@
     height: 45px;
     border-radius: 50%;
     margin-right: 10px;
+  }
+  .tribedata-wrap {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
   }
   .user:not(.selected) {
     cursor: pointer;
@@ -102,7 +104,6 @@
     overflow: hidden;
     white-space: nowrap;
   }
-
   .back {
     cursor: pointer;
     margin-left: 1rem;
@@ -121,10 +122,8 @@
     align-items: center;
     width: 100%;
   }
-  .name {
-  }
   .message-price {
-    margin-left: 0rem;
+    margin-left: 0.1rem;
     font-size: 0.7rem;
     color: gray;
   }
