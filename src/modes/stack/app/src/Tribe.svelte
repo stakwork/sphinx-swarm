@@ -1,6 +1,7 @@
 <script>
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import { Button } from "carbon-components-svelte";
+  import {initialUsers} from "./users";
+  import User from "./User.svelte";
 
   export let select = () => {};
   export let name = "";
@@ -9,6 +10,7 @@
   export let pricePerMessage = 0;
   export let selected = false;
   export let userCount = 0;
+  let selectedPubkey = "";
 
   const defaultImage =
     "https://memes.sphinx.chat/public/HoQTHP3oOn0NAXOTqJEWb6HCtxIyN_14WGgiIgXpxWI=";
@@ -19,10 +21,6 @@
 
   function back() {
     select(null);
-  }
-
-  function copyToClipboard(value) {
-    navigator.clipboard.writeText(value);
   }
 </script>
 
@@ -42,6 +40,13 @@
         </div>
       </div>
       <div class="divider" />
+      {#each initialUsers as user}
+      <User
+        {...user}
+        select={(pubkey) => (selectedPubkey = pubkey)}
+        selected={false}
+      />
+    {/each}
     </section>
   {:else if name}
     <section class="tribedata-wrap">
