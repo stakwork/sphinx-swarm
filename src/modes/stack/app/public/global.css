@@ -137,3 +137,11 @@ html {
 .controls {
 	padding: 1.5rem;
 }
+
+.divider {
+	min-height: 2px;
+	background: #101317;
+	display: block;
+	width: 100%;
+	margin: 15px 0px;
+}

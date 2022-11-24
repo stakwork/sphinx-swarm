@@ -102,13 +102,6 @@
     margin-left: 15px;
     font-weight: 700;
   }
-  .divider {
-    min-height: 2px;
-    background: #101317;
-    display: block;
-    width: 100%;
-    margin: 15px 0px;
-  }
   .filter-wrap {
     display: flex;
     padding: 0 1.3rem;

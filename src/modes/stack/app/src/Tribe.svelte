@@ -32,14 +32,17 @@
   on:keypress={() => {}}
 >
   {#if selected}
-    <div class="top">
-      <div class="top-left">
-        <div class="back" on:click={back} on:keypress={() => {}}>
-          <ArrowLeft size={24} />
+    <section>
+      <div class="top">
+        <div class="top-left">
+          <div class="back" on:click={back} on:keypress={() => {}}>
+            <ArrowLeft size={24} />
+          </div>
+          <h6>Tribe users {userCount}</h6>
         </div>
-        <h6>Tribe users {userCount}</h6>
       </div>
-    </div>
+      <div class="divider" />
+    </section>
   {:else if name}
     <section class="tribedata-wrap">
       <img
@@ -106,7 +109,7 @@
   }
   .back {
     cursor: pointer;
-    margin-left: 1rem;
+    margin-left: 0.1rem;
     height: 2rem;
     width: 2rem;
     border-radius: 100%;
