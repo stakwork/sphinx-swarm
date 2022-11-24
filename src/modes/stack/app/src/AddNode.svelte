@@ -7,38 +7,53 @@
     TextInput,
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { controls } from "./controls";
-  import { afterUpdate } from "svelte";
+  import { NodeType, Node, allNodeTypes } from "./nodes";
+  import { stack } from "./store";
 
   let open = false;
-  let nameValue = "";
-  let ctrls = controls["NodeTypes"];
-  $: selectedId = ctrls[0].items[0].id;
-  let selectConnections = [];
-  let items = ctrls[0].items;
+  let name = "";
+  let type: NodeType = "Btc";
+  let links = [];
 
-  const availableConnections = {
+  let typeItems = allNodeTypes.map((nt) => ({
+    id: nt,
+    text: nt,
+  }));
+
+  const availableConnections: { [k: string]: NodeType[] } = {
     Lnd: ["Btc"],
     Proxy: ["Lnd"],
     Relay: ["Lnd", "Proxy", "Meme", "Tribes"],
   };
 
-  function getType(selectedId: string): string {
-    const item = items.find(node => node.id === selectedId);
-    return item.text;
+  $: connections = availableConnections[type];
+  $: linkItems =
+    connections &&
+    connections.map((c) => ({
+      id: c,
+      text: c,
+    }));
+
+  function add() {
+    const newNode: Node = {
+      name,
+      type,
+      links,
+      place: "Internal",
+    };
+    return console.log(newNode);
+    stack.update((s) => ({
+      network: s.network,
+      nodes: [...s.nodes, newNode],
+    }));
+  }
+  function typeSelected() {
+    // reset the state
+    links = [];
+    name = "";
   }
 
-  $: connections = availableConnections[getType(selectedId)];
-
-  afterUpdate(() => {
-    connections = availableConnections[getType(selectedId)];
-  });
-
-  $: linkItems = connections && connections.map((c, i) =>({
-    id: `conn${i}`,
-    text: c
-  })) || [];
-
+  $: ok = name && type;
 </script>
 
 <section class="add-node-btn">
@@ -55,21 +70,29 @@
     primaryButtonText="Add"
     secondaryButtonText="Cancel"
     on:click:button--secondary={() => (open = !open)}
+    on:submit={add}
+    primaryButtonDisabled={!ok}
   >
     <section class="modal-content">
-      <Dropdown titleText={"Node type"} bind:selectedId {items} />
+      <Dropdown
+        titleText="Node type"
+        bind:selectedId={type}
+        items={typeItems}
+        on:select={typeSelected}
+      />
       <div class="spacer" />
       <TextInput
         labelText={"Name"}
         placeholder={"Enter node name"}
-        bind:value={nameValue}
+        bind:value={name}
       />
       <div class="spacer" />
       <MultiSelect
-        bind:selectedIds={selectConnections}
+        direction="top"
         titleText="Connections"
-        items={linkItems}
         label="Select node connections"
+        bind:selectedIds={links}
+        items={linkItems}
       />
     </section>
   </Modal>
@@ -80,8 +103,10 @@
     margin-left: auto;
     margin-right: 2.5rem;
   }
-
   .modal-content {
     padding: 0px 1.5rem;
+  }
+  .spacer {
+    height: 1rem;
   }
 </style>
