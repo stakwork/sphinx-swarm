@@ -9,7 +9,6 @@ use bitcoincore_rpc::{Auth, Client, RpcApi};
 pub async fn get_info(btc: &BtcImage, url: String, port: String) {
     let btc_url: String = format!("{}:{}", url, port);
 
-    thread::sleep(Duration::from_millis(40000));
 
     if let Ok(rpc) = Client::new(
         &btc_url,
@@ -19,6 +18,13 @@ pub async fn get_info(btc: &BtcImage, url: String, port: String) {
 
         if let Ok(info) = rpc.get_blockchain_info() {
             println!("Btc Info: {:?}", info);
+        } else {
+            // Try again till it connects
+            // println!("Btc Error ===");
+            // thread::sleep(Duration::from_millis(1000));
+
+            // let result = rpc.get_blockchain_info();
+            // println!("Result === {:?}", result);
         }
     } else {
         panic!("Could not initiate BTC RPC connection")
