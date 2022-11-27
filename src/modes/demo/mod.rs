@@ -1,7 +1,7 @@
 mod srv;
 
 use crate::images::BtcImage;
-use crate::conn::bitcoin::bitcoin::get_info;
+use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::rocket_utils::*;
 use crate::{dock::*, env, images, logs};
 use anyhow::Result;
@@ -40,7 +40,8 @@ pub async fn run(docker: Docker) -> Result<()> {
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
-    get_info(&btc_node, "http://127.0.0.1".to_string(), "18443".to_string()).await;
+    let bitcoin = BitcoinRPC::new(&btc_node, "http://127.0.0.1", "18443");
+    bitcoin.get_info();
 
     // cln setup
     let mut id_map = HashMap::new();
