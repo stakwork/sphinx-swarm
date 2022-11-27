@@ -13,6 +13,9 @@ pub struct BitcoinRPC {
     pass: String,
 }
 
+const INTERVAL: u64 = 1000;
+const RETRY_ATTEMPTS: u8 = 5;
+
 impl BitcoinRPC {
     pub fn new(btc: &BtcImage, url: &str, port: &str) -> Self {
         let btc_url: String = format!("{}:{}", url, port);
@@ -20,7 +23,7 @@ impl BitcoinRPC {
         BitcoinRPC {
             btc_url,
             user: btc.user.to_string(),
-            pass: btc.pass.to_string()
+            pass: btc.pass.to_string(),
         }
     }
 
@@ -29,19 +32,19 @@ impl BitcoinRPC {
             &self.btc_url,
             Auth::UserPass(self.user.to_string(), self.pass.to_string()),
         ) {
-            println!("BTC AUTH {:?}", rpc);
-    
             if let Ok(info) = rpc.get_blockchain_info() {
-                println!("Btc Info: {:?}", info);
                 return Ok(info);
             } else {
-                // Try for a definite amount of time till untill it connects.
-                // println!("Btc Error ===");
-                // thread::sleep(Duration::from_millis(1000));
-    
-                // let result = rpc.get_blockchain_info();
-                // println!("Result === {:?}", result);
-                Err("could not connect".to_string())
+                // Try for a definite amount of time till untill it connects, else return an error.
+                for _ in 0..RETRY_ATTEMPTS {
+                    thread::sleep(Duration::from_millis(INTERVAL));
+                    
+                    if let Ok(info) = rpc.get_blockchain_info() {
+                        return Ok(info);
+                    }
+                   
+                }
+                return Err("could not connect".to_string());      
             }
         } else {
             panic!("Could not initiate BTC RPC connection")
