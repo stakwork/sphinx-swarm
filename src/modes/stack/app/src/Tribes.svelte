@@ -11,7 +11,7 @@
   let selectedTribe = "";
   $: selectedTribe = $tribes.find((t) => t.name === selectedTribe);
   let selectedId = "0";
-  let filterTribes = [];
+  let filterTribes = $tribes;
 
   const filterItems = [
     { id: "0", text: "User count" },
@@ -21,17 +21,18 @@
 
   afterUpdate(() => {
     let filter = filterItems.find((item) => item.id === selectedId);
+    const arrayToSort = [...$tribes];
 
     if (filter.text === "User count") {
-      filterTribes = $tribes.sort((a, b) => b.userCount - a.userCount);
+      filterTribes = arrayToSort.sort((a, b) => b.userCount - a.userCount);
     } else if (filter.text === "Previewable") {
-      filterTribes = $tribes.sort((a, b) => {
+      filterTribes = arrayToSort.sort((a, b) => {
         if (b.preview > a.preview) return 1;
         if (b.preview < a.preview) return -1;
         return 0;
       });
     } else {
-      filterTribes = [];
+      filterTribes = $tribes;
     }
   });
 </script>
@@ -75,14 +76,14 @@
           selected={false}
         />
       {/each}
-    {:else}
+    <!-- {:else}
       {#each $tribes as tribe}
         <Tribe
           {...tribe}
           select={(name) => (selectedTribe = name)}
           selected={false}
         />
-      {/each}
+      {/each} -->
     {/if}
   {/if}
 </div>
