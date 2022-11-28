@@ -76,14 +76,6 @@
           selected={false}
         />
       {/each}
-    <!-- {:else}
-      {#each $tribes as tribe}
-        <Tribe
-          {...tribe}
-          select={(name) => (selectedTribe = name)}
-          selected={false}
-        />
-      {/each} -->
     {/if}
   {/if}
 </div>
