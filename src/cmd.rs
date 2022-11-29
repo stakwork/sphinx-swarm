@@ -12,6 +12,7 @@ pub enum Cmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
+    GetBitcoinInfo,
     AddNode(Image),
 }
 

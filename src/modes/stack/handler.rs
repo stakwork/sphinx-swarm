@@ -20,6 +20,9 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 // add a node via docker
                 None
             }
+            SwarmCmd::GetBitcoinInfo => {
+                None
+            }
         },
         Cmd::Relay(c) => match c {
             RelayCmd::AddUser => {
