@@ -1,13 +1,26 @@
 <script>
   export let add = () => {};
 
-  import { Button } from "carbon-components-svelte";
+  import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { users } from "./store";
   import User from "./User.svelte";
+  import { afterUpdate } from "svelte";
 
   let selectedPubkey = "";
+  $: filteredUsers = $users;
   $: selectedUser = $users.find((u) => u.pubkey === selectedPubkey);
+
+  let searchTerm = "";
+
+  afterUpdate(() => {
+    if (!searchTerm) return (filteredUsers = $users);
+    filteredUsers = $users.filter(
+      (u) =>
+        u.pubkey.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.alias && u.alias.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  });
 </script>
 
 <div>
@@ -31,7 +44,15 @@
       >
     </div>
     <div class="divider" />
-    {#each $users as user}
+    <section class="search-wrap">
+      <TextInput
+        labelText="Search Users"
+        class="users-search"
+        placeholder="Search by user alias or pubkey"
+        bind:value={searchTerm}
+      />
+    </section>
+    {#each filteredUsers as user}
       <User
         {...user}
         select={(pubkey) => (selectedPubkey = pubkey)}
@@ -62,5 +83,10 @@
     display: block;
     width: 100%;
     margin: 15px 0px;
+  }
+
+  .search-wrap {
+    margin: 0 1rem;
+    margin-bottom: 10px;
   }
 </style>

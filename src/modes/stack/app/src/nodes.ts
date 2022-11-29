@@ -24,6 +24,18 @@ export type NodeType =
   | "Auth"
   | "Postgres";
 
+export const allNodeTypes: NodeType[] = [
+  "Btc",
+  "Lnd",
+  "Proxy",
+  "Relay",
+  "Tribes",
+  "Meme",
+  "Mqtt",
+  "Auth",
+  "Postgres",
+];
+
 type Place = "Internal" | "External";
 
 type Network = "bitcoin" | "regtest";

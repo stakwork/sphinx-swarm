@@ -2,7 +2,7 @@ html, body {
 	position: relative;
 	width: 100%;
 	height: 100%;
-	color:white;
+	color: white;
 }
 
 body {
@@ -17,11 +17,13 @@ body {
 html {
 	font-size: 13px;
 }
+
 @media only screen and (min-width: 400px) {
 	html {
 		font-size: 16px;
 	}
 }
+
 @media only screen and (min-width: 768px) {
 	html {
 		font-size: 19px;
@@ -31,33 +33,42 @@ html {
 .lefty .bx--assistive-text {
 	display: none !important;
 }
+
 .lefty button::before {
 	display: none !important;
 }
+
 .bx--btn--selected {
-	background:#618AFF !important;
+	background: #618AFF !important;
 }
+
 .bx--btn--selected:focus {
 	border-color: transparent !important;
-    box-shadow: none !important;
+	box-shadow: none !important;
 }
+
 .bx--btn--primary {
-	background:#618AFF !important;
+	background: #618AFF !important;
 }
+
 .add-node-btn .bx--btn--primary {
 	background: #52B550 !important;
 }
+
 .add-node-btn .bx--btn--primary:hover {
 	background: #3ba839 !important;
 }
+
 .bx--btn--primary:hover {
-	background:#4574f7 !important;
+	background: #4574f7 !important;
 }
+
 .bx--btn--primary:disabled {
-	background:#525252 !important;
+	background: #525252 !important;
 }
-.bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before{
-	background:#618AFF !important;
+
+.bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before {
+	background: #618AFF !important;
 }
 
 .node-html {
@@ -75,21 +86,61 @@ html {
 }
 
 .node-text {
-	color: #FFF; 
-	font-size: 0.9rem; 
+	color: #FFF;
+	font-size: 0.9rem;
 	font-weight: bold;
 	margin-left: 25px;
 }
 
 .bx--tab-content {
-	padding:0;
+	padding: 0;
 }
+
 .bx--tabs {
 	display: flex;
-    justify-content: center;
+	justify-content: center;
 }
+
 .copy-icon {
 	cursor: pointer;
 	width: 20px;
 	height: 20px;
+}
+
+.new-node-modal .bx--modal-container {
+	background: #1a242e;
+}
+
+.bx--modal-footer .bx--btn {
+	max-height: 42px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
+
+.bx--modal-footer .bx--btn.bx--btn--primary {
+	background: #618AFF !important;
+	width: 40%;
+	margin-right: 2.5rem;
+}
+.bx--modal-footer .bx--btn.bx--btn--primary:disabled {
+	background: #525252 !important;
+}
+.bx--modal-footer .bx--btn.bx--btn--secondary {
+	width: 40%;
+	margin-left: 2.5rem;
+}
+
+.spacer {
+	margin-bottom: 1rem;
+}
+
+.controls {
+	padding: 1.5rem;
+}
+
+
+.users-search.bx--text-input {
+	background-color: #1A242E;
 }

@@ -36,6 +36,7 @@ const relayControls: Control[] = [
   { name: "Thing 2", type: "number", value: 42 },
   { name: "Thing 3", type: "text", value: "Some Text" },
 ];
+
 const lndControls: Control[] = [
   { name: "LND 2", type: "number", value: 42 },
   { name: "LND 3", type: "text", value: "Some Text" },
@@ -49,6 +50,7 @@ const lndControls: Control[] = [
     ],
   },
 ];
+
 const proxyControls: Control[] = [
   { name: "Proxy 3", type: "text", value: "Some Text" },
   {

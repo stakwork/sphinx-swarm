@@ -12,7 +12,7 @@
 </script>
 
 {#if ctrls}
-  <main>
+  <div class="main">
     <header>
       <img
         src={`swarm/${type.toLowerCase()}.png`}
@@ -26,21 +26,33 @@
     {:else}
       <Controls {ctrls} {tag} />
     {/if}
-  </main>
+  </div>
 {/if}
 
 <style>
-  main {
+  @keyframes sidebar {
+    from {
+      transform: translateX(100px);
+    }
+    to {
+      transform: translateX(0px);
+    }
+  }
+
+  .main {
     font-size: 1.5rem;
     height: calc(100vh - 4.2rem);
     overflow-y: auto;
     width: 23rem;
+    transition: width 10s;
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
     top: 4.14rem;
     background: #1a242e;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+    animation-name: sidebar;
+    animation-duration: 1s;
   }
   header {
     font-size: 1rem;

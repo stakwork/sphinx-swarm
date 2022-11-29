@@ -13,10 +13,4 @@
 </div>
 
 <style>
-  .spacer {
-    margin-bottom: 1rem;
-  }
-  .controls {
-    padding: 1.5rem;
-  }
 </style>
