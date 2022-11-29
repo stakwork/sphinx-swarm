@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 pub enum Cmd {
     Swarm(SwarmCmd),
     Relay(RelayCmd),
+    Bitcoind(BitcoindCmd),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
-    GetBitcoinInfo,
     AddNode(Image),
 }
 
@@ -21,6 +21,12 @@ pub enum SwarmCmd {
 pub enum RelayCmd {
     ListUsers,
     AddUser,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", content = "content")]
+pub enum BitcoindCmd {
+    GetInfo,
 }
 
 #[cfg(test)]

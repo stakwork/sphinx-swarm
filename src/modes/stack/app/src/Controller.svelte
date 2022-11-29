@@ -6,6 +6,9 @@
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
+
+  // tag is the name of the container itself
+  $: tag = $selectedNode && $selectedNode.name;
 </script>
 
 {#if ctrls}
@@ -19,9 +22,9 @@
       {$selectedNode.name}
     </header>
     {#if type === "Relay"}
-      <RelayControls />
+      <RelayControls {tag} />
     {:else}
-      <Controls {ctrls} />
+      <Controls {ctrls} {tag} />
     {/if}
   </main>
 {/if}
@@ -40,7 +43,6 @@
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
   header {
-    text-transform: capitalize;
     font-size: 1rem;
     display: flex;
     align-items: center;

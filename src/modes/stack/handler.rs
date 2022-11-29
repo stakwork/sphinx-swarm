@@ -1,26 +1,24 @@
-use crate::cmd::{Cmd, RelayCmd, SwarmCmd};
-use crate::config::{Node, Stack, STACK};
+use crate::cmd::{BitcoindCmd, Cmd, RelayCmd, SwarmCmd};
+use crate::config::{Node, Stack, STATE};
 use crate::images::Image;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bollard::Docker;
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
     // conf can be mutated in place
-    let mut stack = STACK.lock().await;
+    let mut state = STATE.lock().await;
+    let mut stack = &state.stack;
     // println!("STACK {:?}", stack);
 
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
             SwarmCmd::GetConfig => {
-                let res = remove_tokens(&*stack);
+                let res = remove_tokens(stack);
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::AddNode(node) => {
                 // add a node via docker
-                None
-            }
-            SwarmCmd::GetBitcoinInfo => {
                 None
             }
         },
@@ -31,10 +29,24 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             }
             RelayCmd::ListUsers => None,
         },
+        Cmd::Bitcoind(c) => {
+            let client = state.clients.bitcoind.get(tag);
+            if let None = client {
+                return Err(anyhow!("no bitcoind client".to_string()));
+            }
+            // safe to unwrap here because "None" was already checked
+            let client = client.unwrap();
+            match c {
+                BitcoindCmd::GetInfo => {
+                    let info = client.get_info()?;
+                    Some(serde_json::to_string(&info)?)
+                }
+            }
+        }
     };
     match ret {
         Some(r) => Ok(r),
-        None => Err(anyhow::anyhow!("no return value".to_string())),
+        None => Err(anyhow::anyhow!("internal error".to_string())),
     }
 }
 
