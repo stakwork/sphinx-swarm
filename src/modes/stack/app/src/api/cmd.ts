@@ -5,18 +5,18 @@ if (IS_DEV) {
   root = "http://localhost:8000/api";
 }
 
-type CmdType = "Swarm" | "Relay";
+type CmdType = "Swarm" | "Relay" | "Bitcoind";
 
-export type Cmd = "GetConfig" | "ListUsers" | "AddUser";
+export type Cmd = "GetConfig" | "ListUsers" | "AddUser" | "GetInfo";
 
 interface CmdData {
   cmd: Cmd;
   content?: any;
 }
 
-export async function send_cmd(type: CmdType, data: CmdData) {
+export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
   const txt = JSON.stringify({ type, data });
-  const r = await fetch(`${root}/cmd?txt=${txt}&tag=SWARM`);
+  const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
   const result = await r.json();
   return result;
 }

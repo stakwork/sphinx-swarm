@@ -4,6 +4,8 @@
   import { selectedNode } from "./store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
+
+  export let tag = "";
 </script>
 
 <Tabs>
@@ -12,7 +14,7 @@
   <svelte:fragment slot="content">
     <TabContent><Users /></TabContent>
     <TabContent>
-      <Controls ctrls={$selectedNode && controls["Relay"]} />
+      <Controls ctrls={$selectedNode && controls["Relay"]} {tag} />
     </TabContent>
   </svelte:fragment>
 </Tabs>
