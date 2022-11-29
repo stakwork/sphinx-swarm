@@ -1,12 +1,28 @@
-type ControlType = "dropdown" | "number" | "text";
+import * as api from "./api";
 
+type ControlType = "dropdown" | "number" | "text" | "button";
 export interface Control {
   type: ControlType;
   name: string;
-  value: any;
+  value?: any;
   items?: any[];
+  action?: (tag?: string) => Promise<any>;
 }
 
+const btcControls: Control[] = [
+  {
+    name: "Mine 6 Blocks",
+    type: "button",
+  },
+  {
+    name: "Get Info",
+    type: "button",
+    action: async (tag: string) => {
+      const info = await api.btc.get_info(tag);
+      console.log(info);
+    },
+  },
+];
 const relayControls: Control[] = [
   {
     name: "Thing One",
@@ -53,4 +69,5 @@ export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
   Lnd: lndControls,
+  Btc: btcControls,
 };

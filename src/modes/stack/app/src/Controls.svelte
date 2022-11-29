@@ -1,17 +1,14 @@
 <script lang="ts">
   export let ctrls = [];
   import Ctrl from "./Ctrl.svelte";
+
+  export let tag = "";
 </script>
 
 <div class="controls">
   {#each ctrls as ctrl}
-    {#if ctrl.type === "dropdown"}
-      <Ctrl {...ctrl} selectedId={ctrl.items[0].id} />
-      <div class="&& spacer" />
-    {:else}
-      <Ctrl {...ctrl} />
-      <div class="spacer" />
-    {/if}
+    <Ctrl {...ctrl} {tag} />
+    <div class="spacer" />
   {/each}
 </div>
 

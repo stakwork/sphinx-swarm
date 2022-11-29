@@ -25,6 +25,7 @@ async fn main() {
         .with_module_level("tokio_util", log::LevelFilter::Error)
         .with_module_level("tonic", log::LevelFilter::Error)
         .with_module_level("h2", log::LevelFilter::Error)
+        .with_module_level("bitcoincore_rpc", log::LevelFilter::Error)
         .with_module_level("_", log::LevelFilter::Error)
         .init()
         .unwrap();

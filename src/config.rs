@@ -1,3 +1,4 @@
+use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
 use crate::utils;
 use anyhow::Result;
@@ -8,7 +9,32 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 
-pub static STACK: Lazy<Mutex<Stack>> = Lazy::new(|| Mutex::new(Default::default()));
+pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
+
+pub struct State {
+    pub stack: Stack,
+    pub clients: Clients,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            stack: Default::default(),
+            clients: Default::default(),
+        }
+    }
+}
+
+pub struct Clients {
+    pub bitcoind: HashMap<String, BitcoinRPC>,
+}
+impl Default for Clients {
+    fn default() -> Self {
+        Self {
+            bitcoind: HashMap::new(),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Stack {

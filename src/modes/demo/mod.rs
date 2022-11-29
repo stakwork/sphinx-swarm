@@ -1,5 +1,6 @@
 mod srv;
 
+use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::images::BtcImage;
 use crate::rocket_utils::*;
 use crate::{dock::*, env, images, logs};
@@ -33,9 +34,15 @@ pub async fn run(docker: Docker) -> Result<()> {
 
     // btc setup
     let btc_node = BtcImage::new("bitcoind", network, "foo");
+
+    // Get Bitcoin Info
     let btc1 = images::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
+
+    let bitcoin = BitcoinRPC::new(&btc_node, "http://127.0.0.1", "18443")?;
+    let info = bitcoin.get_info()?;
+    log::info!("bitcoind info {:?}", info);
 
     // cln setup
     let mut id_map = HashMap::new();
@@ -92,7 +99,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     Ok(())
 }
 
-const NODES_FILE_PATH: &str = "src/cmd/demo/app/public/nodes.json";
+const NODES_FILE_PATH: &str = "src/modes/demo/app/public/nodes.json";
 fn write_nodes_file(n: &HashMap<String, u8>) {
     let st = serde_json::to_string_pretty(n).expect("failed to make json string");
     let mut file = File::create(NODES_FILE_PATH).expect("create failed");

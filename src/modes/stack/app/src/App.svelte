@@ -13,8 +13,6 @@
   onMount(() => {
     getConfig();
   });
-
-  $: console.log($selectedNode);
 </script>
 
 <main>
@@ -75,12 +73,10 @@
   .title {
     color: white;
     margin-left: 2rem;
-    text-transform: capitalize;
   }
   .stack-title {
     color: white;
     margin-left: 0.5rem;
-    text-transform: capitalize;
     font-size: 1.2rem;
   }
 </style>

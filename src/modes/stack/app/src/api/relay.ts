@@ -1,13 +1,13 @@
 import { send_cmd, Cmd } from "./cmd";
 
-async function relayCmd(cmd: Cmd, content?: any) {
-  return await send_cmd("Relay", { cmd, content });
+async function relayCmd(cmd: Cmd, tag: string, content?: any) {
+  return await send_cmd("Relay", { cmd, content }, tag);
 }
 
-export async function list_users() {
-  return await relayCmd("ListUsers");
+export async function list_users(tag: string) {
+  return await relayCmd("ListUsers", tag);
 }
 
-export async function add_user() {
-  return await relayCmd("AddUser");
+export async function add_user(tag: string) {
+  return await relayCmd("AddUser", tag);
 }

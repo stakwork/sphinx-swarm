@@ -1,7 +1,8 @@
 mod handler;
 mod srv;
 
-use crate::config::{load_config_file, put_config_file, Node, Stack};
+use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
+use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::unlocker::LndUnlocker;
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
@@ -22,6 +23,7 @@ async fn add_node(
     docker: &Docker,
     ids: &mut HashMap<String, String>,
     secs: &secrets::Secrets,
+    clients: &mut Clients,
 ) -> Result<()> {
     if let Node::External(n) = node {
         log::info!("external url {}", n.url);
@@ -32,7 +34,9 @@ async fn add_node(
         Image::Btc(btc) => {
             let btc1 = images::btc(proj, &btc);
             let btc_id = create_and_start(&docker, btc1).await?;
-            ids.insert(btc.name, btc_id);
+            ids.insert(btc.name.clone(), btc_id);
+            let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
+            clients.bitcoind.insert(btc.name, client);
             log::info!("created bitcoind");
         }
         Image::Lnd(lnd) => {
@@ -96,13 +100,23 @@ async fn build_stack(
     proj: &str,
     docker: &Docker,
     stack: &Stack,
-) -> Result<HashMap<String, String>> {
+) -> Result<(HashMap<String, String>, Clients)> {
     let secs = secrets::load_secrets(proj).await;
     let mut ids = HashMap::new();
+    let mut clients: Clients = Default::default();
     for node in stack.nodes.clone().iter() {
-        add_node(proj, &node, stack.nodes.clone(), docker, &mut ids, &secs).await?;
+        add_node(
+            proj,
+            &node,
+            stack.nodes.clone(),
+            docker,
+            &mut ids,
+            &secs,
+            &mut clients,
+        )
+        .await?;
     }
-    Ok(ids)
+    Ok((ids, clients))
 }
 
 async fn unlock_lnd(proj: &str, lnd_node: &LndImage, secs: &secrets::Secrets) -> Result<()> {
@@ -139,8 +153,14 @@ async fn unlock_lnd(proj: &str, lnd_node: &LndImage, secs: &secrets::Secrets) ->
 pub async fn run(docker: Docker) -> Result<()> {
     let proj = "stack";
     let stack: Stack = load_config_file(proj).await;
-    let ids = build_stack(proj, &docker, &stack).await?;
+    let (ids, clients) = build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
+
+    // set into the main state mutex
+    let mut state = STATE.lock().await;
+    *state = State { stack, clients };
+    // drop it immediately
+    drop(state);
 
     let (tx, mut rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
