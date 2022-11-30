@@ -3,6 +3,7 @@
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
+  import Tribes from "./Tribes.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -23,6 +24,8 @@
     </header>
     {#if type === "Relay"}
       <RelayControls {tag} />
+    {:else if type === "Tribes"}
+      <Tribes />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}

@@ -2,16 +2,17 @@
     export let add = () => {};
     import { Button } from "carbon-components-svelte";
     import Add from "carbon-icons-svelte/lib/Add.svelte";
-    import { tribes } from "./store";
     import Tribe from "./Tribe.svelte";
     import { Dropdown } from "carbon-components-svelte";
-    import { afterUpdate } from "svelte";
+    import { afterUpdate, onMount } from "svelte";
+    import { tribes as tribesApi } from "./api";
 
     let selectedTribe = "";
-    $: selectedTribe = $tribes.find((t) => t.name === selectedTribe);
+    $: selectedTribe = tribes.find((t) => t.name === selectedTribe);
+    let tribes = [];
 
     let selectedId = "0";
-    let filterTribes = $tribes;
+    let filterTribes = tribes;
 
     const filterItems = [
       { id: "0", text: "User count" },
@@ -19,11 +20,21 @@
       { id: "2", text: "Previewable" },
     ];
 
+    async function getTribes () {
+        const tribesData = await tribesApi.get_tribes();
+        console.log("Tribes Data ===", tribesData);
+        tribes = tribesData;
+    }
+
+    onMount(() => {
+        getTribes();
+    })
+
     afterUpdate(() => {
       let filter = filterItems.find((item) => item.id === selectedId);
-      const arrayToSort = [...$tribes];
+      const arrayToSort = [...tribes];
       if (filter.text === "User count") {
-        filterTribes = arrayToSort.sort((a, b) => b.userCount - a.userCount);
+        filterTribes = arrayToSort.sort((a, b) => b.member_count - a.member_count);
       } else if (filter.text === "Previewable") {
         filterTribes = arrayToSort.sort((a, b) => {
           if (b.preview > a.preview) return 1;
@@ -31,7 +42,7 @@
           return 0;
         });
       } else {
-        filterTribes = $tribes;
+        filterTribes = tribes;
       }
     });
   </script>
@@ -46,7 +57,7 @@
     {:else}
       <div class="divider" />
       <div class="users">
-        <p>Current Tribes <span class="users-count">42</span></p>
+        <p>Current Tribes <span class="users-count">{tribes.length}</span></p>
         <Button
           on:click={add}
           kind="tertiary"
@@ -67,7 +78,7 @@
           />
         </aside>
       </section>
-      {#if filterTribes.length > 0}
+      {#if tribes.length > 0}
         {#each filterTribes as tribe}
           <Tribe
             {...tribe}

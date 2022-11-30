@@ -2,14 +2,15 @@
     import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
     import { initialUsers } from "./users";
     import User from "./User.svelte";
-    
+
     export let select = () => {};
     export let name = "";
     export let preview = "";
     export let logo = "";
-    export let pricePerMessage = 0;
+    export let price_per_message = 0;
     export let selected = false;
-    export let userCount = 0;
+    export let member_count = 0;
+    export let uuid = "";
 
     let selectedPubkey = "";
     $: selectedUser = initialUsers.find((u) => u.pubkey === selectedPubkey);
@@ -38,7 +39,7 @@
             <div class="back" on:click={back} on:keypress={() => {}}>
               <ArrowLeft size={24} />
             </div>
-            <h6>Tribe users {userCount}</h6>
+            <h6>Tribe users {member_count}</h6>
           </div>
         </div>
   
@@ -69,13 +70,13 @@
         <div class="name">{name}</div>
   
         {#if preview}
-          <a href={preview} class="preview-link" target="_blank" rel="noreferrer"
+          <a href={`https://cache.sphinx.chat/?tribe=${uuid}`} class="preview-link" target="_blank" rel="noreferrer"
             >Preview</a
           >
         {/if}
       </section>
       <div class="message-price">
-        Price per message: {`${pricePerMessage} sats`}
+        Price per message: {`${price_per_message} sats`}
       </div>
     {:else}
       <div class="empty-alias" />

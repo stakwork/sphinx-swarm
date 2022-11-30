@@ -8,7 +8,6 @@
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
-    console.log(conf);
   }
   onMount(() => {
     getConfig();

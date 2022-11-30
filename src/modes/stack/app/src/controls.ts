@@ -23,6 +23,7 @@ const btcControls: Control[] = [
     },
   },
 ];
+
 const relayControls: Control[] = [
   {
     name: "Thing One",
@@ -65,9 +66,12 @@ const proxyControls: Control[] = [
   { name: "Proxy 2", type: "number", value: 42 },
 ];
 
+const tribesControls: Control[] = [];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
   Lnd: lndControls,
   Btc: btcControls,
+  Tribes: tribesControls,
 };
