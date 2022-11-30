@@ -1,11 +1,13 @@
 <script>
-    export let add = () => {};
     import { Button } from "carbon-components-svelte";
     import Add from "carbon-icons-svelte/lib/Add.svelte";
     import Tribe from "./Tribe.svelte";
     import { Dropdown } from "carbon-components-svelte";
     import { afterUpdate, onMount } from "svelte";
     import { tribes as tribesApi } from "./api";
+
+    export let add = () => {};
+    export let url = "";
 
     let selectedTribe = "";
     $: selectedTribe = tribes.find((t) => t.name === selectedTribe);
@@ -21,8 +23,7 @@
     ];
 
     async function getTribes () {
-        const tribesData = await tribesApi.get_tribes();
-        console.log("Tribes Data ===", tribesData);
+        const tribesData = await tribesApi.get_tribes(url);
         tribes = tribesData;
     }
 

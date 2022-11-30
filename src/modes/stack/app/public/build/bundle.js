@@ -1079,94 +1079,6 @@ var app = (function () {
     const stack = writable(stack$1);
     const users = writable(initialUsers);
 
-    const IS_DEV$1 = window.location.host === "localhost:8080";
-    let root$2 = "/api";
-    if (IS_DEV$1) {
-        root$2 = "http://localhost:8000/api";
-    }
-    async function send_cmd(type, data, tag) {
-        const txt = JSON.stringify({ type, data });
-        const r = await fetch(`${root$2}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
-        const result = await r.json();
-        return result;
-    }
-
-    async function swarmCmd(cmd, content) {
-        return await send_cmd("Swarm", { cmd, content });
-    }
-    async function get_config() {
-        return await swarmCmd("GetConfig");
-    }
-
-    var swarm = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        get_config: get_config
-    });
-
-    async function relayCmd(cmd, tag, content) {
-        return await send_cmd("Relay", { cmd, content }, tag);
-    }
-    async function list_users(tag) {
-        return await relayCmd("ListUsers", tag);
-    }
-    async function add_user(tag) {
-        return await relayCmd("AddUser", tag);
-    }
-
-    var relay = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        list_users: list_users,
-        add_user: add_user
-    });
-
-    async function btcCmd(cmd, tag, content) {
-        return await send_cmd("Bitcoind", { cmd, content }, tag);
-    }
-    async function get_info(tag) {
-        return await btcCmd("GetInfo", tag);
-    }
-
-    var btc = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        get_info: get_info
-    });
-
-    const IS_DEV = window.location.host === "localhost:8080";
-    let root$1 = "https://tribes.sphinx.chat";
-    if (IS_DEV) {
-        root$1 = "http://localhost:13000";
-    }
-    async function get_tribes(uuid = "") {
-        let r;
-        if (!uuid) {
-            r = await fetch(`${root$1}/tribes`);
-        }
-        else {
-            r = await fetch(`${root$1}/tribes/${uuid}`);
-        }
-        const result = await r.json();
-        return result;
-    }
-    async function get_people() {
-        const r = await fetch(`${root$1}/people`);
-        const result = await r.json();
-        return result;
-    }
-
-    var tribesApi = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        get_tribes: get_tribes,
-        get_people: get_people
-    });
-
-    var api = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        swarm: swarm,
-        relay: relay,
-        btc: btc,
-        tribes: tribesApi
-    });
-
     var noop = {value: () => {}};
 
     function dispatch() {
@@ -2114,7 +2026,7 @@ var app = (function () {
       }
     }
 
-    var root = [null];
+    var root$1 = [null];
 
     function Selection$1(groups, parents) {
       this._groups = groups;
@@ -2122,7 +2034,7 @@ var app = (function () {
     }
 
     function selection() {
-      return new Selection$1([[document.documentElement]], root);
+      return new Selection$1([[document.documentElement]], root$1);
     }
 
     function selection_selection() {
@@ -2171,7 +2083,7 @@ var app = (function () {
     function select(selector) {
       return typeof selector === "string"
           ? new Selection$1([[document.querySelector(selector)]], [document.documentElement])
-          : new Selection$1([[selector]], root);
+          : new Selection$1([[selector]], root$1);
     }
 
     function sourceEvent(event) {
@@ -2202,7 +2114,7 @@ var app = (function () {
     function selectAll(selector) {
       return typeof selector === "string"
           ? new Selection$1([document.querySelectorAll(selector)], [document.documentElement])
-          : new Selection$1([array(selector)], root);
+          : new Selection$1([array(selector)], root$1);
     }
 
     // These are typically used in conjunction with noevent to ensure that we can
@@ -8698,6 +8610,96 @@ var app = (function () {
     	}
     }
 
+    const IS_DEV$1 = window.location.host === "localhost:8080";
+    let root = "/api";
+    if (IS_DEV$1) {
+        root = "http://localhost:8000/api";
+    }
+    async function send_cmd(type, data, tag) {
+        const txt = JSON.stringify({ type, data });
+        const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
+        const result = await r.json();
+        return result;
+    }
+
+    async function swarmCmd(cmd, content) {
+        return await send_cmd("Swarm", { cmd, content });
+    }
+    async function get_config() {
+        return await swarmCmd("GetConfig");
+    }
+
+    var swarm = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        get_config: get_config
+    });
+
+    async function relayCmd(cmd, tag, content) {
+        return await send_cmd("Relay", { cmd, content }, tag);
+    }
+    async function list_users(tag) {
+        return await relayCmd("ListUsers", tag);
+    }
+    async function add_user(tag) {
+        return await relayCmd("AddUser", tag);
+    }
+
+    var relay = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        list_users: list_users,
+        add_user: add_user
+    });
+
+    async function btcCmd(cmd, tag, content) {
+        return await send_cmd("Bitcoind", { cmd, content }, tag);
+    }
+    async function get_info(tag) {
+        return await btcCmd("GetInfo", tag);
+    }
+
+    var btc = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        get_info: get_info
+    });
+
+    const IS_DEV = window.location.host === "localhost:8080";
+    const formatUrl = (url) => {
+        if (url.includes("http://" )) {
+            return url;
+        }
+        return IS_DEV ? "http://localhost:13000" : `https://${url}`;
+    };
+    async function get_tribes(url, uuid = "") {
+        let r;
+        if (!uuid) {
+            r = await fetch(`${formatUrl(url)}/tribes`);
+        }
+        else {
+            r = await fetch(`${formatUrl(url)}/tribes/${uuid}`);
+        }
+        const result = await r.json();
+        return result;
+    }
+    async function get_people(url) {
+        const r = await fetch(`${formatUrl(url)}/people`);
+        const result = await r.json();
+        return result;
+    }
+
+    var tribesApi = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        get_tribes: get_tribes,
+        get_people: get_people
+    });
+
+    var api = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        swarm: swarm,
+        relay: relay,
+        btc: btc,
+        tribes: tribesApi
+    });
+
     /* src/Flow.svelte generated by Svelte v3.52.0 */
 
     function create_fragment$E(ctx) {
@@ -8766,9 +8768,21 @@ var app = (function () {
     }
 
     function instance$E($$self, $$props, $$invalidate) {
+    	let stackConf;
     	let flow;
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Flow', slots, []);
+
+    	async function getConfig() {
+    		const conf = await get_config();
+
+    		// console.log("Nodes ===", conf)
+    		$$invalidate(1, stackConf = conf);
+    	}
+
+    	onMount(() => {
+    		getConfig();
+    	});
 
     	const nodeCallback = node => {
     		const n = stack$1.nodes.find(n => n.name === node.data.name);
@@ -8837,15 +8851,20 @@ var app = (function () {
     		Svelvet,
     		stack: stack$1,
     		defaultPositions,
+    		api,
     		selectedNode,
+    		onMount,
+    		getConfig,
     		nodeCallback,
     		toSvelvet,
     		colorz,
     		content,
+    		stackConf,
     		flow
     	});
 
     	$$self.$inject_state = $$props => {
+    		if ('stackConf' in $$props) $$invalidate(1, stackConf = $$props.stackConf);
     		if ('flow' in $$props) $$invalidate(0, flow = $$props.flow);
     	};
 
@@ -8853,8 +8872,14 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	$$invalidate(0, flow = toSvelvet(stack$1.nodes, nodeCallback));
-    	return [flow];
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*stackConf*/ 2) {
+    			$$invalidate(0, flow = toSvelvet(stackConf.nodes, nodeCallback));
+    		}
+    	};
+
+    	$$invalidate(1, stackConf = { network: "", nodes: [] });
+    	return [flow, stackConf];
     }
 
     class Flow extends SvelteComponentDev {
@@ -31212,17 +31237,15 @@ var app = (function () {
     }
 
     /* src/Tribes.svelte generated by Svelte v3.52.0 */
-
-    const { console: console_1$1 } = globals;
     const file$3 = "src/Tribes.svelte";
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[10] = list[i];
+    	child_ctx[11] = list[i];
     	return child_ctx;
     }
 
-    // (57:4) {:else}
+    // (58:4) {:else}
     function create_else_block$1(ctx) {
     	let div0;
     	let t0;
@@ -31263,7 +31286,7 @@ var app = (function () {
     	});
 
     	function dropdown_selectedId_binding(value) {
-    		/*dropdown_selectedId_binding*/ ctx[7](value);
+    		/*dropdown_selectedId_binding*/ ctx[8](value);
     	}
 
     	let dropdown_props = {
@@ -31301,19 +31324,19 @@ var app = (function () {
     			if (if_block) if_block.c();
     			if_block_anchor = empty$1();
     			attr_dev(div0, "class", "divider");
-    			add_location(div0, file$3, 57, 6, 1648);
+    			add_location(div0, file$3, 58, 6, 1625);
     			attr_dev(span, "class", "users-count svelte-qpj9fp");
-    			add_location(span, file$3, 59, 26, 1724);
+    			add_location(span, file$3, 60, 26, 1701);
     			attr_dev(p, "class", "svelte-qpj9fp");
-    			add_location(p, file$3, 59, 8, 1706);
+    			add_location(p, file$3, 60, 8, 1683);
     			attr_dev(div1, "class", "users svelte-qpj9fp");
-    			add_location(div1, file$3, 58, 6, 1678);
+    			add_location(div1, file$3, 59, 6, 1655);
     			attr_dev(div2, "class", "divider");
-    			add_location(div2, file$3, 69, 6, 1986);
+    			add_location(div2, file$3, 70, 6, 1963);
     			attr_dev(aside, "class", "svelte-qpj9fp");
-    			add_location(aside, file$3, 71, 8, 2054);
+    			add_location(aside, file$3, 72, 8, 2031);
     			attr_dev(section, "class", "filter-wrap svelte-qpj9fp");
-    			add_location(section, file$3, 70, 6, 2016);
+    			add_location(section, file$3, 71, 6, 1993);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div0, anchor);
@@ -31341,7 +31364,7 @@ var app = (function () {
     			if ((!current || dirty & /*tribes*/ 4) && t2_value !== (t2_value = /*tribes*/ ctx[2].length + "")) set_data_dev(t2, t2_value);
     			const button_changes = {};
 
-    			if (dirty & /*$$scope*/ 8192) {
+    			if (dirty & /*$$scope*/ 16384) {
     				button_changes.$$scope = { dirty, ctx };
     			}
 
@@ -31412,18 +31435,18 @@ var app = (function () {
     		block,
     		id: create_else_block$1.name,
     		type: "else",
-    		source: "(57:4) {:else}",
+    		source: "(58:4) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (51:4) {#if selectedTribe}
+    // (52:4) {#if selectedTribe}
     function create_if_block$2(ctx) {
     	let tribe;
     	let current;
-    	const tribe_spread_levels = [/*selectedTribe*/ ctx[1], { selected: true }, { select: /*func*/ ctx[6] }];
+    	const tribe_spread_levels = [/*selectedTribe*/ ctx[1], { selected: true }, { select: /*func*/ ctx[7] }];
     	let tribe_props = {};
 
     	for (let i = 0; i < tribe_spread_levels.length; i += 1) {
@@ -31445,7 +31468,7 @@ var app = (function () {
     			? get_spread_update(tribe_spread_levels, [
     					get_spread_object(/*selectedTribe*/ ctx[1]),
     					tribe_spread_levels[1],
-    					{ select: /*func*/ ctx[6] }
+    					{ select: /*func*/ ctx[7] }
     				])
     			: {};
 
@@ -31469,14 +31492,14 @@ var app = (function () {
     		block,
     		id: create_if_block$2.name,
     		type: "if",
-    		source: "(51:4) {#if selectedTribe}",
+    		source: "(52:4) {#if selectedTribe}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (61:8) <Button           on:click={add}           kind="tertiary"           type="submit"           size="field"           icon={Add}           disabled={false}>
+    // (62:8) <Button           on:click={add}           kind="tertiary"           type="submit"           size="field"           icon={Add}           disabled={false}>
     function create_default_slot$1(ctx) {
     	let t;
 
@@ -31496,14 +31519,14 @@ var app = (function () {
     		block,
     		id: create_default_slot$1.name,
     		type: "slot",
-    		source: "(61:8) <Button           on:click={add}           kind=\\\"tertiary\\\"           type=\\\"submit\\\"           size=\\\"field\\\"           icon={Add}           disabled={false}>",
+    		source: "(62:8) <Button           on:click={add}           kind=\\\"tertiary\\\"           type=\\\"submit\\\"           size=\\\"field\\\"           icon={Add}           disabled={false}>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (81:6) {#if tribes.length > 0}
+    // (82:6) {#if tribes.length > 0}
     function create_if_block_1$1(ctx) {
     	let each_1_anchor;
     	let current;
@@ -31592,18 +31615,18 @@ var app = (function () {
     		block,
     		id: create_if_block_1$1.name,
     		type: "if",
-    		source: "(81:6) {#if tribes.length > 0}",
+    		source: "(82:6) {#if tribes.length > 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (82:8) {#each filterTribes as tribe}
+    // (83:8) {#each filterTribes as tribe}
     function create_each_block(ctx) {
     	let tribe;
     	let current;
-    	const tribe_spread_levels = [/*tribe*/ ctx[10], { select: /*func_1*/ ctx[8] }, { selected: false }];
+    	const tribe_spread_levels = [/*tribe*/ ctx[11], { select: /*func_1*/ ctx[9] }, { selected: false }];
     	let tribe_props = {};
 
     	for (let i = 0; i < tribe_spread_levels.length; i += 1) {
@@ -31623,8 +31646,8 @@ var app = (function () {
     		p: function update(ctx, dirty) {
     			const tribe_changes = (dirty & /*filterTribes, selectedTribe*/ 18)
     			? get_spread_update(tribe_spread_levels, [
-    					dirty & /*filterTribes*/ 16 && get_spread_object(/*tribe*/ ctx[10]),
-    					dirty & /*selectedTribe*/ 2 && { select: /*func_1*/ ctx[8] },
+    					dirty & /*filterTribes*/ 16 && get_spread_object(/*tribe*/ ctx[11]),
+    					dirty & /*selectedTribe*/ 2 && { select: /*func_1*/ ctx[9] },
     					tribe_spread_levels[2]
     				])
     			: {};
@@ -31649,7 +31672,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(82:8) {#each filterTribes as tribe}",
+    		source: "(83:8) {#each filterTribes as tribe}",
     		ctx
     	});
 
@@ -31676,7 +31699,7 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			if_block.c();
-    			add_location(div, file$3, 49, 2, 1481);
+    			add_location(div, file$3, 50, 2, 1458);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -31747,6 +31770,7 @@ var app = (function () {
     		
     	} } = $$props;
 
+    	let { url = "" } = $$props;
     	let selectedTribe = "";
     	let tribes = [];
     	let selectedId = "0";
@@ -31759,8 +31783,7 @@ var app = (function () {
     	];
 
     	async function getTribes() {
-    		const tribesData = await get_tribes();
-    		console.log("Tribes Data ===", tribesData);
+    		const tribesData = await get_tribes(url);
     		$$invalidate(2, tribes = tribesData);
     	}
 
@@ -31785,10 +31808,10 @@ var app = (function () {
     		}
     	});
 
-    	const writable_props = ['add'];
+    	const writable_props = ['add', 'url'];
 
     	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console_1$1.warn(`<Tribes> was created with unknown prop '${key}'`);
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<Tribes> was created with unknown prop '${key}'`);
     	});
 
     	const func = () => $$invalidate(1, selectedTribe = null);
@@ -31802,10 +31825,10 @@ var app = (function () {
 
     	$$self.$$set = $$props => {
     		if ('add' in $$props) $$invalidate(0, add = $$props.add);
+    		if ('url' in $$props) $$invalidate(6, url = $$props.url);
     	};
 
     	$$self.$capture_state = () => ({
-    		add,
     		Button: Button$1,
     		Add,
     		Tribe,
@@ -31813,6 +31836,8 @@ var app = (function () {
     		afterUpdate,
     		onMount,
     		tribesApi,
+    		add,
+    		url,
     		selectedTribe,
     		tribes,
     		selectedId,
@@ -31823,6 +31848,7 @@ var app = (function () {
 
     	$$self.$inject_state = $$props => {
     		if ('add' in $$props) $$invalidate(0, add = $$props.add);
+    		if ('url' in $$props) $$invalidate(6, url = $$props.url);
     		if ('selectedTribe' in $$props) $$invalidate(1, selectedTribe = $$props.selectedTribe);
     		if ('tribes' in $$props) $$invalidate(2, tribes = $$props.tribes);
     		if ('selectedId' in $$props) $$invalidate(3, selectedId = $$props.selectedId);
@@ -31846,6 +31872,7 @@ var app = (function () {
     		selectedId,
     		filterTribes,
     		filterItems,
+    		url,
     		func,
     		dropdown_selectedId_binding,
     		func_1
@@ -31855,7 +31882,7 @@ var app = (function () {
     class Tribes extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init$1(this, options, instance$3, create_fragment$3, safe_not_equal, { add: 0 });
+    		init$1(this, options, instance$3, create_fragment$3, safe_not_equal, { add: 0, url: 6 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -31872,12 +31899,20 @@ var app = (function () {
     	set add(value) {
     		throw new Error("<Tribes>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
+
+    	get url() {
+    		throw new Error("<Tribes>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set url(value) {
+    		throw new Error("<Tribes>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
     }
 
     /* src/Controller.svelte generated by Svelte v3.52.0 */
     const file$2 = "src/Controller.svelte";
 
-    // (12:0) {#if ctrls}
+    // (13:0) {#if ctrls}
     function create_if_block$1(ctx) {
     	let div;
     	let header;
@@ -31914,11 +31949,11 @@ var app = (function () {
     			if (!src_url_equal(img.src, img_src_value = `swarm/${/*type*/ ctx[0].toLowerCase()}.png`)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "class", "node-top-img svelte-95styf");
     			attr_dev(img, "alt", "node ");
-    			add_location(img, file$2, 14, 6, 472);
+    			add_location(img, file$2, 15, 6, 489);
     			attr_dev(header, "class", "svelte-95styf");
-    			add_location(header, file$2, 13, 4, 457);
+    			add_location(header, file$2, 14, 4, 474);
     			attr_dev(div, "class", "main svelte-95styf");
-    			add_location(div, file$2, 12, 2, 434);
+    			add_location(div, file$2, 13, 2, 451);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -31981,14 +32016,14 @@ var app = (function () {
     		block,
     		id: create_if_block$1.name,
     		type: "if",
-    		source: "(12:0) {#if ctrls}",
+    		source: "(13:0) {#if ctrls}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (26:4) {:else}
+    // (27:4) {:else}
     function create_else_block(ctx) {
     	let controls_1;
     	let current;
@@ -32033,18 +32068,22 @@ var app = (function () {
     		block,
     		id: create_else_block.name,
     		type: "else",
-    		source: "(26:4) {:else}",
+    		source: "(27:4) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (24:32) 
+    // (25:32) 
     function create_if_block_2(ctx) {
     	let tribes;
     	let current;
-    	tribes = new Tribes({ $$inline: true });
+
+    	tribes = new Tribes({
+    			props: { url: /*$selectedNode*/ ctx[1].url },
+    			$$inline: true
+    		});
 
     	const block = {
     		c: function create() {
@@ -32054,7 +32093,11 @@ var app = (function () {
     			mount_component(tribes, target, anchor);
     			current = true;
     		},
-    		p: noop$1,
+    		p: function update(ctx, dirty) {
+    			const tribes_changes = {};
+    			if (dirty & /*$selectedNode*/ 2) tribes_changes.url = /*$selectedNode*/ ctx[1].url;
+    			tribes.$set(tribes_changes);
+    		},
     		i: function intro(local) {
     			if (current) return;
     			transition_in(tribes.$$.fragment, local);
@@ -32073,14 +32116,14 @@ var app = (function () {
     		block,
     		id: create_if_block_2.name,
     		type: "if",
-    		source: "(24:32) ",
+    		source: "(25:32) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (22:4) {#if type === "Relay"}
+    // (23:4) {#if type === "Relay"}
     function create_if_block_1(ctx) {
     	let relaycontrols;
     	let current;
@@ -32121,7 +32164,7 @@ var app = (function () {
     		block,
     		id: create_if_block_1.name,
     		type: "if",
-    		source: "(22:4) {#if type === \\\"Relay\\\"}",
+    		source: "(23:4) {#if type === \\\"Relay\\\"}",
     		ctx
     	});
 
@@ -32724,7 +32767,7 @@ var app = (function () {
     /* src/App.svelte generated by Svelte v3.52.0 */
     const file = "src/App.svelte";
 
-    // (22:4) {#if $selectedNode}
+    // (14:4) {#if $selectedNode}
     function create_if_block(ctx) {
     	let div;
     	let t_value = /*$selectedNode*/ ctx[0].name + "";
@@ -32735,7 +32778,7 @@ var app = (function () {
     			div = element("div");
     			t = text(t_value);
     			attr_dev(div, "class", "title svelte-8a5n9u");
-    			add_location(div, file, 22, 6, 578);
+    			add_location(div, file, 14, 6, 399);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -32753,7 +32796,7 @@ var app = (function () {
     		block,
     		id: create_if_block.name,
     		type: "if",
-    		source: "(22:4) {#if $selectedNode}",
+    		source: "(14:4) {#if $selectedNode}",
     		ctx
     	});
 
@@ -32803,17 +32846,17 @@ var app = (function () {
     			attr_dev(img, "class", "logo svelte-8a5n9u");
     			attr_dev(img, "alt", "Sphinx icon");
     			if (!src_url_equal(img.src, img_src_value = "favicon.jpeg")) attr_dev(img, "src", img_src_value);
-    			add_location(img, file, 17, 6, 426);
+    			add_location(img, file, 9, 6, 247);
     			attr_dev(span, "class", "stack-title svelte-8a5n9u");
-    			add_location(span, file, 18, 6, 490);
+    			add_location(span, file, 10, 6, 311);
     			attr_dev(div0, "class", "lefty logo-wrap svelte-8a5n9u");
-    			add_location(div0, file, 16, 4, 390);
+    			add_location(div0, file, 8, 4, 211);
     			attr_dev(header, "class", "svelte-8a5n9u");
-    			add_location(header, file, 15, 2, 377);
+    			add_location(header, file, 7, 2, 198);
     			attr_dev(div1, "class", "body svelte-8a5n9u");
-    			add_location(div1, file, 27, 2, 665);
+    			add_location(div1, file, 19, 2, 486);
     			attr_dev(main, "class", "svelte-8a5n9u");
-    			add_location(main, file, 14, 0, 368);
+    			add_location(main, file, 6, 0, 189);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -32889,15 +32932,6 @@ var app = (function () {
     	component_subscribe($$self, selectedNode, $$value => $$invalidate(0, $selectedNode = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
-
-    	async function getConfig() {
-    		await get_config();
-    	}
-
-    	onMount(() => {
-    		getConfig();
-    	});
-
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
@@ -32906,12 +32940,9 @@ var app = (function () {
 
     	$$self.$capture_state = () => ({
     		selectedNode,
-    		api,
-    		onMount,
     		Flow,
     		Controller,
     		AddNode,
-    		getConfig,
     		$selectedNode
     	});
 

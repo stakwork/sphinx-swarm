@@ -1,17 +1,8 @@
 <script lang="ts">
   import { selectedNode } from "./store";
-  import * as api from "./api";
-  import { onMount } from "svelte";
   import Flow from "./Flow.svelte";
   import Controller from "./Controller.svelte";
   import AddNode from "./AddNode.svelte";
-
-  async function getConfig() {
-    const conf = await api.swarm.get_config();
-  }
-  onMount(() => {
-    getConfig();
-  });
 </script>
 
 <main>
