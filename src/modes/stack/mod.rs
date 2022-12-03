@@ -3,7 +3,7 @@ mod srv;
 
 use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::conn::lnd::unlocker::LndUnlocker;
+use crate::conn::lnd::{ unlocker::LndUnlocker, lndrpc::LndRPC };
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
@@ -14,7 +14,10 @@ use images::{LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
 use std::collections::HashMap;
 use std::sync::Arc;
+use futures_util::TryFutureExt;
+use serde_json::json;
 use tokio::sync::{mpsc, Mutex};
+use tonic_lnd::lnrpc::GetInfoRequest;
 
 async fn add_node(
     proj: &str,
@@ -54,6 +57,12 @@ async fn add_node(
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
             log::info!("created LND {}", lnd_id);
+
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            let mut lnd = LndRPC::new(format!("https://{}:{}", &lnd.name, &lnd.port).to_string(), format!("vol/{}/{}/tls.cert", proj, &lnd.name), format!("vol/{}/{}/data/chain/bitcoin/{}/admin.macaroon", proj, &lnd.name, &lnd.network)).await;
+            let info = lnd.get_info(GetInfoRequest{}).await?;
+
+            log::info!("LND INFO: {:#?}", info.version);
         }
         Image::Proxy(proxy) => {
             let lnd_name = proxy.links.get(0).context("Proxy requires a LND")?;
