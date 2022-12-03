@@ -53,13 +53,9 @@ async fn add_node(
             if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
+            let client = LndRPC::new(proj, &lnd).await?;
+            clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
-
-            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            let mut lnd = LndRPC::new(proj, &lnd).await?;
-            let info = lnd.get_info().await?;
-
-            log::info!("LND INFO: {:#?}", info.version);
         }
         Image::Proxy(proxy) => {
             let lnd_name = proxy.links.get(0).context("Proxy requires a LND")?;

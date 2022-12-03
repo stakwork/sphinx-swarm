@@ -1,4 +1,4 @@
-use crate::cmd::{BitcoindCmd, Cmd, RelayCmd, SwarmCmd};
+use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
 use crate::images::Image;
 use anyhow::{anyhow, Result};
@@ -39,6 +39,19 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             match c {
                 BitcoindCmd::GetInfo => {
                     let info = client.get_info()?;
+                    Some(serde_json::to_string(&info)?)
+                }
+            }
+        }
+        Cmd::Lnd(c) => {
+            let client = state.clients.lnd.get_mut(tag);
+            if let None = client {
+                return Err(anyhow!("no lnd client".to_string()));
+            }
+            let client = client.unwrap();
+            match c {
+                LndCmd::GetInfo => {
+                    let info = client.get_info().await?;
                     Some(serde_json::to_string(&info)?)
                 }
             }
