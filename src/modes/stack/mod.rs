@@ -59,7 +59,7 @@ async fn add_node(
             log::info!("created LND {}", lnd_id);
 
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            let mut lnd = LndRPC::new("https://localhost:10009".to_string(), format!("vol/{}/lnd1/tls.cert", proj), format!("vol/{}/lnd1/data/chain/bitcoin/{}/admin.macaroon", proj, &lnd.network)).await;
+            let mut lnd = LndRPC::new(format!("https://{}:{}", &lnd.name, &lnd.port).to_string(), format!("vol/{}/{}/tls.cert", proj, &lnd.name), format!("vol/{}/{}/data/chain/bitcoin/{}/admin.macaroon", proj, &lnd.name, &lnd.network)).await;
             let info = lnd.get_info(GetInfoRequest{}).await?;
 
             log::info!("LND INFO: {:#?}", info.version);
