@@ -8667,7 +8667,7 @@ var app = (function () {
         if (url.includes("http://" )) {
             return url;
         }
-        return IS_DEV ? "http://localhost:13000" : `https://${url}`;
+        return IS_DEV ? `https://${url}` : `https://${url}`;
     };
     async function get_tribes(url, uuid = "") {
         let r;
