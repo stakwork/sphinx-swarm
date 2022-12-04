@@ -32,12 +32,22 @@
   onMount(() => {
     getUsers();
   });
+
+  function formatProps(data) {
+    return {
+      owner_alias: data.owner_alias,
+      owner_pubkey: data.owner_pubkey,
+      owner_route_hint: data.owner_route_hint,
+      img: data.img,
+      description: data.description
+    }
+  }
 </script>
 
 <div>
   {#if selectedUser}
     <Person
-      {...selectedUser}
+      {...formatProps(selectedUser)}
       selected={true}
       select={() => (selectedPubkey = null)}
     />
@@ -65,7 +75,7 @@
     </section>
     {#each filteredUsers as user}
       <Person
-        {...user}
+        {...formatProps(user)}
         select={(pubkey) => (selectedPubkey = pubkey)}
         selected={false}
       />

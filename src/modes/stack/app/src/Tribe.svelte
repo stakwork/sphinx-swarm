@@ -3,7 +3,7 @@
 
     export let select = () => {};
     export let name = "";
-    export let preview = "";
+    export let preview = false;
     export let logo = "";
     export let price_per_message = 0;
     export let selected = false;
