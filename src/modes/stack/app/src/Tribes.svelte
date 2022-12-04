@@ -42,6 +42,12 @@
           if (b.preview < a.preview) return -1;
           return 0;
         });
+      } else if (filter.text === "Recent messages") {
+        filterTribes = arrayToSort.sort((a, b) => {
+          if (b.last_active > a.last_active) return 1;
+          if (b.last_active < a.last_active) return -1;
+          return 0;
+        });
       } else {
         filterTribes = tribes;
       }

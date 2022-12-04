@@ -1,7 +1,6 @@
 <script>
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import People from "./People.svelte";
   import { afterUpdate, onMount } from "svelte";
   import { tribes as tribesApi } from "./api";
   import Person from "./Person.svelte";
@@ -27,7 +26,6 @@
 
   async function getUsers() {
     const usersData = await tribesApi.get_people(url);
-    console.log("Users ====", usersData);
     users = usersData;
   }
 
