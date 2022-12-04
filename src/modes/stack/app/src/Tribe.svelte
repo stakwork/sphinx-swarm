@@ -1,7 +1,5 @@
 <script>
     import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-    import { initialUsers } from "./users";
-    import User from "./User.svelte";
 
     export let select = () => {};
     export let name = "";
@@ -11,9 +9,6 @@
     export let selected = false;
     export let member_count = 0;
     export let uuid = "";
-
-    let selectedPubkey = "";
-    $: selectedUser = initialUsers.find((u) => u.pubkey === selectedPubkey);
 
     const defaultImage =
       "https://memes.sphinx.chat/public/HoQTHP3oOn0NAXOTqJEWb6HCtxIyN_14WGgiIgXpxWI=";
@@ -42,23 +37,6 @@
             <h6>Tribe users {member_count}</h6>
           </div>
         </div>
-  
-        <div class="divider" />
-        {#if selectedUser}
-          <User
-            {...selectedUser}
-            selected={true}
-            select={() => (selectedPubkey = null)}
-          />
-        {:else}
-          {#each initialUsers as user}
-            <User
-              {...user}
-              select={(pubkey) => (selectedPubkey = pubkey)}
-              selected={false}
-            />
-          {/each}
-        {/if}
       </section>
     {:else if name}
       <section class="tribedata-wrap">
