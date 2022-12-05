@@ -55,7 +55,7 @@
     background: #1a242e;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
     animation-name: sidebar;
-    animation-duration: 1s;
+    animation-duration: 400ms;
   }
   header {
     font-size: 1rem;

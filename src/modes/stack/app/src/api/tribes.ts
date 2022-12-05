@@ -1,19 +1,20 @@
-interface Person {
+export interface Person {
   owner_alias: string;
   owner_pubkey: string;
   owner_route_hint: string;
   img: string;
   description: string;
   unique_name: string;
-};
+}
 
-interface Tribe {
+export interface Tribe {
   preview: boolean;
   member_count: number;
   uuid: string;
   price_per_message: number;
   logo: string;
   name: string;
+  unique_name: string;
 }
 
 const IS_DEV = window.location.host === "localhost:8080";
@@ -23,10 +24,13 @@ const formatUrl = (url: string): string => {
     return url;
   }
 
-  return IS_DEV ? `https://${url}` : `https://${url}` ;
+  return IS_DEV ? `https://${url}` : `https://${url}`;
 };
 
-export async function get_tribes(url: string, uuid: string = ""): Promise<Tribe[]> {
+export async function get_tribes(
+  url: string,
+  uuid: string = ""
+): Promise<Tribe[]> {
   let r;
 
   if (!uuid) {

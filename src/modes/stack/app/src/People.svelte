@@ -1,40 +1,46 @@
 <script>
-  import { Button, TextInput } from "carbon-components-svelte";
-  import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { afterUpdate, onMount } from "svelte";
-  import { tribes as tribesApi } from "./api";
+  import { TextInput } from "carbon-components-svelte";
+  import { onMount } from "svelte";
+  import * as api from "./api";
   import Person from "./Person.svelte";
+  import { people } from "./store";
+  import VirtualList from "svelte-tiny-virtual-list";
 
-  export let add = () => {};
   export let url = "";
   let loading = false;
 
-  let users = [];
   let selectedPubkey = "";
-  $: filteredUsers = users;
-  $: selectedUser = users.find((u) => u.owner_pubkey === selectedPubkey);
+  $: filteredUsers = $people;
+  $: selectedUser = $people.find((u) => u.owner_pubkey === selectedPubkey);
 
   let searchTerm = "";
 
-  afterUpdate(() => {
-    if (!searchTerm) return (filteredUsers = users);
-    filteredUsers = users.filter(
+  function filter() {
+    if (!searchTerm) return (filteredUsers = $people);
+    filteredUsers = $people.filter(
       (u) =>
         u.owner_pubkey.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.owner_alias &&
           u.owner_alias.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  });
+  }
 
   async function getUsers() {
+    if ($people && $people.length) return;
     loading = true;
-    const usersData = await tribesApi.get_people(url);
-    users = usersData;
+    const usersData = await api.tribes.get_people(url);
+    people.set(usersData);
     loading = false;
   }
 
-  onMount(() => {
-    getUsers();
+  let topPartElement;
+  let heightOfVirtualList = 1000;
+
+  onMount(async () => {
+    await getUsers();
+    // const rect = topPartElement.getBoundingClientRect();
+    // console.log(rect);
+    heightOfVirtualList = Math.ceil(window.innerHeight - 315) - 2;
   });
 
   function formatProps(data) {
@@ -43,7 +49,6 @@
       owner_pubkey: data.owner_pubkey,
       owner_route_hint: data.owner_route_hint,
       img: data.img,
-      description: data.description,
     };
   }
 </script>
@@ -58,62 +63,61 @@
       {...formatProps(selectedUser)}
       selected={true}
       select={() => (selectedPubkey = null)}
+      {url}
     />
   {:else}
-    <div class="divider" />
-    <div class="users">
-      <p>People Count <span class="users-count">{users.length}</span></p>
-      <Button
-        on:click={add}
-        kind="tertiary"
-        type="submit"
-        size="field"
-        icon={Add}
-        disabled={false}>Add User</Button
-      >
+    <div class="people" bind:this={topPartElement}>
+      <div class="people-header">
+        <p><span class="people-count">{$people.length}</span>People</p>
+      </div>
+      <section class="search-wrap">
+        <TextInput
+          class="people-search"
+          placeholder="Search by user alias or pubkey"
+          bind:value={searchTerm}
+          on:input={filter}
+        />
+      </section>
     </div>
-    <div class="divider" />
-    <section class="search-wrap">
-      <TextInput
-        labelText="Search People"
-        class="users-search"
-        placeholder="Search by user alias or pubkey"
-        bind:value={searchTerm}
-      />
-    </section>
-    {#each filteredUsers as user}
-      <Person
-        {...formatProps(user)}
-        select={(pubkey) => (selectedPubkey = pubkey)}
-        selected={false}
-      />
-    {/each}
+
+    <VirtualList
+      width="100%"
+      height={heightOfVirtualList}
+      itemCount={filteredUsers.length}
+      itemSize={75}
+    >
+      <div slot="item" let:index let:style {style}>
+        <Person
+          {...formatProps(filteredUsers[index])}
+          select={(pubkey) => (selectedPubkey = pubkey)}
+          selected={false}
+          {url}
+        />
+      </div>
+    </VirtualList>
   {/if}
 </div>
 
 <style>
-  .users {
+  .people {
+    display: flex;
+    flex-direction: column;
+  }
+  .people-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
+    margin-top: 1rem;
   }
-  .users p {
+  .people-header p {
     font-size: 0.9rem;
   }
-  .users-count {
+  .people-count {
     color: rgba(255, 255, 255, 0.5);
-    margin-left: 15px;
+    margin-right: 0.5rem;
     font-weight: 700;
   }
-  .divider {
-    min-height: 2px;
-    background: #101317;
-    display: block;
-    width: 100%;
-    margin: 15px 0px;
-  }
-
   .search-wrap {
     margin: 0 1rem;
     margin-bottom: 10px;

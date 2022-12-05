@@ -1,21 +1,22 @@
 <script>
-  import { Button } from "carbon-components-svelte";
-  import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Tribe from "./Tribe.svelte";
   import { Dropdown } from "carbon-components-svelte";
-  import { afterUpdate, onMount } from "svelte";
-  import { tribes as tribesApi } from "./api";
+  import { onMount } from "svelte";
+  import * as api from "./api";
+  import { tribes } from "./store";
+  import VirtualList from "svelte-tiny-virtual-list";
 
-  export let add = () => {};
   export let url = "";
+
+  let topPartElement;
+
   let loading = false;
 
   let selectedTribe = "";
-  $: selectedTribe = tribes.find((t) => t.name === selectedTribe);
-  let tribes = [];
+  $: selectedTribe = $tribes.find((t) => t.uuid === selectedTribe);
 
   let selectedId = "0";
-  let filterTribes = tribes;
+  let filterTribes = $tribes;
 
   const filterItems = [
     { id: "0", text: "User count" },
@@ -24,19 +25,25 @@
   ];
 
   async function getTribes() {
+    if ($tribes && $tribes.length) return;
     loading = true;
-    const tribesData = await tribesApi.get_tribes(url);
-    tribes = tribesData;
+    const tribesData = await api.tribes.get_tribes(url);
+    tribes.set(tribesData);
     loading = false;
   }
 
-  onMount(() => {
-    getTribes();
+  let heightOfVirtualList = 1000;
+
+  onMount(async () => {
+    await getTribes();
+    sort();
+    const rect = topPartElement.getBoundingClientRect();
+    heightOfVirtualList = Math.ceil(window.innerHeight - rect.bottom) - 2;
   });
 
-  afterUpdate(() => {
+  function sort() {
     let filter = filterItems.find((item) => item.id === selectedId);
-    const arrayToSort = [...tribes];
+    const arrayToSort = [...$tribes];
     if (filter.text === "User count") {
       filterTribes = arrayToSort.sort(
         (a, b) => b.member_count - a.member_count
@@ -54,18 +61,19 @@
         return 0;
       });
     } else {
-      filterTribes = tribes;
+      filterTribes = $tribes;
     }
-  });
+  }
 
   function formatProps(data) {
     return {
       name: data.name,
       preview: data.preview,
-      logo: data.logo,
+      img: data.img,
       price_per_message: data.price_per_message,
       uuid: data.uuid,
       member_count: data.member_count,
+      unique_name: data.unique_name,
     };
   }
 </script>
@@ -80,57 +88,55 @@
       {...formatProps(selectedTribe)}
       selected={true}
       select={() => (selectedTribe = null)}
+      {url}
     />
   {:else}
-    <div class="divider" />
-    <div class="users">
-      <p>Current Tribes <span class="users-count">{tribes.length}</span></p>
-      <Button
-        on:click={add}
-        kind="tertiary"
-        type="submit"
-        size="field"
-        icon={Add}
-        disabled={false}>Add Tribe</Button
-      >
+    <div class="tribes" bind:this={topPartElement}>
+      <p><span class="tribes-count">{$tribes.length}</span>Tribes</p>
+      <section class="filter-wrap">
+        <aside>
+          <Dropdown
+            type="inline"
+            titleText="Filter:"
+            bind:selectedId
+            items={filterItems}
+            on:select={sort}
+          />
+        </aside>
+      </section>
     </div>
-    <div class="divider" />
-    <section class="filter-wrap">
-      <aside>
-        <Dropdown
-          type="inline"
-          titleText="Filter tribes by: "
-          bind:selectedId
-          items={filterItems}
-        />
-      </aside>
-    </section>
-    {#if tribes.length > 0}
-      {#each filterTribes as tribe}
+    <VirtualList
+      width="100%"
+      height={heightOfVirtualList}
+      itemCount={filterTribes.length}
+      itemSize={75}
+    >
+      <div slot="item" let:index let:style {style}>
         <Tribe
-          {...formatProps(tribe)}
-          select={(name) => (selectedTribe = name)}
+          {...formatProps(filterTribes[index])}
+          select={(uuid) => (selectedTribe = uuid)}
           selected={false}
+          {url}
         />
-      {/each}
-    {/if}
+      </div>
+    </VirtualList>
   {/if}
 </div>
 
 <style>
-  .users {
+  .tribes {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
-    margin-top: 15px;
+    margin-top: 1rem;
   }
-  .users p {
+  .tribes p {
     font-size: 0.9rem;
   }
-  .users-count {
+  .tribes-count {
     color: rgba(255, 255, 255, 0.5);
-    margin-left: 15px;
+    margin-right: 0.5rem;
     font-weight: 700;
   }
   .filter-wrap {
