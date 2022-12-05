@@ -7,6 +7,7 @@
 
   export let add = () => {};
   export let url = "";
+  let loading = false;
 
   let users = [];
   let selectedPubkey = "";
@@ -20,13 +21,16 @@
     filteredUsers = users.filter(
       (u) =>
         u.owner_pubkey.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.owner_alias && u.owner_alias.toLowerCase().includes(searchTerm.toLowerCase()))
+        (u.owner_alias &&
+          u.owner_alias.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   });
 
   async function getUsers() {
+    loading = true;
     const usersData = await tribesApi.get_people(url);
     users = usersData;
+    loading = false;
   }
 
   onMount(() => {
@@ -39,13 +43,17 @@
       owner_pubkey: data.owner_pubkey,
       owner_route_hint: data.owner_route_hint,
       img: data.img,
-      description: data.description
-    }
+      description: data.description,
+    };
   }
 </script>
 
 <div>
-  {#if selectedUser}
+  {#if loading}
+    <div class="loading-wrap">
+      <h5>Loading People .....</h5>
+    </div>
+  {:else if selectedUser}
     <Person
       {...formatProps(selectedUser)}
       selected={true}
@@ -54,7 +62,7 @@
   {:else}
     <div class="divider" />
     <div class="users">
-      <p>Current Users <span class="users-count">{users.length}</span></p>
+      <p>People Count <span class="users-count">{users.length}</span></p>
       <Button
         on:click={add}
         kind="tertiary"
@@ -67,7 +75,7 @@
     <div class="divider" />
     <section class="search-wrap">
       <TextInput
-        labelText="Search Users"
+        labelText="Search People"
         class="users-search"
         placeholder="Search by user alias or pubkey"
         bind:value={searchTerm}

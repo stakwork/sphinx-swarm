@@ -144,3 +144,12 @@ html {
 .users-search.bx--text-input {
 	background-color: #1A242E;
 }
+
+.loading-wrap {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	min-height: 75vh;
+	justify-content: center;
+	align-items: center;
+}

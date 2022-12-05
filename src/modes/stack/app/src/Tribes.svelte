@@ -8,6 +8,7 @@
 
   export let add = () => {};
   export let url = "";
+  let loading = false;
 
   let selectedTribe = "";
   $: selectedTribe = tribes.find((t) => t.name === selectedTribe);
@@ -23,8 +24,10 @@
   ];
 
   async function getTribes() {
+    loading = true;
     const tribesData = await tribesApi.get_tribes(url);
     tribes = tribesData;
+    loading = false;
   }
 
   onMount(() => {
@@ -62,13 +65,17 @@
       logo: data.logo,
       price_per_message: data.price_per_message,
       uuid: data.uuid,
-      member_count: data.member_count
-    }
+      member_count: data.member_count,
+    };
   }
 </script>
 
 <div>
-  {#if selectedTribe}
+  {#if loading}
+    <div class="loading-wrap">
+      <h5>Loading Tribes .....</h5>
+    </div>
+  {:else if selectedTribe}
     <Tribe
       {...formatProps(selectedTribe)}
       selected={true}
