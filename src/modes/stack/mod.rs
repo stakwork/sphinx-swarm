@@ -3,7 +3,7 @@ mod srv;
 
 use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::conn::lnd::unlocker::LndUnlocker;
+use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
@@ -53,6 +53,8 @@ async fn add_node(
             if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
+            let client = LndRPC::new(proj, &lnd).await?;
+            clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
         }
         Image::Proxy(proxy) => {

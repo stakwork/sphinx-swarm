@@ -39,6 +39,14 @@ const relayControls: Control[] = [
 ];
 
 const lndControls: Control[] = [
+  {
+    name: "Get Info",
+    type: "button",
+    action: async (tag: string) => {
+      const info = await api.lnd.get_info(tag);
+      console.log(info);
+    },
+  },
   { name: "LND 2", type: "number", value: 42 },
   { name: "LND 3", type: "text", value: "Some Text" },
   {
