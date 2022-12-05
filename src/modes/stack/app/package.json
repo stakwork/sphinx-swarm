@@ -31,6 +31,7 @@
     "drawflow": "^0.0.59",
     "sirv-cli": "^2.0.0",
     "svelte-qrcode": "^1.0.0",
+    "svelte-tiny-virtual-list": "^2.0.5",
     "svelvet": "^4.0.3"
   }
 }

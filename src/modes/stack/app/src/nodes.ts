@@ -9,6 +9,7 @@ export interface Node {
   place: Place;
   links?: string[];
   network?: Network;
+  url?: string;
   // any other optional field
   [key: string]: string | string[];
 }

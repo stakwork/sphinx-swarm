@@ -1,20 +1,25 @@
 <script>
-  import Login from "carbon-icons-svelte/lib/Login.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
-  import QrCode from "svelte-qrcode";
+  import Launch from "carbon-icons-svelte/lib/Launch.svelte";
 
   export let select = () => {};
-  export let alias = "";
-  export let pubkey = "";
-  export let routeHint = "";
-  export let balance = 0;
+  export let owner_alias = "";
+  export let owner_pubkey = "";
+  export let owner_route_hint = "";
+  export let img = "";
   export let selected = false;
+  export let url = "";
 
-  const signedUp = alias ? true : false;
+  let peopleUrlArr = url.split(".");
+  peopleUrlArr.shift();
+  let peopleUrl = `people.${peopleUrlArr.join(".")}`;
+
+  const defaultImage =
+    "https://memes.sphinx.chat/public/HoQTHP3oOn0NAXOTqJEWb6HCtxIyN_14WGgiIgXpxWI=";
 
   function mainSelect() {
-    if (!selected) select(pubkey);
+    if (!selected) select(owner_pubkey);
   }
   function back() {
     select(null);
@@ -25,7 +30,7 @@
 </script>
 
 <div
-  class={`user ${selected && "selected"}`}
+  class={`person ${selected && "selected"}`}
   on:click={mainSelect}
   on:keypress={() => {}}
 >
@@ -36,64 +41,63 @@
           <ArrowLeft size={24} />
         </div>
       {/if}
-      <div class="dot-wrap">
-        <div
-          class="dot"
-          style={`background:${signedUp ? "#52B550" : "grey"};`}
-        />
-      </div>
-      {#if alias}
-        <div class="alias">{alias}</div>
+      <img
+        src={`${img || defaultImage}`}
+        alt="Person logo"
+        class="person-img"
+      />
+      {#if owner_alias}
+        <div class="alias">{owner_alias}</div>
       {:else}
         <div class="empty-alias" />
       {/if}
     </div>
-    <div class="signed-up" style={`opacity:${signedUp ? 1 : "0.5"}`}>
-      <Login size={12} />
-      <span>Signed Up</span>
-    </div>
+    {#if selected}
+      <a
+        href={`https://${peopleUrl}/p/${owner_pubkey}`}
+        class="person-link"
+        target="_blank"
+        rel="noreferrer"><Launch size={24} /></a
+      >
+    {/if}
   </div>
   {#if selected}
     <div class="fields">
       <p class="user-values-title">Pubkey</p>
       <section class="value-wrap">
-        <p class="user-value" >{pubkey}</p>
+        <p class="user-value">{owner_pubkey}</p>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <span on:click={copyToClipboard(pubkey)}><CopyIcon size={0} class="copy-icon" /></span>
+        <span on:click={copyToClipboard(owner_pubkey)}
+          ><CopyIcon size={0} class="copy-icon" /></span
+        >
       </section>
-      {#if routeHint}
+      {#if owner_route_hint}
         <p class="user-values-title">Route hint</p>
         <section class="value-wrap">
-          <p class="user-value">{routeHint}</p>
+          <p class="user-value">{owner_route_hint}</p>
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <span on:click={copyToClipboard(routeHint)}><CopyIcon size={0} class="copy-icon" /></span>
+          <span on:click={copyToClipboard(owner_route_hint)}
+            ><CopyIcon size={0} class="copy-icon" /></span
+          >
         </section>
       {/if}
-      <p class="user-values-title">Invite QR code</p>
-      <QrCode padding={1.5} value={pubkey} />
-    </div>
-  {:else}
-    <div class="pubkey collapsed">
-      {pubkey}
-    </div>
-    <div class="balance collapsed">
-      {`${balance} sats`}
     </div>
   {/if}
 </div>
 
 <style>
-  .user {
+  .person {
     font-size: 1rem;
     position: relative;
     display: flex;
     flex-direction: column;
     padding: 0.8rem 0;
   }
-  .user:not(.selected) {
+  .person:not(.selected) {
     cursor: pointer;
+    max-height: 75px;
   }
-  .user:hover:not(.selected) {
+  .person:hover:not(.selected) {
     background: #131b23;
   }
   .dot-wrap {
@@ -114,30 +118,6 @@
     justify-content: space-between;
     margin-bottom: 0.5rem;
   }
-  .signed-up {
-    display: flex;
-    align-items: center;
-    text-transform: uppercase;
-    font-size: 0.6rem;
-    margin-right: 1rem;
-  }
-  .signed-up span {
-    margin-left: 0.2rem;
-  }
-  .pubkey {
-    color: grey;
-    margin-bottom: 0.5rem;
-    font-size: 0.7rem;
-    max-width: 88%;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .balance {
-    font-size: 0.8rem;
-    color: #ddd;
-  }
   .back {
     cursor: pointer;
     margin-left: 1rem;
@@ -154,9 +134,6 @@
   .top-left {
     display: flex;
     align-items: center;
-  }
-  .collapsed {
-    margin-left: 2.3rem;
   }
   .fields {
     padding: 1.5rem;
@@ -185,5 +162,14 @@
     height: 0.85rem;
     width: 6rem;
     background: #263442;
+  }
+  .person-img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    margin: 0 1rem;
+  }
+  .person-link {
+    margin-right: 1.25rem;
   }
 </style>

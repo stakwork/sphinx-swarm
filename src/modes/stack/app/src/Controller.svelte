@@ -3,6 +3,7 @@
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
+  import TribeControls from "./TribeControls.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -23,6 +24,8 @@
     </header>
     {#if type === "Relay"}
       <RelayControls {tag} />
+    {:else if type === "Tribes"}
+      <TribeControls url={$selectedNode.url} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}
@@ -52,7 +55,7 @@
     background: #1a242e;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
     animation-name: sidebar;
-    animation-duration: 1s;
+    animation-duration: 400ms;
   }
   header {
     font-size: 1rem;
