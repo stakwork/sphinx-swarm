@@ -34855,14 +34855,60 @@ var app = (function () {
 
     function create_fragment$3(ctx) {
     	let div;
-    	let h1;
+    	let section;
+    	let aside0;
+    	let h60;
+    	let t1;
+    	let h30;
+    	let t2;
+    	let span0;
+    	let t4;
+    	let aside1;
+    	let h61;
+    	let t6;
+    	let h31;
+    	let t7;
+    	let span1;
 
     	const block = {
     		c: function create() {
     			div = element("div");
-    			h1 = element("h1");
-    			h1.textContent = "LND NODE MANAGER";
-    			add_location(h1, file$3, 4, 4, 30);
+    			section = element("section");
+    			aside0 = element("aside");
+    			h60 = element("h6");
+    			h60.textContent = "TOTAL INBOUND LIQUIDITY";
+    			t1 = space();
+    			h30 = element("h3");
+    			t2 = text("34 945 934 ");
+    			span0 = element("span");
+    			span0.textContent = "SAT";
+    			t4 = space();
+    			aside1 = element("aside");
+    			h61 = element("h6");
+    			h61.textContent = "TOTAL OUTBOUND LIQUIDITY";
+    			t6 = space();
+    			h31 = element("h3");
+    			t7 = text("24 045 934 ");
+    			span1 = element("span");
+    			span1.textContent = "SAT";
+    			attr_dev(h60, "class", "title svelte-4o5pqf");
+    			add_location(h60, file$3, 6, 12, 91);
+    			attr_dev(span0, "class", "svelte-4o5pqf");
+    			add_location(span0, file$3, 7, 41, 179);
+    			attr_dev(h30, "class", "value svelte-4o5pqf");
+    			add_location(h30, file$3, 7, 12, 150);
+    			attr_dev(aside0, "class", "svelte-4o5pqf");
+    			add_location(aside0, file$3, 5, 8, 71);
+    			attr_dev(h61, "class", "title svelte-4o5pqf");
+    			add_location(h61, file$3, 10, 12, 246);
+    			attr_dev(span1, "class", "svelte-4o5pqf");
+    			add_location(span1, file$3, 11, 41, 335);
+    			attr_dev(h31, "class", "value svelte-4o5pqf");
+    			add_location(h31, file$3, 11, 12, 306);
+    			attr_dev(aside1, "class", "svelte-4o5pqf");
+    			add_location(aside1, file$3, 9, 8, 226);
+    			attr_dev(section, "class", "liquidity-wrap svelte-4o5pqf");
+    			add_location(section, file$3, 4, 4, 30);
     			add_location(div, file$3, 3, 0, 20);
     		},
     		l: function claim(nodes) {
@@ -34870,7 +34916,20 @@ var app = (function () {
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
-    			append_dev(div, h1);
+    			append_dev(div, section);
+    			append_dev(section, aside0);
+    			append_dev(aside0, h60);
+    			append_dev(aside0, t1);
+    			append_dev(aside0, h30);
+    			append_dev(h30, t2);
+    			append_dev(h30, span0);
+    			append_dev(section, t4);
+    			append_dev(section, aside1);
+    			append_dev(aside1, h61);
+    			append_dev(aside1, t6);
+    			append_dev(aside1, h31);
+    			append_dev(h31, t7);
+    			append_dev(h31, span1);
     		},
     		p: noop$1,
     		i: noop$1,
@@ -34967,7 +35026,7 @@ var app = (function () {
     			attr_dev(header, "class", "svelte-1mbquaw");
     			add_location(header, file$2, 16, 4, 662);
     			attr_dev(div, "class", "main svelte-1mbquaw");
-    			attr_dev(div, "style", div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "30rem" : "23rem"}`);
+    			attr_dev(div, "style", div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "35rem" : "23rem"}`);
     			add_location(div, file$2, 15, 2, 585);
     		},
     		m: function mount(target, anchor) {
@@ -35038,7 +35097,7 @@ var app = (function () {
     				if_block1.m(div, null);
     			}
 
-    			if (!current || dirty & /*type*/ 1 && div_style_value !== (div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "30rem" : "23rem"}`)) {
+    			if (!current || dirty & /*type*/ 1 && div_style_value !== (div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "35rem" : "23rem"}`)) {
     				attr_dev(div, "style", div_style_value);
     			}
     		},

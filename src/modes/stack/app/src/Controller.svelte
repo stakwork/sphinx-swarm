@@ -16,7 +16,7 @@
 </script>
 
 {#if ctrls}
-  <div class="main" style={`width: ${type === "Lnd" ? "30rem": "23rem"}`}>
+  <div class="main" style={`width: ${type === "Lnd" ? "35rem": "23rem"}`}>
     <header>
       <img
         src={`swarm/${type.toLowerCase()}.png`}
