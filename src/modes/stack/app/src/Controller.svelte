@@ -5,6 +5,8 @@
   import RelayControls from "./RelayControls.svelte";
   import TribeControls from "./TribeControls.svelte";
   import Lnd from "./Lnd.svelte";
+  import { Button } from "carbon-components-svelte";
+  import Add from "carbon-icons-svelte/lib/Add.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -14,7 +16,7 @@
 </script>
 
 {#if ctrls}
-  <div class="main">
+  <div class="main" style={`width: ${type === "Lnd" ? "28rem": "23rem"}`}>
     <header>
       <img
         src={`swarm/${type.toLowerCase()}.png`}
@@ -22,6 +24,29 @@
         alt="node "
       />
       {$selectedNode.name}
+
+      {#if type === "Lnd"}
+        <section class="header-btns">
+          <Button
+            on:click={() => {}}
+            kind="tertiary"
+            type="submit"
+            size="field"
+            icon={Add}
+            disabled={false}>Add Peer</Button
+          >
+
+          <Button
+            on:click={() => {}}
+            kind="tertiary"
+            type="submit"
+            size="field"
+            icon={Add}
+            class="channel"
+            disabled={false}>Add Channel</Button
+          >
+        </section>
+      {/if}
     </header>
     {#if type === "Relay"}
       <RelayControls {tag} />
@@ -69,5 +94,9 @@
   header .node-top-img {
     width: 1.25rem;
     margin-right: 15px;
+  }
+  .header-btns {
+    display: flex;
+    margin-left: auto;
   }
 </style>
