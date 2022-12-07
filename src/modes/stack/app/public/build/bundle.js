@@ -34967,7 +34967,7 @@ var app = (function () {
     			attr_dev(header, "class", "svelte-1mbquaw");
     			add_location(header, file$2, 16, 4, 662);
     			attr_dev(div, "class", "main svelte-1mbquaw");
-    			attr_dev(div, "style", div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "28rem" : "23rem"}`);
+    			attr_dev(div, "style", div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "30rem" : "23rem"}`);
     			add_location(div, file$2, 15, 2, 585);
     		},
     		m: function mount(target, anchor) {
@@ -35038,7 +35038,7 @@ var app = (function () {
     				if_block1.m(div, null);
     			}
 
-    			if (!current || dirty & /*type*/ 1 && div_style_value !== (div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "28rem" : "23rem"}`)) {
+    			if (!current || dirty & /*type*/ 1 && div_style_value !== (div_style_value = `width: ${/*type*/ ctx[0] === "Lnd" ? "30rem" : "23rem"}`)) {
     				attr_dev(div, "style", div_style_value);
     			}
     		},

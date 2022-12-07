@@ -68,16 +68,17 @@ html {
 }
 
 .header-btns .bx--btn {
- 	/* width: 9rem; */
+ 	width: 8.7rem;
+	font-size: 0.8rem;
 }
 
 .header-btns .bx--btn--tertiary {
-	border-radius: 10px;
+	border-radius: 8px;
 }
 
 .header-btns .bx--btn--tertiary.channel {
 	border-color: goldenrod;
-	margin-left: 10px;
+	margin-left: 20px;
 }
 
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before {
