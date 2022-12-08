@@ -1,5 +1,5 @@
 <script>
-  import { DataTable } from "carbon-components-svelte";
+  import { DataTable, TableCell, TableBody, TableRow, TableHead, TableContainer, TableHeader, Table } from "carbon-components-svelte";
 </script>
 
 <div>
@@ -24,9 +24,9 @@
       rows={[
         {
           status: "",
-          receive: "HTTP",
-          send: 3000,
-          peer: 3000,
+          receive: 2125000,
+          send: 1125000,
+          peer: "OpenNode",
         },
       ]}
     />

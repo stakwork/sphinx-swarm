@@ -167,6 +167,14 @@ html {
 	justify-content: center;
 	align-items: center;
 }
-.bx--data-table {
-	background-color: red !important;
+
+.bx--data-table thead {
+	background-color: #1a242e !important;
+	box-shadow: 5px 5px blue, 10px 10px red, 15px 15px green;
+}
+.bx--data-table th {
+	background-color: #1a242e;
+}
+.bx--data-table td {
+	background-color: #1a242e;
 }
