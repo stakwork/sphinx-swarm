@@ -167,3 +167,6 @@ html {
 	justify-content: center;
 	align-items: center;
 }
+.bx--data-table {
+	background-color: red !important;
+}
