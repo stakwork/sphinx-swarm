@@ -1,8 +1,10 @@
 use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
+use crate::conn::lnd::lndrpc::LndChannel;
 use crate::images::Image;
 use anyhow::{anyhow, Result};
 use bollard::Docker;
+use tonic_lnd::lnrpc::Channel;
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -53,6 +55,25 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 LndCmd::GetInfo => {
                     let info = client.get_info().await?;
                     Some(serde_json::to_string(&info)?)
+                },
+                LndCmd::ListChannels => {
+                    let mut lnd_channels:Vec<LndChannel> = Vec::new();
+
+                    let channel_list = client.list_channels().await?;
+                    let channels = channel_list.channels;
+
+                    for chan in channels {
+                        let new_chan = LndChannel {
+                            active: chan.active,
+                            remote_pubkey: chan.remote_pubkey
+                        };
+
+                        lnd_channels.push(new_chan)
+                    }
+
+                    // println!("Channels {:?}", channelList);
+
+                    Some(serde_json::to_string(&lnd_channels)?)
                 }
             }
         }

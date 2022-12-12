@@ -34,6 +34,7 @@ pub enum BitcoindCmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum LndCmd {
     GetInfo,
+    ListChannels
 }
 
 #[cfg(test)]
