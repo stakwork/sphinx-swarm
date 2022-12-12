@@ -63,10 +63,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     let channels = channel_list.channels;
 
                     for chan in channels {
-                        let new_chan = LndChannel {
-                            active: chan.active,
-                            remote_pubkey: chan.remote_pubkey
-                        };
+                        let new_chan = LndChannel::convert_to_json(chan);
 
                         lnd_channels.push(new_chan)
                     }
