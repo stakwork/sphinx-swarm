@@ -1,4 +1,8 @@
 <script>
+  import ReceiveLineWrap from "./reusable/ReceiveLineWrap.svelte";
+  import ReceiveLine from "./reusable/ReceiveLine.svelte";
+  import DotWrap from "./reusable/DotWrap.svelte";
+  import Dot from "./reusable/Dot.svelte";
 </script>
 
 <div>
@@ -12,19 +16,32 @@
       <h3 class="value">24 045 934 <span>SAT</span></h3>
     </aside>
   </section>
+
   <section class="lnd-table-wrap">
     <table>
       <thead>
-        <th></th>
+        <th />
         <th>CAN RECEIVE</th>
         <th>CAN SEND</th>
         <th>PEER / ALIAS</th>
       </thead>
       <tbody>
         <tr>
-          <td>..</td>
-          <td>2125000</td>
-          <td>1125000</td>
+          <td>
+            <DotWrap>
+              <Dot color={"#ED7474;"} />
+            </DotWrap>
+          </td>
+          <td>
+            <section class="can-receive-wrap">
+              {"2 125 000"}
+              <ReceiveLineWrap>
+                <ReceiveLine color={"#ED7474"} />
+                <ReceiveLine color={"#ED7474"} width={"80%"} />
+              </ReceiveLineWrap>
+            </section>
+          </td>
+          <td>{"1 125 000"}</td>
           <td>OpenNode</td>
         </tr>
       </tbody>
@@ -50,7 +67,7 @@
 
   .liquidity-wrap aside .title {
     font-size: 0.85rem;
-    color: #6B7A8D;
+    color: #6b7a8d;
   }
 
   .liquidity-wrap aside .value {
@@ -60,6 +77,6 @@
   }
 
   .liquidity-wrap aside .value span {
-    color: #6B7A8D;
+    color: #6b7a8d;
   }
 </style>

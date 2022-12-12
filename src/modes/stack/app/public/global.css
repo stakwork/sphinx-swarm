@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 html, body {
 	position: relative;
 	width: 100%;
@@ -68,7 +70,7 @@ html {
 }
 
 .header-btns .bx--btn {
- 	width: 8.7rem;
+	width: 8.7rem;
 	font-size: 0.8rem;
 }
 
@@ -138,9 +140,11 @@ html {
 	width: 40%;
 	margin-right: 2.5rem;
 }
+
 .bx--modal-footer .bx--btn.bx--btn--primary:disabled {
 	background: #525252 !important;
 }
+
 .bx--modal-footer .bx--btn.bx--btn--secondary {
 	width: 40%;
 	margin-left: 2.5rem;
@@ -180,27 +184,83 @@ html {
 } */
 .lnd-table-wrap table {
 	width: 100%;
+	font-family: 'Barlow', sans-serif;
 }
+
 .lnd-table-wrap table thead {
 	border-bottom: 1px solid #101317;
-    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+	box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
 }
+
 .lnd-table-wrap table thead th {
-	font-size: 0.75rem;
+	font-size: 0.72rem;
 	color: #6B7A8D;
 	min-height: 50px;
 	padding: 20px 0px;
 	text-align: left;
+	font-weight: 600;
 }
+
 .lnd-table-wrap table tbody {
 	padding: 20px 0px;
 }
+
+.lnd-table-wrap table tbody tr {
+	border-bottom: 1px solid #151E27;
+}
+
 .lnd-table-wrap table tbody tr td {
 	padding: 20px 0px;
-	font-size: 1rem;
+	font-size: 1.05rem;
 	text-align: left;
+	font-weight: 500;
 }
+
 .lnd-table-wrap table tbody tr td:first-child {
 	width: 10%;
 	text-align: center;
+}
+
+.lnd-table-wrap table tbody tr td:nth-child(2) {
+	width: 48%;
+}
+
+.dot-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1rem;
+	margin: 0 0.7rem;
+}
+
+.dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 100%;
+}
+
+.can-receive-wrap {
+	display: flex; 
+	align-items: center;
+}
+
+.receive-line-wrap {
+	margin-left: 15px;
+	display: inline-flex;
+	align-items: center;
+	margin-top: 4px;
+	width: 180px;
+}
+
+.receive-line {
+	display: inline-block;
+	min-height: 6px;
+	background-color: #3ba839;
+	min-width: 20%;
+	border-radius: 20px;
+	margin-right: 0;
+}
+
+.receive-line:not(:first-child) {
+	margin-left: 10px;
 }
