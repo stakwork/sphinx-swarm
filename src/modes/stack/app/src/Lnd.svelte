@@ -1,5 +1,4 @@
 <script>
-  import { DataTable, TableCell, TableBody, TableRow, TableHead, TableContainer, TableHeader, Table } from "carbon-components-svelte";
 </script>
 
 <div>
@@ -13,23 +12,23 @@
       <h3 class="value">24 045 934 <span>SAT</span></h3>
     </aside>
   </section>
-  <section>
-    <DataTable
-      headers={[
-        { key: "status", value: "" },
-        { key: "receive", value: "CAN RECEIVE" },
-        { key: "send", value: "CAN SEND" },
-        { key: "peer", value: "PEER / ALIAS" },
-      ]}
-      rows={[
-        {
-          status: "",
-          receive: 2125000,
-          send: 1125000,
-          peer: "OpenNode",
-        },
-      ]}
-    />
+  <section class="lnd-table-wrap">
+    <table>
+      <thead>
+        <th></th>
+        <th>CAN RECEIVE</th>
+        <th>CAN SEND</th>
+        <th>PEER / ALIAS</th>
+      </thead>
+      <tbody>
+        <tr>
+          <td>..</td>
+          <td>2125000</td>
+          <td>1125000</td>
+          <td>OpenNode</td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 </div>
 
@@ -51,7 +50,7 @@
 
   .liquidity-wrap aside .title {
     font-size: 0.85rem;
-    color: #6a6d6c;
+    color: #6B7A8D;
   }
 
   .liquidity-wrap aside .value {
@@ -61,6 +60,6 @@
   }
 
   .liquidity-wrap aside .value span {
-    color: #6a6d6c;
+    color: #6B7A8D;
   }
 </style>

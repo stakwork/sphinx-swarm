@@ -168,7 +168,7 @@ html {
 	align-items: center;
 }
 
-.bx--data-table thead {
+/* .bx--data-table thead {
 	background-color: #1a242e !important;
 	box-shadow: 5px 5px blue, 10px 10px red, 15px 15px green;
 }
@@ -177,4 +177,30 @@ html {
 }
 .bx--data-table td {
 	background-color: #1a242e;
+} */
+.lnd-table-wrap table {
+	width: 100%;
+}
+.lnd-table-wrap table thead {
+	border-bottom: 1px solid #101317;
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+}
+.lnd-table-wrap table thead th {
+	font-size: 0.75rem;
+	color: #6B7A8D;
+	min-height: 50px;
+	padding: 20px 0px;
+	text-align: left;
+}
+.lnd-table-wrap table tbody {
+	padding: 20px 0px;
+}
+.lnd-table-wrap table tbody tr td {
+	padding: 20px 0px;
+	font-size: 1rem;
+	text-align: left;
+}
+.lnd-table-wrap table tbody tr td:first-child {
+	width: 10%;
+	text-align: center;
 }
