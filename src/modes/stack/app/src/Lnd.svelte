@@ -1,8 +1,26 @@
 <script>
+  import { onMount } from "svelte";
+
   import ReceiveLineWrap from "./reusable/ReceiveLineWrap.svelte";
   import ReceiveLine from "./reusable/ReceiveLine.svelte";
   import DotWrap from "./reusable/DotWrap.svelte";
   import Dot from "./reusable/Dot.svelte";
+
+  import { get_info } from "./api/lnd";
+
+  export let tag = "";
+
+  let lndData = {};
+
+  async function getLndInfo() {
+    const lndRes = await get_info(tag);
+    lndData = lndRes;
+    // console.log("LND INFO ===", lndData);
+  }
+
+  onMount(async () => {
+    await getLndInfo();
+  });
 </script>
 
 <div>
@@ -43,6 +61,42 @@
           </td>
           <td>{"1 125 000"}</td>
           <td>OpenNode</td>
+        </tr>
+        <tr>
+          <td>
+            <DotWrap>
+              <Dot color={"#ED7474;"} />
+            </DotWrap>
+          </td>
+          <td>
+            <section class="can-receive-wrap">
+              {"3 125 000"}
+              <ReceiveLineWrap>
+                <ReceiveLine color={"#3ba839"} width={"40%"} />
+                <ReceiveLine color={"#3ba839"} width={"60%"} />
+              </ReceiveLineWrap>
+            </section>
+          </td>
+          <td>{"2 525 000"}</td>
+          <td>ACINQ</td>
+        </tr>
+        <tr>
+          <td>
+            <DotWrap>
+              <Dot color={"#ED7474;"} />
+            </DotWrap>
+          </td>
+          <td>
+            <section class="can-receive-wrap">
+              {"2 125 000"}
+              <ReceiveLineWrap>
+                <ReceiveLine color={"#F2BC52"} width={"45%"} />
+                <ReceiveLine color={"#F2BC52"} width={"55%"} />
+              </ReceiveLineWrap>
+            </section>
+          </td>
+          <td>{"2 525 000"}</td>
+          <td>bitrefill.com</td>
         </tr>
       </tbody>
     </table>

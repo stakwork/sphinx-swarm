@@ -53,7 +53,7 @@
     {:else if type === "Tribes"}
       <TribeControls url={$selectedNode.url} />
     {:else if type === "Lnd"}
-      <Lnd />
+      <Lnd {tag} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}

@@ -14116,7 +14116,7 @@ var app = (function () {
     }
 
     // (263:10) <ListBoxMenuItem             id="{item.id}"             active="{selectedId === item.id}"             highlighted="{highlightedIndex === i}"             disabled="{item.disabled}"             on:click="{(e) => {               if (item.disabled) {                 e.stopPropagation();                 return;               }               selectedId = item.id;               ref.focus();             }}"             on:mouseenter="{() => {               if (item.disabled) return;               highlightedIndex = i;             }}"           >
-    function create_default_slot_2$4(ctx) {
+    function create_default_slot_2$5(ctx) {
     	let t;
     	let current;
     	const default_slot_template = /*#slots*/ ctx[27].default;
@@ -14173,7 +14173,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_2$4.name,
+    		id: create_default_slot_2$5.name,
     		type: "slot",
     		source: "(263:10) <ListBoxMenuItem             id=\\\"{item.id}\\\"             active=\\\"{selectedId === item.id}\\\"             highlighted=\\\"{highlightedIndex === i}\\\"             disabled=\\\"{item.disabled}\\\"             on:click=\\\"{(e) => {               if (item.disabled) {                 e.stopPropagation();                 return;               }               selectedId = item.id;               ref.focus();             }}\\\"             on:mouseenter=\\\"{() => {               if (item.disabled) return;               highlightedIndex = i;             }}\\\"           >",
     		ctx
@@ -14202,7 +14202,7 @@ var app = (function () {
     				active: /*selectedId*/ ctx[0] === /*item*/ ctx[37].id,
     				highlighted: /*highlightedIndex*/ ctx[22] === /*i*/ ctx[39],
     				disabled: /*item*/ ctx[37].disabled,
-    				$$slots: { default: [create_default_slot_2$4] },
+    				$$slots: { default: [create_default_slot_2$5] },
     				$$scope: { ctx }
     			},
     			$$inline: true
@@ -15859,7 +15859,7 @@ var app = (function () {
     }
 
     // (330:4) <ListBoxField       role="button"       tabindex="0"       aria-expanded="{open}"       on:click="{() => {         if (disabled) return;         if (filterable) {           open = true;           inputRef.focus();         } else {           open = !open;         }       }}"       on:keydown="{(e) => {         if (filterable) {           return;         }         const key = e.key;         if ([' ', 'ArrowUp', 'ArrowDown'].includes(key)) {           e.preventDefault();         }         if (key === ' ') {           open = !open;         } else if (key === 'Tab') {           if (selectionRef && checked.length > 0) {             selectionRef.focus();           } else {             open = false;             fieldRef.blur();           }         } else if (key === 'ArrowDown') {           change(1);         } else if (key === 'ArrowUp') {           change(-1);         } else if (key === 'Enter') {           if (highlightedIndex > -1) {             sortedItems = sortedItems.map((item, i) => {               if (i !== highlightedIndex) return item;               return { ...item, checked: !item.checked };             });           }         } else if (key === 'Escape') {           open = false;         }       }}"       on:focus="{() => {         if (filterable) {           open = true;           if (inputRef) inputRef.focus();         }       }}"       on:blur="{(e) => {         if (!filterable) dispatch('blur', e);       }}"       id="{id}"       disabled="{disabled}"       translateWithId="{translateWithId}"     >
-    function create_default_slot_3(ctx) {
+    function create_default_slot_3$1(ctx) {
     	let t0;
     	let t1;
     	let if_block2_anchor;
@@ -15981,7 +15981,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_3.name,
+    		id: create_default_slot_3$1.name,
     		type: "slot",
     		source: "(330:4) <ListBoxField       role=\\\"button\\\"       tabindex=\\\"0\\\"       aria-expanded=\\\"{open}\\\"       on:click=\\\"{() => {         if (disabled) return;         if (filterable) {           open = true;           inputRef.focus();         } else {           open = !open;         }       }}\\\"       on:keydown=\\\"{(e) => {         if (filterable) {           return;         }         const key = e.key;         if ([' ', 'ArrowUp', 'ArrowDown'].includes(key)) {           e.preventDefault();         }         if (key === ' ') {           open = !open;         } else if (key === 'Tab') {           if (selectionRef && checked.length > 0) {             selectionRef.focus();           } else {             open = false;             fieldRef.blur();           }         } else if (key === 'ArrowDown') {           change(1);         } else if (key === 'ArrowUp') {           change(-1);         } else if (key === 'Enter') {           if (highlightedIndex > -1) {             sortedItems = sortedItems.map((item, i) => {               if (i !== highlightedIndex) return item;               return { ...item, checked: !item.checked };             });           }         } else if (key === 'Escape') {           open = false;         }       }}\\\"       on:focus=\\\"{() => {         if (filterable) {           open = true;           if (inputRef) inputRef.focus();         }       }}\\\"       on:blur=\\\"{(e) => {         if (!filterable) dispatch('blur', e);       }}\\\"       id=\\\"{id}\\\"       disabled=\\\"{disabled}\\\"       translateWithId=\\\"{translateWithId}\\\"     >",
     		ctx
@@ -16145,7 +16145,7 @@ var app = (function () {
     }
 
     // (489:10) <ListBoxMenuItem             id="{item.id}"             role="option"             aria-labelledby="checkbox-{item.id}"             aria-selected="{item.checked}"             active="{item.checked}"             highlighted="{highlightedIndex === i}"             disabled="{item.disabled}"             on:click="{(e) => {               if (item.disabled) {                 e.stopPropagation();                 return;               }               sortedItems = sortedItems.map((_) =>                 _.id === item.id ? { ..._, checked: !_.checked } : _               );               fieldRef.focus();             }}"             on:mouseenter="{() => {               if (item.disabled) return;               highlightedIndex = i;             }}"           >
-    function create_default_slot_2$3(ctx) {
+    function create_default_slot_2$4(ctx) {
     	let checkbox;
     	let t;
     	let current;
@@ -16234,7 +16234,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_2$3.name,
+    		id: create_default_slot_2$4.name,
     		type: "slot",
     		source: "(489:10) <ListBoxMenuItem             id=\\\"{item.id}\\\"             role=\\\"option\\\"             aria-labelledby=\\\"checkbox-{item.id}\\\"             aria-selected=\\\"{item.checked}\\\"             active=\\\"{item.checked}\\\"             highlighted=\\\"{highlightedIndex === i}\\\"             disabled=\\\"{item.disabled}\\\"             on:click=\\\"{(e) => {               if (item.disabled) {                 e.stopPropagation();                 return;               }               sortedItems = sortedItems.map((_) =>                 _.id === item.id ? { ..._, checked: !_.checked } : _               );               fieldRef.focus();             }}\\\"             on:mouseenter=\\\"{() => {               if (item.disabled) return;               highlightedIndex = i;             }}\\\"           >",
     		ctx
@@ -16266,7 +16266,7 @@ var app = (function () {
     				active: /*item*/ ctx[73].checked,
     				highlighted: /*highlightedIndex*/ ctx[28] === /*i*/ ctx[75],
     				disabled: /*item*/ ctx[73].disabled,
-    				$$slots: { default: [create_default_slot_2$3] },
+    				$$slots: { default: [create_default_slot_2$4] },
     				$$scope: { ctx }
     			},
     			$$inline: true
@@ -16435,7 +16435,7 @@ var app = (function () {
     				id: /*id*/ ctx[26],
     				disabled: /*disabled*/ ctx[11],
     				translateWithId: /*translateWithId*/ ctx[15],
-    				$$slots: { default: [create_default_slot_3] },
+    				$$slots: { default: [create_default_slot_3$1] },
     				$$scope: { ctx }
     			},
     			$$inline: true
@@ -18153,7 +18153,7 @@ var app = (function () {
     	button = new Button$1({
     			props: {
     				kind: "secondary",
-    				$$slots: { default: [create_default_slot_2$2] },
+    				$$slots: { default: [create_default_slot_2$3] },
     				$$scope: { ctx }
     			},
     			$$inline: true
@@ -18300,7 +18300,7 @@ var app = (function () {
     }
 
     // (279:10) <Button             kind="secondary"             on:click="{() => {               dispatch('click:button--secondary', {                 text: secondaryButtonText,               });             }}"           >
-    function create_default_slot_2$2(ctx) {
+    function create_default_slot_2$3(ctx) {
     	let t;
 
     	const block = {
@@ -18320,7 +18320,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_2$2.name,
+    		id: create_default_slot_2$3.name,
     		type: "slot",
     		source: "(279:10) <Button             kind=\\\"secondary\\\"             on:click=\\\"{() => {               dispatch('click:button--secondary', {                 text: secondaryButtonText,               });             }}\\\"           >",
     		ctx
@@ -30304,7 +30304,7 @@ var app = (function () {
     /* src/RelayControls.svelte generated by Svelte v3.52.0 */
 
     // (11:0) <Tabs>
-    function create_default_slot_2$1(ctx) {
+    function create_default_slot_2$2(ctx) {
     	let tab0;
     	let t;
     	let tab1;
@@ -30353,7 +30353,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_2$1.name,
+    		id: create_default_slot_2$2.name,
     		type: "slot",
     		source: "(11:0) <Tabs>",
     		ctx
@@ -30541,7 +30541,7 @@ var app = (function () {
     			props: {
     				$$slots: {
     					content: [create_content_slot$1],
-    					default: [create_default_slot_2$1]
+    					default: [create_default_slot_2$2]
     				},
     				$$scope: { ctx }
     			},
@@ -34752,7 +34752,7 @@ var app = (function () {
     /* src/TribeControls.svelte generated by Svelte v3.52.0 */
 
     // (9:2) <Tabs>
-    function create_default_slot_2(ctx) {
+    function create_default_slot_2$1(ctx) {
     	let tab0;
     	let t;
     	let tab1;
@@ -34801,7 +34801,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_2.name,
+    		id: create_default_slot_2$1.name,
     		type: "slot",
     		source: "(9:2) <Tabs>",
     		ctx
@@ -34994,7 +34994,7 @@ var app = (function () {
     			props: {
     				$$slots: {
     					content: [create_content_slot],
-    					default: [create_default_slot_2]
+    					default: [create_default_slot_2$1]
     				},
     				$$scope: { ctx }
     			},
@@ -35310,8 +35310,8 @@ var app = (function () {
     /* src/Lnd.svelte generated by Svelte v3.52.0 */
     const file$3 = "src/Lnd.svelte";
 
-    // (31:12) <DotWrap>
-    function create_default_slot_1$2(ctx) {
+    // (49:12) <DotWrap>
+    function create_default_slot_5(ctx) {
     	let dot;
     	let current;
 
@@ -35345,17 +35345,17 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_default_slot_1$2.name,
+    		id: create_default_slot_5.name,
     		type: "slot",
-    		source: "(31:12) <DotWrap>",
+    		source: "(49:12) <DotWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (38:14) <ReceiveLineWrap>
-    function create_default_slot$2(ctx) {
+    // (56:14) <ReceiveLineWrap>
+    function create_default_slot_4(ctx) {
     	let receiveline0;
     	let t;
     	let receiveline1;
@@ -35404,9 +35404,215 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
+    		id: create_default_slot_4.name,
+    		type: "slot",
+    		source: "(56:14) <ReceiveLineWrap>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (67:12) <DotWrap>
+    function create_default_slot_3(ctx) {
+    	let dot;
+    	let current;
+
+    	dot = new Dot({
+    			props: { color: "#ED7474;" },
+    			$$inline: true
+    		});
+
+    	const block = {
+    		c: function create() {
+    			create_component(dot.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(dot, target, anchor);
+    			current = true;
+    		},
+    		p: noop$1,
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(dot.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(dot.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(dot, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot_3.name,
+    		type: "slot",
+    		source: "(67:12) <DotWrap>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (74:14) <ReceiveLineWrap>
+    function create_default_slot_2(ctx) {
+    	let receiveline0;
+    	let t;
+    	let receiveline1;
+    	let current;
+
+    	receiveline0 = new ReceiveLine({
+    			props: { color: "#3ba839", width: "40%" },
+    			$$inline: true
+    		});
+
+    	receiveline1 = new ReceiveLine({
+    			props: { color: "#3ba839", width: "60%" },
+    			$$inline: true
+    		});
+
+    	const block = {
+    		c: function create() {
+    			create_component(receiveline0.$$.fragment);
+    			t = space();
+    			create_component(receiveline1.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(receiveline0, target, anchor);
+    			insert_dev(target, t, anchor);
+    			mount_component(receiveline1, target, anchor);
+    			current = true;
+    		},
+    		p: noop$1,
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(receiveline0.$$.fragment, local);
+    			transition_in(receiveline1.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(receiveline0.$$.fragment, local);
+    			transition_out(receiveline1.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(receiveline0, detaching);
+    			if (detaching) detach_dev(t);
+    			destroy_component(receiveline1, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot_2.name,
+    		type: "slot",
+    		source: "(74:14) <ReceiveLineWrap>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (85:12) <DotWrap>
+    function create_default_slot_1$2(ctx) {
+    	let dot;
+    	let current;
+
+    	dot = new Dot({
+    			props: { color: "#ED7474;" },
+    			$$inline: true
+    		});
+
+    	const block = {
+    		c: function create() {
+    			create_component(dot.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(dot, target, anchor);
+    			current = true;
+    		},
+    		p: noop$1,
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(dot.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(dot.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(dot, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot_1$2.name,
+    		type: "slot",
+    		source: "(85:12) <DotWrap>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (92:14) <ReceiveLineWrap>
+    function create_default_slot$2(ctx) {
+    	let receiveline0;
+    	let t;
+    	let receiveline1;
+    	let current;
+
+    	receiveline0 = new ReceiveLine({
+    			props: { color: "#F2BC52", width: "45%" },
+    			$$inline: true
+    		});
+
+    	receiveline1 = new ReceiveLine({
+    			props: { color: "#F2BC52", width: "55%" },
+    			$$inline: true
+    		});
+
+    	const block = {
+    		c: function create() {
+    			create_component(receiveline0.$$.fragment);
+    			t = space();
+    			create_component(receiveline1.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(receiveline0, target, anchor);
+    			insert_dev(target, t, anchor);
+    			mount_component(receiveline1, target, anchor);
+    			current = true;
+    		},
+    		p: noop$1,
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(receiveline0.$$.fragment, local);
+    			transition_in(receiveline1.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(receiveline0.$$.fragment, local);
+    			transition_out(receiveline1.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(receiveline0, detaching);
+    			if (detaching) detach_dev(t);
+    			destroy_component(receiveline1, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
     		id: create_default_slot$2.name,
     		type: "slot",
-    		source: "(38:14) <ReceiveLineWrap>",
+    		source: "(92:14) <ReceiveLineWrap>",
     		ctx
     	});
 
@@ -35430,7 +35636,7 @@ var app = (function () {
     	let t7;
     	let span1;
     	let t9;
-    	let section2;
+    	let section4;
     	let table;
     	let thead;
     	let th0;
@@ -35442,23 +35648,85 @@ var app = (function () {
     	let th3;
     	let t16;
     	let tbody;
-    	let tr;
+    	let tr0;
     	let td0;
-    	let dotwrap;
+    	let dotwrap0;
     	let t17;
     	let td1;
     	let section1;
     	let t18_value = "2 125 000" + "";
     	let t18;
     	let t19;
-    	let receivelinewrap;
+    	let receivelinewrap0;
     	let t20;
     	let td2;
     	let t22;
     	let td3;
+    	let t24;
+    	let tr1;
+    	let td4;
+    	let dotwrap1;
+    	let t25;
+    	let td5;
+    	let section2;
+    	let t26_value = "3 125 000" + "";
+    	let t26;
+    	let t27;
+    	let receivelinewrap1;
+    	let t28;
+    	let td6;
+    	let t30;
+    	let td7;
+    	let t32;
+    	let tr2;
+    	let td8;
+    	let dotwrap2;
+    	let t33;
+    	let td9;
+    	let section3;
+    	let t34_value = "2 125 000" + "";
+    	let t34;
+    	let t35;
+    	let receivelinewrap2;
+    	let t36;
+    	let td10;
+    	let t38;
+    	let td11;
     	let current;
 
-    	dotwrap = new DotWrap({
+    	dotwrap0 = new DotWrap({
+    			props: {
+    				$$slots: { default: [create_default_slot_5] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	receivelinewrap0 = new ReceiveLineWrap({
+    			props: {
+    				$$slots: { default: [create_default_slot_4] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	dotwrap1 = new DotWrap({
+    			props: {
+    				$$slots: { default: [create_default_slot_3] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	receivelinewrap1 = new ReceiveLineWrap({
+    			props: {
+    				$$slots: { default: [create_default_slot_2] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	dotwrap2 = new DotWrap({
     			props: {
     				$$slots: { default: [create_default_slot_1$2] },
     				$$scope: { ctx }
@@ -35466,7 +35734,7 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	receivelinewrap = new ReceiveLineWrap({
+    	receivelinewrap2 = new ReceiveLineWrap({
     			props: {
     				$$slots: { default: [create_default_slot$2] },
     				$$scope: { ctx }
@@ -35496,7 +35764,7 @@ var app = (function () {
     			span1 = element("span");
     			span1.textContent = "SAT";
     			t9 = space();
-    			section2 = element("section");
+    			section4 = element("section");
     			table = element("table");
     			thead = element("thead");
     			th0 = element("th");
@@ -35511,56 +35779,102 @@ var app = (function () {
     			th3.textContent = "PEER / ALIAS";
     			t16 = space();
     			tbody = element("tbody");
-    			tr = element("tr");
+    			tr0 = element("tr");
     			td0 = element("td");
-    			create_component(dotwrap.$$.fragment);
+    			create_component(dotwrap0.$$.fragment);
     			t17 = space();
     			td1 = element("td");
     			section1 = element("section");
     			t18 = text(t18_value);
     			t19 = space();
-    			create_component(receivelinewrap.$$.fragment);
+    			create_component(receivelinewrap0.$$.fragment);
     			t20 = space();
     			td2 = element("td");
     			td2.textContent = `${"1 125 000"}`;
     			t22 = space();
     			td3 = element("td");
     			td3.textContent = "OpenNode";
+    			t24 = space();
+    			tr1 = element("tr");
+    			td4 = element("td");
+    			create_component(dotwrap1.$$.fragment);
+    			t25 = space();
+    			td5 = element("td");
+    			section2 = element("section");
+    			t26 = text(t26_value);
+    			t27 = space();
+    			create_component(receivelinewrap1.$$.fragment);
+    			t28 = space();
+    			td6 = element("td");
+    			td6.textContent = `${"2 525 000"}`;
+    			t30 = space();
+    			td7 = element("td");
+    			td7.textContent = "ACINQ";
+    			t32 = space();
+    			tr2 = element("tr");
+    			td8 = element("td");
+    			create_component(dotwrap2.$$.fragment);
+    			t33 = space();
+    			td9 = element("td");
+    			section3 = element("section");
+    			t34 = text(t34_value);
+    			t35 = space();
+    			create_component(receivelinewrap2.$$.fragment);
+    			t36 = space();
+    			td10 = element("td");
+    			td10.textContent = `${"2 525 000"}`;
+    			t38 = space();
+    			td11 = element("td");
+    			td11.textContent = "bitrefill.com";
     			attr_dev(h60, "class", "title svelte-blfsb5");
-    			add_location(h60, file$3, 10, 6, 299);
+    			add_location(h60, file$3, 28, 6, 621);
     			attr_dev(span0, "class", "svelte-blfsb5");
-    			add_location(span0, file$3, 11, 35, 381);
+    			add_location(span0, file$3, 29, 35, 703);
     			attr_dev(h30, "class", "value svelte-blfsb5");
-    			add_location(h30, file$3, 11, 6, 352);
+    			add_location(h30, file$3, 29, 6, 674);
     			attr_dev(aside0, "class", "svelte-blfsb5");
-    			add_location(aside0, file$3, 9, 4, 285);
+    			add_location(aside0, file$3, 27, 4, 607);
     			attr_dev(h61, "class", "title svelte-blfsb5");
-    			add_location(h61, file$3, 14, 6, 434);
+    			add_location(h61, file$3, 32, 6, 756);
     			attr_dev(span1, "class", "svelte-blfsb5");
-    			add_location(span1, file$3, 15, 35, 517);
+    			add_location(span1, file$3, 33, 35, 839);
     			attr_dev(h31, "class", "value svelte-blfsb5");
-    			add_location(h31, file$3, 15, 6, 488);
+    			add_location(h31, file$3, 33, 6, 810);
     			attr_dev(aside1, "class", "svelte-blfsb5");
-    			add_location(aside1, file$3, 13, 4, 420);
+    			add_location(aside1, file$3, 31, 4, 742);
     			attr_dev(section0, "class", "liquidity-wrap svelte-blfsb5");
-    			add_location(section0, file$3, 8, 2, 248);
-    			add_location(th0, file$3, 22, 8, 635);
-    			add_location(th1, file$3, 23, 8, 650);
-    			add_location(th2, file$3, 24, 8, 679);
-    			add_location(th3, file$3, 25, 8, 705);
-    			add_location(thead, file$3, 21, 6, 619);
-    			add_location(td0, file$3, 29, 10, 779);
+    			add_location(section0, file$3, 26, 2, 570);
+    			add_location(th0, file$3, 40, 8, 957);
+    			add_location(th1, file$3, 41, 8, 972);
+    			add_location(th2, file$3, 42, 8, 1001);
+    			add_location(th3, file$3, 43, 8, 1027);
+    			add_location(thead, file$3, 39, 6, 941);
+    			add_location(td0, file$3, 47, 10, 1101);
     			attr_dev(section1, "class", "can-receive-wrap");
-    			add_location(section1, file$3, 35, 12, 913);
-    			add_location(td1, file$3, 34, 10, 896);
-    			add_location(td2, file$3, 43, 10, 1204);
-    			add_location(td3, file$3, 44, 10, 1237);
-    			add_location(tr, file$3, 28, 8, 764);
-    			add_location(tbody, file$3, 27, 6, 748);
-    			add_location(table, file$3, 20, 4, 605);
-    			attr_dev(section2, "class", "lnd-table-wrap");
-    			add_location(section2, file$3, 19, 2, 568);
-    			add_location(div, file$3, 7, 0, 240);
+    			add_location(section1, file$3, 53, 12, 1235);
+    			add_location(td1, file$3, 52, 10, 1218);
+    			add_location(td2, file$3, 61, 10, 1526);
+    			add_location(td3, file$3, 62, 10, 1559);
+    			add_location(tr0, file$3, 46, 8, 1086);
+    			add_location(td4, file$3, 65, 10, 1614);
+    			attr_dev(section2, "class", "can-receive-wrap");
+    			add_location(section2, file$3, 71, 12, 1748);
+    			add_location(td5, file$3, 70, 10, 1731);
+    			add_location(td6, file$3, 79, 10, 2053);
+    			add_location(td7, file$3, 80, 10, 2086);
+    			add_location(tr1, file$3, 64, 8, 1599);
+    			add_location(td8, file$3, 83, 10, 2138);
+    			attr_dev(section3, "class", "can-receive-wrap");
+    			add_location(section3, file$3, 89, 12, 2272);
+    			add_location(td9, file$3, 88, 10, 2255);
+    			add_location(td10, file$3, 97, 10, 2577);
+    			add_location(td11, file$3, 98, 10, 2610);
+    			add_location(tr2, file$3, 82, 8, 2123);
+    			add_location(tbody, file$3, 45, 6, 1070);
+    			add_location(table, file$3, 38, 4, 927);
+    			attr_dev(section4, "class", "lnd-table-wrap");
+    			add_location(section4, file$3, 37, 2, 890);
+    			add_location(div, file$3, 25, 0, 562);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -35582,8 +35896,8 @@ var app = (function () {
     			append_dev(h31, t7);
     			append_dev(h31, span1);
     			append_dev(div, t9);
-    			append_dev(div, section2);
-    			append_dev(section2, table);
+    			append_dev(div, section4);
+    			append_dev(section4, table);
     			append_dev(table, thead);
     			append_dev(thead, th0);
     			append_dev(thead, t10);
@@ -35594,52 +35908,120 @@ var app = (function () {
     			append_dev(thead, th3);
     			append_dev(table, t16);
     			append_dev(table, tbody);
-    			append_dev(tbody, tr);
-    			append_dev(tr, td0);
-    			mount_component(dotwrap, td0, null);
-    			append_dev(tr, t17);
-    			append_dev(tr, td1);
+    			append_dev(tbody, tr0);
+    			append_dev(tr0, td0);
+    			mount_component(dotwrap0, td0, null);
+    			append_dev(tr0, t17);
+    			append_dev(tr0, td1);
     			append_dev(td1, section1);
     			append_dev(section1, t18);
     			append_dev(section1, t19);
-    			mount_component(receivelinewrap, section1, null);
-    			append_dev(tr, t20);
-    			append_dev(tr, td2);
-    			append_dev(tr, t22);
-    			append_dev(tr, td3);
+    			mount_component(receivelinewrap0, section1, null);
+    			append_dev(tr0, t20);
+    			append_dev(tr0, td2);
+    			append_dev(tr0, t22);
+    			append_dev(tr0, td3);
+    			append_dev(tbody, t24);
+    			append_dev(tbody, tr1);
+    			append_dev(tr1, td4);
+    			mount_component(dotwrap1, td4, null);
+    			append_dev(tr1, t25);
+    			append_dev(tr1, td5);
+    			append_dev(td5, section2);
+    			append_dev(section2, t26);
+    			append_dev(section2, t27);
+    			mount_component(receivelinewrap1, section2, null);
+    			append_dev(tr1, t28);
+    			append_dev(tr1, td6);
+    			append_dev(tr1, t30);
+    			append_dev(tr1, td7);
+    			append_dev(tbody, t32);
+    			append_dev(tbody, tr2);
+    			append_dev(tr2, td8);
+    			mount_component(dotwrap2, td8, null);
+    			append_dev(tr2, t33);
+    			append_dev(tr2, td9);
+    			append_dev(td9, section3);
+    			append_dev(section3, t34);
+    			append_dev(section3, t35);
+    			mount_component(receivelinewrap2, section3, null);
+    			append_dev(tr2, t36);
+    			append_dev(tr2, td10);
+    			append_dev(tr2, t38);
+    			append_dev(tr2, td11);
     			current = true;
     		},
     		p: function update(ctx, [dirty]) {
-    			const dotwrap_changes = {};
+    			const dotwrap0_changes = {};
 
-    			if (dirty & /*$$scope*/ 1) {
-    				dotwrap_changes.$$scope = { dirty, ctx };
+    			if (dirty & /*$$scope*/ 8) {
+    				dotwrap0_changes.$$scope = { dirty, ctx };
     			}
 
-    			dotwrap.$set(dotwrap_changes);
-    			const receivelinewrap_changes = {};
+    			dotwrap0.$set(dotwrap0_changes);
+    			const receivelinewrap0_changes = {};
 
-    			if (dirty & /*$$scope*/ 1) {
-    				receivelinewrap_changes.$$scope = { dirty, ctx };
+    			if (dirty & /*$$scope*/ 8) {
+    				receivelinewrap0_changes.$$scope = { dirty, ctx };
     			}
 
-    			receivelinewrap.$set(receivelinewrap_changes);
+    			receivelinewrap0.$set(receivelinewrap0_changes);
+    			const dotwrap1_changes = {};
+
+    			if (dirty & /*$$scope*/ 8) {
+    				dotwrap1_changes.$$scope = { dirty, ctx };
+    			}
+
+    			dotwrap1.$set(dotwrap1_changes);
+    			const receivelinewrap1_changes = {};
+
+    			if (dirty & /*$$scope*/ 8) {
+    				receivelinewrap1_changes.$$scope = { dirty, ctx };
+    			}
+
+    			receivelinewrap1.$set(receivelinewrap1_changes);
+    			const dotwrap2_changes = {};
+
+    			if (dirty & /*$$scope*/ 8) {
+    				dotwrap2_changes.$$scope = { dirty, ctx };
+    			}
+
+    			dotwrap2.$set(dotwrap2_changes);
+    			const receivelinewrap2_changes = {};
+
+    			if (dirty & /*$$scope*/ 8) {
+    				receivelinewrap2_changes.$$scope = { dirty, ctx };
+    			}
+
+    			receivelinewrap2.$set(receivelinewrap2_changes);
     		},
     		i: function intro(local) {
     			if (current) return;
-    			transition_in(dotwrap.$$.fragment, local);
-    			transition_in(receivelinewrap.$$.fragment, local);
+    			transition_in(dotwrap0.$$.fragment, local);
+    			transition_in(receivelinewrap0.$$.fragment, local);
+    			transition_in(dotwrap1.$$.fragment, local);
+    			transition_in(receivelinewrap1.$$.fragment, local);
+    			transition_in(dotwrap2.$$.fragment, local);
+    			transition_in(receivelinewrap2.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
-    			transition_out(dotwrap.$$.fragment, local);
-    			transition_out(receivelinewrap.$$.fragment, local);
+    			transition_out(dotwrap0.$$.fragment, local);
+    			transition_out(receivelinewrap0.$$.fragment, local);
+    			transition_out(dotwrap1.$$.fragment, local);
+    			transition_out(receivelinewrap1.$$.fragment, local);
+    			transition_out(dotwrap2.$$.fragment, local);
+    			transition_out(receivelinewrap2.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
-    			destroy_component(dotwrap);
-    			destroy_component(receivelinewrap);
+    			destroy_component(dotwrap0);
+    			destroy_component(receivelinewrap0);
+    			destroy_component(dotwrap1);
+    			destroy_component(receivelinewrap1);
+    			destroy_component(dotwrap2);
+    			destroy_component(receivelinewrap2);
     		}
     	};
 
@@ -35657,26 +36039,56 @@ var app = (function () {
     function instance$3($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Lnd', slots, []);
-    	const writable_props = [];
+    	let { tag = "" } = $$props;
+    	let lndData = {};
+
+    	async function getLndInfo() {
+    		const lndRes = await get_info(tag);
+    		lndData = lndRes;
+    	} // console.log("LND INFO ===", lndData);
+
+    	onMount(async () => {
+    		await getLndInfo();
+    	});
+
+    	const writable_props = ['tag'];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<Lnd> was created with unknown prop '${key}'`);
     	});
 
+    	$$self.$$set = $$props => {
+    		if ('tag' in $$props) $$invalidate(0, tag = $$props.tag);
+    	};
+
     	$$self.$capture_state = () => ({
+    		onMount,
     		ReceiveLineWrap,
     		ReceiveLine,
     		DotWrap,
-    		Dot
+    		Dot,
+    		get_info,
+    		tag,
+    		lndData,
+    		getLndInfo
     	});
 
-    	return [];
+    	$$self.$inject_state = $$props => {
+    		if ('tag' in $$props) $$invalidate(0, tag = $$props.tag);
+    		if ('lndData' in $$props) lndData = $$props.lndData;
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [tag];
     }
 
     class Lnd extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init$1(this, options, instance$3, create_fragment$3, safe_not_equal, {});
+    		init$1(this, options, instance$3, create_fragment$3, safe_not_equal, { tag: 0 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -35684,6 +36096,14 @@ var app = (function () {
     			options,
     			id: create_fragment$3.name
     		});
+    	}
+
+    	get tag() {
+    		throw new Error("<Lnd>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set tag(value) {
+    		throw new Error("<Lnd>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
     }
 
@@ -36051,7 +36471,11 @@ var app = (function () {
     function create_if_block_3(ctx) {
     	let lnd;
     	let current;
-    	lnd = new Lnd({ $$inline: true });
+
+    	lnd = new Lnd({
+    			props: { tag: /*tag*/ ctx[2] },
+    			$$inline: true
+    		});
 
     	const block = {
     		c: function create() {
@@ -36061,7 +36485,11 @@ var app = (function () {
     			mount_component(lnd, target, anchor);
     			current = true;
     		},
-    		p: noop$1,
+    		p: function update(ctx, dirty) {
+    			const lnd_changes = {};
+    			if (dirty & /*tag*/ 4) lnd_changes.tag = /*tag*/ ctx[2];
+    			lnd.$set(lnd_changes);
+    		},
     		i: function intro(local) {
     			if (current) return;
     			transition_in(lnd.$$.fragment, local);
