@@ -5,8 +5,9 @@
   import ReceiveLine from "./reusable/ReceiveLine.svelte";
   import DotWrap from "./reusable/DotWrap.svelte";
   import Dot from "./reusable/Dot.svelte";
+  import { channels } from "./store";
 
-  import { get_info } from "./api/lnd";
+  import { get_info, list_channels } from "./api/lnd";
 
   export let tag = "";
 
@@ -15,11 +16,18 @@
   async function getLndInfo() {
     const lndRes = await get_info(tag);
     lndData = lndRes;
-    // console.log("LND INFO ===", lndData);
+  }
+
+  async function listChannels() {
+    if ($channels && $channels.length) return;
+    const channelsData = await list_channels(tag);
+    // console.log("Channel Data ===", channelsData);
+    channels.set(channelsData);
   }
 
   onMount(async () => {
     await getLndInfo();
+    await listChannels();
   });
 </script>
 
