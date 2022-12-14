@@ -4,7 +4,6 @@ use crate::conn::lnd::lndrpc::LndChannel;
 use crate::images::Image;
 use anyhow::{anyhow, Result};
 use bollard::Docker;
-use tonic_lnd::lnrpc::Channel;
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {

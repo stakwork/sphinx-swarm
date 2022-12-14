@@ -293,7 +293,8 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         "28333".to_string(),
     ];
     let root_vol = "/home/bitcoin/.bitcoin";
-    // let vols = vec!["/home/bitcoin/.bitcoin"];
+    // let vols = vec!["/home/bitcoin/.bitcoin"];'
+    println!("Bitcoin Node Credentials {} {}", node.user, node.pass);
     Config {
         image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
         hostname: Some(domain(&node.name)),

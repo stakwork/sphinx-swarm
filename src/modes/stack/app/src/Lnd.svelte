@@ -11,6 +11,9 @@
 
   export let tag = "";
 
+  let inbound_capacity = $channels.length ? $channels.reduce((accumulator, chan) => accumulator + chan.remote_balance , 0) : 0;
+  let outbound_capacity = $channels.length ? $channels.reduce((accumulator, chan) => accumulator + chan.local_balance , 0) : 0;
+
   let lndData = {};
 
   async function getLndInfo() {
@@ -25,6 +28,11 @@
     channels.set(channelsData);
   }
 
+  function formatSatNumbers(num) {
+    const numFormat = new Intl.NumberFormat().format(num).replaceAll(",", " ");
+    return numFormat;
+  }
+
   onMount(async () => {
     await getLndInfo();
     await listChannels();
@@ -35,11 +43,11 @@
   <section class="liquidity-wrap">
     <aside>
       <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
-      <h3 class="value">34 945 934 <span>SAT</span></h3>
+      <h3 class="value">{formatSatNumbers(inbound_capacity)} <span>SAT</span></h3>
     </aside>
     <aside>
       <h6 class="title">TOTAL OUTBOUND LIQUIDITY</h6>
-      <h3 class="value">24 045 934 <span>SAT</span></h3>
+      <h3 class="value">{formatSatNumbers(outbound_capacity)}  <span>SAT</span></h3>
     </aside>
   </section>
 
@@ -52,6 +60,7 @@
         <th>PEER / ALIAS</th>
       </thead>
       <tbody>
+        {#each $channels as chan }
         <tr>
           <td>
             <DotWrap>
@@ -60,17 +69,19 @@
           </td>
           <td>
             <section class="can-receive-wrap">
-              {"2 125 000"}
+              {formatSatNumbers(chan.remote_balance)}
               <ReceiveLineWrap>
                 <ReceiveLine color={"#ED7474"} />
                 <ReceiveLine color={"#ED7474"} width={"80%"} />
               </ReceiveLineWrap>
             </section>
           </td>
-          <td>{"1 125 000"}</td>
-          <td>OpenNode</td>
+          <td>{formatSatNumbers(chan.local_balance)}</td>
+          <td>{""}</td>
         </tr>
-        <tr>
+        {/each}
+        
+        <!-- <tr>
           <td>
             <DotWrap>
               <Dot color={"#ED7474;"} />
@@ -105,7 +116,7 @@
           </td>
           <td>{"2 525 000"}</td>
           <td>bitrefill.com</td>
-        </tr>
+        </tr> -->
       </tbody>
     </table>
   </section>
