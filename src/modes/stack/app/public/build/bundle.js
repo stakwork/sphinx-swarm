@@ -34862,69 +34862,132 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (21:2) {#each btcInfoData as btc}
+    // (23:2) {#each btcInfoData as btc}
     function create_each_block(ctx) {
+    	let section0;
     	let h30;
-    	let t0_value = /*btc*/ ctx[4].chain + "";
-    	let t0;
     	let t1;
     	let h31;
-    	let t2_value = /*btc*/ ctx[4].blocks + "";
+    	let t2_value = /*btc*/ ctx[4].chain + "";
     	let t2;
     	let t3;
+    	let section1;
     	let h32;
-    	let t4_value = /*btc*/ ctx[4].pruned + "";
-    	let t4;
     	let t5;
     	let h33;
-    	let t6_value = /*btc*/ ctx[4].initialblockdownload + "";
+    	let t6_value = /*btc*/ ctx[4].blocks + "";
     	let t6;
+    	let t7;
+    	let section2;
+    	let h34;
+    	let t9;
+    	let h35;
+    	let t10_value = /*btc*/ ctx[4].headers + "";
+    	let t10;
+    	let t11;
+    	let section3;
+    	let h36;
+    	let t13;
+    	let h37;
+    	let t14_value = /*btc*/ ctx[4].pruned + "";
+    	let t14;
+    	let t15;
 
     	const block = {
     		c: function create() {
+    			section0 = element("section");
     			h30 = element("h3");
-    			t0 = text(t0_value);
+    			h30.textContent = "NETWORK";
     			t1 = space();
     			h31 = element("h3");
     			t2 = text(t2_value);
     			t3 = space();
+    			section1 = element("section");
     			h32 = element("h3");
-    			t4 = text(t4_value);
+    			h32.textContent = "BLOCK HEIGHT";
     			t5 = space();
     			h33 = element("h3");
     			t6 = text(t6_value);
-    			add_location(h30, file$3, 21, 4, 461);
-    			add_location(h31, file$3, 22, 4, 486);
-    			add_location(h32, file$3, 23, 4, 512);
-    			add_location(h33, file$3, 24, 4, 538);
+    			t7 = space();
+    			section2 = element("section");
+    			h34 = element("h3");
+    			h34.textContent = "BLOCK HEADERS";
+    			t9 = space();
+    			h35 = element("h3");
+    			t10 = text(t10_value);
+    			t11 = space();
+    			section3 = element("section");
+    			h36 = element("h3");
+    			h36.textContent = "PRUNED NODE";
+    			t13 = space();
+    			h37 = element("h3");
+    			t14 = text(t14_value);
+    			t15 = space();
+    			attr_dev(h30, "class", "title svelte-1y3xdxf");
+    			add_location(h30, file$3, 24, 6, 558);
+    			attr_dev(h31, "class", "value svelte-1y3xdxf");
+    			add_location(h31, file$3, 25, 6, 595);
+    			attr_dev(section0, "class", "value-wrap svelte-1y3xdxf");
+    			add_location(section0, file$3, 23, 4, 523);
+    			attr_dev(h32, "class", "title svelte-1y3xdxf");
+    			add_location(h32, file$3, 28, 6, 684);
+    			attr_dev(h33, "class", "value svelte-1y3xdxf");
+    			add_location(h33, file$3, 29, 6, 726);
+    			attr_dev(section1, "class", "value-wrap svelte-1y3xdxf");
+    			add_location(section1, file$3, 27, 4, 649);
+    			attr_dev(h34, "class", "title svelte-1y3xdxf");
+    			add_location(h34, file$3, 32, 8, 818);
+    			attr_dev(h35, "class", "value svelte-1y3xdxf");
+    			add_location(h35, file$3, 33, 8, 863);
+    			attr_dev(section2, "class", "value-wrap svelte-1y3xdxf");
+    			add_location(section2, file$3, 31, 4, 781);
+    			attr_dev(h36, "class", "title svelte-1y3xdxf");
+    			add_location(h36, file$3, 36, 6, 956);
+    			attr_dev(h37, "class", "value svelte-1y3xdxf");
+    			add_location(h37, file$3, 37, 6, 997);
+    			attr_dev(section3, "class", "value-wrap svelte-1y3xdxf");
+    			add_location(section3, file$3, 35, 4, 921);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, h30, anchor);
-    			append_dev(h30, t0);
-    			insert_dev(target, t1, anchor);
-    			insert_dev(target, h31, anchor);
+    			insert_dev(target, section0, anchor);
+    			append_dev(section0, h30);
+    			append_dev(section0, t1);
+    			append_dev(section0, h31);
     			append_dev(h31, t2);
     			insert_dev(target, t3, anchor);
-    			insert_dev(target, h32, anchor);
-    			append_dev(h32, t4);
-    			insert_dev(target, t5, anchor);
-    			insert_dev(target, h33, anchor);
+    			insert_dev(target, section1, anchor);
+    			append_dev(section1, h32);
+    			append_dev(section1, t5);
+    			append_dev(section1, h33);
     			append_dev(h33, t6);
+    			insert_dev(target, t7, anchor);
+    			insert_dev(target, section2, anchor);
+    			append_dev(section2, h34);
+    			append_dev(section2, t9);
+    			append_dev(section2, h35);
+    			append_dev(h35, t10);
+    			insert_dev(target, t11, anchor);
+    			insert_dev(target, section3, anchor);
+    			append_dev(section3, h36);
+    			append_dev(section3, t13);
+    			append_dev(section3, h37);
+    			append_dev(h37, t14);
+    			append_dev(section3, t15);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*btcInfoData*/ 1 && t0_value !== (t0_value = /*btc*/ ctx[4].chain + "")) set_data_dev(t0, t0_value);
-    			if (dirty & /*btcInfoData*/ 1 && t2_value !== (t2_value = /*btc*/ ctx[4].blocks + "")) set_data_dev(t2, t2_value);
-    			if (dirty & /*btcInfoData*/ 1 && t4_value !== (t4_value = /*btc*/ ctx[4].pruned + "")) set_data_dev(t4, t4_value);
-    			if (dirty & /*btcInfoData*/ 1 && t6_value !== (t6_value = /*btc*/ ctx[4].initialblockdownload + "")) set_data_dev(t6, t6_value);
+    			if (dirty & /*btcInfoData*/ 1 && t2_value !== (t2_value = /*btc*/ ctx[4].chain + "")) set_data_dev(t2, t2_value);
+    			if (dirty & /*btcInfoData*/ 1 && t6_value !== (t6_value = /*btc*/ ctx[4].blocks + "")) set_data_dev(t6, t6_value);
+    			if (dirty & /*btcInfoData*/ 1 && t10_value !== (t10_value = /*btc*/ ctx[4].headers + "")) set_data_dev(t10, t10_value);
+    			if (dirty & /*btcInfoData*/ 1 && t14_value !== (t14_value = /*btc*/ ctx[4].pruned + "")) set_data_dev(t14, t14_value);
     		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(h30);
-    			if (detaching) detach_dev(t1);
-    			if (detaching) detach_dev(h31);
+    			if (detaching) detach_dev(section0);
     			if (detaching) detach_dev(t3);
-    			if (detaching) detach_dev(h32);
-    			if (detaching) detach_dev(t5);
-    			if (detaching) detach_dev(h33);
+    			if (detaching) detach_dev(section1);
+    			if (detaching) detach_dev(t7);
+    			if (detaching) detach_dev(section2);
+    			if (detaching) detach_dev(t11);
+    			if (detaching) detach_dev(section3);
     		}
     	};
 
@@ -34932,7 +34995,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(21:2) {#each btcInfoData as btc}",
+    		source: "(23:2) {#each btcInfoData as btc}",
     		ctx
     	});
 
@@ -34940,7 +35003,11 @@ var app = (function () {
     }
 
     function create_fragment$3(ctx) {
-    	let div;
+    	let div1;
+    	let h5;
+    	let t1;
+    	let div0;
+    	let t2;
     	let each_value = /*btcInfoData*/ ctx[0];
     	validate_each_argument(each_value);
     	let each_blocks = [];
@@ -34951,23 +35018,36 @@ var app = (function () {
 
     	const block = {
     		c: function create() {
-    			div = element("div");
+    			div1 = element("div");
+    			h5 = element("h5");
+    			h5.textContent = "Bitcoin Info";
+    			t1 = space();
+    			div0 = element("div");
+    			t2 = space();
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div, "class", "bitcoin-wrapper svelte-1u7wc6b");
-    			add_location(div, file$3, 19, 0, 398);
+    			attr_dev(h5, "class", "info svelte-1y3xdxf");
+    			add_location(h5, file$3, 20, 2, 430);
+    			attr_dev(div0, "class", "spacer");
+    			add_location(div0, file$3, 21, 2, 467);
+    			attr_dev(div1, "class", "bitcoin-wrapper svelte-1y3xdxf");
+    			add_location(div1, file$3, 19, 0, 398);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, div, anchor);
+    			insert_dev(target, div1, anchor);
+    			append_dev(div1, h5);
+    			append_dev(div1, t1);
+    			append_dev(div1, div0);
+    			append_dev(div1, t2);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(div, null);
+    				each_blocks[i].m(div1, null);
     			}
     		},
     		p: function update(ctx, [dirty]) {
@@ -34984,7 +35064,7 @@ var app = (function () {
     					} else {
     						each_blocks[i] = create_each_block(child_ctx);
     						each_blocks[i].c();
-    						each_blocks[i].m(div, null);
+    						each_blocks[i].m(div1, null);
     					}
     				}
 
@@ -34998,7 +35078,7 @@ var app = (function () {
     		i: noop$1,
     		o: noop$1,
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(div);
+    			if (detaching) detach_dev(div1);
     			destroy_each(each_blocks, detaching);
     		}
     	};
