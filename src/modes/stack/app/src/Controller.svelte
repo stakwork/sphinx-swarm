@@ -4,6 +4,7 @@
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
   import TribeControls from "./TribeControls.svelte";
+  import Bitcoin from "./Bitcoin.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -26,6 +27,8 @@
       <RelayControls {tag} />
     {:else if type === "Tribes"}
       <TribeControls url={$selectedNode.url} />
+    {:else if type === "Btc"}
+      <Bitcoin {tag} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}
