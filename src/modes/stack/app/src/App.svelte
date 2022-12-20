@@ -8,6 +8,9 @@
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
+    const logs = await api.swarm.get_logs("lnd1");
+
+    console.log("Logs ===", logs);
   }
 
   onMount(() => {
