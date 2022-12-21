@@ -4,7 +4,7 @@
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
   import TribeControls from "./TribeControls.svelte";
-
+  
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
 
