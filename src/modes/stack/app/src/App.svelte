@@ -8,7 +8,7 @@
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
-    const logs = await api.swarm.get_logs("lnd1");
+    const logs = await api.swarm.get_logs("lnd1.sphinx");
 
     console.log("Logs ===", logs);
   }

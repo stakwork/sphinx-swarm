@@ -23,7 +23,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 None
             }
             SwarmCmd::GetContainerLogs(container_name)  => {
-                let logs = container_logs(docker, "bitcoind").await;
+                let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
         },

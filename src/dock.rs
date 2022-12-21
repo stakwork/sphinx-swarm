@@ -72,6 +72,7 @@ pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
     let options = Some(LogsOptions::<String> {
         stdout: true,
         stderr: true,
+        tail: "100".to_string(),
         ..Default::default()
     });
     let mut stream = docker.logs(name, options);

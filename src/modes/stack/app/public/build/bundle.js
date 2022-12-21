@@ -35727,7 +35727,7 @@ var app = (function () {
     			div = element("div");
     			t = text(t_value);
     			attr_dev(div, "class", "title svelte-8a5n9u");
-    			add_location(div, file, 24, 6, 664);
+    			add_location(div, file, 24, 6, 671);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -35795,17 +35795,17 @@ var app = (function () {
     			attr_dev(img, "class", "logo svelte-8a5n9u");
     			attr_dev(img, "alt", "Sphinx icon");
     			if (!src_url_equal(img.src, img_src_value = "favicon.jpeg")) attr_dev(img, "src", img_src_value);
-    			add_location(img, file, 19, 6, 512);
+    			add_location(img, file, 19, 6, 519);
     			attr_dev(span, "class", "stack-title svelte-8a5n9u");
-    			add_location(span, file, 20, 6, 576);
+    			add_location(span, file, 20, 6, 583);
     			attr_dev(div0, "class", "lefty logo-wrap svelte-8a5n9u");
-    			add_location(div0, file, 18, 4, 476);
+    			add_location(div0, file, 18, 4, 483);
     			attr_dev(header, "class", "svelte-8a5n9u");
-    			add_location(header, file, 17, 2, 463);
+    			add_location(header, file, 17, 2, 470);
     			attr_dev(div1, "class", "body svelte-8a5n9u");
-    			add_location(div1, file, 29, 2, 751);
+    			add_location(div1, file, 29, 2, 758);
     			attr_dev(main, "class", "svelte-8a5n9u");
-    			add_location(main, file, 16, 0, 454);
+    			add_location(main, file, 16, 0, 461);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -35884,7 +35884,7 @@ var app = (function () {
 
     	async function getConfig() {
     		await get_config();
-    		const logs = await get_logs("lnd1");
+    		const logs = await get_logs("lnd1.sphinx");
     		console.log("Logs ===", logs);
     	}
 
