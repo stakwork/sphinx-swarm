@@ -7,7 +7,7 @@ if (IS_DEV) {
 
 type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd";
 
-export type Cmd = "GetConfig" | "ListUsers" | "AddUser" | "GetInfo";
+export type Cmd = "GetConfig" | "ListUsers" | "AddUser" | "GetInfo" | "GetContainerLogs";
 
 interface CmdData {
   cmd: Cmd;
