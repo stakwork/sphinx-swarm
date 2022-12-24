@@ -1,43 +1,47 @@
 <script>
-  import { get_info } from "./api/btc";
+  import * as api from "./api";
   import { onMount } from "svelte";
   import { btcinfo } from "./store";
-  let btcInfoData = [];
+  import { Button } from "carbon-components-svelte";
+
   export let tag = "";
 
   async function getBitcoinInfo() {
-    if (btcinfo && $btcinfo.length) return;
-
-    btcInfoData = [await get_info(tag)];
-    btcinfo.set([btcInfoData]);
+    if ($btcinfo && $btcinfo.length) return;
+    btcinfo.set(await api.btc.get_info(tag));
   }
 
-  onMount(async () => {
-    await getBitcoinInfo();
+  onMount(() => {
+    getBitcoinInfo();
   });
+
+  async function mine() {
+    console.log("test mine?");
+  }
 </script>
 
 <div class="bitcoin-wrapper">
   <h5 class="info">Bitcoin Info</h5>
   <div class="spacer" />
-  {#each btcInfoData as btc}
+  {#if $btcinfo}
     <section class="value-wrap">
       <h3 class="title">NETWORK</h3>
-      <h3 class="value">{btc.chain}</h3>
+      <h3 class="value">{$btcinfo.chain}</h3>
     </section>
     <section class="value-wrap">
       <h3 class="title">BLOCK HEIGHT</h3>
-      <h3 class="value">{btc.blocks}</h3>
+      <h3 class="value">{$btcinfo.blocks}</h3>
     </section>
     <section class="value-wrap">
-        <h3 class="title">BLOCK HEADERS</h3>
-        <h3 class="value">{btc.headers}</h3>
-      </section>
+      <h3 class="title">BLOCK HEADERS</h3>
+      <h3 class="value">{$btcinfo.headers}</h3>
+    </section>
     <section class="value-wrap">
       <h3 class="title">PRUNED NODE</h3>
-      <h3 class="value">{btc.pruned}</h3>
+      <h3 class="value">{$btcinfo.pruned}</h3>
     </section>
-  {/each}
+    <Button on:click={mine}>Mine 6 Blocks</Button>
+  {/if}
 </div>
 
 <style>
