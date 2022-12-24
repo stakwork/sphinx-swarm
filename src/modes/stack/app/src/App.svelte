@@ -5,6 +5,8 @@
   import AddNode from "./AddNode.svelte";
   import { onMount } from "svelte";
   import * as api from "./api";
+  import { Button } from "carbon-components-svelte";
+  import NodeLogs from "./NodeLogs.svelte";
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
@@ -26,6 +28,9 @@
       <div class="title">{$selectedNode.name}</div>
     {/if}
 
+    {#if $selectedNode && $selectedNode.place === "Internal"}
+        <NodeLogs nodeName={$selectedNode.name} />
+    {/if}
     <AddNode />
   </header>
   <div class="body">

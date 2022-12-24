@@ -1,5 +1,6 @@
 use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
+use crate::dock::container_logs;
 use crate::images::Image;
 use anyhow::{anyhow, Result};
 use bollard::Docker;
@@ -20,6 +21,10 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             SwarmCmd::AddNode(node) => {
                 // add a node via docker
                 None
+            }
+            SwarmCmd::GetContainerLogs(container_name)  => {
+                let logs = container_logs(docker, &container_name).await;
+                Some(serde_json::to_string(&logs)?)
             }
         },
         Cmd::Relay(c) => match c {

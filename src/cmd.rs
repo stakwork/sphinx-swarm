@@ -15,6 +15,7 @@ pub enum Cmd {
 pub enum SwarmCmd {
     GetConfig,
     AddNode(Image),
+    GetContainerLogs(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
