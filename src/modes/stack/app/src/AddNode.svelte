@@ -42,10 +42,10 @@
       place: "Internal",
     };
     return console.log(newNode);
-    stack.update((s) => ({
-      network: s.network,
-      nodes: [...s.nodes, newNode],
-    }));
+    // stack.update((s) => ({
+    //   network: s.network,
+    //   nodes: [...s.nodes, newNode],
+    // }));
   }
   function typeSelected() {
     // reset the state

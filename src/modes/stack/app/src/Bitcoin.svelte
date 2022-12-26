@@ -2,7 +2,7 @@
   import * as api from "./api";
   import { onMount } from "svelte";
   import { btcinfo } from "./store";
-  import { Button } from "carbon-components-svelte";
+  import BitcoinMine from "./BitcoinMine.svelte";
 
   export let tag = "";
 
@@ -15,9 +15,6 @@
     getBitcoinInfo();
   });
 
-  async function mine() {
-    console.log("test mine?");
-  }
 </script>
 
 <div class="bitcoin-wrapper">
@@ -40,8 +37,8 @@
       <h3 class="title">PRUNED NODE</h3>
       <h3 class="value">{$btcinfo.pruned}</h3>
     </section>
-    <Button on:click={mine}>Mine 6 Blocks</Button>
   {/if}
+  <BitcoinMine {tag}/>
 </div>
 
 <style>
