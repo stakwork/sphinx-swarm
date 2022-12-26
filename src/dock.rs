@@ -70,7 +70,7 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
 }
 
 pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
-    let tail_name = "LOGS_TAIL_VALUE";
+    let tail_name = "LOG_TAIL_LENGTH";
     let tail = env::var(tail_name).unwrap_or(100.to_string());
 
     let options = Some(LogsOptions::<String> {
@@ -79,6 +79,7 @@ pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
         tail,
         ..Default::default()
     });
+
     let mut stream = docker.logs(name, options);
     let mut ret: Vec<String> = Vec::new();
     while let Some(lg) = stream.next().await {
