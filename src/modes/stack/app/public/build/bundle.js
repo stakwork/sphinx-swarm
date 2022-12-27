@@ -36965,7 +36965,7 @@ var app = (function () {
     const { console: console_1 } = globals;
     const file$3 = "src/AddNode.svelte";
 
-    // (47:2) <Button type="submit" size="field" icon={Add} on:click={() => (open = true)}     >
+    // (43:2) <Button type="submit" size="field" icon={Add} on:click={() => (open = true)}     >
     function create_default_slot_1$1(ctx) {
     	let t;
 
@@ -36985,14 +36985,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_1$1.name,
     		type: "slot",
-    		source: "(47:2) <Button type=\\\"submit\\\" size=\\\"field\\\" icon={Add} on:click={() => (open = true)}     >",
+    		source: "(43:2) <Button type=\\\"submit\\\" size=\\\"field\\\" icon={Add} on:click={() => (open = true)}     >",
     		ctx
     	});
 
     	return block;
     }
 
-    // (51:2) <Modal     bind:open     modalHeading="Add Node"     hasForm={true}     class="new-node-modal"     size="sm"     primaryButtonText="Add"     secondaryButtonText="Cancel"     on:click:button--secondary={() => (open = !open)}     on:submit={add}     primaryButtonDisabled={!ok}   >
+    // (47:2) <Modal     bind:open     modalHeading="Add Node"     hasForm={true}     class="new-node-modal"     size="sm"     primaryButtonText="Add"     secondaryButtonText="Cancel"     on:click:button--secondary={() => (open = !open)}     on:submit={add}     primaryButtonDisabled={!ok}   >
     function create_default_slot$1(ctx) {
     	let section;
     	let dropdown;
@@ -37073,11 +37073,11 @@ var app = (function () {
     			t3 = space();
     			create_component(multiselect.$$.fragment);
     			attr_dev(div0, "class", "spacer svelte-hnvoob");
-    			add_location(div0, file$3, 69, 6, 1636);
+    			add_location(div0, file$3, 65, 6, 1526);
     			attr_dev(div1, "class", "spacer svelte-hnvoob");
-    			add_location(div1, file$3, 75, 6, 1784);
+    			add_location(div1, file$3, 71, 6, 1674);
     			attr_dev(section, "class", "modal-content svelte-hnvoob");
-    			add_location(section, file$3, 62, 4, 1453);
+    			add_location(section, file$3, 58, 4, 1343);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, section, anchor);
@@ -37147,7 +37147,7 @@ var app = (function () {
     		block,
     		id: create_default_slot$1.name,
     		type: "slot",
-    		source: "(51:2) <Modal     bind:open     modalHeading=\\\"Add Node\\\"     hasForm={true}     class=\\\"new-node-modal\\\"     size=\\\"sm\\\"     primaryButtonText=\\\"Add\\\"     secondaryButtonText=\\\"Cancel\\\"     on:click:button--secondary={() => (open = !open)}     on:submit={add}     primaryButtonDisabled={!ok}   >",
+    		source: "(47:2) <Modal     bind:open     modalHeading=\\\"Add Node\\\"     hasForm={true}     class=\\\"new-node-modal\\\"     size=\\\"sm\\\"     primaryButtonText=\\\"Add\\\"     secondaryButtonText=\\\"Cancel\\\"     on:click:button--secondary={() => (open = !open)}     on:submit={add}     primaryButtonDisabled={!ok}   >",
     		ctx
     	});
 
@@ -37207,7 +37207,7 @@ var app = (function () {
     			t = space();
     			create_component(modal.$$.fragment);
     			attr_dev(section, "class", "add-node-btn svelte-hnvoob");
-    			add_location(section, file$3, 45, 0, 1026);
+    			add_location(section, file$3, 41, 0, 916);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -37292,11 +37292,8 @@ var app = (function () {
     	function add() {
     		const newNode = { name, type, links, place: "Internal" };
     		return console.log(newNode);
-    	} // stack.update((s) => ({
-    	//   network: s.network,
+    	}
 
-    	//   nodes: [...s.nodes, newNode],
-    	// }));
     	function typeSelected() {
     		// reset the state
     		$$invalidate(3, links = []);
