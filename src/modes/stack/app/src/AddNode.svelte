@@ -34,6 +34,8 @@
       text: c,
     }));
 
+  $: ok = name && type;
+
   function add() {
     const newNode: Node = {
       name,
@@ -42,18 +44,13 @@
       place: "Internal",
     };
     return console.log(newNode);
-    stack.update((s) => ({
-      network: s.network,
-      nodes: [...s.nodes, newNode],
-    }));
   }
+
   function typeSelected() {
     // reset the state
     links = [];
     name = "";
   }
-
-  $: ok = name && type;
 </script>
 
 <section class="add-node-btn">
