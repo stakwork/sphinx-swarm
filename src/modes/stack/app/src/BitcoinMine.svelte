@@ -7,18 +7,26 @@
   import * as api from "./api";
 
   export let tag = "";
+  export let getBitcoinInfo = () => {};
+
   let open = false;
   $: blockLen = 6;
   $: addresss = "";
+  $: ok = blockLen && addresss;
 
   async function mine() {
     const result = await api.btc.test_mine(tag, blockLen, addresss);
     if (result) {
         open = false;
+
+        // Set values to default
+        blockLen = 6;
+        addresss = "";
+        
+        // Get new Bitcoin info
+        getBitcoinInfo();
     }
   }
-
-  $: ok = blockLen && addresss;
 </script>
 
 <section class="mine-blocks-btn">

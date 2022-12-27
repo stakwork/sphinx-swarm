@@ -38,7 +38,7 @@
       <h3 class="value">{$btcinfo.pruned}</h3>
     </section>
   {/if}
-  <BitcoinMine {tag}/>
+  <BitcoinMine {getBitcoinInfo} {tag}/>
 </div>
 
 <style>
