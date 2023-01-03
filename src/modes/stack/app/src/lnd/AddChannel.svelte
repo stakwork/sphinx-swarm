@@ -25,7 +25,6 @@
     <TextInput
       labelText={"Pubkey"}
       placeholder={"Enter node pubkey"}
-      type="number"
       bind:value={pubkey}
     />
     <div class="spacer" />
