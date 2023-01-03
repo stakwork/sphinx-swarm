@@ -37168,15 +37168,15 @@ var app = (function () {
     		block,
     		id: create_default_slot_1$3.name,
     		type: "slot",
-    		source: "(146:16) <DotWrap>",
+    		source: "(66:12) <DotWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (153:18) <ReceiveLineWrap>
-    function create_default_slot$3(ctx) {
+    // (73:14) <ReceiveLineWrap>
+    function create_default_slot$2(ctx) {
     	let receiveline0;
     	let t;
     	let receiveline1;
@@ -37227,77 +37227,14 @@ var app = (function () {
     		block,
     		id: create_default_slot$3.name,
     		type: "slot",
-    		source: "(153:18) <ReceiveLineWrap>",
+    		source: "(73:14) <ReceiveLineWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (162:14) {:else}
-    function create_else_block_1(ctx) {
-    	let td;
-
-    	const block = {
-    		c: function create() {
-    			td = element("td");
-    			td.textContent = `${""}`;
-    			add_location(td, file$7, 162, 16, 4074);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, td, anchor);
-    		},
-    		p: noop$1,
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(td);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_else_block_1.name,
-    		type: "else",
-    		source: "(162:14) {:else}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (160:14) {#if chan.alias}
-    function create_if_block_2$1(ctx) {
-    	let td;
-    	let t_value = /*chan*/ ctx[11].alias + "";
-    	let t;
-
-    	const block = {
-    		c: function create() {
-    			td = element("td");
-    			t = text(t_value);
-    			add_location(td, file$7, 160, 16, 4014);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, td, anchor);
-    			append_dev(td, t);
-    		},
-    		p: noop$1,
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(td);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block_2$1.name,
-    		type: "if",
-    		source: "(160:14) {#if chan.alias}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (143:10) {#each mockChannels as chan}
+    // (63:8) {#each $channels as chan }
     function create_each_block(ctx) {
     	let tr;
     	let td0;
@@ -37356,14 +37293,16 @@ var app = (function () {
     			td2 = element("td");
     			t4 = text(t4_value);
     			t5 = space();
-    			if_block.c();
-    			t6 = space();
-    			add_location(td0, file$7, 144, 14, 3412);
+    			td3 = element("td");
+    			td3.textContent = `${""}`;
+    			t7 = space();
+    			add_location(td0, file$3, 64, 10, 1846);
     			attr_dev(section, "class", "can-receive-wrap");
-    			add_location(section, file$7, 150, 16, 3570);
-    			add_location(td1, file$7, 149, 14, 3549);
-    			add_location(td2, file$7, 158, 14, 3919);
-    			add_location(tr, file$7, 143, 12, 3393);
+    			add_location(section, file$3, 70, 12, 1980);
+    			add_location(td1, file$3, 69, 10, 1963);
+    			add_location(td2, file$3, 78, 10, 2297);
+    			add_location(td3, file$3, 79, 10, 2355);
+    			add_location(tr, file$3, 63, 8, 1831);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, tr, anchor);
@@ -37423,7 +37362,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(143:10) {#each mockChannels as chan}",
+    		source: "(63:8) {#each $channels as chan }",
     		ctx
     	});
 
@@ -37530,30 +37469,55 @@ var app = (function () {
     			t11 = space();
     			span1 = element("span");
     			span1.textContent = "SAT";
-    			t13 = space();
-    			if_block.c();
-    			attr_dev(section0, "class", "header-btns svelte-1e0bkwa");
-    			add_location(section0, file$7, 88, 2, 2209);
-    			attr_dev(h60, "class", "title svelte-1e0bkwa");
-    			add_location(h60, file$7, 115, 6, 2693);
-    			attr_dev(span0, "class", "svelte-1e0bkwa");
-    			add_location(span0, file$7, 117, 46, 2811);
-    			attr_dev(h30, "class", "value svelte-1e0bkwa");
-    			add_location(h30, file$7, 116, 6, 2746);
-    			attr_dev(aside0, "class", "svelte-1e0bkwa");
-    			add_location(aside0, file$7, 114, 4, 2679);
-    			attr_dev(h61, "class", "title svelte-1e0bkwa");
-    			add_location(h61, file$7, 121, 6, 2871);
-    			attr_dev(span1, "class", "svelte-1e0bkwa");
-    			add_location(span1, file$7, 123, 47, 2991);
-    			attr_dev(h31, "class", "value svelte-1e0bkwa");
-    			add_location(h31, file$7, 122, 6, 2925);
-    			attr_dev(aside1, "class", "svelte-1e0bkwa");
-    			add_location(aside1, file$7, 120, 4, 2857);
-    			attr_dev(section1, "class", "liquidity-wrap svelte-1e0bkwa");
-    			add_location(section1, file$7, 113, 2, 2642);
-    			attr_dev(div, "class", "wrap svelte-1e0bkwa");
-    			add_location(div, file$7, 87, 0, 2188);
+    			t11 = space();
+    			section1 = element("section");
+    			table = element("table");
+    			thead = element("thead");
+    			th0 = element("th");
+    			t12 = space();
+    			th1 = element("th");
+    			th1.textContent = "CAN RECEIVE";
+    			t14 = space();
+    			th2 = element("th");
+    			th2.textContent = "CAN SEND";
+    			t16 = space();
+    			th3 = element("th");
+    			th3.textContent = "PEER / ALIAS";
+    			t18 = space();
+    			tbody = element("tbody");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			attr_dev(h60, "class", "title svelte-blfsb5");
+    			add_location(h60, file$3, 44, 6, 1277);
+    			attr_dev(span0, "class", "svelte-blfsb5");
+    			add_location(span0, file$3, 45, 61, 1385);
+    			attr_dev(h30, "class", "value svelte-blfsb5");
+    			add_location(h30, file$3, 45, 6, 1330);
+    			attr_dev(aside0, "class", "svelte-blfsb5");
+    			add_location(aside0, file$3, 43, 4, 1263);
+    			attr_dev(h61, "class", "title svelte-blfsb5");
+    			add_location(h61, file$3, 48, 6, 1438);
+    			attr_dev(span1, "class", "svelte-blfsb5");
+    			add_location(span1, file$3, 49, 63, 1549);
+    			attr_dev(h31, "class", "value svelte-blfsb5");
+    			add_location(h31, file$3, 49, 6, 1492);
+    			attr_dev(aside1, "class", "svelte-blfsb5");
+    			add_location(aside1, file$3, 47, 4, 1424);
+    			attr_dev(section0, "class", "liquidity-wrap svelte-blfsb5");
+    			add_location(section0, file$3, 42, 2, 1226);
+    			add_location(th0, file$3, 56, 8, 1667);
+    			add_location(th1, file$3, 57, 8, 1682);
+    			add_location(th2, file$3, 58, 8, 1711);
+    			add_location(th3, file$3, 59, 8, 1737);
+    			add_location(thead, file$3, 55, 6, 1651);
+    			add_location(tbody, file$3, 61, 6, 1780);
+    			add_location(table, file$3, 54, 4, 1637);
+    			attr_dev(section1, "class", "lnd-table-wrap");
+    			add_location(section1, file$3, 53, 2, 1600);
+    			add_location(div, file$3, 41, 0, 1218);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -37687,6 +37651,8 @@ var app = (function () {
     	async function listChannels() {
     		if ($channels && $channels.length) return;
     		const channelsData = await list_channels(tag);
+
+    		// console.log("Channel Data ===", channelsData);
     		channels.set(channelsData);
     	}
 

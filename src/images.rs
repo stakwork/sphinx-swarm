@@ -142,11 +142,12 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     };
     let version = "v0.14.3-beta.rc1".to_string();
     // let peering_port = "9735";
-    let peering_port = format!("973{}",  rng.gen_range(0..9));
+    let peering_port = format!("973{}", rng.gen_range(0..9));
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     let root_vol = "/root/.lnd";
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
+        format!("--bitcoin.active").to_string(),
         format!("--bitcoin.{}", network).to_string(),
         format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
         format!("--tlsextradomain={}.sphinx", lnd.name).to_string(),
@@ -161,8 +162,6 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         "--bitcoin.active".to_string(),
         "--bitcoin.node=bitcoind".to_string(),
         "--bitcoin.defaultchanconfs=2".to_string(),
-        // "-rpcbind=127.0.0.1".to_string(),
-        // "-rpcbind=0.0.0.0".to_string(),
     ];
     if let Some(hp) = lnd.http_port.clone() {
         ports.push(hp.clone());
