@@ -1,3 +1,7 @@
+# Sphinx Swarm
+
+Sphinx Swarm is a Bitcoin / Lightning container orchestration for massive deployments
+
 ### requirments
 
  - An installed and running Docker daemon
