@@ -63,18 +63,6 @@ async fn add_node(
             let client = LndRPC::new(proj, &lnd).await?;
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
-
-            let lnd_image_2 = LndImage {
-                name: "lnd2".to_string(),
-                network: "regtest".to_string(),
-                port: "10010".to_string(),
-                http_port: Some("8882".to_string()),
-                unlock_password: "1FIoxWHfb8Qr".to_string(),
-                links: vec![],
-            };
-
-            let lnd2 = images::lnd(proj, &lnd_image_2, &btc);
-            let lnd_id2 = create_and_start(&docker, lnd2).await?;
         }
         Image::Proxy(proxy) => {
             let lnd_name = proxy.links.get(0).context("Proxy requires a LND")?;

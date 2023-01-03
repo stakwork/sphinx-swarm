@@ -4,7 +4,6 @@ use crate::utils::{
     domain, exposed_ports, files_volume, host_config, manual_host_config, user, volume_string,
 };
 use bollard::container::Config;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 // volumes are mapped to {PWD}/vol/{name}:
@@ -141,8 +140,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         _ => "regtest",
     };
     let version = "v0.14.3-beta.rc1".to_string();
-    // let peering_port = "9735";
-    let peering_port = format!("973{}", rng.gen_range(0..9));
+    let peering_port = "9735";
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     let root_vol = "/root/.lnd";
     let links = Some(vec![domain(&btc.name)]);
