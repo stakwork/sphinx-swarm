@@ -37079,15 +37079,15 @@ var app = (function () {
     				each_blocks[i].c();
     			}
 
-    			add_location(th0, file$7, 136, 10, 3246);
-    			add_location(th1, file$7, 137, 10, 3263);
-    			add_location(th2, file$7, 138, 10, 3294);
-    			add_location(th3, file$7, 139, 10, 3322);
-    			add_location(thead, file$7, 135, 8, 3228);
-    			add_location(tbody, file$7, 141, 8, 3369);
-    			add_location(table, file$7, 134, 6, 3212);
+    			add_location(th0, file$7, 136, 10, 3248);
+    			add_location(th1, file$7, 137, 10, 3265);
+    			add_location(th2, file$7, 138, 10, 3296);
+    			add_location(th3, file$7, 139, 10, 3324);
+    			add_location(thead, file$7, 135, 8, 3230);
+    			add_location(tbody, file$7, 141, 8, 3371);
+    			add_location(table, file$7, 134, 6, 3214);
     			attr_dev(section, "class", "lnd-table-wrap");
-    			add_location(section, file$7, 133, 4, 3173);
+    			add_location(section, file$7, 133, 4, 3175);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, section, anchor);
@@ -37269,7 +37269,9 @@ var app = (function () {
     	let current;
 
     	dot = new Dot({
-    			props: { color: "#ED7474;" },
+    			props: {
+    				color: /*chan*/ ctx[11].active ? '#52B550' : `#ED7474`
+    			},
     			$$inline: true
     		});
 
@@ -37374,7 +37376,7 @@ var app = (function () {
     		c: function create() {
     			td = element("td");
     			td.textContent = `${""}`;
-    			add_location(td, file$7, 162, 16, 4109);
+    			add_location(td, file$7, 162, 16, 4136);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, td, anchor);
@@ -37406,7 +37408,7 @@ var app = (function () {
     		c: function create() {
     			td = element("td");
     			t = text(t_value);
-    			add_location(td, file$7, 160, 16, 4049);
+    			add_location(td, file$7, 160, 16, 4076);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, td, anchor);
@@ -37490,12 +37492,12 @@ var app = (function () {
     			t5 = space();
     			if_block.c();
     			t6 = space();
-    			add_location(td0, file$7, 144, 14, 3447);
+    			add_location(td0, file$7, 144, 14, 3449);
     			attr_dev(section, "class", "can-receive-wrap");
-    			add_location(section, file$7, 150, 16, 3605);
-    			add_location(td1, file$7, 149, 14, 3584);
-    			add_location(td2, file$7, 158, 14, 3954);
-    			add_location(tr, file$7, 143, 12, 3428);
+    			add_location(section, file$7, 150, 16, 3632);
+    			add_location(td1, file$7, 149, 14, 3611);
+    			add_location(td2, file$7, 158, 14, 3981);
+    			add_location(tr, file$7, 143, 12, 3430);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, tr, anchor);
@@ -37665,27 +37667,27 @@ var app = (function () {
     			t13 = space();
     			if_block.c();
     			attr_dev(section0, "class", "header-btns svelte-1e0bkwa");
-    			add_location(section0, file$7, 88, 2, 2211);
+    			add_location(section0, file$7, 88, 2, 2213);
     			attr_dev(h60, "class", "title svelte-1e0bkwa");
-    			add_location(h60, file$7, 115, 6, 2695);
+    			add_location(h60, file$7, 115, 6, 2697);
     			attr_dev(span0, "class", "svelte-1e0bkwa");
-    			add_location(span0, file$7, 117, 46, 2813);
+    			add_location(span0, file$7, 117, 46, 2815);
     			attr_dev(h30, "class", "value svelte-1e0bkwa");
-    			add_location(h30, file$7, 116, 6, 2748);
+    			add_location(h30, file$7, 116, 6, 2750);
     			attr_dev(aside0, "class", "svelte-1e0bkwa");
-    			add_location(aside0, file$7, 114, 4, 2681);
+    			add_location(aside0, file$7, 114, 4, 2683);
     			attr_dev(h61, "class", "title svelte-1e0bkwa");
-    			add_location(h61, file$7, 121, 6, 2873);
+    			add_location(h61, file$7, 121, 6, 2875);
     			attr_dev(span1, "class", "svelte-1e0bkwa");
-    			add_location(span1, file$7, 123, 47, 2993);
+    			add_location(span1, file$7, 123, 47, 2995);
     			attr_dev(h31, "class", "value svelte-1e0bkwa");
-    			add_location(h31, file$7, 122, 6, 2927);
+    			add_location(h31, file$7, 122, 6, 2929);
     			attr_dev(aside1, "class", "svelte-1e0bkwa");
-    			add_location(aside1, file$7, 120, 4, 2859);
+    			add_location(aside1, file$7, 120, 4, 2861);
     			attr_dev(section1, "class", "liquidity-wrap svelte-1e0bkwa");
-    			add_location(section1, file$7, 113, 2, 2644);
+    			add_location(section1, file$7, 113, 2, 2646);
     			attr_dev(div, "class", "wrap svelte-1e0bkwa");
-    			add_location(div, file$7, 87, 0, 2190);
+    			add_location(div, file$7, 87, 0, 2192);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -37843,14 +37845,14 @@ var app = (function () {
     			remote_balance: 280288
     		},
     		{
-    			active: true,
+    			active: false,
     			remote_pubkey: "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
     			capacity: 400000,
     			local_balance: 180000,
     			remote_balance: 200000
     		},
     		{
-    			active: true,
+    			active: false,
     			remote_pubkey: "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b77f",
     			capacity: 450000,
     			local_balance: 18986,

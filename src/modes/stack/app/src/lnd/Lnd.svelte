@@ -59,7 +59,7 @@
       remote_balance: 280288,
     },
     {
-      active: true,
+      active: false,
       remote_pubkey:
         "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
       capacity: 400000,
@@ -67,7 +67,7 @@
       remote_balance: 200000,
     },
     {
-      active: true,
+      active: false,
       remote_pubkey:
         "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b77f",
       capacity: 450000,
@@ -144,7 +144,7 @@
             <tr>
               <td>
                 <DotWrap>
-                  <Dot color={"#ED7474;"} />
+                  <Dot color={chan.active ? '#52B550' : `#ED7474`} />
                 </DotWrap>
               </td>
               <td>
