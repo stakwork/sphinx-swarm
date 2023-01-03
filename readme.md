@@ -1,3 +1,8 @@
+### requirments
+
+ - An installed and running Docker daemon
+ - Rust and Cargo installed
+ 
 ### stack
 
 `cargo run stack`
