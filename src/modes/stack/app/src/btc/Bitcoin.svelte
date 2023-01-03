@@ -1,7 +1,7 @@
 <script>
-  import * as api from "./api";
+  import * as api from "../api";
   import { onMount } from "svelte";
-  import { btcinfo } from "./store";
+  import { btcinfo } from "../store";
   import BitcoinMine from "./BitcoinMine.svelte";
 
   export let tag = "";

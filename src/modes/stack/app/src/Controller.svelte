@@ -3,9 +3,9 @@
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
-  import TribeControls from "./TribeControls.svelte";
-  import Lnd from "./Lnd.svelte";
-  import Bitcoin from "./Bitcoin.svelte";
+  import TribeControls from "./tribes/TribeControls.svelte";
+  import Lnd from "./lnd/Lnd.svelte";
+  import Bitcoin from "./btc/Bitcoin.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];

@@ -201,6 +201,11 @@ html {
 	font-weight: 600;
 }
 
+
+.lnd-table-wrap table thead th:first-child {
+	min-width: 10%;
+}
+
 .lnd-table-wrap table tbody {
 	padding: 20px 0px;
 }
@@ -217,7 +222,7 @@ html {
 }
 
 .lnd-table-wrap table tbody tr td:first-child {
-	width: 10%;
+	min-width: 10%;
 	text-align: center;
 }
 
@@ -263,4 +268,10 @@ html {
 
 .receive-line:not(:first-child) {
 	margin-left: 10px;
+}
+
+.peer-btn .bx--btn--primary {
+    width: 100vw;
+	text-align: center;
+	padding: 0;
 }

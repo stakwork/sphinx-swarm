@@ -48,14 +48,36 @@ async fn add_node(
                 .as_btc()?;
             let lnd1 = images::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
+
+            let lnd_image_2 = LndImage {
+                name: "lnd2".to_string(),
+                network: "regtest".to_string(),
+                port: "10010".to_string(),
+                http_port: Some("8882".to_string()),
+                unlock_password: "1FIoxWHfb8Qr".to_string(),
+                links: vec!(),
+            };
+
+            let lnd2 = images::lnd(proj, &lnd_image_2, &btc);
+            let lnd_id2 = create_and_start(&docker, lnd2).await?;
+
             ids.insert(lnd.name.clone(), lnd_id.clone());
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
+            if let Err(e) = unlock_lnd(proj, &lnd, &secs, &lnd.name).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
             let client = LndRPC::new(proj, &lnd).await?;
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
+
+            // ids.insert(lnd_image_2.name.clone(), lnd_id2.clone());
+            // tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            // if let Err(e) = unlock_lnd(proj, &lnd_image_2, &secs, &lnd_image_2.name).await {
+            //     log::error!("ERROR UNLOCKING LND 2 {:?}", e);
+            // };
+            // let client = LndRPC::new(proj, &lnd_image_2).await?;
+            // clients.lnd.insert(lnd_image_2.name, client);
+            // log::info!("created LND 2 {}", lnd_id2);
         }
         Image::Proxy(proxy) => {
             let lnd_name = proxy.links.get(0).context("Proxy requires a LND")?;
@@ -121,9 +143,9 @@ async fn build_stack(
     Ok((ids, clients))
 }
 
-async fn unlock_lnd(proj: &str, lnd_node: &LndImage, secs: &secrets::Secrets) -> Result<()> {
+async fn unlock_lnd(proj: &str, lnd_node: &LndImage, secs: &secrets::Secrets, name: &str) -> Result<()> {
     // INIT LND
-    let cert_path = format!("vol/{}/lnd1/tls.cert", proj);
+    let cert_path = format!("vol/{}/{}/tls.cert", proj, name);
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
     let unlocker = LndUnlocker::new(&unlock_port, &cert_path).await?;
     if let Some(_) = secs.get(&lnd_node.name) {

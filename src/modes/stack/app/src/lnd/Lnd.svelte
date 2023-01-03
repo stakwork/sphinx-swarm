@@ -1,17 +1,22 @@
 <script>
   import { onMount } from "svelte";
 
-  import ReceiveLineWrap from "./reusable/ReceiveLineWrap.svelte";
-  import ReceiveLine from "./reusable/ReceiveLine.svelte";
-  import DotWrap from "./reusable/DotWrap.svelte";
-  import Dot from "./reusable/Dot.svelte";
+  import ReceiveLineWrap from "../reusable/ReceiveLineWrap.svelte";
+  import ReceiveLine from "../reusable/ReceiveLine.svelte";
+  import DotWrap from "../reusable/DotWrap.svelte";
+  import Dot from "../reusable/Dot.svelte";
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { channels, balances } from "./store";
+  import { channels, balances } from "../store";
+  import AddPeer from "./AddPeer.svelte";
+  import AddChannel from "./AddChannel.svelte";
 
-  import { get_info, list_channels } from "./api/lnd";
+  import { get_info, list_channels } from "../api/lnd";
 
   export let tag = "";
+
+  $: add_peer = false;
+  $: add_channel = false;
 
   let lndData = {};
 
@@ -23,7 +28,6 @@
   async function listChannels() {
     if ($channels && $channels.length) return;
     const channelsData = await list_channels(tag);
-    // console.log("Channel Data ===", channelsData);
     channels.set(channelsData);
   }
 
@@ -54,29 +58,57 @@
       local_balance: 218986,
       remote_balance: 280288,
     },
+    {
+      active: true,
+      remote_pubkey:
+        "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
+      capacity: 400000,
+      local_balance: 180000,
+      remote_balance: 200000,
+    },
+    {
+      active: true,
+      remote_pubkey:
+        "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b77f",
+      capacity: 450000,
+      local_balance: 18986,
+      remote_balance: 200288,
+    },
   ];
+
+  function toggleAddPeer() {
+    add_peer = !add_peer;
+  }
+
+  function toggleAddChannel() {
+    add_channel = !add_channel;
+  }
 </script>
 
 <div class="wrap">
   <section class="header-btns">
     <Button
-      on:click={() => {}}
       kind="tertiary"
       type="submit"
       size="field"
       icon={Add}
-      disabled={false}>Add Peer</Button
+      disabled={false}
+      on:click={toggleAddPeer}
     >
+      Add Peer
+    </Button>
 
     <Button
-      on:click={() => {}}
       kind="tertiary"
       type="submit"
       size="field"
       icon={Add}
       class="channel"
-      disabled={false}>Add Channel</Button
+      disabled={false}
+      on:click={toggleAddChannel}
     >
+      Add Channel
+    </Button>
   </section>
 
   <section class="liquidity-wrap">
@@ -94,75 +126,48 @@
     </aside>
   </section>
 
-  <section class="lnd-table-wrap">
-    <table>
-      <thead>
-        <th />
-        <th>CAN RECEIVE</th>
-        <th>CAN SEND</th>
-        <th>PEER / ALIAS</th>
-      </thead>
-      <tbody>
-        {#each $channels as chan}
-          <tr>
-            <td>
-              <DotWrap>
-                <Dot color={"#ED7474;"} />
-              </DotWrap>
-            </td>
-            <td>
-              <section class="can-receive-wrap">
-                {formatSatNumbers(chan.remote_balance)}
-                <ReceiveLineWrap>
-                  <ReceiveLine color={"#ED7474"} />
-                  <ReceiveLine color={"#ED7474"} width={"80%"} />
-                </ReceiveLineWrap>
-              </section>
-            </td>
-            <td>{formatSatNumbers(chan.local_balance)}</td>
-            <td>{""}</td>
-          </tr>
-        {/each}
-
-        <tr>
-          <td>
-            <DotWrap>
-              <Dot color={"#ED7474;"} />
-            </DotWrap>
-          </td>
-          <td>
-            <section class="can-receive-wrap">
-              {"3 125 000"}
-              <ReceiveLineWrap>
-                <ReceiveLine color={"#3ba839"} width={"40%"} />
-                <ReceiveLine color={"#3ba839"} width={"60%"} />
-              </ReceiveLineWrap>
-            </section>
-          </td>
-          <td>{"2 525 000"}</td>
-          <td>ACINQ</td>
-        </tr>
-        <tr>
-          <td>
-            <DotWrap>
-              <Dot color={"#ED7474;"} />
-            </DotWrap>
-          </td>
-          <td>
-            <section class="can-receive-wrap">
-              {"2 125 000"}
-              <ReceiveLineWrap>
-                <ReceiveLine color={"#F2BC52"} width={"45%"} />
-                <ReceiveLine color={"#F2BC52"} width={"55%"} />
-              </ReceiveLineWrap>
-            </section>
-          </td>
-          <td>{"2 525 000"}</td>
-          <td>bitrefill.com</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+  {#if add_peer}
+    <AddPeer />
+  {:else if add_channel}
+    <AddChannel />
+  {:else}
+    <section class="lnd-table-wrap">
+      <table>
+        <thead>
+          <th />
+          <th>CAN RECEIVE</th>
+          <th>CAN SEND</th>
+          <th>PEER / ALIAS</th>
+        </thead>
+        <tbody>
+          {#each mockChannels as chan}
+            <tr>
+              <td>
+                <DotWrap>
+                  <Dot color={"#ED7474;"} />
+                </DotWrap>
+              </td>
+              <td>
+                <section class="can-receive-wrap">
+                  {formatSatNumbers(chan.remote_balance)}
+                  <ReceiveLineWrap>
+                    <ReceiveLine color={"#ED7474"} />
+                    <ReceiveLine color={"#ED7474"} width={"80%"} />
+                  </ReceiveLineWrap>
+                </section>
+              </td>
+              <td>{formatSatNumbers(chan.local_balance)}</td>
+              {#if chan.alias}
+                <td>{chan.alias}</td>
+              {:else}
+                <td>{""}</td>
+              {/if}
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </section>
+  {/if}
 </div>
 
 <style>

@@ -4,6 +4,7 @@ use crate::utils::{
     domain, exposed_ports, files_volume, host_config, manual_host_config, user, volume_string,
 };
 use bollard::container::Config;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 // volumes are mapped to {PWD}/vol/{name}:
@@ -131,6 +132,8 @@ impl ProxyImage {
 }
 
 pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
+    let mut rng = rand::thread_rng();
+
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -138,7 +141,8 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         _ => "regtest",
     };
     let version = "v0.14.3-beta.rc1".to_string();
-    let peering_port = "9735";
+    // let peering_port = "9735";
+    let peering_port = format!("973{}",  rng.gen_range(0..9));
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     let root_vol = "/root/.lnd";
     let links = Some(vec![domain(&btc.name)]);
@@ -157,6 +161,8 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         "--bitcoin.active".to_string(),
         "--bitcoin.node=bitcoind".to_string(),
         "--bitcoin.defaultchanconfs=2".to_string(),
+        // "-rpcbind=127.0.0.1".to_string(),
+        // "-rpcbind=0.0.0.0".to_string(),
     ];
     if let Some(hp) = lnd.http_port.clone() {
         ports.push(hp.clone());
@@ -296,7 +302,6 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     ];
     let root_vol = "/home/bitcoin/.bitcoin";
     // let vols = vec!["/home/bitcoin/.bitcoin"];'
-    println!("Bitcoin Node Credentials {} {}", node.user, node.pass);
     Config {
         image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
         hostname: Some(domain(&node.name)),
