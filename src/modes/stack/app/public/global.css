@@ -245,7 +245,7 @@ html {
 }
 
 .can-receive-wrap {
-	display: flex; 
+	display: flex;
 	align-items: center;
 }
 
@@ -271,7 +271,7 @@ html {
 }
 
 .peer-btn .bx--btn--primary {
-    width: 100vw;
+	width: 100vw;
 	text-align: center;
 	padding: 0;
 }

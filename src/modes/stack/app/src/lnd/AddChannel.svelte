@@ -1,15 +1,25 @@
 <script>
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
+  import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
 
   $: pubkey = "";
   $: amount = "";
   $: sats = "";
 
   async function addChannel() {}
+
+  export let toggleAddChannel = () => {};
+
+  function back() {
+    toggleAddChannel();
+  }
 </script>
 
 <section class="channel-wrap">
+  <div class="back" on:click={back} on:keypress={() => {}}>
+    <ArrowLeft size={24} />
+  </div>
   <section class="channel-content">
     <div class="spacer" />
     <TextInput
@@ -44,5 +54,11 @@
 <style>
   .channel-wrap {
     padding: 20px 30px;
+  }
+
+  .back {
+    cursor: pointer;
+    height: 2rem;
+    width: 2rem;
   }
 </style>

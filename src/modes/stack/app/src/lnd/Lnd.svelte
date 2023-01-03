@@ -15,8 +15,8 @@
 
   export let tag = "";
 
-  $: add_peer = false;
-  $: add_channel = false;
+  let add_peer = false;
+  let add_channel = false;
 
   let lndData = {};
 
@@ -127,9 +127,9 @@
   </section>
 
   {#if add_peer}
-    <AddPeer />
+    <AddPeer {toggleAddPeer}/>
   {:else if add_channel}
-    <AddChannel />
+    <AddChannel {toggleAddChannel}/>
   {:else}
     <section class="lnd-table-wrap">
       <table>
