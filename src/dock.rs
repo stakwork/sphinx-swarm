@@ -7,6 +7,7 @@ use bollard::service::ContainerSummary;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
+use std::env;
 
 pub fn er() -> Docker {
     Docker::connect_with_socket_defaults().unwrap()
@@ -69,11 +70,16 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
 }
 
 pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
+    let tail_name = "LOG_TAIL_LENGTH";
+    let tail = env::var(tail_name).unwrap_or(100.to_string());
+
     let options = Some(LogsOptions::<String> {
         stdout: true,
         stderr: true,
+        tail,
         ..Default::default()
     });
+
     let mut stream = docker.logs(name, options);
     let mut ret: Vec<String> = Vec::new();
     while let Some(lg) = stream.next().await {

@@ -4,3 +4,4 @@ vol/*
 .DS_Store
 notes.md
 blah
+.env

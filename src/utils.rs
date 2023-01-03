@@ -1,6 +1,8 @@
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
-use bollard_stubs::models::{HostConfig, Ipam, IpamConfig, PortBinding, PortMap};
+use bollard_stubs::models::{
+    HostConfig, HostConfigLogConfig, Ipam, IpamConfig, PortBinding, PortMap, ResourcesUlimits,
+};
 use rocket::tokio::fs;
 use rocket::tokio::io::AsyncWriteExt;
 use serde::{de::DeserializeOwned, Serialize};
@@ -22,10 +24,61 @@ pub fn host_config(
     Some(HostConfig {
         binds: Some(dvols),
         port_bindings: host_port(ports),
-        extra_hosts: Some(vec!["host.docker.internal:host-gateway".to_string()]),
+        extra_hosts: extra_hosts(),
         links,
         ..Default::default()
     })
+}
+
+pub fn manual_host_config(
+    ports: Vec<String>,
+    vols: Option<Vec<String>>,
+    links: Option<Vec<String>>,
+    add_ulimits: bool,
+    add_log_limit: bool,
+) -> Option<HostConfig> {
+    let mut hc = HostConfig {
+        binds: vols,
+        port_bindings: host_port(ports),
+        extra_hosts: extra_hosts(),
+        links,
+        ..Default::default()
+    };
+    if add_ulimits {
+        hc.ulimits = ulimits();
+    }
+    if add_log_limit {
+        hc.log_config = log_limit();
+    }
+    Some(hc)
+}
+
+fn ulimits() -> Option<Vec<ResourcesUlimits>> {
+    Some(vec![
+        ResourcesUlimits {
+            name: Some("nproc".to_string()),
+            soft: Some(65535),
+            hard: Some(65535),
+        },
+        ResourcesUlimits {
+            name: Some("nofile".to_string()),
+            soft: Some(1000000),
+            hard: Some(1000000),
+        },
+    ])
+}
+
+fn log_limit() -> Option<HostConfigLogConfig> {
+    let mut config = HashMap::new();
+    config.insert("max-size".to_string(), "10m".to_string());
+    Some(HostConfigLogConfig {
+        typ: Some("options".to_string()),
+        config: Some(config),
+    })
+}
+
+fn extra_hosts() -> Option<Vec<String>> {
+    Some(vec!["host.docker.internal:host-gateway".to_string()])
 }
 
 pub fn user() -> Option<String> {

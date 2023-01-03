@@ -5,6 +5,7 @@
   import RelayControls from "./RelayControls.svelte";
   import TribeControls from "./TribeControls.svelte";
   import Lnd from "./Lnd.svelte";
+  import Bitcoin from "./Bitcoin.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -29,6 +30,8 @@
       <TribeControls url={$selectedNode.url} />
     {:else if type === "Lnd"}
       <Lnd {tag} />
+    {:else if type === "Btc"}
+      <Bitcoin {tag} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}
@@ -50,7 +53,7 @@
     height: calc(100vh - 4.2rem);
     overflow-y: auto;
     width: 23rem;
-    transition: width 10s;
+    /* transition: width 400ms; */
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
@@ -58,7 +61,7 @@
     background: #1a242e;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
     animation-name: sidebar;
-    animation-duration: 400ms;
+    animation-duration: 40ms;
   }
   header {
     font-size: 1rem;

@@ -14,6 +14,8 @@ mod utils;
 
 #[rocket::main]
 async fn main() {
+    dotenv::dotenv().ok();
+
     simple_logger::SimpleLogger::new()
         .with_utc_timestamps()
         .with_module_level("bollard", log::LevelFilter::Warn)

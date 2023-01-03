@@ -1,6 +1,7 @@
 use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
 use crate::conn::lnd::lndrpc::LndChannel;
+use crate::dock::container_logs;
 use crate::images::Image;
 use anyhow::{anyhow, Result};
 use bollard::Docker;
@@ -22,6 +23,10 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 // add a node via docker
                 None
             }
+            SwarmCmd::GetContainerLogs(container_name) => {
+                let logs = container_logs(docker, &container_name).await;
+                Some(serde_json::to_string(&logs)?)
+            }
         },
         Cmd::Relay(c) => match c {
             RelayCmd::AddUser => {
@@ -42,6 +47,10 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     let info = client.get_info()?;
                     Some(serde_json::to_string(&info)?)
                 }
+                BitcoindCmd::TestMine(tm) => {
+                    let res = client.test_mine(tm.blocks, &tm.address)?;
+                    Some(serde_json::to_string(&res)?)
+                }
             }
         }
         Cmd::Lnd(c) => {
@@ -54,9 +63,9 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 LndCmd::GetInfo => {
                     let info = client.get_info().await?;
                     Some(serde_json::to_string(&info)?)
-                },
+                }
                 LndCmd::ListChannels => {
-                    let mut lnd_channels:Vec<LndChannel> = Vec::new();
+                    let mut lnd_channels: Vec<LndChannel> = Vec::new();
 
                     let channel_list = client.list_channels().await?;
                     let channels = channel_list.channels;

@@ -7,3 +7,7 @@ async function swarmCmd(cmd: Cmd, content?: any) {
 export async function get_config() {
   return await swarmCmd("GetConfig");
 }
+
+export async function get_logs(name) {
+  return await swarmCmd("GetContainerLogs", name);
+}
