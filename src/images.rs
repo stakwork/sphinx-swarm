@@ -166,6 +166,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
         hostname: Some(domain(&lnd.name)),
+        user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(project, &lnd.name, ports, root_vol, None, links),
         cmd: Some(cmd),
@@ -179,6 +180,7 @@ pub fn postgres(project: &str) -> Config<String> {
     Config {
         image: Some("postgres".to_string()),
         hostname: Some(domain(name)),
+        user: user(),
         host_config: host_config(project, name, vec![], root_vol, None, None),
         ..Default::default()
     }
@@ -299,6 +301,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     Config {
         image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
         hostname: Some(domain(&node.name)),
+        user: user(),
         cmd: Some(vec![
             format!("-{}=1", node.network),
             format!("-rpcuser={}", node.user),
@@ -359,6 +362,7 @@ pub fn cln_vls(
     Config {
         image: Some(format!("sphinxlightning/sphinx-cln-vls:{}", version)),
         hostname: Some(domain(name)),
+        user: user(),
         domainname: Some(name.to_string()),
         cmd: Some(vec![
             format!("--alias=sphinx-{}", name),
