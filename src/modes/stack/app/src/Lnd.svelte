@@ -5,14 +5,13 @@
   import ReceiveLine from "./reusable/ReceiveLine.svelte";
   import DotWrap from "./reusable/DotWrap.svelte";
   import Dot from "./reusable/Dot.svelte";
-  import { channels } from "./store";
+  import { Button } from "carbon-components-svelte";
+  import Add from "carbon-icons-svelte/lib/Add.svelte";
+  import { channels, balances } from "./store";
 
   import { get_info, list_channels } from "./api/lnd";
 
   export let tag = "";
-
-  let inbound_capacity = $channels.length ? $channels.reduce((accumulator, chan) => accumulator + chan.remote_balance , 0) : 0;
-  let outbound_capacity = $channels.length ? $channels.reduce((accumulator, chan) => accumulator + chan.local_balance , 0) : 0;
 
   let lndData = {};
 
@@ -37,17 +36,61 @@
     await getLndInfo();
     await listChannels();
   });
+
+  const mockChannels = [
+    {
+      active: true,
+      remote_pubkey:
+        "0350587f325dcd6eb50b1c86874961c134be3ab2b9297d88e61443bb0531d7798e",
+      capacity: 100000,
+      local_balance: 6935,
+      remote_balance: 86541,
+    },
+    {
+      active: true,
+      remote_pubkey:
+        "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f",
+      capacity: 500000,
+      local_balance: 218986,
+      remote_balance: 280288,
+    },
+  ];
 </script>
 
-<div>
+<div class="wrap">
+  <section class="header-btns">
+    <Button
+      on:click={() => {}}
+      kind="tertiary"
+      type="submit"
+      size="field"
+      icon={Add}
+      disabled={false}>Add Peer</Button
+    >
+
+    <Button
+      on:click={() => {}}
+      kind="tertiary"
+      type="submit"
+      size="field"
+      icon={Add}
+      class="channel"
+      disabled={false}>Add Channel</Button
+    >
+  </section>
+
   <section class="liquidity-wrap">
     <aside>
       <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
-      <h3 class="value">{formatSatNumbers(inbound_capacity)} <span>SAT</span></h3>
+      <h3 class="value">
+        {formatSatNumbers($balances.inbound)} <span>SAT</span>
+      </h3>
     </aside>
     <aside>
       <h6 class="title">TOTAL OUTBOUND LIQUIDITY</h6>
-      <h3 class="value">{formatSatNumbers(outbound_capacity)}  <span>SAT</span></h3>
+      <h3 class="value">
+        {formatSatNumbers($balances.outbound)} <span>SAT</span>
+      </h3>
     </aside>
   </section>
 
@@ -60,28 +103,28 @@
         <th>PEER / ALIAS</th>
       </thead>
       <tbody>
-        {#each $channels as chan }
-        <tr>
-          <td>
-            <DotWrap>
-              <Dot color={"#ED7474;"} />
-            </DotWrap>
-          </td>
-          <td>
-            <section class="can-receive-wrap">
-              {formatSatNumbers(chan.remote_balance)}
-              <ReceiveLineWrap>
-                <ReceiveLine color={"#ED7474"} />
-                <ReceiveLine color={"#ED7474"} width={"80%"} />
-              </ReceiveLineWrap>
-            </section>
-          </td>
-          <td>{formatSatNumbers(chan.local_balance)}</td>
-          <td>{""}</td>
-        </tr>
+        {#each $channels as chan}
+          <tr>
+            <td>
+              <DotWrap>
+                <Dot color={"#ED7474;"} />
+              </DotWrap>
+            </td>
+            <td>
+              <section class="can-receive-wrap">
+                {formatSatNumbers(chan.remote_balance)}
+                <ReceiveLineWrap>
+                  <ReceiveLine color={"#ED7474"} />
+                  <ReceiveLine color={"#ED7474"} width={"80%"} />
+                </ReceiveLineWrap>
+              </section>
+            </td>
+            <td>{formatSatNumbers(chan.local_balance)}</td>
+            <td>{""}</td>
+          </tr>
         {/each}
-        
-        <!-- <tr>
+
+        <tr>
           <td>
             <DotWrap>
               <Dot color={"#ED7474;"} />
@@ -116,13 +159,16 @@
           </td>
           <td>{"2 525 000"}</td>
           <td>bitrefill.com</td>
-        </tr> -->
+        </tr>
       </tbody>
     </table>
   </section>
 </div>
 
 <style>
+  .wrap {
+    position: relative;
+  }
   .liquidity-wrap {
     background-color: #101317;
     padding: 25px 30px;
@@ -151,5 +197,13 @@
 
   .liquidity-wrap aside .value span {
     color: #6b7a8d;
+  }
+
+  .header-btns {
+    display: flex;
+    margin-left: auto;
+    position: absolute;
+    right: 1rem;
+    top: -3.3rem;
   }
 </style>
