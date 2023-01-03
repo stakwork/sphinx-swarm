@@ -84,7 +84,8 @@ fn extra_hosts() -> Option<Vec<String>> {
 pub fn user() -> Option<String> {
     let uid = std::env::var("DOCKER_USER_ID");
     if let Ok(id) = uid {
-        Some(format!("{}:{}", id, id))
+        // Some(format!("{}:{}", id, id))
+        Some(id)
     } else {
         None
     }
