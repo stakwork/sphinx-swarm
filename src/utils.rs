@@ -112,7 +112,7 @@ pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
-        "{}/vol/{}/{}:{}:z",
+        "{}/vol/{}/{}:{}:rw", // "{}/vol/{}/{}:{}:z",
         pwd.to_string_lossy(),
         project,
         name,
