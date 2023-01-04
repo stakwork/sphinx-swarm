@@ -2,6 +2,8 @@
 
 Sphinx Swarm is a Bitcoin / Lightning container orchestration for massive deployments
 
+With swarm you can create and interact with a Bitcoin, Lightning nodes, you can also spin up a Sphinx relay containers, and proxy servers.
+
 ### requirments
 
  - An installed and running Docker daemon
