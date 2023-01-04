@@ -93,12 +93,12 @@
     const remote_percentage = Math.floor((remote_balance * 100) / total);
     const local_percentage = Math.floor((local_balance * 100) / total);
 
-    let color = "#F2BC52";
+    let color = "#52B550";
 
-    if (local_percentage === remote_percentage) {
-      color = "#52B550";
-    } else if (local_percentage <= 10 || remote_percentage <= 10) {
+    if (local_percentage <= 10 || remote_percentage <= 10) {
       color = "#ED7474";
+    } else if (local_percentage <= 20 || remote_percentage <= 20) {
+      let color = "#F2BC52";
     }
 
     return {

@@ -37078,19 +37078,19 @@ var app = (function () {
     			}
 
     			attr_dev(div0, "class", "th svelte-15wof4s");
-    			add_location(div0, file$7, 160, 8, 3896);
+    			add_location(div0, file$7, 160, 8, 3911);
     			attr_dev(div1, "class", "th svelte-15wof4s");
-    			add_location(div1, file$7, 161, 8, 3923);
+    			add_location(div1, file$7, 161, 8, 3938);
     			attr_dev(div2, "class", "th svelte-15wof4s");
-    			add_location(div2, file$7, 162, 8, 3965);
+    			add_location(div2, file$7, 162, 8, 3980);
     			attr_dev(div3, "class", "th svelte-15wof4s");
-    			add_location(div3, file$7, 163, 8, 4004);
+    			add_location(div3, file$7, 163, 8, 4019);
     			attr_dev(section0, "class", "table-head svelte-15wof4s");
-    			add_location(section0, file$7, 159, 6, 3859);
+    			add_location(section0, file$7, 159, 6, 3874);
     			attr_dev(section1, "class", "table-body svelte-15wof4s");
-    			add_location(section1, file$7, 166, 6, 4063);
+    			add_location(section1, file$7, 166, 6, 4078);
     			attr_dev(div4, "class", "lnd-table-wrap svelte-15wof4s");
-    			add_location(div4, file$7, 158, 4, 3824);
+    			add_location(div4, file$7, 158, 4, 3839);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div4, anchor);
@@ -37194,7 +37194,7 @@ var app = (function () {
     			create_component(addchannel.$$.fragment);
     			t = space();
     			div = element("div");
-    			add_location(div, file$7, 156, 4, 3802);
+    			add_location(div, file$7, 156, 4, 3817);
     		},
     		m: function mount(target, anchor) {
     			mount_component(addchannel, target, anchor);
@@ -37447,21 +37447,21 @@ var app = (function () {
     			t6 = text(t6_value);
     			t7 = space();
     			attr_dev(div0, "class", "td svelte-15wof4s");
-    			add_location(div0, file$7, 169, 12, 4173);
+    			add_location(div0, file$7, 169, 12, 4188);
     			attr_dev(section0, "class", "value");
-    			add_location(section0, file$7, 176, 16, 4420);
+    			add_location(section0, file$7, 176, 16, 4435);
     			attr_dev(section1, "class", "can-receive-wrap");
-    			add_location(section1, file$7, 175, 14, 4369);
+    			add_location(section1, file$7, 175, 14, 4384);
     			attr_dev(div1, "class", "td svelte-15wof4s");
-    			add_location(div1, file$7, 174, 12, 4338);
+    			add_location(div1, file$7, 174, 12, 4353);
     			attr_dev(div2, "class", "td svelte-15wof4s");
-    			add_location(div2, file$7, 191, 12, 5025);
+    			add_location(div2, file$7, 191, 12, 5040);
     			attr_dev(span, "class", "pubkey svelte-15wof4s");
-    			add_location(span, file$7, 193, 14, 5129);
+    			add_location(span, file$7, 193, 14, 5144);
     			attr_dev(div3, "class", "td svelte-15wof4s");
-    			add_location(div3, file$7, 192, 12, 5098);
+    			add_location(div3, file$7, 192, 12, 5113);
     			attr_dev(section2, "class", "row svelte-15wof4s");
-    			add_location(section2, file$7, 168, 10, 4139);
+    			add_location(section2, file$7, 168, 10, 4154);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, section2, anchor);
@@ -37632,27 +37632,27 @@ var app = (function () {
     			t13 = space();
     			if_block.c();
     			attr_dev(section0, "class", "header-btns svelte-15wof4s");
-    			add_location(section0, file$7, 112, 2, 2848);
+    			add_location(section0, file$7, 112, 2, 2863);
     			attr_dev(h60, "class", "title svelte-15wof4s");
-    			add_location(h60, file$7, 139, 6, 3332);
+    			add_location(h60, file$7, 139, 6, 3347);
     			attr_dev(span0, "class", "svelte-15wof4s");
-    			add_location(span0, file$7, 141, 46, 3450);
+    			add_location(span0, file$7, 141, 46, 3465);
     			attr_dev(h30, "class", "value svelte-15wof4s");
-    			add_location(h30, file$7, 140, 6, 3385);
+    			add_location(h30, file$7, 140, 6, 3400);
     			attr_dev(aside0, "class", "svelte-15wof4s");
-    			add_location(aside0, file$7, 138, 4, 3318);
+    			add_location(aside0, file$7, 138, 4, 3333);
     			attr_dev(h61, "class", "title svelte-15wof4s");
-    			add_location(h61, file$7, 145, 6, 3510);
+    			add_location(h61, file$7, 145, 6, 3525);
     			attr_dev(span1, "class", "svelte-15wof4s");
-    			add_location(span1, file$7, 147, 47, 3630);
+    			add_location(span1, file$7, 147, 47, 3645);
     			attr_dev(h31, "class", "value svelte-15wof4s");
-    			add_location(h31, file$7, 146, 6, 3564);
+    			add_location(h31, file$7, 146, 6, 3579);
     			attr_dev(aside1, "class", "svelte-15wof4s");
-    			add_location(aside1, file$7, 144, 4, 3496);
+    			add_location(aside1, file$7, 144, 4, 3511);
     			attr_dev(section1, "class", "liquidity-wrap svelte-15wof4s");
-    			add_location(section1, file$7, 137, 2, 3281);
+    			add_location(section1, file$7, 137, 2, 3296);
     			attr_dev(div, "class", "wrap svelte-15wof4s");
-    			add_location(div, file$7, 111, 0, 2827);
+    			add_location(div, file$7, 111, 0, 2842);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -37770,11 +37770,9 @@ var app = (function () {
     	const total = remote_balance + local_balance;
     	const remote_percentage = Math.floor(remote_balance * 100 / total);
     	const local_percentage = Math.floor(local_balance * 100 / total);
-    	let color = "#F2BC52";
+    	let color = "#52B550";
 
-    	if (local_percentage === remote_percentage) {
-    		color = "#52B550";
-    	} else if (local_percentage <= 10 || remote_percentage <= 10) {
+    	if (local_percentage <= 10 || remote_percentage <= 10) {
     		color = "#ED7474";
     	}
 
