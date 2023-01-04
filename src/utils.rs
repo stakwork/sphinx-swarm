@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{
@@ -8,6 +9,7 @@ use rocket::tokio::io::AsyncWriteExt;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 use std::env;
+use std::os::unix::fs::PermissionsExt;
 
 pub fn host_config(
     project: &str,
@@ -107,15 +109,25 @@ fn tcp_port(p: &str) -> String {
     format!("{}/tcp", p).to_string()
 }
 
+pub fn volume_permissions(project: &str, name: &str) -> Result<()> {
+    std::fs::set_permissions(
+        host_volume_string(project, name),
+        std::fs::Permissions::from_mode(0o666),
+    )
+    .map_err(|e| anyhow!(e.to_string()))
+}
+
+pub fn host_volume_string(project: &str, name: &str) -> String {
+    let pwd = std::env::current_dir().unwrap_or_default();
+    format!("{}/vol/{}/{}", pwd.to_string_lossy(), project, name)
+}
+
 // DIR/vol/{project}/{container_name}:{dir}
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
-    let pwd = std::env::current_dir().unwrap_or_default();
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
-        "{}/vol/{}/{}:{}:rw", // "{}/vol/{}/{}:{}:z",
-        pwd.to_string_lossy(),
-        project,
-        name,
+        "{}:{}:z", //"{}/vol/{}/{}:{}:rw",
+        host_volume_string(project, name),
         dir
     )
 }

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bollard::container::Config;
 use bollard::container::{CreateContainerOptions, LogOutput, LogsOptions, RemoveContainerOptions};
 use bollard::exec::{CreateExecOptions, StartExecResults};

@@ -7,6 +7,7 @@ use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
+use crate::utils::volume_permissions;
 use crate::{cmd::Cmd, dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
@@ -48,6 +49,7 @@ async fn add_node(
                 .as_btc()?;
             let lnd1 = images::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
+            // volume_permissions(proj, &lnd.name)?;
             ids.insert(lnd.name.clone(), lnd_id.clone());
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
