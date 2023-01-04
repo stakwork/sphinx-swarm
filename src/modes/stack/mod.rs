@@ -49,12 +49,12 @@ async fn add_node(
                 .as_btc()?;
             let lnd1 = images::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
-            // volume_permissions(proj, &lnd.name)?;
             ids.insert(lnd.name.clone(), lnd_id.clone());
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
+            volume_permissions(proj, &lnd.name, "data")?;
             let client = LndRPC::new(proj, &lnd).await?;
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
