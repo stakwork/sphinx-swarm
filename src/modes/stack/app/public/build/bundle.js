@@ -7033,7 +7033,7 @@ var app = (function () {
     }
 
     // (78:6) {:else}
-    function create_else_block_1$2(ctx) {
+    function create_else_block_1$1(ctx) {
     	let node;
     	let current;
 
@@ -7082,7 +7082,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_1$2.name,
+    		id: create_else_block_1$1.name,
     		type: "else",
     		source: "(78:6) {:else}",
     		ctx
@@ -7283,7 +7283,7 @@ var app = (function () {
     	let if_block;
     	let if_block_anchor;
     	let current;
-    	const if_block_creators = [create_if_block_6$4, create_if_block_7$3, create_else_block_1$2];
+    	const if_block_creators = [create_if_block_6$4, create_if_block_7$3, create_else_block_1$1];
     	const if_blocks = [];
 
     	function select_block_type(ctx, dirty) {
@@ -7539,7 +7539,7 @@ var app = (function () {
     }
 
     // (113:6) {#if edge.type === 'straight'}
-    function create_if_block_2$d(ctx) {
+    function create_if_block_2$c(ctx) {
     	let straightedge;
     	let current;
 
@@ -7577,7 +7577,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$d.name,
+    		id: create_if_block_2$c.name,
     		type: "if",
     		source: "(113:6) {#if edge.type === 'straight'}",
     		ctx
@@ -7731,7 +7731,7 @@ var app = (function () {
     	let if_block0_anchor;
     	let if_block1_anchor;
     	let current;
-    	const if_block_creators = [create_if_block_2$d, create_if_block_3$b, create_if_block_4$9, create_else_block$d];
+    	const if_block_creators = [create_if_block_2$c, create_if_block_3$b, create_if_block_4$9, create_else_block$d];
     	const if_blocks = [];
 
     	function select_block_type_1(ctx, dirty) {
@@ -9292,7 +9292,7 @@ var app = (function () {
     }
 
     // (143:28) 
-    function create_if_block_2$c(ctx) {
+    function create_if_block_2$b(ctx) {
     	let a;
     	let t;
     	let switch_instance;
@@ -9442,7 +9442,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$c.name,
+    		id: create_if_block_2$b.name,
     		type: "if",
     		source: "(143:28) ",
     		ctx
@@ -9661,7 +9661,7 @@ var app = (function () {
     	let if_block;
     	let if_block_anchor;
     	let current;
-    	const if_block_creators = [create_if_block$y, create_if_block_1$h, create_if_block_2$c, create_else_block$b];
+    	const if_block_creators = [create_if_block$y, create_if_block_1$h, create_if_block_2$b, create_else_block$b];
     	const if_blocks = [];
 
     	function select_block_type(ctx, dirty) {
@@ -14004,7 +14004,7 @@ var app = (function () {
     }
 
     // (248:8) {#if selectedItem}
-    function create_if_block_2$b(ctx) {
+    function create_if_block_2$a(ctx) {
     	let t_value = /*itemToString*/ ctx[4](/*selectedItem*/ ctx[21]) + "";
     	let t;
 
@@ -14025,7 +14025,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$b.name,
+    		id: create_if_block_2$a.name,
     		type: "if",
     		source: "(248:8) {#if selectedItem}",
     		ctx
@@ -14369,7 +14369,7 @@ var app = (function () {
     	let if_block1 = !/*invalid*/ ctx[11] && /*warn*/ ctx[13] && create_if_block_3$9(ctx);
 
     	function select_block_type(ctx, dirty) {
-    		if (/*selectedItem*/ ctx[21]) return create_if_block_2$b;
+    		if (/*selectedItem*/ ctx[21]) return create_if_block_2$a;
     		return create_else_block$8;
     	}
 
@@ -15802,7 +15802,7 @@ var app = (function () {
     }
 
     // (477:6) {#if !filterable}
-    function create_if_block_2$a(ctx) {
+    function create_if_block_2$9(ctx) {
     	let span;
     	let t0;
     	let t1;
@@ -15858,7 +15858,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$a.name,
+    		id: create_if_block_2$9.name,
     		type: "if",
     		source: "(477:6) {#if !filterable}",
     		ctx
@@ -15875,7 +15875,7 @@ var app = (function () {
     	let current;
     	let if_block0 = /*checked*/ ctx[31].length > 0 && create_if_block_6$3(ctx);
     	let if_block1 = /*filterable*/ ctx[12] && create_if_block_3$8(ctx);
-    	let if_block2 = !/*filterable*/ ctx[12] && create_if_block_2$a(ctx);
+    	let if_block2 = !/*filterable*/ ctx[12] && create_if_block_2$9(ctx);
 
     	const block = {
     		c: function create() {
@@ -15950,7 +15950,7 @@ var app = (function () {
     						transition_in(if_block2, 1);
     					}
     				} else {
-    					if_block2 = create_if_block_2$a(ctx);
+    					if_block2 = create_if_block_2$9(ctx);
     					if_block2.c();
     					transition_in(if_block2, 1);
     					if_block2.m(if_block2_anchor.parentNode, if_block2_anchor);
@@ -18023,7 +18023,7 @@ var app = (function () {
     	let t;
     	let button;
     	let current;
-    	const if_block_creators = [create_if_block_1$c, create_if_block_2$9];
+    	const if_block_creators = [create_if_block_1$c, create_if_block_2$8];
     	const if_blocks = [];
 
     	function select_block_type(ctx, dirty) {
@@ -18155,7 +18155,7 @@ var app = (function () {
     }
 
     // (278:38) 
-    function create_if_block_2$9(ctx) {
+    function create_if_block_2$8(ctx) {
     	let button;
     	let current;
 
@@ -18203,7 +18203,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$9.name,
+    		id: create_if_block_2$8.name,
     		type: "if",
     		source: "(278:38) ",
     		ctx
@@ -20445,7 +20445,7 @@ var app = (function () {
     }
 
     // (263:4) {#if !error && !warn && helperText}
-    function create_if_block_2$8(ctx) {
+    function create_if_block_2$7(ctx) {
     	let div;
     	let t;
 
@@ -20475,7 +20475,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$8.name,
+    		id: create_if_block_2$7.name,
     		type: "if",
     		source: "(263:4) {#if !error && !warn && helperText}",
     		ctx
@@ -20623,7 +20623,7 @@ var app = (function () {
     	let if_block2 = !/*invalid*/ ctx[11] && /*warn*/ ctx[13] && create_if_block_5$1(ctx);
     	let if_block3 = /*readonly*/ ctx[7] && create_if_block_4$4(ctx);
     	let if_block4 = !/*hideSteppers*/ ctx[9] && create_if_block_3$6(ctx);
-    	let if_block5 = !/*error*/ ctx[22] && !/*warn*/ ctx[13] && /*helperText*/ ctx[15] && create_if_block_2$8(ctx);
+    	let if_block5 = !/*error*/ ctx[22] && !/*warn*/ ctx[13] && /*helperText*/ ctx[15] && create_if_block_2$7(ctx);
     	let if_block6 = /*error*/ ctx[22] && create_if_block_1$b(ctx);
     	let if_block7 = !/*error*/ ctx[22] && /*warn*/ ctx[13] && create_if_block$k(ctx);
 
@@ -20849,7 +20849,7 @@ var app = (function () {
     				if (if_block5) {
     					if_block5.p(ctx, dirty);
     				} else {
-    					if_block5 = create_if_block_2$8(ctx);
+    					if_block5 = create_if_block_2$7(ctx);
     					if_block5.c();
     					if_block5.m(div1, t6);
     				}
@@ -22866,7 +22866,7 @@ var app = (function () {
     }
 
     // (93:4) {#if invalid}
-    function create_if_block_2$7(ctx) {
+    function create_if_block_2$6(ctx) {
     	let warningfilled;
     	let current;
 
@@ -22899,7 +22899,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$7.name,
+    		id: create_if_block_2$6.name,
     		type: "if",
     		source: "(93:4) {#if invalid}",
     		ctx
@@ -23004,7 +23004,7 @@ var app = (function () {
     	let mounted;
     	let dispose;
     	let if_block0 = (/*labelText*/ ctx[10] || /*$$slots*/ ctx[17].labelText) && !/*hideLabel*/ ctx[11] && create_if_block_3$5(ctx);
-    	let if_block1 = /*invalid*/ ctx[12] && create_if_block_2$7(ctx);
+    	let if_block1 = /*invalid*/ ctx[12] && create_if_block_2$6(ctx);
 
     	let textarea_levels = [
     		{
@@ -23128,7 +23128,7 @@ var app = (function () {
     						transition_in(if_block1, 1);
     					}
     				} else {
-    					if_block1 = create_if_block_2$7(ctx);
+    					if_block1 = create_if_block_2$6(ctx);
     					if_block1.c();
     					transition_in(if_block1, 1);
     					if_block1.m(div0, t1);
@@ -24240,7 +24240,7 @@ var app = (function () {
     }
 
     // (220:4) {#if !invalid && !warn && !isFluid && !inline && helperText}
-    function create_if_block_2$6(ctx) {
+    function create_if_block_2$5(ctx) {
     	let div;
     	let t;
 
@@ -24275,7 +24275,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$6.name,
+    		id: create_if_block_2$5.name,
     		type: "if",
     		source: "(220:4) {#if !invalid && !warn && !isFluid && !inline && helperText}",
     		ctx
@@ -24428,7 +24428,7 @@ var app = (function () {
     	let if_block5 = /*isFluid*/ ctx[20] && create_if_block_5(ctx);
     	let if_block6 = /*isFluid*/ ctx[20] && !/*inline*/ ctx[16] && /*invalid*/ ctx[11] && create_if_block_4$2(ctx);
     	let if_block7 = /*isFluid*/ ctx[20] && !/*inline*/ ctx[16] && /*warn*/ ctx[13] && create_if_block_3$4(ctx);
-    	let if_block8 = !/*invalid*/ ctx[11] && !/*warn*/ ctx[13] && !/*isFluid*/ ctx[20] && !/*inline*/ ctx[16] && /*helperText*/ ctx[6] && create_if_block_2$6(ctx);
+    	let if_block8 = !/*invalid*/ ctx[11] && !/*warn*/ ctx[13] && !/*isFluid*/ ctx[20] && !/*inline*/ ctx[16] && /*helperText*/ ctx[6] && create_if_block_2$5(ctx);
     	let if_block9 = !/*isFluid*/ ctx[20] && /*invalid*/ ctx[11] && create_if_block_1$9(ctx);
     	let if_block10 = !/*isFluid*/ ctx[20] && !/*invalid*/ ctx[11] && /*warn*/ ctx[13] && create_if_block$h(ctx);
 
@@ -24729,7 +24729,7 @@ var app = (function () {
     				if (if_block8) {
     					if_block8.p(ctx, dirty);
     				} else {
-    					if_block8 = create_if_block_2$6(ctx);
+    					if_block8 = create_if_block_2$5(ctx);
     					if_block8.c();
     					if_block8.m(div1, t9);
     				}
@@ -25314,7 +25314,7 @@ var app = (function () {
     }
 
     // (20:26) 
-    function create_if_block_2$5(ctx) {
+    function create_if_block_2$4(ctx) {
     	let textinput;
     	let updating_value;
     	let current;
@@ -25372,7 +25372,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$5.name,
+    		id: create_if_block_2$4.name,
     		type: "if",
     		source: "(20:26) ",
     		ctx
@@ -25548,7 +25548,7 @@ var app = (function () {
     	let if_block;
     	let if_block_anchor;
     	let current;
-    	const if_block_creators = [create_if_block$g, create_if_block_1$8, create_if_block_2$5, create_if_block_3$3];
+    	const if_block_creators = [create_if_block$g, create_if_block_1$8, create_if_block_2$4, create_if_block_3$3];
     	const if_blocks = [];
 
     	function select_block_type(ctx, dirty) {
@@ -29922,7 +29922,7 @@ var app = (function () {
     }
 
     // (46:6) {:else}
-    function create_else_block_1$1(ctx) {
+    function create_else_block_1(ctx) {
     	let div;
 
     	const block = {
@@ -29942,7 +29942,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_1$1.name,
+    		id: create_else_block_1.name,
     		type: "else",
     		source: "(46:6) {:else}",
     		ctx
@@ -29952,7 +29952,7 @@ var app = (function () {
     }
 
     // (44:6) {#if alias}
-    function create_if_block_2$4(ctx) {
+    function create_if_block_2$3(ctx) {
     	let div;
     	let t;
 
@@ -29977,7 +29977,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$4.name,
+    		id: create_if_block_2$3.name,
     		type: "if",
     		source: "(44:6) {#if alias}",
     		ctx
@@ -30329,8 +30329,8 @@ var app = (function () {
     		});
 
     	function select_block_type(ctx, dirty) {
-    		if (/*alias*/ ctx[0]) return create_if_block_2$4;
-    		return create_else_block_1$1;
+    		if (/*alias*/ ctx[0]) return create_if_block_2$3;
+    		return create_else_block_1;
     	}
 
     	let current_block_type = select_block_type(ctx);
@@ -31818,7 +31818,7 @@ var app = (function () {
     	let t1_value = (/*name*/ ctx[0] || "Tribe") + "";
     	let t1;
     	let t2;
-    	let if_block = /*preview*/ ctx[1] && create_if_block_2$3(ctx);
+    	let if_block = /*preview*/ ctx[1] && create_if_block_2$2(ctx);
 
     	const block = {
     		c: function create() {
@@ -31858,7 +31858,7 @@ var app = (function () {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
-    					if_block = create_if_block_2$3(ctx);
+    					if_block = create_if_block_2$2(ctx);
     					if_block.c();
     					if_block.m(section, null);
     				}
@@ -32024,7 +32024,7 @@ var app = (function () {
     }
 
     // (59:6) {#if preview}
-    function create_if_block_2$3(ctx) {
+    function create_if_block_2$2(ctx) {
     	let a;
     	let t;
     	let a_href_value;
@@ -32055,7 +32055,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$3.name,
+    		id: create_if_block_2$2.name,
     		type: "if",
     		source: "(59:6) {#if preview}",
     		ctx
@@ -34453,7 +34453,7 @@ var app = (function () {
     }
 
     // (55:4) {#if selected}
-    function create_if_block_2$2(ctx) {
+    function create_if_block_2$1(ctx) {
     	let a;
     	let launch;
     	let a_href_value;
@@ -34497,7 +34497,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$2.name,
+    		id: create_if_block_2$1.name,
     		type: "if",
     		source: "(55:4) {#if selected}",
     		ctx
@@ -34761,7 +34761,7 @@ var app = (function () {
 
     	let current_block_type = select_block_type(ctx);
     	let if_block1 = current_block_type(ctx);
-    	let if_block2 = /*selected*/ ctx[4] && create_if_block_2$2(ctx);
+    	let if_block2 = /*selected*/ ctx[4] && create_if_block_2$1(ctx);
     	let if_block3 = /*selected*/ ctx[4] && create_if_block$6(ctx);
 
     	const block = {
@@ -34864,7 +34864,7 @@ var app = (function () {
     						transition_in(if_block2, 1);
     					}
     				} else {
-    					if_block2 = create_if_block_2$2(ctx);
+    					if_block2 = create_if_block_2$1(ctx);
     					if_block2.c();
     					transition_in(if_block2, 1);
     					if_block2.m(div1, null);
@@ -36976,7 +36976,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (90:4) <Button       kind="tertiary"       type="submit"       size="field"       icon={Add}       disabled={false}       on:click={toggleAddPeer}     >
+    // (114:4) <Button       kind="tertiary"       type="submit"       size="field"       icon={Add}       disabled={false}       on:click={toggleAddPeer}     >
     function create_default_slot_3(ctx) {
     	let t;
 
@@ -36996,14 +36996,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_3.name,
     		type: "slot",
-    		source: "(90:4) <Button       kind=\\\"tertiary\\\"       type=\\\"submit\\\"       size=\\\"field\\\"       icon={Add}       disabled={false}       on:click={toggleAddPeer}     >",
+    		source: "(114:4) <Button       kind=\\\"tertiary\\\"       type=\\\"submit\\\"       size=\\\"field\\\"       icon={Add}       disabled={false}       on:click={toggleAddPeer}     >",
     		ctx
     	});
 
     	return block;
     }
 
-    // (101:4) <Button       kind="tertiary"       type="submit"       size="field"       icon={Add}       class="channel"       disabled={false}       on:click={toggleAddChannel}     >
+    // (125:4) <Button       kind="tertiary"       type="submit"       size="field"       icon={Add}       class="channel"       disabled={false}       on:click={toggleAddChannel}     >
     function create_default_slot_2(ctx) {
     	let t;
 
@@ -37023,14 +37023,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_2.name,
     		type: "slot",
-    		source: "(101:4) <Button       kind=\\\"tertiary\\\"       type=\\\"submit\\\"       size=\\\"field\\\"       icon={Add}       class=\\\"channel\\\"       disabled={false}       on:click={toggleAddChannel}     >",
+    		source: "(125:4) <Button       kind=\\\"tertiary\\\"       type=\\\"submit\\\"       size=\\\"field\\\"       icon={Add}       class=\\\"channel\\\"       disabled={false}       on:click={toggleAddChannel}     >",
     		ctx
     	});
 
     	return block;
     }
 
-    // (133:2) {:else}
+    // (157:2) {:else}
     function create_else_block$1(ctx) {
     	let section;
     	let table;
@@ -37079,15 +37079,15 @@ var app = (function () {
     				each_blocks[i].c();
     			}
 
-    			add_location(th0, file$7, 136, 10, 3248);
-    			add_location(th1, file$7, 137, 10, 3265);
-    			add_location(th2, file$7, 138, 10, 3296);
-    			add_location(th3, file$7, 139, 10, 3324);
-    			add_location(thead, file$7, 135, 8, 3230);
-    			add_location(tbody, file$7, 141, 8, 3371);
-    			add_location(table, file$7, 134, 6, 3214);
+    			add_location(th0, file$7, 160, 10, 3885);
+    			add_location(th1, file$7, 161, 10, 3902);
+    			add_location(th2, file$7, 162, 10, 3933);
+    			add_location(th3, file$7, 163, 10, 3961);
+    			add_location(thead, file$7, 159, 8, 3867);
+    			add_location(tbody, file$7, 165, 8, 4008);
+    			add_location(table, file$7, 158, 6, 3851);
     			attr_dev(section, "class", "lnd-table-wrap");
-    			add_location(section, file$7, 133, 4, 3175);
+    			add_location(section, file$7, 157, 4, 3812);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, section, anchor);
@@ -37110,7 +37110,7 @@ var app = (function () {
     			current = true;
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*mockChannels, formatSatNumbers*/ 8) {
+    			if (dirty & /*mockChannels, formatSatNumbers, getBarCalculation*/ 8) {
     				each_value = /*mockChannels*/ ctx[3];
     				validate_each_argument(each_value);
     				let i;
@@ -37166,14 +37166,14 @@ var app = (function () {
     		block,
     		id: create_else_block$1.name,
     		type: "else",
-    		source: "(133:2) {:else}",
+    		source: "(157:2) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (131:24) 
+    // (155:24) 
     function create_if_block_1$2(ctx) {
     	let addchannel;
     	let current;
@@ -37212,14 +37212,14 @@ var app = (function () {
     		block,
     		id: create_if_block_1$2.name,
     		type: "if",
-    		source: "(131:24) ",
+    		source: "(155:24) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (129:2) {#if add_peer}
+    // (153:2) {#if add_peer}
     function create_if_block$4(ctx) {
     	let addpeer;
     	let current;
@@ -37256,21 +37256,21 @@ var app = (function () {
     		block,
     		id: create_if_block$4.name,
     		type: "if",
-    		source: "(129:2) {#if add_peer}",
+    		source: "(153:2) {#if add_peer}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (146:16) <DotWrap>
+    // (170:16) <DotWrap>
     function create_default_slot_1$3(ctx) {
     	let dot;
     	let current;
 
     	dot = new Dot({
     			props: {
-    				color: /*chan*/ ctx[11].active ? '#52B550' : `#ED7474`
+    				color: /*chan*/ ctx[11].active ? "#52B550" : `#ED7474`
     			},
     			$$inline: true
     		});
@@ -37302,14 +37302,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_1$3.name,
     		type: "slot",
-    		source: "(146:16) <DotWrap>",
+    		source: "(170:16) <DotWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (153:18) <ReceiveLineWrap>
+    // (177:18) <ReceiveLineWrap>
     function create_default_slot$3(ctx) {
     	let receiveline0;
     	let t;
@@ -37317,12 +37317,18 @@ var app = (function () {
     	let current;
 
     	receiveline0 = new ReceiveLine({
-    			props: { color: "#ED7474" },
+    			props: {
+    				color: getBarCalculation(/*chan*/ ctx[11]).color,
+    				width: `${getBarCalculation(/*chan*/ ctx[11]).local_percentage}%`
+    			},
     			$$inline: true
     		});
 
     	receiveline1 = new ReceiveLine({
-    			props: { color: "#ED7474", width: "80%" },
+    			props: {
+    				color: getBarCalculation(/*chan*/ ctx[11]).color,
+    				width: `${getBarCalculation(/*chan*/ ctx[11]).remote_percentage}%`
+    			},
     			$$inline: true
     		});
 
@@ -37361,77 +37367,14 @@ var app = (function () {
     		block,
     		id: create_default_slot$3.name,
     		type: "slot",
-    		source: "(153:18) <ReceiveLineWrap>",
+    		source: "(177:18) <ReceiveLineWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (162:14) {:else}
-    function create_else_block_1(ctx) {
-    	let td;
-
-    	const block = {
-    		c: function create() {
-    			td = element("td");
-    			td.textContent = `${""}`;
-    			add_location(td, file$7, 162, 16, 4136);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, td, anchor);
-    		},
-    		p: noop$1,
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(td);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_else_block_1.name,
-    		type: "else",
-    		source: "(162:14) {:else}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (160:14) {#if chan.alias}
-    function create_if_block_2$1(ctx) {
-    	let td;
-    	let t_value = /*chan*/ ctx[11].alias + "";
-    	let t;
-
-    	const block = {
-    		c: function create() {
-    			td = element("td");
-    			t = text(t_value);
-    			add_location(td, file$7, 160, 16, 4076);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, td, anchor);
-    			append_dev(td, t);
-    		},
-    		p: noop$1,
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(td);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block_2$1.name,
-    		type: "if",
-    		source: "(160:14) {#if chan.alias}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (143:10) {#each mockChannels as chan}
+    // (167:10) {#each mockChannels as chan}
     function create_each_block(ctx) {
     	let tr;
     	let td0;
@@ -37448,7 +37391,10 @@ var app = (function () {
     	let t4_value = formatSatNumbers(/*chan*/ ctx[11].local_balance) + "";
     	let t4;
     	let t5;
+    	let td3;
+    	let t6_value = /*chan*/ ctx[11].remote_pubkey + "";
     	let t6;
+    	let t7;
     	let current;
 
     	dotwrap = new DotWrap({
@@ -37467,14 +37413,6 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	function select_block_type_1(ctx, dirty) {
-    		if (/*chan*/ ctx[11].alias) return create_if_block_2$1;
-    		return create_else_block_1;
-    	}
-
-    	let current_block_type = select_block_type_1(ctx);
-    	let if_block = current_block_type(ctx);
-
     	const block = {
     		c: function create() {
     			tr = element("tr");
@@ -37490,14 +37428,16 @@ var app = (function () {
     			td2 = element("td");
     			t4 = text(t4_value);
     			t5 = space();
-    			if_block.c();
-    			t6 = space();
-    			add_location(td0, file$7, 144, 14, 3449);
+    			td3 = element("td");
+    			t6 = text(t6_value);
+    			t7 = space();
+    			add_location(td0, file$7, 168, 14, 4086);
     			attr_dev(section, "class", "can-receive-wrap");
-    			add_location(section, file$7, 150, 16, 3632);
-    			add_location(td1, file$7, 149, 14, 3611);
-    			add_location(td2, file$7, 158, 14, 3981);
-    			add_location(tr, file$7, 143, 12, 3430);
+    			add_location(section, file$7, 174, 16, 4269);
+    			add_location(td1, file$7, 173, 14, 4248);
+    			add_location(td2, file$7, 188, 14, 4883);
+    			add_location(td3, file$7, 189, 14, 4945);
+    			add_location(tr, file$7, 167, 12, 4067);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, tr, anchor);
@@ -37513,8 +37453,9 @@ var app = (function () {
     			append_dev(tr, td2);
     			append_dev(td2, t4);
     			append_dev(tr, t5);
-    			if_block.m(tr, null);
-    			append_dev(tr, t6);
+    			append_dev(tr, td3);
+    			append_dev(td3, t6);
+    			append_dev(tr, t7);
     			current = true;
     		},
     		p: function update(ctx, dirty) {
@@ -37532,7 +37473,6 @@ var app = (function () {
     			}
 
     			receivelinewrap.$set(receivelinewrap_changes);
-    			if_block.p(ctx, dirty);
     		},
     		i: function intro(local) {
     			if (current) return;
@@ -37549,7 +37489,6 @@ var app = (function () {
     			if (detaching) detach_dev(tr);
     			destroy_component(dotwrap);
     			destroy_component(receivelinewrap);
-    			if_block.d();
     		}
     	};
 
@@ -37557,7 +37496,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(143:10) {#each mockChannels as chan}",
+    		source: "(167:10) {#each mockChannels as chan}",
     		ctx
     	});
 
@@ -37667,27 +37606,27 @@ var app = (function () {
     			t13 = space();
     			if_block.c();
     			attr_dev(section0, "class", "header-btns svelte-1e0bkwa");
-    			add_location(section0, file$7, 88, 2, 2213);
+    			add_location(section0, file$7, 112, 2, 2848);
     			attr_dev(h60, "class", "title svelte-1e0bkwa");
-    			add_location(h60, file$7, 115, 6, 2697);
+    			add_location(h60, file$7, 139, 6, 3332);
     			attr_dev(span0, "class", "svelte-1e0bkwa");
-    			add_location(span0, file$7, 117, 46, 2815);
+    			add_location(span0, file$7, 141, 46, 3450);
     			attr_dev(h30, "class", "value svelte-1e0bkwa");
-    			add_location(h30, file$7, 116, 6, 2750);
+    			add_location(h30, file$7, 140, 6, 3385);
     			attr_dev(aside0, "class", "svelte-1e0bkwa");
-    			add_location(aside0, file$7, 114, 4, 2683);
+    			add_location(aside0, file$7, 138, 4, 3318);
     			attr_dev(h61, "class", "title svelte-1e0bkwa");
-    			add_location(h61, file$7, 121, 6, 2875);
+    			add_location(h61, file$7, 145, 6, 3510);
     			attr_dev(span1, "class", "svelte-1e0bkwa");
-    			add_location(span1, file$7, 123, 47, 2995);
+    			add_location(span1, file$7, 147, 47, 3630);
     			attr_dev(h31, "class", "value svelte-1e0bkwa");
-    			add_location(h31, file$7, 122, 6, 2929);
+    			add_location(h31, file$7, 146, 6, 3564);
     			attr_dev(aside1, "class", "svelte-1e0bkwa");
-    			add_location(aside1, file$7, 120, 4, 2861);
+    			add_location(aside1, file$7, 144, 4, 3496);
     			attr_dev(section1, "class", "liquidity-wrap svelte-1e0bkwa");
-    			add_location(section1, file$7, 113, 2, 2646);
+    			add_location(section1, file$7, 137, 2, 3281);
     			attr_dev(div, "class", "wrap svelte-1e0bkwa");
-    			add_location(div, file$7, 87, 0, 2192);
+    			add_location(div, file$7, 111, 0, 2827);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -37799,6 +37738,27 @@ var app = (function () {
     	return numFormat;
     }
 
+    function getBarCalculation(chan) {
+    	const remote_balance = Number(chan.remote_balance);
+    	const local_balance = Number(chan.local_balance);
+    	const total = remote_balance + local_balance;
+    	const remote_percentage = Math.floor(remote_balance * 100 / total);
+    	const local_percentage = Math.floor(local_balance * 100 / total);
+    	let color = "#F2BC52";
+
+    	if (local_percentage === remote_percentage) {
+    		color = "#52B550";
+    	} else if (local_percentage <= 10 || remote_percentage <= 10) {
+    		color = "#ED7474";
+    	}
+
+    	return {
+    		color,
+    		remote_percentage,
+    		local_percentage
+    	};
+    }
+
     function instance$7($$self, $$props, $$invalidate) {
     	let $channels;
     	let $balances;
@@ -37834,8 +37794,8 @@ var app = (function () {
     			active: true,
     			remote_pubkey: "0350587f325dcd6eb50b1c86874961c134be3ab2b9297d88e61443bb0531d7798e",
     			capacity: 100000,
-    			local_balance: 6935,
-    			remote_balance: 86541
+    			local_balance: 100,
+    			remote_balance: 96541
     		},
     		{
     			active: true,
@@ -37848,7 +37808,7 @@ var app = (function () {
     			active: false,
     			remote_pubkey: "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
     			capacity: 400000,
-    			local_balance: 180000,
+    			local_balance: 200000,
     			remote_balance: 200000
     		},
     		{
@@ -37902,6 +37862,7 @@ var app = (function () {
     		mockChannels,
     		toggleAddPeer,
     		toggleAddChannel,
+    		getBarCalculation,
     		$channels,
     		$balances
     	});

@@ -47,8 +47,8 @@
       remote_pubkey:
         "0350587f325dcd6eb50b1c86874961c134be3ab2b9297d88e61443bb0531d7798e",
       capacity: 100000,
-      local_balance: 6935,
-      remote_balance: 86541,
+      local_balance: 100,
+      remote_balance: 96541,
     },
     {
       active: true,
@@ -63,7 +63,7 @@
       remote_pubkey:
         "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
       capacity: 400000,
-      local_balance: 180000,
+      local_balance: 200000,
       remote_balance: 200000,
     },
     {
@@ -82,6 +82,30 @@
 
   function toggleAddChannel() {
     add_channel = !add_channel;
+  }
+
+  function getBarCalculation(chan) {
+    const remote_balance = Number(chan.remote_balance);
+    const local_balance = Number(chan.local_balance);
+
+    const total = remote_balance + local_balance;
+
+    const remote_percentage = Math.floor((remote_balance * 100) / total);
+    const local_percentage = Math.floor((local_balance * 100) / total);
+
+    let color = "#F2BC52";
+
+    if (local_percentage === remote_percentage) {
+      color = "#52B550";
+    } else if (local_percentage <= 10 || remote_percentage <= 10) {
+      color = "#ED7474";
+    }
+
+    return {
+      color,
+      remote_percentage,
+      local_percentage,
+    };
   }
 </script>
 
@@ -127,9 +151,9 @@
   </section>
 
   {#if add_peer}
-    <AddPeer {toggleAddPeer}/>
+    <AddPeer {toggleAddPeer} />
   {:else if add_channel}
-    <AddChannel {toggleAddChannel}/>
+    <AddChannel {toggleAddChannel} />
   {:else}
     <section class="lnd-table-wrap">
       <table>
@@ -144,24 +168,26 @@
             <tr>
               <td>
                 <DotWrap>
-                  <Dot color={chan.active ? '#52B550' : `#ED7474`} />
+                  <Dot color={chan.active ? "#52B550" : `#ED7474`} />
                 </DotWrap>
               </td>
               <td>
                 <section class="can-receive-wrap">
                   {formatSatNumbers(chan.remote_balance)}
                   <ReceiveLineWrap>
-                    <ReceiveLine color={"#ED7474"} />
-                    <ReceiveLine color={"#ED7474"} width={"80%"} />
+                    <ReceiveLine
+                      color={getBarCalculation(chan).color}
+                      width={`${getBarCalculation(chan).local_percentage}%`}
+                    />
+                    <ReceiveLine
+                      color={getBarCalculation(chan).color}
+                      width={`${getBarCalculation(chan).remote_percentage}%`}
+                    />
                   </ReceiveLineWrap>
                 </section>
               </td>
               <td>{formatSatNumbers(chan.local_balance)}</td>
-              {#if chan.alias}
-                <td>{chan.alias}</td>
-              {:else}
-                <td>{""}</td>
-              {/if}
+              <td>{chan.remote_pubkey}</td>
             </tr>
           {/each}
         </tbody>
