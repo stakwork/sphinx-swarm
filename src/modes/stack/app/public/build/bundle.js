@@ -37030,20 +37030,19 @@ var app = (function () {
     	return block;
     }
 
-    // (157:2) {:else}
+    // (158:2) {:else}
     function create_else_block$1(ctx) {
-    	let section;
-    	let table;
-    	let thead;
-    	let th0;
+    	let div4;
+    	let section0;
+    	let div0;
     	let t0;
-    	let th1;
+    	let div1;
     	let t2;
-    	let th2;
+    	let div2;
     	let t4;
-    	let th3;
+    	let div3;
     	let t6;
-    	let tbody;
+    	let section1;
     	let current;
     	let each_value = /*mockChannels*/ ctx[3];
     	validate_each_argument(each_value);
@@ -37059,52 +37058,55 @@ var app = (function () {
 
     	const block = {
     		c: function create() {
-    			section = element("section");
-    			table = element("table");
-    			thead = element("thead");
-    			th0 = element("th");
+    			div4 = element("div");
+    			section0 = element("section");
+    			div0 = element("div");
     			t0 = space();
-    			th1 = element("th");
-    			th1.textContent = "CAN RECEIVE";
+    			div1 = element("div");
+    			div1.textContent = "CAN RECEIVE";
     			t2 = space();
-    			th2 = element("th");
-    			th2.textContent = "CAN SEND";
+    			div2 = element("div");
+    			div2.textContent = "CAN SEND";
     			t4 = space();
-    			th3 = element("th");
-    			th3.textContent = "PEER / ALIAS";
+    			div3 = element("div");
+    			div3.textContent = "PEER / ALIAS";
     			t6 = space();
-    			tbody = element("tbody");
+    			section1 = element("section");
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
     			}
 
-    			add_location(th0, file$7, 160, 10, 3885);
-    			add_location(th1, file$7, 161, 10, 3902);
-    			add_location(th2, file$7, 162, 10, 3933);
-    			add_location(th3, file$7, 163, 10, 3961);
-    			add_location(thead, file$7, 159, 8, 3867);
-    			add_location(tbody, file$7, 165, 8, 4008);
-    			add_location(table, file$7, 158, 6, 3851);
-    			attr_dev(section, "class", "lnd-table-wrap");
-    			add_location(section, file$7, 157, 4, 3812);
+    			attr_dev(div0, "class", "th svelte-15wof4s");
+    			add_location(div0, file$7, 160, 8, 3896);
+    			attr_dev(div1, "class", "th svelte-15wof4s");
+    			add_location(div1, file$7, 161, 8, 3923);
+    			attr_dev(div2, "class", "th svelte-15wof4s");
+    			add_location(div2, file$7, 162, 8, 3965);
+    			attr_dev(div3, "class", "th svelte-15wof4s");
+    			add_location(div3, file$7, 163, 8, 4004);
+    			attr_dev(section0, "class", "table-head svelte-15wof4s");
+    			add_location(section0, file$7, 159, 6, 3859);
+    			attr_dev(section1, "class", "table-body svelte-15wof4s");
+    			add_location(section1, file$7, 166, 6, 4063);
+    			attr_dev(div4, "class", "lnd-table-wrap svelte-15wof4s");
+    			add_location(div4, file$7, 158, 4, 3824);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, section, anchor);
-    			append_dev(section, table);
-    			append_dev(table, thead);
-    			append_dev(thead, th0);
-    			append_dev(thead, t0);
-    			append_dev(thead, th1);
-    			append_dev(thead, t2);
-    			append_dev(thead, th2);
-    			append_dev(thead, t4);
-    			append_dev(thead, th3);
-    			append_dev(table, t6);
-    			append_dev(table, tbody);
+    			insert_dev(target, div4, anchor);
+    			append_dev(div4, section0);
+    			append_dev(section0, div0);
+    			append_dev(section0, t0);
+    			append_dev(section0, div1);
+    			append_dev(section0, t2);
+    			append_dev(section0, div2);
+    			append_dev(section0, t4);
+    			append_dev(section0, div3);
+    			append_dev(div4, t6);
+    			append_dev(div4, section1);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(tbody, null);
+    				each_blocks[i].m(section1, null);
     			}
 
     			current = true;
@@ -37125,7 +37127,7 @@ var app = (function () {
     						each_blocks[i] = create_each_block(child_ctx);
     						each_blocks[i].c();
     						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(tbody, null);
+    						each_blocks[i].m(section1, null);
     					}
     				}
 
@@ -37157,7 +37159,7 @@ var app = (function () {
     			current = false;
     		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(section);
+    			if (detaching) detach_dev(div4);
     			destroy_each(each_blocks, detaching);
     		}
     	};
@@ -37166,7 +37168,7 @@ var app = (function () {
     		block,
     		id: create_else_block$1.name,
     		type: "else",
-    		source: "(157:2) {:else}",
+    		source: "(158:2) {:else}",
     		ctx
     	});
 
@@ -37176,6 +37178,8 @@ var app = (function () {
     // (155:24) 
     function create_if_block_1$2(ctx) {
     	let addchannel;
+    	let t;
+    	let div;
     	let current;
 
     	addchannel = new AddChannel({
@@ -37188,9 +37192,14 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			create_component(addchannel.$$.fragment);
+    			t = space();
+    			div = element("div");
+    			add_location(div, file$7, 156, 4, 3802);
     		},
     		m: function mount(target, anchor) {
     			mount_component(addchannel, target, anchor);
+    			insert_dev(target, t, anchor);
+    			insert_dev(target, div, anchor);
     			current = true;
     		},
     		p: noop$1,
@@ -37205,6 +37214,8 @@ var app = (function () {
     		},
     		d: function destroy(detaching) {
     			destroy_component(addchannel, detaching);
+    			if (detaching) detach_dev(t);
+    			if (detaching) detach_dev(div);
     		}
     	};
 
@@ -37263,7 +37274,7 @@ var app = (function () {
     	return block;
     }
 
-    // (170:16) <DotWrap>
+    // (171:14) <DotWrap>
     function create_default_slot_1$3(ctx) {
     	let dot;
     	let current;
@@ -37302,14 +37313,14 @@ var app = (function () {
     		block,
     		id: create_default_slot_1$3.name,
     		type: "slot",
-    		source: "(170:16) <DotWrap>",
+    		source: "(171:14) <DotWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (177:18) <ReceiveLineWrap>
+    // (180:16) <ReceiveLineWrap>
     function create_default_slot$3(ctx) {
     	let receiveline0;
     	let t;
@@ -37367,31 +37378,33 @@ var app = (function () {
     		block,
     		id: create_default_slot$3.name,
     		type: "slot",
-    		source: "(177:18) <ReceiveLineWrap>",
+    		source: "(180:16) <ReceiveLineWrap>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (167:10) {#each mockChannels as chan}
+    // (168:8) {#each mockChannels as chan}
     function create_each_block(ctx) {
-    	let tr;
-    	let td0;
+    	let section2;
+    	let div0;
     	let dotwrap;
     	let t0;
-    	let td1;
-    	let section;
+    	let div1;
+    	let section1;
+    	let section0;
     	let t1_value = formatSatNumbers(/*chan*/ ctx[11].remote_balance) + "";
     	let t1;
     	let t2;
     	let receivelinewrap;
     	let t3;
-    	let td2;
+    	let div2;
     	let t4_value = formatSatNumbers(/*chan*/ ctx[11].local_balance) + "";
     	let t4;
     	let t5;
-    	let td3;
+    	let div3;
+    	let span;
     	let t6_value = /*chan*/ ctx[11].remote_pubkey + "";
     	let t6;
     	let t7;
@@ -37415,47 +37428,60 @@ var app = (function () {
 
     	const block = {
     		c: function create() {
-    			tr = element("tr");
-    			td0 = element("td");
+    			section2 = element("section");
+    			div0 = element("div");
     			create_component(dotwrap.$$.fragment);
     			t0 = space();
-    			td1 = element("td");
-    			section = element("section");
+    			div1 = element("div");
+    			section1 = element("section");
+    			section0 = element("section");
     			t1 = text(t1_value);
     			t2 = space();
     			create_component(receivelinewrap.$$.fragment);
     			t3 = space();
-    			td2 = element("td");
+    			div2 = element("div");
     			t4 = text(t4_value);
     			t5 = space();
-    			td3 = element("td");
+    			div3 = element("div");
+    			span = element("span");
     			t6 = text(t6_value);
     			t7 = space();
-    			add_location(td0, file$7, 168, 14, 4086);
-    			attr_dev(section, "class", "can-receive-wrap");
-    			add_location(section, file$7, 174, 16, 4269);
-    			add_location(td1, file$7, 173, 14, 4248);
-    			add_location(td2, file$7, 188, 14, 4883);
-    			add_location(td3, file$7, 189, 14, 4945);
-    			add_location(tr, file$7, 167, 12, 4067);
+    			attr_dev(div0, "class", "td svelte-15wof4s");
+    			add_location(div0, file$7, 169, 12, 4173);
+    			attr_dev(section0, "class", "value");
+    			add_location(section0, file$7, 176, 16, 4420);
+    			attr_dev(section1, "class", "can-receive-wrap");
+    			add_location(section1, file$7, 175, 14, 4369);
+    			attr_dev(div1, "class", "td svelte-15wof4s");
+    			add_location(div1, file$7, 174, 12, 4338);
+    			attr_dev(div2, "class", "td svelte-15wof4s");
+    			add_location(div2, file$7, 191, 12, 5025);
+    			attr_dev(span, "class", "pubkey svelte-15wof4s");
+    			add_location(span, file$7, 193, 14, 5129);
+    			attr_dev(div3, "class", "td svelte-15wof4s");
+    			add_location(div3, file$7, 192, 12, 5098);
+    			attr_dev(section2, "class", "row svelte-15wof4s");
+    			add_location(section2, file$7, 168, 10, 4139);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, tr, anchor);
-    			append_dev(tr, td0);
-    			mount_component(dotwrap, td0, null);
-    			append_dev(tr, t0);
-    			append_dev(tr, td1);
-    			append_dev(td1, section);
-    			append_dev(section, t1);
-    			append_dev(section, t2);
-    			mount_component(receivelinewrap, section, null);
-    			append_dev(tr, t3);
-    			append_dev(tr, td2);
-    			append_dev(td2, t4);
-    			append_dev(tr, t5);
-    			append_dev(tr, td3);
-    			append_dev(td3, t6);
-    			append_dev(tr, t7);
+    			insert_dev(target, section2, anchor);
+    			append_dev(section2, div0);
+    			mount_component(dotwrap, div0, null);
+    			append_dev(section2, t0);
+    			append_dev(section2, div1);
+    			append_dev(div1, section1);
+    			append_dev(section1, section0);
+    			append_dev(section0, t1);
+    			append_dev(section1, t2);
+    			mount_component(receivelinewrap, section1, null);
+    			append_dev(section2, t3);
+    			append_dev(section2, div2);
+    			append_dev(div2, t4);
+    			append_dev(section2, t5);
+    			append_dev(section2, div3);
+    			append_dev(div3, span);
+    			append_dev(span, t6);
+    			append_dev(section2, t7);
     			current = true;
     		},
     		p: function update(ctx, dirty) {
@@ -37486,7 +37512,7 @@ var app = (function () {
     			current = false;
     		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(tr);
+    			if (detaching) detach_dev(section2);
     			destroy_component(dotwrap);
     			destroy_component(receivelinewrap);
     		}
@@ -37496,7 +37522,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(167:10) {#each mockChannels as chan}",
+    		source: "(168:8) {#each mockChannels as chan}",
     		ctx
     	});
 
@@ -37605,27 +37631,27 @@ var app = (function () {
     			span1.textContent = "SAT";
     			t13 = space();
     			if_block.c();
-    			attr_dev(section0, "class", "header-btns svelte-1e0bkwa");
+    			attr_dev(section0, "class", "header-btns svelte-15wof4s");
     			add_location(section0, file$7, 112, 2, 2848);
-    			attr_dev(h60, "class", "title svelte-1e0bkwa");
+    			attr_dev(h60, "class", "title svelte-15wof4s");
     			add_location(h60, file$7, 139, 6, 3332);
-    			attr_dev(span0, "class", "svelte-1e0bkwa");
+    			attr_dev(span0, "class", "svelte-15wof4s");
     			add_location(span0, file$7, 141, 46, 3450);
-    			attr_dev(h30, "class", "value svelte-1e0bkwa");
+    			attr_dev(h30, "class", "value svelte-15wof4s");
     			add_location(h30, file$7, 140, 6, 3385);
-    			attr_dev(aside0, "class", "svelte-1e0bkwa");
+    			attr_dev(aside0, "class", "svelte-15wof4s");
     			add_location(aside0, file$7, 138, 4, 3318);
-    			attr_dev(h61, "class", "title svelte-1e0bkwa");
+    			attr_dev(h61, "class", "title svelte-15wof4s");
     			add_location(h61, file$7, 145, 6, 3510);
-    			attr_dev(span1, "class", "svelte-1e0bkwa");
+    			attr_dev(span1, "class", "svelte-15wof4s");
     			add_location(span1, file$7, 147, 47, 3630);
-    			attr_dev(h31, "class", "value svelte-1e0bkwa");
+    			attr_dev(h31, "class", "value svelte-15wof4s");
     			add_location(h31, file$7, 146, 6, 3564);
-    			attr_dev(aside1, "class", "svelte-1e0bkwa");
+    			attr_dev(aside1, "class", "svelte-15wof4s");
     			add_location(aside1, file$7, 144, 4, 3496);
-    			attr_dev(section1, "class", "liquidity-wrap svelte-1e0bkwa");
+    			attr_dev(section1, "class", "liquidity-wrap svelte-15wof4s");
     			add_location(section1, file$7, 137, 2, 3281);
-    			attr_dev(div, "class", "wrap svelte-1e0bkwa");
+    			attr_dev(div, "class", "wrap svelte-15wof4s");
     			add_location(div, file$7, 111, 0, 2827);
     		},
     		l: function claim(nodes) {
