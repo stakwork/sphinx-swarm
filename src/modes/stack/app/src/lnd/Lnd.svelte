@@ -159,8 +159,8 @@
     <div class="lnd-table-wrap">
       <section class="table-head">
         <div class="th" />
-        <div class="th">CAN RECEIVE</div>
         <div class="th">CAN SEND</div>
+        <div class="th">CAN RECEIVE</div>
         <div class="th">PEER / ALIAS</div>
       </section>
 
@@ -175,7 +175,7 @@
             <div class="td">
               <section class="can-receive-wrap">
                 <section class="value">
-                  {formatSatNumbers(chan.remote_balance)}
+                  {formatSatNumbers(chan.local_balance)}
                 </section>
                 <ReceiveLineWrap>
                   <ReceiveLine
@@ -189,7 +189,7 @@
                 </ReceiveLineWrap>
               </section>
             </div>
-            <div class="td">{formatSatNumbers(chan.local_balance)}</div>
+            <div class="td">{formatSatNumbers(chan.remote_balance)}</div>
             <div class="td">
               <span class="pubkey">{chan.remote_pubkey}</span>
             </div>

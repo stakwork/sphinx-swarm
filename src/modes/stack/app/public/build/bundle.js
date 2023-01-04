@@ -37063,10 +37063,10 @@ var app = (function () {
     			div0 = element("div");
     			t0 = space();
     			div1 = element("div");
-    			div1.textContent = "CAN RECEIVE";
+    			div1.textContent = "CAN SEND";
     			t2 = space();
     			div2 = element("div");
-    			div2.textContent = "CAN SEND";
+    			div2.textContent = "CAN RECEIVE";
     			t4 = space();
     			div3 = element("div");
     			div3.textContent = "PEER / ALIAS";
@@ -37082,7 +37082,7 @@ var app = (function () {
     			attr_dev(div1, "class", "th svelte-15wof4s");
     			add_location(div1, file$7, 161, 8, 3938);
     			attr_dev(div2, "class", "th svelte-15wof4s");
-    			add_location(div2, file$7, 162, 8, 3980);
+    			add_location(div2, file$7, 162, 8, 3977);
     			attr_dev(div3, "class", "th svelte-15wof4s");
     			add_location(div3, file$7, 163, 8, 4019);
     			attr_dev(section0, "class", "table-head svelte-15wof4s");
@@ -37394,13 +37394,13 @@ var app = (function () {
     	let div1;
     	let section1;
     	let section0;
-    	let t1_value = formatSatNumbers(/*chan*/ ctx[11].remote_balance) + "";
+    	let t1_value = formatSatNumbers(/*chan*/ ctx[11].local_balance) + "";
     	let t1;
     	let t2;
     	let receivelinewrap;
     	let t3;
     	let div2;
-    	let t4_value = formatSatNumbers(/*chan*/ ctx[11].local_balance) + "";
+    	let t4_value = formatSatNumbers(/*chan*/ ctx[11].remote_balance) + "";
     	let t4;
     	let t5;
     	let div3;
@@ -37455,7 +37455,7 @@ var app = (function () {
     			attr_dev(div1, "class", "td svelte-15wof4s");
     			add_location(div1, file$7, 174, 12, 4353);
     			attr_dev(div2, "class", "td svelte-15wof4s");
-    			add_location(div2, file$7, 191, 12, 5040);
+    			add_location(div2, file$7, 191, 12, 5039);
     			attr_dev(span, "class", "pubkey svelte-15wof4s");
     			add_location(span, file$7, 193, 14, 5144);
     			attr_dev(div3, "class", "td svelte-15wof4s");
