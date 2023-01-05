@@ -55,7 +55,8 @@ async fn add_node(
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
             // volume_permissions(proj, &lnd.name, "data")?;
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            println!("SLEEPING");
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
             let client = LndRPC::new(proj, &lnd).await?;
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
