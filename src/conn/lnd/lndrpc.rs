@@ -1,4 +1,5 @@
 use crate::images::LndImage;
+use crate::utils::wait_for_file;
 use anyhow::Result;
 use tonic_lnd::lnrpc::{GetInfoRequest, GetInfoResponse};
 use tonic_lnd::tonic::Status;
@@ -14,6 +15,8 @@ impl LndRPC {
             "vol/{}/{}/data/chain/bitcoin/{}/admin.macaroon",
             proj, lnd.name, lnd.network
         );
+        // wait 10 seconds for file to exist, or fail
+        wait_for_file(&macaroon_file, 10).await?;
         let client = tonic_lnd::connect(address, cert_file, macaroon_file).await?;
         Ok(Self(client))
     }
