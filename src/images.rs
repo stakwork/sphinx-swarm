@@ -166,7 +166,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
         hostname: Some(domain(&lnd.name)),
-        user: user(),
+        // user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(project, &lnd.name, ports, root_vol, None, links),
         cmd: Some(cmd),

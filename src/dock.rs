@@ -4,6 +4,7 @@ use bollard::container::{CreateContainerOptions, LogOutput, LogsOptions, RemoveC
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
 use bollard::service::ContainerSummary;
+use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
@@ -11,6 +12,15 @@ use std::env;
 
 pub fn er() -> Docker {
     Docker::connect_with_socket_defaults().unwrap()
+}
+
+pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
+    let vconf = CreateVolumeOptions {
+        name,
+        ..Default::default()
+    };
+    docker.create_volume(vconf).await?;
+    Ok(())
 }
 
 pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<String> {
