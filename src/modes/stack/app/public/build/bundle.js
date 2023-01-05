@@ -26165,11 +26165,19 @@ var app = (function () {
     async function list_channels(tag) {
         return await lndCmd("ListChannels", tag);
     }
+    async function add_peer(tag, pubkey, host) {
+        return await lndCmd("AddPeer", tag, { pubkey, host });
+    }
+    async function create_channel(tag, pubkey, amount, satsperbyte) {
+        return await lndCmd("CreateChannel", tag, { pubkey, amount, satsperbyte });
+    }
 
     var lnd = /*#__PURE__*/Object.freeze({
         __proto__: null,
         get_info: get_info,
-        list_channels: list_channels
+        list_channels: list_channels,
+        add_peer: add_peer,
+        create_channel: create_channel
     });
 
     var api = /*#__PURE__*/Object.freeze({

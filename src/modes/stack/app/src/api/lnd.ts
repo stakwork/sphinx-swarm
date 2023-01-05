@@ -42,3 +42,11 @@ export async function get_info(tag: string) {
 export async function list_channels(tag: string) {
   return await lndCmd("ListChannels", tag);
 }
+
+export async function add_peer(tag: string, pubkey: string, host: string) {
+  return await lndCmd("AddPeer", tag, {pubkey, host});
+}
+
+export async function create_channel(tag: string, pubkey: string, amount: number, satsperbyte) {
+  return await lndCmd("CreateChannel", tag, {pubkey, amount, satsperbyte});
+}

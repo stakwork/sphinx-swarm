@@ -14,7 +14,9 @@ export type Cmd =
   | "GetInfo"
   | "GetContainerLogs"
   | "TestMine"
-  | "ListChannels";
+  | "ListChannels" 
+  | "AddPeer"
+  | "CreateChannel";
 
 interface CmdData {
   cmd: Cmd;

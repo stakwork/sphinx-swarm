@@ -32,6 +32,19 @@ pub struct TestMine {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddPeer {
+    pub pubkey: String,
+    pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddChannel {
+    pub pubkey: String,
+    pub amount: u128,
+    pub satsperbyte: u128,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum BitcoindCmd {
     GetInfo,
@@ -42,7 +55,9 @@ pub enum BitcoindCmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum LndCmd {
     GetInfo,
-    ListChannels
+    ListChannels,
+    AddPeer(AddPeer),
+    AddChannel(AddChannel),
 }
 
 #[cfg(test)]

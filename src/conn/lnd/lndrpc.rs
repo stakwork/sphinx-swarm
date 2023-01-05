@@ -1,8 +1,9 @@
+use crate::cmd::{AddPeer, AddChannel};
 use crate::images::LndImage;
 use anyhow::Result;
 use serde::Serialize;
 use tonic_lnd::lnrpc::{
-    Channel, GetInfoRequest, GetInfoResponse, Htlc, ListChannelsRequest, ListChannelsResponse,
+    Channel, GetInfoRequest, GetInfoResponse, Htlc, ListChannelsRequest, ListChannelsResponse, ConnectPeerResponse,
 };
 use tonic_lnd::tonic::Status;
 use tonic_lnd::Client;
@@ -106,5 +107,17 @@ impl LndRPC {
             })
             .await?;
         Ok(response.into_inner())
+    }
+
+    pub async fn add_peer(&mut self, peer: AddPeer) -> Result<ConnectPeerResponse, Status> {
+        let lnd = self.0.lightning();
+        //lnd.connect_peer(request)
+        todo!()
+    }
+
+    pub async fn create_channel(&mut self, channel: AddChannel) -> Result<Channel, Status> {
+        let lnd = self.0.lightning();
+        // lnd.open_channel(request)
+        todo!()
     }
 }
