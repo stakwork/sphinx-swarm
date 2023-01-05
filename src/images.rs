@@ -140,12 +140,11 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     let version = "v0.14.3-beta.rc1".to_string();
     let peering_port = "9735";
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
-    let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
-    println!("home dir {}", home_dir);
-    let root_vol = format!("{}/.lnd", home_dir);
+    // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
+    // println!("home dir {}", home_dir);
+    let root_vol = "/home/.lnd".to_string();
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
-        format!("--lnddir={}", &root_vol),
         format!("--bitcoin.{}", network),
         format!("--rpclisten=0.0.0.0:{}", &lnd.port),
         format!("--tlsextradomain={}.sphinx", lnd.name),
