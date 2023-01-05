@@ -54,7 +54,9 @@ async fn add_node(
             if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
+            println!("try to change vol perms");
             volume_permissions(proj, &lnd.name, "data")?;
+            println!("changed vol perms");
             let client = LndRPC::new(proj, &lnd).await?;
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
