@@ -18,6 +18,7 @@
       if (n.links && n.links.length) {
         n.links.forEach((link) => {
           const idx = ns.findIndex((node) => node.name === link);
+          console.log(n, ns[idx]);
           if (idx > -1)
             edges.push({
               id: `edge-${i + 1}-${idx + 1}`,
@@ -26,7 +27,7 @@
               edgeColor: "#dddddd",
               // noHandle: true,
               type: ns[idx].place === "Internal" ? "bezier" : "straight",
-              animate: ns[idx].place === "External",
+              animate: ns[idx].place === "External" || n.type === "Traefik",
             });
         });
       }
