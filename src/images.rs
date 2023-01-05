@@ -142,9 +142,10 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
     // println!("home dir {}", home_dir);
-    let root_vol = "/root/.lnd";
+    let root_vol = "/home/.lnd";
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
+        format!("--lnddir={}", root_vol),
         format!("--bitcoin.{}", network),
         format!("--rpclisten=0.0.0.0:{}", &lnd.port),
         format!("--tlsextradomain={}.sphinx", lnd.name),
@@ -168,7 +169,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
         hostname: Some(domain(&lnd.name)),
-        // user: user(),
+        user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(project, &lnd.name, ports, root_vol, None, links),
         cmd: Some(cmd),
