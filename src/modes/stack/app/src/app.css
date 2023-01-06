@@ -32,6 +32,13 @@ html {
 	}
 }
 
+.node-internal {
+	border: 1px solid #5e717a !important;
+}
+.node-external {
+	border: 2px dotted #5e717a !important;
+}
+
 .lefty .bx--assistive-text {
 	display: none !important;
 }
