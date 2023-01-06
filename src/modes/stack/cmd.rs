@@ -28,7 +28,20 @@ pub enum RelayCmd {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TestMine {
     pub blocks: u64,
-    pub address: String,
+    pub address: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddPeer {
+    pub pubkey: String,
+    pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddChannel {
+    pub pubkey: String,
+    pub amount: i64,
+    pub satsperbyte: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -42,6 +55,9 @@ pub enum BitcoindCmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum LndCmd {
     GetInfo,
+    ListChannels,
+    AddPeer(AddPeer),
+    AddChannel(AddChannel),
 }
 
 #[cfg(test)]

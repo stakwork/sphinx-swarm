@@ -1,7 +1,7 @@
 <script>
-  import * as api from "./api";
+  import * as api from "../api";
   import { onMount } from "svelte";
-  import { btcinfo } from "./store";
+  import { btcinfo } from "../store";
   import BitcoinMine from "./BitcoinMine.svelte";
 
   export let tag = "";
@@ -14,7 +14,6 @@
   onMount(() => {
     getBitcoinInfo();
   });
-
 </script>
 
 <div class="bitcoin-wrapper">
@@ -37,8 +36,10 @@
       <h3 class="title">PRUNED NODE</h3>
       <h3 class="value">{$btcinfo.pruned}</h3>
     </section>
+    {#if $btcinfo.chain === "regtest"}
+      <BitcoinMine {getBitcoinInfo} {tag} />
+    {/if}
   {/if}
-  <BitcoinMine {getBitcoinInfo} {tag}/>
 </div>
 
 <style>

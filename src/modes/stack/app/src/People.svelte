@@ -38,8 +38,6 @@
 
   onMount(async () => {
     await getUsers();
-    // const rect = topPartElement.getBoundingClientRect();
-    // console.log(rect);
     heightOfVirtualList = Math.ceil(window.innerHeight - 315) - 2;
   });
 

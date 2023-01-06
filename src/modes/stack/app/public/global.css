@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 html, body {
 	position: relative;
 	width: 100%;
@@ -67,6 +69,20 @@ html {
 	background: #525252 !important;
 }
 
+.header-btns .bx--btn {
+	width: 8.7rem;
+	font-size: 0.8rem;
+}
+
+.header-btns .bx--btn--tertiary {
+	border-radius: 8px;
+}
+
+.header-btns .bx--btn--tertiary.channel {
+	border-color: goldenrod;
+	margin-left: 20px;
+}
+
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before {
 	background: #618AFF !important;
 }
@@ -124,9 +140,11 @@ html {
 	width: 40%;
 	margin-right: 2.5rem;
 }
+
 .bx--modal-footer .bx--btn.bx--btn--primary:disabled {
 	background: #525252 !important;
 }
+
 .bx--modal-footer .bx--btn.bx--btn--secondary {
 	width: 40%;
 	margin-left: 2.5rem;
@@ -152,4 +170,54 @@ html {
 	min-height: 75vh;
 	justify-content: center;
 	align-items: center;
+}
+
+.dot-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1rem;
+	margin: 0 0.7rem;
+}
+
+.dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 100%;
+}
+
+.can-receive-wrap {
+	display: flex;
+	align-items: center;
+}
+
+.can-receive-wrap .value {
+	width: 27%;
+}
+
+.receive-line-wrap {
+	margin-left: 10px;
+	display: inline-flex;
+	align-items: center;
+	margin-top: 4px;
+	width: 180px;
+}
+
+.receive-line {
+	display: inline-block;
+	min-height: 6px;
+	background-color: #3ba839;
+	min-width: 20%;
+	border-radius: 20px;
+	margin-right: 0;
+}
+
+.receive-line:not(:first-child) {
+	margin-left: 5px;
+}
+
+.peer-btn .bx--btn--primary {
+	width: 100vw;
+	text-align: center;
+	padding: 0;
 }

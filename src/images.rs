@@ -139,6 +139,8 @@ impl ProxyImage {
 }
 
 pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
+    let mut rng = rand::thread_rng();
+
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -308,7 +310,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         "28333".to_string(),
     ];
     let root_vol = "/home/bitcoin/.bitcoin";
-    // let vols = vec!["/home/bitcoin/.bitcoin"];
+    // let vols = vec!["/home/bitcoin/.bitcoin"];'
     Config {
         image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
         hostname: Some(domain(&node.name)),
