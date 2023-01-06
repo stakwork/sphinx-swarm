@@ -136,23 +136,7 @@ impl LndRPC {
             sat_per_vbyte: channel.satsperbyte,
             node_pubkey: channel.pubkey.into_bytes(),
             local_funding_amount: channel.amount,
-            push_sat: 10,
-            target_conf: 6,
-            private: false,
-            min_htlc_msat: 5,
-            remote_csv_delay: 0,
-            min_confs: 6,
-            spend_unconfirmed: false,
-            funding_shim: None,
-            remote_max_value_in_flight_msat: 1000,
-            remote_max_htlcs: 5,
-            max_local_csv: 6,
-            commitment_type: 1,
-            zero_conf: false,
-            scid_alias: true,
-            close_address: "".to_string(),
-            node_pubkey_string: "".to_string(),
-            sat_per_byte: 0,
+            ..Default::default()
         }).await?;
         Ok(response.into_inner())
     }
