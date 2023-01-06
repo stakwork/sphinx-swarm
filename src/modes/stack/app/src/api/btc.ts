@@ -27,5 +27,9 @@ export async function get_info(tag: string) {
 }
 
 export async function test_mine(tag: string, blocks: number, address: string) {
-  return await btcCmd("TestMine", tag, { blocks, address });
+  if(address) {
+    return await btcCmd("TestMine", tag, { blocks, address });
+  }
+
+  return await btcCmd("TestMine", tag, { blocks });
 }
