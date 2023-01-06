@@ -5,7 +5,9 @@
   import { selectedNode } from "./store";
 
   const nodeCallback = (node) => {
+    console.log(node);
     const n = stack.nodes.find((n) => n.name === node.data.name);
+    console.log(n);
     if (n) selectedNode.set(n);
   };
 
@@ -18,7 +20,6 @@
       if (n.links && n.links.length) {
         n.links.forEach((link) => {
           const idx = ns.findIndex((node) => node.name === link);
-          console.log(n, ns[idx]);
           if (idx > -1)
             edges.push({
               id: `edge-${i + 1}-${idx + 1}`,
@@ -44,6 +45,7 @@
         data: { html: content(n.type), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
+        className: n.place === "Internal" ? "node-internal" : "node-external",
       };
     });
     return { nodes, edges };
@@ -77,5 +79,6 @@
   bgColor="#101317"
   width={window.innerWidth}
   height={window.innerHeight}
+  initialLocation={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
   movement={true}
 />
