@@ -1,4 +1,4 @@
-mod cmd;
+pub mod cmd;
 mod handler;
 mod srv;
 
@@ -12,9 +12,9 @@ use crate::{dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
 use cmd::Cmd;
+use core::time;
 use images::{LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
-use core::time;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;

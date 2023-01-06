@@ -1,18 +1,12 @@
-use crate::cmd::{AddPeer, AddChannel};
 use crate::images::LndImage;
+use crate::modes::stack::cmd::{AddChannel, AddPeer};
 use crate::utils::wait_for_file;
 use anyhow::Result;
 use serde::Serialize;
 use tonic_lnd::lnrpc::{
-    Channel, 
-    GetInfoRequest, 
-    GetInfoResponse, 
-    ListChannelsRequest, 
-    ListChannelsResponse, 
-    ConnectPeerResponse, 
-    ConnectPeerRequest, 
-    LightningAddress,
-    OpenChannelRequest, OpenStatusUpdate,
+    Channel, ConnectPeerRequest, ConnectPeerResponse, GetInfoRequest, GetInfoResponse,
+    LightningAddress, ListChannelsRequest, ListChannelsResponse, OpenChannelRequest,
+    OpenStatusUpdate,
 };
 use tonic_lnd::tonic::{Status, Streaming};
 use tonic_lnd::Client;
@@ -71,7 +65,7 @@ impl LndChannel {
             // pending_htlcs: Vec<Htlc>,
             csv_delay: chan.csv_delay,
             private: chan.private,
-            initiator:chan.initiator,
+            initiator: chan.initiator,
             chan_status_flags: chan.chan_status_flags,
             local_chan_reserve_sat: chan.local_chan_reserve_sat,
             remote_chan_reserve_sat: chan.remote_chan_reserve_sat,
@@ -81,7 +75,7 @@ impl LndChannel {
             uptime: chan.uptime,
             close_address: chan.close_address,
             push_amount_sat: chan.push_amount_sat,
-            thaw_height: chan.thaw_height
+            thaw_height: chan.thaw_height,
         }
     }
 }
@@ -122,25 +116,32 @@ impl LndRPC {
 
     pub async fn add_peer(&mut self, peer: AddPeer) -> Result<ConnectPeerResponse, Status> {
         let lnd = self.0.lightning();
-        let response = lnd.connect_peer(ConnectPeerRequest {
-            addr: Some(LightningAddress {
-                pubkey: peer.pubkey,
-                host: peer.host
-            }),
-            perm: true,
-            timeout: 100000
-        }).await?;
+        let response = lnd
+            .connect_peer(ConnectPeerRequest {
+                addr: Some(LightningAddress {
+                    pubkey: peer.pubkey,
+                    host: peer.host,
+                }),
+                perm: true,
+                timeout: 100000,
+            })
+            .await?;
         Ok(response.into_inner())
     }
 
-    pub async fn create_channel(&mut self, channel: AddChannel) -> Result<Streaming<OpenStatusUpdate>, Status> {
+    pub async fn create_channel(
+        &mut self,
+        channel: AddChannel,
+    ) -> Result<Streaming<OpenStatusUpdate>, Status> {
         let lnd = self.0.lightning();
-        let response = lnd.open_channel(OpenChannelRequest {
-            sat_per_vbyte: channel.satsperbyte,
-            node_pubkey: channel.pubkey.into_bytes(),
-            local_funding_amount: channel.amount,
-            ..Default::default()
-        }).await?;
+        let response = lnd
+            .open_channel(OpenChannelRequest {
+                sat_per_vbyte: channel.satsperbyte,
+                node_pubkey: channel.pubkey.into_bytes(),
+                local_funding_amount: channel.amount,
+                ..Default::default()
+            })
+            .await?;
         Ok(response.into_inner())
     }
 }

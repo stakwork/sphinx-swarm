@@ -1,5 +1,5 @@
 use crate::utils::user;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use bollard::container::Config;
 use bollard::container::{CreateContainerOptions, LogOutput, LogsOptions, RemoveContainerOptions};
 use bollard::exec::{CreateExecOptions, StartExecResults};
