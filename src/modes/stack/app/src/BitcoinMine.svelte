@@ -1,9 +1,6 @@
 <script lang="ts">
-  import {
-    Button,
-    Modal,
-    TextInput,
-  } from "carbon-components-svelte";
+  import { Button } from "carbon-components-svelte";
+  import Mine from "carbon-icons-svelte/lib/VirtualMachine.svelte";
   import * as api from "./api";
 
   export let tag = "";
@@ -11,65 +8,48 @@
 
   let open = false;
   $: blockLen = 6;
-  $: addresss = "";
-  $: ok = blockLen && addresss;
+  $: ok = blockLen;
 
   async function mine() {
-    const result = await api.btc.test_mine(tag, blockLen, addresss);
+    const result = await api.btc.test_mine(tag, blockLen);
     if (result) {
-        open = false;
+      open = false;
 
-        // Set values to default
-        blockLen = 6;
-        addresss = "";
-        
-        // Get new Bitcoin info
-        getBitcoinInfo();
+      // Set values to default
+      blockLen = 6;
+
+      // Get new Bitcoin info
+      getBitcoinInfo();
     }
   }
 </script>
 
 <section class="mine-blocks-btn">
-  <Button on:click={() => (open = true)}>Mine 6 or more Blocks</Button>
-
-  <Modal
-    bind:open
-    modalHeading="Mine Blocks"
-    hasForm={true}
-    class="mine-block-modal"
-    size="sm"
-    primaryButtonText="Mine"
-    secondaryButtonText="Cancel"
-    on:click:button--secondary={() => (open = !open)}
-    on:submit={mine}
-    primaryButtonDisabled={!ok}
-  >
-    <section class="modal-content">
-      <div class="spacer" />
-      <TextInput
-        labelText={"Blocks"}
-        placeholder={"Enter number of blocks"}
-        type="number"
-        bind:value={blockLen}
-      />
-      <div class="spacer" />
-      <TextInput
-        labelText={"Address"}
-        placeholder={"Enter address"}
-        bind:value={addresss}
-      />
-      <div class="spacer" />
-    </section>
-  </Modal>
+  <aside class="mine-wrap">
+    <input
+      bind:value={blockLen}
+      type="number"
+      placeholder="Enter number of blocks"
+    />
+    <Button on:click={mine} size="field" icon={Mine}>Mine blocks</Button>
+  </aside>
 </section>
 
 <style>
-  .mine-blocks-btn {
+  .mine-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
   }
-  .modal-content {
-    padding: 0px 1.5rem;
-  }
-  .spacer {
-    height: 1rem;
+  .mine-wrap input {
+    height: 45px;
+    margin-right: 20px;
+    padding: 5px 10px;
+    background: transparent;
+    color: #FFF;
+    font-size: 1rem;
+    width: 200px;
+    border: 1.5px solid #FFF;
+    border-radius: 2px;
   }
 </style>

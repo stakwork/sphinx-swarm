@@ -4,7 +4,7 @@ use crate::images::BtcImage;
 use anyhow::Result;
 use bitcoincore_rpc::bitcoin::{Address, BlockHash};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use bitcoincore_rpc_json::GetBlockchainInfoResult;
+use bitcoincore_rpc_json::{GetBlockchainInfoResult, AddressType};
 use std::str::FromStr;
 
 pub struct BitcoinRPC(Client);
@@ -22,8 +22,8 @@ impl BitcoinRPC {
         Ok(self.0.get_blockchain_info()?)
     }
 
-    pub fn test_mine(&self, n: u64, addy: &str) -> Result<Vec<BlockHash>> {
-        let address = Address::from_str(addy)?;
+    pub fn test_mine(&self, n: u64) -> Result<Vec<BlockHash>> {
+        let address = self.0.get_new_address(None, Some(AddressType::Bech32))?;
         Ok(self.0.generate_to_address(n, &address)?)
     }
 }
