@@ -28,7 +28,7 @@ pub enum RelayCmd {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TestMine {
     pub blocks: u64,
-    pub address: String,
+    pub address: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

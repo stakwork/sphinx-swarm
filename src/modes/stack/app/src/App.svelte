@@ -5,7 +5,6 @@
   import AddNode from "./AddNode.svelte";
   import { onMount } from "svelte";
   import * as api from "./api";
-  import { Button } from "carbon-components-svelte";
   import NodeLogs from "./NodeLogs.svelte";
 
   async function getConfig() {

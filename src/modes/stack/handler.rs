@@ -48,7 +48,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     Some(serde_json::to_string(&info)?)
                 }
                 BitcoindCmd::TestMine(tm) => {
-                    let res = client.test_mine(tm.blocks, &tm.address)?;
+                    let res = client.test_mine(tm.blocks, tm.address)?;
                     Some(serde_json::to_string(&res)?)
                 }
             }

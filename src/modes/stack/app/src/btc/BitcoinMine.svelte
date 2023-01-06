@@ -1,75 +1,77 @@
 <script lang="ts">
-  import {
-    Button,
-    Modal,
-    TextInput,
-  } from "carbon-components-svelte";
+  import { Button } from "carbon-components-svelte";
+  import Mine from "carbon-icons-svelte/lib/VirtualMachine.svelte";
   import * as api from "../api";
 
   export let tag = "";
   export let getBitcoinInfo = () => {};
 
-  let open = false;
   $: blockLen = 6;
-  $: addresss = "";
-  $: ok = blockLen && addresss;
+  $: address = "";
+  $: ok = blockLen;
 
   async function mine() {
-    const result = await api.btc.test_mine(tag, blockLen, addresss);
+    console.log("In mine function");
+    const result = await api.btc.test_mine(tag, blockLen, address);
     if (result) {
-        open = false;
+      // Set values to default
+      blockLen = 6;
+      address = "";
 
-        // Set values to default
-        blockLen = 6;
-        addresss = "";
-        
-        // Get new Bitcoin info
-        getBitcoinInfo();
+      // Get new Bitcoin info
+      getBitcoinInfo();
     }
   }
 </script>
 
 <section class="mine-blocks-btn">
-  <Button on:click={() => (open = true)}>Mine 6 or more Blocks</Button>
-
-  <Modal
-    bind:open
-    modalHeading="Mine Blocks"
-    hasForm={true}
-    class="mine-block-modal"
-    size="sm"
-    primaryButtonText="Mine"
-    secondaryButtonText="Cancel"
-    on:click:button--secondary={() => (open = !open)}
-    on:submit={mine}
-    primaryButtonDisabled={!ok}
-  >
-    <section class="modal-content">
-      <div class="spacer" />
-      <TextInput
-        labelText={"Blocks"}
-        placeholder={"Enter number of blocks"}
-        type="number"
+  <aside class="mine-wrap">
+    <section class="input-wrap">
+      <label for="blocks">Blocks</label>
+      <input
         bind:value={blockLen}
+        type="number"
+        placeholder="Enter number of blocks"
       />
-      <div class="spacer" />
-      <TextInput
-        labelText={"Address"}
-        placeholder={"Enter address"}
-        bind:value={addresss}
-      />
-      <div class="spacer" />
     </section>
-  </Modal>
+    <aside class="spacer" />
+    <section class="input-wrap">
+      <label for="blocks">Address (Optional)</label>
+      <input
+        bind:value={address}
+        placeholder="Enter Bitcoin address (optional)"
+      />
+    </section>
+    <aside class="spacer" />
+    <Button on:click={mine} size="field" icon={Mine}>Mine blocks</Button>
+  </aside>
 </section>
 
 <style>
-  .mine-blocks-btn {
+  .mine-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
-  .modal-content {
-    padding: 0px 1.5rem;
+
+  .mine-wrap .input-wrap {
+    width: 100%;
   }
-  .spacer {
-    height: 1rem;
+  .mine-wrap .input-wrap input {
+    height: 45px;
+    margin-right: 20px;
+    padding: 5px 10px;
+    background: transparent;
+    color: #fff;
+    font-size: 1rem;
+    width: 100%;
+    border: 1.5px solid #fff;
+    border-radius: 2px;
+  }
+
+  .mine-wrap .input-wrap label {
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    display: block;
   }
 </style>

@@ -7,6 +7,7 @@ use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
+use crate::utils::volume_permissions;
 use crate::{cmd::Cmd, dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
@@ -59,7 +60,7 @@ async fn add_node(
             if let Err(e) = unlock_lnd(proj, &lnd, &secs, &lnd.name).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
-
+            // volume_permissions(proj, &lnd.name, "data")?;
             let client = LndRPC::new(proj, &lnd).await?;
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);

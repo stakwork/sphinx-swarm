@@ -1,13 +1,14 @@
+use anyhow::{anyhow, Result};
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{
     HostConfig, HostConfigLogConfig, Ipam, IpamConfig, PortBinding, PortMap, ResourcesUlimits,
 };
-use rocket::tokio::fs;
-use rocket::tokio::io::AsyncWriteExt;
+use rocket::tokio;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
-use std::env;
+use std::os::unix::fs::PermissionsExt;
+use tokio::{fs, io::AsyncWriteExt};
 
 pub fn host_config(
     project: &str,
@@ -84,7 +85,8 @@ fn extra_hosts() -> Option<Vec<String>> {
 pub fn user() -> Option<String> {
     let uid = std::env::var("DOCKER_USER_ID");
     if let Ok(id) = uid {
-        Some(format!("{}:{}", id, id))
+        // Some(format!("{}:{}", id, id))
+        Some(id)
     } else {
         None
     }
@@ -106,15 +108,23 @@ fn tcp_port(p: &str) -> String {
     format!("{}/tcp", p).to_string()
 }
 
+pub fn volume_permissions(project: &str, name: &str, dir: &str) -> Result<()> {
+    let perms = std::fs::Permissions::from_mode(0o777);
+    let directory = format!("{}/{}", host_volume_string(project, name), dir);
+    std::fs::set_permissions(directory, perms).map_err(|e| anyhow!(e.to_string()))
+}
+
+pub fn host_volume_string(project: &str, name: &str) -> String {
+    let pwd = std::env::current_dir().unwrap_or_default();
+    format!("{}/vol/{}/{}", pwd.to_string_lossy(), project, name)
+}
+
 // DIR/vol/{project}/{container_name}:{dir}
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
-    let pwd = std::env::current_dir().unwrap_or_default();
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
-        "{}/vol/{}/{}:{}:z",
-        pwd.to_string_lossy(),
-        project,
-        name,
+        "{}:{}:rw", //"{}/vol/{}/{}:{}:rw",
+        host_volume_string(project, name),
         dir
     )
 }
@@ -191,4 +201,14 @@ pub async fn put_json<T: Serialize>(file: &str, rs: &T) {
     let st = serde_json::to_string_pretty(rs).expect("failed to make json string");
     let mut file = fs::File::create(path).await.expect("create failed");
     file.write_all(st.as_bytes()).await.expect("write failed");
+}
+
+pub async fn wait_for_file(path: &str, iterations: usize) -> Result<()> {
+    for _ in 0..iterations {
+        if std::path::Path::new(path).exists() {
+            return Ok(());
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    Err(anyhow!(format!("{} does not exists", path)))
 }

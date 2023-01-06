@@ -10,6 +10,7 @@
   import { channels, balances } from "../store";
   import AddPeer from "./AddPeer.svelte";
   import AddChannel from "./AddChannel.svelte";
+  import {formatSatsNumbers} from "../helpers";
 
   import { get_info, list_channels } from "../api/lnd";
 
@@ -29,11 +30,6 @@
     if ($channels && $channels.length) return;
     const channelsData = await list_channels(tag);
     channels.set(channelsData);
-  }
-
-  function formatSatNumbers(num) {
-    const numFormat = new Intl.NumberFormat().format(num).replaceAll(",", " ");
-    return numFormat;
   }
 
   onMount(async () => {
@@ -139,13 +135,13 @@
     <aside>
       <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
       <h3 class="value">
-        {formatSatNumbers($balances.inbound)} <span>SAT</span>
+        {formatSatsNumbers($balances.inbound)} <span>SAT</span>
       </h3>
     </aside>
     <aside>
       <h6 class="title">TOTAL OUTBOUND LIQUIDITY</h6>
       <h3 class="value">
-        {formatSatNumbers($balances.outbound)} <span>SAT</span>
+        {formatSatsNumbers($balances.outbound)} <span>SAT</span>
       </h3>
     </aside>
   </section>
@@ -175,7 +171,7 @@
             <div class="td">
               <section class="can-receive-wrap">
                 <section class="value">
-                  {formatSatNumbers(chan.local_balance)}
+                  {formatSatsNumbers(chan.local_balance)}
                 </section>
                 <ReceiveLineWrap>
                   <ReceiveLine
@@ -189,7 +185,7 @@
                 </ReceiveLineWrap>
               </section>
             </div>
-            <div class="td">{formatSatNumbers(chan.remote_balance)}</div>
+            <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
             <div class="td">
               <span class="pubkey">{chan.remote_pubkey}</span>
             </div>

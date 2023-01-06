@@ -25,7 +25,10 @@ interface CmdData {
 
 export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
   const txt = JSON.stringify({ type, data });
-  const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
-  const result = await r.json();
-  return result;
+  try {
+    const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
+    return await r.json();
+  } catch (e) {
+    console.error(e);
+  }
 }
