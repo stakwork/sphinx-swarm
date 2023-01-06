@@ -1,5 +1,5 @@
-<script>
-    export let color = "#3ba839";
+<script lang="ts">
+  export let color: string = "#3ba839";
 </script>
 
 <div class="dot" style={`background: ${color}`} />

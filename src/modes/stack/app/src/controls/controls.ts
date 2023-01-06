@@ -1,4 +1,4 @@
-import * as api from "./api";
+import * as api from "../api";
 
 type ControlType = "dropdown" | "number" | "text" | "button";
 export interface Control {

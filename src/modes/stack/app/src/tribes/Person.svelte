@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
   import Launch from "carbon-icons-svelte/lib/Launch.svelte";
 
-  export let select = () => {};
+  export let select = (pubkey: string) => {};
   export let owner_alias = "";
   export let owner_pubkey = "";
   export let owner_route_hint = "";
@@ -67,8 +67,8 @@
       <section class="value-wrap">
         <p class="user-value">{owner_pubkey}</p>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <span on:click={copyToClipboard(owner_pubkey)}
-          ><CopyIcon size={0} class="copy-icon" /></span
+        <span on:click={() => copyToClipboard(owner_pubkey)}
+          ><CopyIcon size={16} class="copy-icon" /></span
         >
       </section>
       {#if owner_route_hint}
@@ -76,8 +76,8 @@
         <section class="value-wrap">
           <p class="user-value">{owner_route_hint}</p>
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <span on:click={copyToClipboard(owner_route_hint)}
-            ><CopyIcon size={0} class="copy-icon" /></span
+          <span on:click={() => copyToClipboard(owner_route_hint)}
+            ><CopyIcon size={16} class="copy-icon" /></span
           >
         </section>
       {/if}

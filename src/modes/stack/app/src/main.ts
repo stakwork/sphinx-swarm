@@ -1,8 +1,8 @@
+import "./app.css";
 import App from "./App.svelte";
-import "./api";
 
 const app = new App({
-  target: document.body,
+  target: document.getElementById("app"),
 });
 
 export default app;

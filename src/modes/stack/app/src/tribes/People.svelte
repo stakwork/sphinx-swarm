@@ -1,9 +1,9 @@
 <script>
   import { TextInput } from "carbon-components-svelte";
   import { onMount } from "svelte";
-  import * as api from "./api";
+  import * as api from "../api";
   import Person from "./Person.svelte";
-  import { people } from "./store";
+  import { people } from "../store";
   import VirtualList from "svelte-tiny-virtual-list";
 
   export let url = "";

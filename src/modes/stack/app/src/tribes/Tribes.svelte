@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Tribe from "./Tribe.svelte";
   import { Dropdown } from "carbon-components-svelte";
   import { onMount } from "svelte";
@@ -12,7 +12,7 @@
 
   let loading = false;
 
-  let selectedTribe = "";
+  let selectedTribe;
   $: selectedTribe = $tribes.find((t) => t.uuid === selectedTribe);
 
   let selectedId = "0";

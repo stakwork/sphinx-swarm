@@ -7,7 +7,8 @@
     TextInput,
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { NodeType, Node, allNodeTypes } from "./nodes";
+  import { allNodeTypes } from "./nodes";
+  import type { NodeType, Node } from "./nodes";
   import { stack } from "./store";
 
   let open = false;

@@ -1,9 +1,5 @@
 <script lang="ts">
-  import {
-    Button,
-    Modal,
-    TextArea
-  } from "carbon-components-svelte";
+  import { Button, Modal, TextArea } from "carbon-components-svelte";
   import Logs from "carbon-icons-svelte/lib/CloudLogging.svelte";
   import * as api from "./api";
 
@@ -31,7 +27,7 @@
     on:click:button--secondary={() => (open = !open)}
   >
     <section class="modal-content">
-        <TextArea rows={15} value={String(logs)} />
+      <TextArea rows={15} value={String(logs)} />
     </section>
   </Modal>
 </section>
@@ -42,8 +38,5 @@
   }
   .modal-content {
     padding: 0px 1.5rem;
-  }
-  .spacer {
-    height: 1rem;
   }
 </style>

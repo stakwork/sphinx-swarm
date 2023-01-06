@@ -1,4 +1,5 @@
-import { send_cmd, Cmd } from "./cmd";
+import { send_cmd } from "./cmd";
+import type { Cmd } from "./cmd";
 
 export interface Channel {
   active: boolean;
@@ -44,9 +45,14 @@ export async function list_channels(tag: string) {
 }
 
 export async function add_peer(tag: string, pubkey: string, host: string) {
-  return await lndCmd("AddPeer", tag, {pubkey, host});
+  return await lndCmd("AddPeer", tag, { pubkey, host });
 }
 
-export async function create_channel(tag: string, pubkey: string, amount: number, satsperbyte) {
-  return await lndCmd("CreateChannel", tag, {pubkey, amount, satsperbyte});
+export async function create_channel(
+  tag: string,
+  pubkey: string,
+  amount: number,
+  satsperbyte
+) {
+  return await lndCmd("CreateChannel", tag, { pubkey, amount, satsperbyte });
 }

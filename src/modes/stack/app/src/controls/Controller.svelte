@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { selectedNode } from "./store";
+  import { selectedNode } from "../store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
-  import RelayControls from "./RelayControls.svelte";
-  import TribeControls from "./tribes/TribeControls.svelte";
-  import Lnd from "./lnd/Lnd.svelte";
-  import Bitcoin from "./btc/Bitcoin.svelte";
-  import Proxy from "./Proxy.svelte";
+  import RelayControls from "../relay/RelayControls.svelte";
+  import TribeControls from "../tribes/TribeControls.svelte";
+  import Lnd from "../lnd/Lnd.svelte";
+  import Bitcoin from "../btc/Bitcoin.svelte";
+  import Proxy from "../Proxy.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];

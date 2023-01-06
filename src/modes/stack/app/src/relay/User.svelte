@@ -1,12 +1,12 @@
-<script>
+<script lang="ts">
   import Login from "carbon-icons-svelte/lib/Login.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
   import QrCode from "svelte-qrcode";
-  import DotWrap from "./reusable/DotWrap.svelte";
-  import Dot from "./reusable/Dot.svelte";
+  import DotWrap from "../components/DotWrap.svelte";
+  import Dot from "../components/Dot.svelte";
 
-  export let select = () => {};
+  export let select = (pubkey: string) => {};
   export let alias = "";
   export let pubkey = "";
   export let routeHint = "";
@@ -48,7 +48,7 @@
       {/if}
     </div>
     <div class="signed-up" style={`opacity:${signedUp ? 1 : "0.5"}`}>
-      <Login size={12} />
+      <Login size={16} />
       <span>Signed Up</span>
     </div>
   </div>
@@ -56,16 +56,20 @@
     <div class="fields">
       <p class="user-values-title">Pubkey</p>
       <section class="value-wrap">
-        <p class="user-value" >{pubkey}</p>
+        <p class="user-value">{pubkey}</p>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <span on:click={copyToClipboard(pubkey)}><CopyIcon size={0} class="copy-icon" /></span>
+        <span on:click={() => copyToClipboard(pubkey)}
+          ><CopyIcon size={16} class="copy-icon" /></span
+        >
       </section>
       {#if routeHint}
         <p class="user-values-title">Route hint</p>
         <section class="value-wrap">
           <p class="user-value">{routeHint}</p>
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <span on:click={copyToClipboard(routeHint)}><CopyIcon size={0} class="copy-icon" /></span>
+          <span on:click={() => copyToClipboard(routeHint)}
+            ><CopyIcon size={16} class="copy-icon" /></span
+          >
         </section>
       {/if}
       <p class="user-values-title">Invite QR code</p>

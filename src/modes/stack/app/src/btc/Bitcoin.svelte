@@ -7,7 +7,7 @@
   export let tag = "";
 
   async function getBitcoinInfo() {
-    if ($btcinfo && $btcinfo.length) return;
+    if ($btcinfo) return;
     btcinfo.set(await api.btc.get_info(tag));
   }
 

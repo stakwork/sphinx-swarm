@@ -1,13 +1,12 @@
 <script lang="ts">
   import Svelvet from "svelvet";
-  import { stack, Node, NodeType, defaultPositions } from "./nodes";
+  import { stack, defaultPositions } from "./nodes";
+  import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode } from "./store";
 
   const nodeCallback = (node) => {
-    console.log(node);
     const n = stack.nodes.find((n) => n.name === node.data.name);
-    console.log(n);
     if (n) selectedNode.set(n);
   };
 
@@ -45,7 +44,7 @@
         data: { html: content(n.type), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
-        // className: n.place === "Internal" ? "node-internal" : "node-external",
+        className: n.place === "Internal" ? "node-internal" : "node-external",
       };
     });
     return { nodes, edges };

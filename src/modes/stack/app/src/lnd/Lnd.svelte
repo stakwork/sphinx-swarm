@@ -1,16 +1,16 @@
 <script>
   import { onMount } from "svelte";
 
-  import ReceiveLineWrap from "../reusable/ReceiveLineWrap.svelte";
-  import ReceiveLine from "../reusable/ReceiveLine.svelte";
-  import DotWrap from "../reusable/DotWrap.svelte";
-  import Dot from "../reusable/Dot.svelte";
+  import ReceiveLineWrap from "../components/ReceiveLineWrap.svelte";
+  import ReceiveLine from "../components/ReceiveLine.svelte";
+  import DotWrap from "../components/DotWrap.svelte";
+  import Dot from "../components/Dot.svelte";
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { channels, balances } from "../store";
   import AddPeer from "./AddPeer.svelte";
   import AddChannel from "./AddChannel.svelte";
-  import {formatSatsNumbers} from "../helpers";
+  import { formatSatsNumbers } from "../helpers";
 
   import { get_info, list_channels } from "../api/lnd";
 

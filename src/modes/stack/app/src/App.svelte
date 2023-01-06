@@ -1,7 +1,7 @@
 <script lang="ts">
   import { selectedNode } from "./store";
   import Flow from "./Flow.svelte";
-  import Controller from "./Controller.svelte";
+  import Controller from "./controls/Controller.svelte";
   import AddNode from "./AddNode.svelte";
   import { onMount } from "svelte";
   import * as api from "./api";

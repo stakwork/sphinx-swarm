@@ -3,7 +3,7 @@
 
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { users } from "./store";
+  import { users } from "../store";
   import User from "./User.svelte";
   import { afterUpdate } from "svelte";
 

@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import Launch from "carbon-icons-svelte/lib/Launch.svelte";
 
-  export let select = () => {};
+  export let select = (uuid: string) => {};
   export let name = "";
   export let preview = false;
   export let img = "";
