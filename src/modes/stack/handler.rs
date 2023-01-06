@@ -1,8 +1,8 @@
-use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
 use crate::dock::container_logs;
 use crate::images::Image;
-use anyhow::{anyhow, Result};
+use crate::modes::stack::cmd::*;
+use anyhow::{Context, Result};
 use bollard::Docker;
 
 // tag is the service name
@@ -22,7 +22,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 // add a node via docker
                 None
             }
-            SwarmCmd::GetContainerLogs(container_name)  => {
+            SwarmCmd::GetContainerLogs(container_name) => {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
@@ -35,12 +35,11 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             RelayCmd::ListUsers => None,
         },
         Cmd::Bitcoind(c) => {
-            let client = state.clients.bitcoind.get(tag);
-            if let None = client {
-                return Err(anyhow!("no bitcoind client".to_string()));
-            }
-            // safe to unwrap here because "None" was already checked
-            let client = client.unwrap();
+            let client = state
+                .clients
+                .bitcoind
+                .get(tag)
+                .context("no bitcoind client")?;
             match c {
                 BitcoindCmd::GetInfo => {
                     let info = client.get_info()?;
@@ -53,11 +52,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             }
         }
         Cmd::Lnd(c) => {
-            let client = state.clients.lnd.get_mut(tag);
-            if let None = client {
-                return Err(anyhow!("no lnd client".to_string()));
-            }
-            let client = client.unwrap();
+            let client = state.clients.lnd.get_mut(tag).context("no lnd client")?;
             match c {
                 LndCmd::GetInfo => {
                     let info = client.get_info().await?;
@@ -66,10 +61,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             }
         }
     };
-    match ret {
-        Some(r) => Ok(r),
-        None => Err(anyhow::anyhow!("internal error".to_string())),
-    }
+    Ok(ret.context("internal error")?)
 }
 
 // remove sensitive data from Stack when sending over wire

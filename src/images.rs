@@ -6,7 +6,7 @@ use crate::utils::{
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-// volumes are mapped to {PWD}/vol/{name}:
+// volumes are mapped to {PWD}/vol/{project}/{name}:
 // ports are tcp
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,15 +34,17 @@ impl Image {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BtcImage {
     pub name: String,
+    pub version: String,
     pub network: String,
     pub user: String,
     pub pass: String,
 }
 
 impl BtcImage {
-    pub fn new(name: &str, network: &str, user: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str, user: &str) -> Self {
         Self {
             name: name.to_string(),
+            version: version.to_string(),
             network: network.to_string(),
             user: user.to_string(),
             pass: secrets::random_word(12),
@@ -53,6 +55,7 @@ impl BtcImage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LndImage {
     pub name: String,
+    pub version: String,
     pub network: String,
     pub port: String,
     pub http_port: Option<String>,
@@ -60,9 +63,10 @@ pub struct LndImage {
     pub unlock_password: String,
 }
 impl LndImage {
-    pub fn new(name: &str, network: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
+            version: version.to_string(),
             network: network.to_string(),
             port: port.to_string(),
             http_port: None,
@@ -81,13 +85,15 @@ impl LndImage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelayImage {
     pub name: String,
+    pub version: String,
     pub port: String,
     pub links: Links,
 }
 impl RelayImage {
-    pub fn new(name: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
+            version: version.to_string(),
             port: port.to_string(),
             links: vec![],
         }
@@ -100,6 +106,7 @@ impl RelayImage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProxyImage {
     pub name: String,
+    pub version: String,
     pub network: String,
     pub port: String,
     pub admin_port: String,
@@ -110,9 +117,10 @@ pub struct ProxyImage {
 }
 
 impl ProxyImage {
-    pub fn new(name: &str, network: &str, port: &str, admin_port: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str, port: &str, admin_port: &str) -> Self {
         Self {
             name: name.to_string(),
+            version: version.to_string(),
             network: network.to_string(),
             port: port.to_string(),
             admin_port: admin_port.to_string(),
