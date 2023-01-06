@@ -1,5 +1,4 @@
 use crate::config::{Node, Stack, STATE};
-use crate::conn::lnd::lndrpc::LndChannel;
 use crate::dock::container_logs;
 use crate::images::Image;
 use crate::modes::stack::cmd::*;
@@ -60,18 +59,8 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     Some(serde_json::to_string(&info)?)
                 }
                 LndCmd::ListChannels => {
-                    let mut lnd_channels: Vec<LndChannel> = Vec::new();
-
                     let channel_list = client.list_channels().await?;
-                    let channels = channel_list.channels;
-
-                    for chan in channels {
-                        let new_chan = LndChannel::convert_to_json(chan);
-
-                        lnd_channels.push(new_chan)
-                    }
-
-                    Some(serde_json::to_string(&lnd_channels)?)
+                    Some(serde_json::to_string(&channel_list.channels)?)
                 }
                 LndCmd::AddPeer(peer) => {
                     let peer = client.add_peer(peer).await;
