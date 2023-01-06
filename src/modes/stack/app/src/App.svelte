@@ -26,10 +26,13 @@
 
     {#if $selectedNode}
       <div class="title">{$selectedNode.name}</div>
+      {#if $selectedNode.version}
+        <div class="version">({$selectedNode.version})</div>
+      {/if}
     {/if}
 
     {#if $selectedNode && $selectedNode.place === "Internal"}
-        <NodeLogs nodeName={$selectedNode.name} />
+      <NodeLogs nodeName={$selectedNode.name} />
     {/if}
     <AddNode />
   </header>
@@ -78,6 +81,13 @@
   .title {
     color: white;
     margin-left: 2rem;
+    font-size: 1.15rem;
+  }
+  .version {
+    color: white;
+    margin: 0 1rem;
+    font-weight: bold;
+    font-size: 0.8rem;
   }
   .stack-title {
     color: white;
