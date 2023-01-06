@@ -3,8 +3,9 @@
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "./RelayControls.svelte";
-  import TribeControls from "./TribeControls.svelte";
-  import Bitcoin from "./Bitcoin.svelte";
+  import TribeControls from "./tribes/TribeControls.svelte";
+  import Lnd from "./lnd/Lnd.svelte";
+  import Bitcoin from "./btc/Bitcoin.svelte";
   import Proxy from "./Proxy.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
@@ -15,7 +16,7 @@
 </script>
 
 {#if ctrls}
-  <div class="main">
+  <div class="main" style={`width: ${type === "Lnd" ? "35rem" : "23rem"}`}>
     <header>
       <img
         src={`swarm/${type.toLowerCase()}.png`}
@@ -28,6 +29,8 @@
       <RelayControls {tag} />
     {:else if type === "Tribes"}
       <TribeControls url={$selectedNode.url} />
+    {:else if type === "Lnd"}
+      <Lnd {tag} />
     {:else if type === "Btc"}
       <Bitcoin {tag} />
     {:else if type === "Proxy"}
@@ -53,7 +56,7 @@
     height: calc(100vh - 4.2rem);
     overflow-y: auto;
     width: 23rem;
-    transition: width 10s;
+    /* transition: width 400ms; */
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
@@ -61,7 +64,7 @@
     background: #1a242e;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
     animation-name: sidebar;
-    animation-duration: 400ms;
+    animation-duration: 40ms;
   }
   header {
     font-size: 1rem;

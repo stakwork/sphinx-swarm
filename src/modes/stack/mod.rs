@@ -13,8 +13,10 @@ use anyhow::{Context, Result};
 use bollard::Docker;
 use images::{LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
+use core::time;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::thread;
 use tokio::sync::{mpsc, Mutex};
 
 async fn add_node(
@@ -41,6 +43,9 @@ async fn add_node(
             log::info!("created bitcoind");
         }
         Image::Lnd(lnd) => {
+            let delay_time = time::Duration::from_millis(90000);
+            thread::sleep(delay_time);
+
             let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
             let btc = nodes
                 .iter()
@@ -49,9 +54,10 @@ async fn add_node(
                 .as_btc()?;
             let lnd1 = images::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
+
             ids.insert(lnd.name.clone(), lnd_id.clone());
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
+            if let Err(e) = unlock_lnd(proj, &lnd, &secs, &lnd.name).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
             // volume_permissions(proj, &lnd.name, "data")?;
@@ -123,9 +129,15 @@ async fn build_stack(
     Ok((ids, clients))
 }
 
-async fn unlock_lnd(proj: &str, lnd_node: &LndImage, secs: &secrets::Secrets) -> Result<()> {
+async fn unlock_lnd(
+    proj: &str,
+    lnd_node: &LndImage,
+    secs: &secrets::Secrets,
+    name: &str,
+) -> Result<()> {
     // INIT LND
-    let cert_path = format!("vol/{}/lnd1/tls.cert", proj);
+    let cert_path = format!("vol/{}/{}/tls.cert", proj, name);
+    println!("Cert Path {}", cert_path);
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
     let unlocker = LndUnlocker::new(&unlock_port, &cert_path).await?;
     if let Some(_) = secs.get(&lnd_node.name) {

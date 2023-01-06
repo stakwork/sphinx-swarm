@@ -3,6 +3,8 @@
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
   import QrCode from "svelte-qrcode";
+  import DotWrap from "./reusable/DotWrap.svelte";
+  import Dot from "./reusable/Dot.svelte";
 
   export let select = () => {};
   export let alias = "";
@@ -36,12 +38,9 @@
           <ArrowLeft size={24} />
         </div>
       {/if}
-      <div class="dot-wrap">
-        <div
-          class="dot"
-          style={`background:${signedUp ? "#52B550" : "grey"};`}
-        />
-      </div>
+      <DotWrap>
+        <Dot color={`${signedUp ? "#52B550" : "grey"}`} />
+      </DotWrap>
       {#if alias}
         <div class="alias">{alias}</div>
       {:else}
@@ -95,18 +94,6 @@
   }
   .user:hover:not(.selected) {
     background: #131b23;
-  }
-  .dot-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1rem;
-    margin: 0 0.7rem;
-  }
-  .dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 100%;
   }
   .top {
     display: flex;

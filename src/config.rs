@@ -90,6 +90,8 @@ impl Default for Stack {
         let mut lnd = LndImage::new("lnd1", &network, "10009");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
+
+
         // proxy
         let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
@@ -104,6 +106,7 @@ impl Default for Stack {
             Image::Proxy(proxy),
             Image::Relay(relay),
         ];
+        
         let mut nodes: Vec<Node> = internal_nodes
             .iter()
             .map(|n| Node::Internal(n.to_owned()))

@@ -13,7 +13,10 @@ export type Cmd =
   | "AddUser"
   | "GetInfo"
   | "GetContainerLogs"
-  | "TestMine";
+  | "TestMine"
+  | "ListChannels" 
+  | "AddPeer"
+  | "CreateChannel";
 
 interface CmdData {
   cmd: Cmd;

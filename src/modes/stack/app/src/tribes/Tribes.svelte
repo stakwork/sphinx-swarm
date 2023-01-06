@@ -2,8 +2,8 @@
   import Tribe from "./Tribe.svelte";
   import { Dropdown } from "carbon-components-svelte";
   import { onMount } from "svelte";
-  import * as api from "./api";
-  import { tribes } from "./store";
+  import * as api from "../api";
+  import { tribes } from "../store";
   import VirtualList from "svelte-tiny-virtual-list";
 
   export let url = "";

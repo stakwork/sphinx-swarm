@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "carbon-components-svelte";
   import Mine from "carbon-icons-svelte/lib/VirtualMachine.svelte";
-  import * as api from "./api";
+  import * as api from "../api";
 
   export let tag = "";
   export let getBitcoinInfo = () => {};

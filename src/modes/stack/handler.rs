@@ -1,5 +1,6 @@
 use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
+use crate::conn::lnd::lndrpc::LndChannel;
 use crate::dock::container_logs;
 use crate::images::Image;
 use anyhow::{anyhow, Result};
@@ -22,7 +23,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 // add a node via docker
                 None
             }
-            SwarmCmd::GetContainerLogs(container_name)  => {
+            SwarmCmd::GetContainerLogs(container_name) => {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
@@ -62,6 +63,31 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 LndCmd::GetInfo => {
                     let info = client.get_info().await?;
                     Some(serde_json::to_string(&info)?)
+                }
+                LndCmd::ListChannels => {
+                    let mut lnd_channels: Vec<LndChannel> = Vec::new();
+
+                    let channel_list = client.list_channels().await?;
+                    let channels = channel_list.channels;
+
+                    for chan in channels {
+                        let new_chan = LndChannel::convert_to_json(chan);
+
+                        lnd_channels.push(new_chan)
+                    }
+
+                    Some(serde_json::to_string(&lnd_channels)?)
+                }
+                LndCmd::AddPeer(peer) => {
+                    let peer = client.add_peer(peer).await;
+                    let result = peer.unwrap();
+                    //Some(serde_json::to_string(&result)?)
+                    todo!()
+                }
+                LndCmd::AddChannel(channel) => {
+                    let channel = client.create_channel(channel).await?;
+                    //Some(serde_json::to_string(&channel)?)
+                    todo!()
                 }
             }
         }
