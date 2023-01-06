@@ -1,12 +1,11 @@
 pub mod dock;
 
-mod cmd;
 mod config;
 mod conn;
 mod env;
 mod images;
 mod logs;
-mod modes;
+pub mod modes;
 mod rocket_utils;
 mod routes;
 mod secrets;

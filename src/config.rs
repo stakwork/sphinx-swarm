@@ -85,19 +85,23 @@ impl Default for Stack {
     fn default() -> Self {
         let network = "regtest".to_string();
         // bitcoind
-        let bitcoind = BtcImage::new("bitcoind", &network, "sphinx");
+        let mut v = "23.0";
+        let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
         // lnd
-        let mut lnd = LndImage::new("lnd1", &network, "10009");
+        v = "v0.14.3-beta.rc1";
+        let mut lnd = LndImage::new("lnd1", v, &network, "10009");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
 
 
         // proxy
-        let mut proxy = ProxyImage::new("proxy1", &network, "11111", "5050");
+        v = "0.1.2";
+        let mut proxy = ProxyImage::new("proxy1", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec!["lnd1"]);
         // relay
-        let mut relay = RelayImage::new("relay1", "3000");
+        v = "v2.2.12";
+        let mut relay = RelayImage::new("relay1", v, "3000");
         relay.links(vec!["proxy1", "lnd1"]);
         // internal nodes
         let internal_nodes = vec![
@@ -282,7 +286,12 @@ mod tests {
     #[test]
     fn test_relay_config() {
         let mut c = RelayConfig::new("relay", "3000");
-        c.lnd(&LndImage::new("lnd", "regtest", "10009"));
+        c.lnd(&LndImage::new(
+            "lnd",
+            "v0.14.3-beta.rc1",
+            "regtest",
+            "10009",
+        ));
         relay_env_config(&c);
         assert!(true == true)
     }

@@ -1,3 +1,4 @@
+mod cmd;
 mod handler;
 mod srv;
 
@@ -7,10 +8,10 @@ use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
-use crate::utils::volume_permissions;
-use crate::{cmd::Cmd, dock::*, images, logs};
+use crate::{dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
+use cmd::Cmd;
 use images::{LndImage, ProxyImage, RelayImage};
 use rocket::tokio;
 use core::time;
@@ -95,7 +96,7 @@ async fn add_node(
             if let None = lnd {
                 return Err(anyhow::anyhow!("LND required for Relay".to_string()));
             }
-            let relay_node = RelayImage::new("relay1", "3000");
+            let relay_node = RelayImage::new("relay1", "v2.2.12", "3000");
             let relay1 = images::relay(proj, &relay_node, lnd.unwrap(), proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
             ids.insert(relay.name, relay_id.clone());
