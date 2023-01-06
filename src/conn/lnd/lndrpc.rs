@@ -10,9 +10,10 @@ use tonic_lnd::lnrpc::{
     ListChannelsResponse, 
     ConnectPeerResponse, 
     ConnectPeerRequest, 
-    LightningAddress
+    LightningAddress,
+    OpenChannelRequest, OpenStatusUpdate,
 };
-use tonic_lnd::tonic::Status;
+use tonic_lnd::tonic::{Status, Streaming};
 use tonic_lnd::Client;
 
 pub struct LndRPC(Client);
@@ -129,9 +130,30 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn create_channel(&mut self, channel: AddChannel) -> Result<Channel, Status> {
+    pub async fn create_channel(&mut self, channel: AddChannel) -> Result<Streaming<OpenStatusUpdate>, Status> {
         let lnd = self.0.lightning();
-        // lnd.open_channel(request)
-        todo!()
+        let response = lnd.open_channel(OpenChannelRequest {
+            sat_per_vbyte: channel.satsperbyte,
+            node_pubkey: channel.pubkey.into_bytes(),
+            local_funding_amount: channel.amount,
+            push_sat: 10,
+            target_conf: 6,
+            private: false,
+            min_htlc_msat: 5,
+            remote_csv_delay: 0,
+            min_confs: 6,
+            spend_unconfirmed: false,
+            funding_shim: None,
+            remote_max_value_in_flight_msat: 1000,
+            remote_max_htlcs: 5,
+            max_local_csv: 6,
+            commitment_type: 1,
+            zero_conf: false,
+            scid_alias: true,
+            close_address: "".to_string(),
+            node_pubkey_string: "".to_string(),
+            sat_per_byte: 0,
+        }).await?;
+        Ok(response.into_inner())
     }
 }

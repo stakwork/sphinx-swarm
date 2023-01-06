@@ -40,8 +40,8 @@ pub struct AddPeer {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddChannel {
     pub pubkey: String,
-    pub amount: u128,
-    pub satsperbyte: u128,
+    pub amount: i64,
+    pub satsperbyte: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
