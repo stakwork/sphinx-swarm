@@ -23,7 +23,9 @@ export type NodeType =
   | "Meme"
   | "Mqtt"
   | "Auth"
-  | "Postgres";
+  | "Postgres"
+  | "Traefik"
+  | "Cache";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",
@@ -35,6 +37,8 @@ export const allNodeTypes: NodeType[] = [
   "Mqtt",
   "Auth",
   "Postgres",
+  "Traefik",
+  "Cache",
 ];
 
 type Place = "Internal" | "External";
@@ -81,6 +85,12 @@ const stack: Stack = {
       links: ["proxy1", "lnd1", "tribes", "memes"],
     },
     {
+      place: "Internal",
+      type: "Traefik",
+      name: "reverse-proxy",
+      links: ["lnd1", "relay1"],
+    },
+    {
       name: "tribes",
       place: "External",
       type: "Tribes",
@@ -100,6 +110,7 @@ const defaultPositions = [
   [370, 200],
   [660, 130],
   [920, 350],
+  [920, 30],
   [260, 400],
   [560, 500],
 ];

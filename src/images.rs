@@ -140,18 +140,21 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     let version = "v0.14.3-beta.rc1".to_string();
     let peering_port = "9735";
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
-    let root_vol = "/root/.lnd";
+    // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
+    // println!("home dir {}", home_dir);
+    let root_vol = "/home/.lnd";
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
-        format!("--bitcoin.{}", network).to_string(),
-        format!("--rpclisten=0.0.0.0:{}", &lnd.port).to_string(),
-        format!("--tlsextradomain={}.sphinx", lnd.name).to_string(),
-        format!("--alias={}", &lnd.name).to_string(),
-        format!("--bitcoind.rpcuser={}", &btc.user).to_string(),
-        format!("--bitcoind.rpcpass={}", &btc.pass).to_string(),
-        format!("--bitcoind.rpchost={}.sphinx", &btc.name).to_string(),
-        format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name).to_string(),
-        format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name).to_string(),
+        format!("--lnddir={}", root_vol),
+        format!("--bitcoin.{}", network),
+        format!("--rpclisten=0.0.0.0:{}", &lnd.port),
+        format!("--tlsextradomain={}.sphinx", lnd.name),
+        format!("--alias={}", &lnd.name),
+        format!("--bitcoind.rpcuser={}", &btc.user),
+        format!("--bitcoind.rpcpass={}", &btc.pass),
+        format!("--bitcoind.rpchost={}.sphinx", &btc.name),
+        format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name),
+        format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name),
         "--debuglevel=info".to_string(),
         "--accept-keysend".to_string(),
         "--bitcoin.active".to_string(),
@@ -166,7 +169,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     Config {
         image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
         hostname: Some(domain(&lnd.name)),
-        // user: user(),
+        user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(project, &lnd.name, ports, root_vol, None, links),
         cmd: Some(cmd),

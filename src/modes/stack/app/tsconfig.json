@@ -4,9 +4,6 @@
   "include": ["src/**/*"],
   "exclude": ["node_modules/*", "__sapper__/*", "public/*"],
   "compilerOptions": {
-    "lib": [
-      "ES2021.String"
-    ]
-}
-
+    "lib": ["ES2021.String"]
+  }
 }
