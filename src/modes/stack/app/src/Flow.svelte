@@ -45,7 +45,7 @@
         data: { html: content(n.type), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
-        className: n.place === "Internal" ? "node-internal" : "node-external",
+        // className: n.place === "Internal" ? "node-internal" : "node-external",
       };
     });
     return { nodes, edges };
