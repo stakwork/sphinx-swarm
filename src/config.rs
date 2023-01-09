@@ -242,7 +242,7 @@ impl Default for RelayConfig {
     fn default() -> Self {
         Self {
             node_ip: "127.0.0.1".to_string(),
-            lnd_ip: "lnd-dev.sphinx".to_string(),
+            lnd_ip: "lnd.sphinx".to_string(),
             lnd_port: "10009".to_string(),
             public_url: "127.0.0.0:3000".to_string(),
             tls_location: "/relay/.lnd/tls.cert".to_string(),

@@ -46,8 +46,8 @@ async fn add_node(
             log::info!("created bitcoind");
         }
         Image::Lnd(lnd) => {
-            let delay_time = time::Duration::from_millis(90000);
-            thread::sleep(delay_time);
+            // let delay_time = time::Duration::from_millis(90000);
+            // thread::sleep(delay_time);
 
             let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
             let btc = nodes
@@ -106,8 +106,9 @@ async fn add_node(
             let relay_id = create_and_start(&docker, relay1).await?;
             ids.insert(relay.name.clone(), relay_id.clone());
 
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             let client = RelayAPI::new(&relay).await?;
-            let client = relay_root_user(client).await?;
+            let client = relay_root_user(proj, &relay.name, client).await?;
             clients.relay.insert(relay.name, client);
 
             log::info!("created Relay {}", relay_id);
@@ -140,10 +141,16 @@ async fn build_stack(
     Ok((ids, clients))
 }
 
-async fn relay_root_user(api: RelayAPI) -> Result<RelayAPI> {
-    // check if root user exists
-    // if not, create new user
-    // save the admin token in secrets
+async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<RelayAPI> {
+    let has_admin = api.has_admin().await?;
+    if has_admin {
+        log::info!("relay admin exists already");
+        return Ok(api);
+    }
+    let new_user = api.add_user().await?;
+    let token = secrets::random_word(12);
+    let _id = api.claim_user(&new_user.public_key, &token).await?;
+    secrets::add_to_secrets(proj, name, &token).await;
     Ok(api)
 }
 

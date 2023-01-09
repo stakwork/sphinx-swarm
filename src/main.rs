@@ -35,14 +35,12 @@ async fn main() {
     let cmd = std::env::args().nth(1).expect("no cmd given");
 
     let d = dock::er();
-    match match cmd.as_str() {
+    match cmd.as_str() {
         "demo" => modes::demo::run(d).await,
         "down" => modes::down::run(d).await,
         "test" => modes::test::run(d).await,
         "stack" => modes::stack::run(d).await,
         _ => panic!("invalid cmd"),
-    } {
-        Ok(_) => (),
-        Err(e) => panic!("{:?}", e),
-    };
+    }
+    .expect("FAIL")
 }
