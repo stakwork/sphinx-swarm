@@ -75,6 +75,15 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 }
             }
         }
+        Cmd::Proxy(c) => {
+            let client = state.clients.proxy.get_mut(tag).context("no proxy client")?;
+            match c {
+                ProxyCmd::GetBalance => {
+                    let balance =client.get_balance().await?;
+                    Some(serde_json::to_string(&balance)?)
+                }
+            }
+        },
     };
     Ok(ret.context("internal error")?)
 }

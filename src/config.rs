@@ -1,5 +1,6 @@
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
+use crate::conn::proxy::proxyapi::ProxyAPI;
 use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
 use crate::utils;
 use anyhow::Result;
@@ -29,12 +30,14 @@ impl Default for State {
 pub struct Clients {
     pub bitcoind: HashMap<String, BitcoinRPC>,
     pub lnd: HashMap<String, LndRPC>,
+    pub proxy: HashMap<String, ProxyAPI>
 }
 impl Default for Clients {
     fn default() -> Self {
         Self {
             bitcoind: HashMap::new(),
             lnd: HashMap::new(),
+            proxy: HashMap::new(),
         }
     }
 }
