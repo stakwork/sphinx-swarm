@@ -62,6 +62,7 @@ pub enum LndCmd {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", content = "content")]
 pub enum ProxyCmd {
     GetBalance,
 }

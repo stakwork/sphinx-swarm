@@ -79,7 +79,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             let client = state.clients.proxy.get_mut(tag).context("no proxy client")?;
             match c {
                 ProxyCmd::GetBalance => {
-                    let balance =client.get_balance().await?;
+                    let balance = client.get_balance().await?;
                     Some(serde_json::to_string(&balance)?)
                 }
             }

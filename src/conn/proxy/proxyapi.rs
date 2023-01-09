@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::{str::FromStr, time::Duration};
+use std::{time::Duration, collections::HashMap};
 
 use crate::images::ProxyImage;
 
@@ -11,40 +11,47 @@ pub struct ProxyAPI {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ComplexBalance {
-    reserve: u128,
-    full_balance: u128,
-    balance: u128,
-    pending_open_balance: u128,
+pub struct Balances {
+    total: u128,
+    balances: HashMap<String, u32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BalanceResponse {
+    total: u128,
+    usercount: u32,
 }
 
 impl ProxyAPI {
-    pub async fn new(proj: &str, proxy: &ProxyImage) -> Result<Self> {
+    pub async fn new(proxy: &ProxyImage) -> Result<Self> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(20))
             .danger_accept_invalid_certs(true)
             .build()
-            .expect("couldnt build reqwest client for proxy");
-            
+            .expect("couldnt build proxy reqwest client");
+
         Ok(Self {
-            url: format!("localhost:{}", proxy.port),
+            url: format!("localhost:{}", proxy.admin_port),
             client,
             token: proxy.admin_token.clone().unwrap_or("".to_string()),
         })
     }
 
-    pub async fn get_balance(&self) -> Result<ComplexBalance> {
-        let route = format!("http://{}/balance", self.url);
-        match self
-            .client
-            .get(route.as_str())
-            .header("Content-Type", "application/json")
-            .header("x-user-token", self.token.clone())
-            .send()
-            .await
-        {
-            Ok(res) => Ok(res.json().await?),
-            Err(e) => Err(anyhow::anyhow!("Proxy Balance Error {:?}", e)),
-        }
+    pub async fn get_balance(&self) -> Result<BalanceResponse> {
+        let route = format!("http://{}/balances", self.url);
+
+        let res = self
+        .client
+        .get(route.as_str())
+        .header("x-admin-token", self.token.clone())
+        .send()
+        .await?;
+
+        let balances: Balances = res.json().await?;
+        Ok(BalanceResponse {
+            total: balances.total,
+            usercount: balances.balances.len() as u32,
+        })
+
     }
 }

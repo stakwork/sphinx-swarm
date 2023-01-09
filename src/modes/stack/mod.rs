@@ -78,7 +78,7 @@ async fn add_node(
             let proxy_id = create_and_start(&docker, proxy1).await?;
             ids.insert(proxy.name.clone(), proxy_id.clone());
 
-            let client = ProxyAPI::new(proj, &proxy).await?;
+            let client = ProxyAPI::new(&proxy).await?;
             clients.proxy.insert(proxy.name, client);
 
             log::info!("created Proxy {}", proxy_id);
