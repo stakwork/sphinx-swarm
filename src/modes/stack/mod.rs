@@ -15,7 +15,7 @@ use anyhow::{Context, Result};
 use bollard::Docker;
 use cmd::Cmd;
 use core::time;
-use images::{LndImage, ProxyImage, RelayImage};
+use images::{LndImage, ProxyImage};
 use rocket::tokio;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -107,6 +107,7 @@ async fn add_node(
             ids.insert(relay.name.clone(), relay_id.clone());
 
             let client = RelayAPI::new(&relay).await?;
+            let client = relay_root_user(client).await?;
             clients.relay.insert(relay.name, client);
 
             log::info!("created Relay {}", relay_id);
@@ -137,6 +138,13 @@ async fn build_stack(
         .await?;
     }
     Ok((ids, clients))
+}
+
+async fn relay_root_user(api: RelayAPI) -> Result<RelayAPI> {
+    // check if root user exists
+    // if not, create new user
+    // save the admin token in secrets
+    Ok(api)
 }
 
 async fn unlock_lnd(
