@@ -108,7 +108,7 @@ async fn add_node(
 
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             let client = RelayAPI::new(&relay).await?;
-            let client = relay_root_user(proj, &relay.name, client).await?;
+            // let client = relay_root_user(proj, &relay.name, client).await?;
             clients.relay.insert(relay.name, client);
 
             log::info!("created Relay {}", relay_id);
