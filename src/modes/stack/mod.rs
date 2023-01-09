@@ -102,8 +102,7 @@ async fn add_node(
             if let None = lnd {
                 return Err(anyhow::anyhow!("LND required for Relay".to_string()));
             }
-            let relay_node = RelayImage::new("relay1", "v2.2.12", "3000");
-            let relay1 = images::relay(proj, &relay_node, lnd.unwrap(), proxy);
+            let relay1 = images::relay(proj, &relay, lnd.unwrap(), proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
             ids.insert(relay.name.clone(), relay_id.clone());
 
