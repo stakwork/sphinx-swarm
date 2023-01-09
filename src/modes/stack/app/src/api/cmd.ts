@@ -5,7 +5,7 @@ if (IS_DEV) {
   root = "http://localhost:8000/api";
 }
 
-type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd";
+type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd" | "Proxy";
 
 export type Cmd =
   | "GetConfig"
@@ -16,19 +16,20 @@ export type Cmd =
   | "TestMine"
   | "ListChannels" 
   | "AddPeer"
-  | "CreateChannel";
+  | "CreateChannel"
+  | "GetBalance";
 
-interface CmdData {
-  cmd: Cmd;
-  content?: any;
-}
-
-export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
-  const txt = JSON.stringify({ type, data });
-  try {
-    const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
-    return await r.json();
-  } catch (e) {
-    console.error(e);
+  interface CmdData {
+    cmd: Cmd;
+    content?: any;
   }
-}
+  
+  export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
+    const txt = JSON.stringify({ type, data });
+    try {
+      const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
+      return await r.json();
+    } catch (e) {
+      console.error(e);
+    }
+  }

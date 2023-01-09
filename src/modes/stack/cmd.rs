@@ -8,6 +8,7 @@ pub enum Cmd {
     Relay(RelayCmd),
     Bitcoind(BitcoindCmd),
     Lnd(LndCmd),
+    Proxy(ProxyCmd),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,6 +59,12 @@ pub enum LndCmd {
     ListChannels,
     AddPeer(AddPeer),
     AddChannel(AddChannel),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", content = "content")]
+pub enum ProxyCmd {
+    GetBalance,
 }
 
 #[cfg(test)]

@@ -3,17 +3,7 @@
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./AddNode.svelte";
-  import { onMount } from "svelte";
-  import * as api from "./api";
   import NodeLogs from "./NodeLogs.svelte";
-
-  async function getConfig() {
-    const conf = await api.swarm.get_config();
-  }
-
-  onMount(() => {
-    getConfig();
-  });
 </script>
 
 <main>

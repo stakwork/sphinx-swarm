@@ -63,15 +63,21 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     Some(serde_json::to_string(&channel_list.channels)?)
                 }
                 LndCmd::AddPeer(peer) => {
-                    let peer = client.add_peer(peer).await;
-                    let result = peer.unwrap();
-                    //Some(serde_json::to_string(&result)?)
-                    todo!()
+                    let result = client.add_peer(peer).await?;
+                    Some(serde_json::to_string(&result)?)
                 }
                 LndCmd::AddChannel(channel) => {
                     let channel = client.create_channel(channel).await?;
-                    //Some(serde_json::to_string(&channel)?)
-                    todo!()
+                    Some(serde_json::to_string(&channel)?)
+                }
+            }
+        }
+        Cmd::Proxy(c) => {
+            let client = state.clients.proxy.get(tag).context("no proxy client")?;
+            match c {
+                ProxyCmd::GetBalance => {
+                    let balance = client.get_balance().await?;
+                    Some(serde_json::to_string(&balance)?)
                 }
             }
         }

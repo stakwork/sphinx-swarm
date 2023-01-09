@@ -5,6 +5,7 @@ mod srv;
 use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
+use crate::conn::proxy::proxyapi::ProxyAPI;
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
@@ -75,7 +76,11 @@ async fn add_node(
                 .as_lnd()?;
             let proxy1 = images::proxy(proj, &proxy, &lnd);
             let proxy_id = create_and_start(&docker, proxy1).await?;
-            ids.insert(proxy.name, proxy_id.clone());
+            ids.insert(proxy.name.clone(), proxy_id.clone());
+
+            let client = ProxyAPI::new(&proxy).await?;
+            clients.proxy.insert(proxy.name, client);
+
             log::info!("created Proxy {}", proxy_id);
         }
         Image::Relay(relay) => {
