@@ -34,7 +34,7 @@
     {:else if type === "Btc"}
       <Bitcoin {tag} />
     {:else if type === "Proxy"}
-      <Proxy />
+      <Proxy {tag} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}

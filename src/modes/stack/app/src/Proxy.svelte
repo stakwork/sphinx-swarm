@@ -1,18 +1,32 @@
 <script>
-    import {formatSatsNumbers} from "./helpers";
+  import { onMount } from "svelte";
+  import { formatSatsNumbers } from "./helpers";
+  import { get_proxy_balances } from "./api/proxy";
+  import { proxy } from "./store";
+
+  export let tag = "";
+
+  async function getBalances() {
+    if ($proxy.total && $proxy.user_count) return;
+    proxy.set(await get_proxy_balances(tag));
+  }
+
+  onMount(() => {
+    getBalances();
+  });
 </script>
 
 <div class="proxy-wrapper">
   <h5 class="info">Proxy Stats</h5>
   <div class="spacer" />
-    <section class="value-wrap">
-      <h3 class="title">TOTAL USERS</h3>
-      <h3 class="value">100</h3>
-    </section>
-    <section class="value-wrap">
-      <h3 class="title">TOTAL SATS BALANCE</h3>
-      <h3 class="value">{formatSatsNumbers(50000000)}</h3>
-    </section>
+  <section class="value-wrap">
+    <h3 class="title">TOTAL USERS</h3>
+    <h3 class="value">{$proxy.user_count}</h3>
+  </section>
+  <section class="value-wrap">
+    <h3 class="title">TOTAL SATS BALANCE</h3>
+    <h3 class="value">{formatSatsNumbers($proxy.total)}</h3>
+  </section>
 </div>
 
 <style>

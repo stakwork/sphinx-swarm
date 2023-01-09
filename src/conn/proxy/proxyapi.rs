@@ -19,7 +19,7 @@ pub struct Balances {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BalanceResponse {
     total: u128,
-    usercount: u32,
+    user_count: u32,
 }
 
 impl ProxyAPI {
@@ -50,7 +50,7 @@ impl ProxyAPI {
         let balances: Balances = res.json().await?;
         Ok(BalanceResponse {
             total: balances.total,
-            usercount: balances.balances.len() as u32,
+            user_count: balances.balances.len() as u32,
         })
 
     }
