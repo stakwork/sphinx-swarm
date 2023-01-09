@@ -1,6 +1,7 @@
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
-use crate::conn::proxy::proxyapi::ProxyAPI;
+use crate::conn::proxy::ProxyAPI;
+use crate::conn::relay::RelayAPI;
 use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
 use crate::utils;
 use anyhow::Result;
@@ -30,7 +31,8 @@ impl Default for State {
 pub struct Clients {
     pub bitcoind: HashMap<String, BitcoinRPC>,
     pub lnd: HashMap<String, LndRPC>,
-    pub proxy: HashMap<String, ProxyAPI>
+    pub proxy: HashMap<String, ProxyAPI>,
+    pub relay: HashMap<String, RelayAPI>,
 }
 impl Default for Clients {
     fn default() -> Self {
@@ -38,6 +40,7 @@ impl Default for Clients {
             bitcoind: HashMap::new(),
             lnd: HashMap::new(),
             proxy: HashMap::new(),
+            relay: HashMap::new(),
         }
     }
 }
@@ -96,7 +99,6 @@ impl Default for Stack {
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
 
-
         // proxy
         v = "0.1.2";
         let mut proxy = ProxyImage::new("proxy1", v, &network, "11111", "5050");
@@ -113,7 +115,7 @@ impl Default for Stack {
             Image::Proxy(proxy),
             Image::Relay(relay),
         ];
-        
+
         let mut nodes: Vec<Node> = internal_nodes
             .iter()
             .map(|n| Node::Internal(n.to_owned()))

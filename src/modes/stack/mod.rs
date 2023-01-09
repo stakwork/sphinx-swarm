@@ -5,7 +5,8 @@ mod srv;
 use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
-use crate::conn::proxy::proxyapi::ProxyAPI;
+use crate::conn::proxy::ProxyAPI;
+use crate::conn::relay::RelayAPI;
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
@@ -104,7 +105,11 @@ async fn add_node(
             let relay_node = RelayImage::new("relay1", "v2.2.12", "3000");
             let relay1 = images::relay(proj, &relay_node, lnd.unwrap(), proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
-            ids.insert(relay.name, relay_id.clone());
+            ids.insert(relay.name.clone(), relay_id.clone());
+
+            let client = RelayAPI::new(&relay).await?;
+            clients.relay.insert(relay.name, client);
+
             log::info!("created Relay {}", relay_id);
         }
     }
