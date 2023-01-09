@@ -39,7 +39,7 @@ pub struct ClaimRes {
 }
 
 impl RelayAPI {
-    pub async fn new(relay: &RelayImage) -> Result<Self> {
+    pub async fn new(relay: &RelayImage, check_is_setup: bool) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(20))
             .danger_accept_invalid_certs(true)
@@ -50,6 +50,9 @@ impl RelayAPI {
             client,
             token: "".to_string(),
         };
+        if !check_is_setup {
+            return Ok(api);
+        }
         for _ in 0..10 {
             if let Ok(_) = api.is_setup().await {
                 return Ok(api);

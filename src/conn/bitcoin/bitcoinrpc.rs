@@ -22,6 +22,18 @@ impl BitcoinRPC {
         Ok(self.0.get_blockchain_info()?)
     }
 
+    pub fn create_or_load_wallet(&self) -> Result<()> {
+        let wallet = "wallet";
+        // try to create, otherwise load
+        match self.0.create_wallet(wallet, None, None, None, None) {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                self.0.load_wallet(wallet)?;
+                Ok(())
+            }
+        }
+    }
+
     pub fn test_mine(&self, n: u64, addr: Option<String>) -> Result<Vec<BlockHash>> {
         let address = if let Some(addy) = addr {
             Address::from_str(&addy)?

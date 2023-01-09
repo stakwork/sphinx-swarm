@@ -2,24 +2,22 @@
   import { Button } from "carbon-components-svelte";
   import Mine from "carbon-icons-svelte/lib/VirtualMachine.svelte";
   import * as api from "../api";
+  import { btcinfo } from "../store";
 
   export let tag = "";
-  export let getBitcoinInfo = () => {};
 
   $: blockLen = 6;
   $: address = "";
-  $: ok = blockLen;
 
   async function mine() {
-    console.log("In mine function");
-    const result = await api.btc.test_mine(tag, blockLen, address);
+    const result = await api.btc.test_mine(tag, blockLen, address || null);
+    console.log(result);
     if (result) {
       // Set values to default
       blockLen = 6;
       address = "";
-
       // Get new Bitcoin info
-      getBitcoinInfo();
+      btcinfo.set(await api.btc.get_info(tag));
     }
   }
 </script>

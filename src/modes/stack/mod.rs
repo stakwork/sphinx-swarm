@@ -14,13 +14,15 @@ use crate::{dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
 use cmd::Cmd;
-use core::time;
 use images::{LndImage, ProxyImage};
 use rocket::tokio;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread;
 use tokio::sync::{mpsc, Mutex};
+
+async fn sleep(n: u64) {
+    tokio::time::sleep(std::time::Duration::from_secs(n)).await;
+}
 
 async fn add_node(
     proj: &str,
@@ -42,13 +44,12 @@ async fn add_node(
             let btc_id = create_and_start(&docker, btc1).await?;
             ids.insert(btc.name.clone(), btc_id);
             let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
+            sleep(1).await;
+            client.create_or_load_wallet()?;
             clients.bitcoind.insert(btc.name, client);
             log::info!("created bitcoind");
         }
         Image::Lnd(lnd) => {
-            // let delay_time = time::Duration::from_millis(90000);
-            // thread::sleep(delay_time);
-
             let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
             let btc = nodes
                 .iter()
@@ -59,7 +60,7 @@ async fn add_node(
             let lnd_id = create_and_start(&docker, lnd1).await?;
 
             ids.insert(lnd.name.clone(), lnd_id.clone());
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            sleep(1).await;
             if let Err(e) = unlock_lnd(proj, &lnd, &secs, &lnd.name).await {
                 log::error!("ERROR UNLOCKING LND {:?}", e);
             };
@@ -106,8 +107,8 @@ async fn add_node(
             let relay_id = create_and_start(&docker, relay1).await?;
             ids.insert(relay.name.clone(), relay_id.clone());
 
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            let client = RelayAPI::new(&relay).await?;
+            sleep(1).await;
+            let client = RelayAPI::new(&relay, false).await?;
             // let client = relay_root_user(proj, &relay.name, client).await?;
             clients.relay.insert(relay.name, client);
 

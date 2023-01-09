@@ -32,12 +32,8 @@
       <h3 class="title">BLOCK HEADERS</h3>
       <h3 class="value">{$btcinfo.headers}</h3>
     </section>
-    <section class="value-wrap">
-      <h3 class="title">PRUNED NODE</h3>
-      <h3 class="value">{$btcinfo.pruned}</h3>
-    </section>
     {#if $btcinfo.chain === "regtest"}
-      <BitcoinMine {getBitcoinInfo} {tag} />
+      <BitcoinMine {tag} />
     {/if}
   {/if}
 </div>
