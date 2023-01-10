@@ -48,6 +48,14 @@ export async function add_peer(tag: string, pubkey: string, host: string) {
   return await lndCmd("AddPeer", tag, { pubkey, host });
 }
 
+export async function get_balance(tag: string) {
+  return await lndCmd("GetBalance", tag);
+}
+
+export async function new_address(tag: string) {
+  return await lndCmd("NewAddress", tag);
+}
+
 export async function create_channel(
   tag: string,
   pubkey: string,

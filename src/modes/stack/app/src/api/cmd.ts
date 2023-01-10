@@ -14,22 +14,23 @@ export type Cmd =
   | "GetInfo"
   | "GetContainerLogs"
   | "TestMine"
-  | "ListChannels" 
+  | "ListChannels"
   | "AddPeer"
   | "CreateChannel"
-  | "GetBalance";
+  | "GetBalance"
+  | "NewAddress";
 
-  interface CmdData {
-    cmd: Cmd;
-    content?: any;
+interface CmdData {
+  cmd: Cmd;
+  content?: any;
+}
+
+export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
+  const txt = JSON.stringify({ type, data });
+  try {
+    const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
+    return await r.json();
+  } catch (e) {
+    console.error(e);
   }
-  
-  export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
-    const txt = JSON.stringify({ type, data });
-    try {
-      const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
-      return await r.json();
-    } catch (e) {
-      console.error(e);
-    }
-  }
+}
