@@ -7,6 +7,7 @@ export interface Node {
   name: string;
   type: NodeType;
   place: Place;
+  version?: string; // Internal always have version
   links?: string[];
   network?: Network;
   url?: string;
@@ -23,7 +24,9 @@ export type NodeType =
   | "Meme"
   | "Mqtt"
   | "Auth"
-  | "Postgres";
+  | "Postgres"
+  | "Traefik"
+  | "Cache";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",
@@ -35,6 +38,8 @@ export const allNodeTypes: NodeType[] = [
   "Mqtt",
   "Auth",
   "Postgres",
+  "Traefik",
+  "Cache",
 ];
 
 type Place = "Internal" | "External";
@@ -47,6 +52,7 @@ const stack: Stack = {
     {
       place: "Internal",
       type: "Btc",
+      version: "23.0",
       name: "bitcoind",
       network: "regtest",
       user: "user",
@@ -56,6 +62,7 @@ const stack: Stack = {
       place: "Internal",
       type: "Lnd",
       name: "lnd1",
+      version: "v0.14.3-beta.rc1",
       network: "regtest",
       port: "10009",
       http_port: "8881",
@@ -65,6 +72,7 @@ const stack: Stack = {
       place: "Internal",
       type: "Proxy",
       name: "proxy1",
+      version: "0.1.2",
       network: "regtest",
       port: "11111",
       admin_port: "5050",
@@ -76,9 +84,17 @@ const stack: Stack = {
     {
       place: "Internal",
       type: "Relay",
+      version: "v2.2.12",
       name: "relay1",
       port: "3000",
       links: ["proxy1", "lnd1", "tribes", "memes"],
+    },
+    {
+      place: "Internal",
+      type: "Traefik",
+      version: "v2.2.1",
+      name: "reverse-proxy",
+      links: ["lnd1", "relay1"],
     },
     {
       name: "tribes",
@@ -100,6 +116,7 @@ const defaultPositions = [
   [370, 200],
   [660, 130],
   [920, 350],
+  [920, 30],
   [260, 400],
   [560, 500],
 ];

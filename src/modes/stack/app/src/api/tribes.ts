@@ -15,6 +15,7 @@ export interface Tribe {
   logo: string;
   name: string;
   unique_name: string;
+  last_active: number;
 }
 
 const IS_DEV = window.location.host === "localhost:8080";

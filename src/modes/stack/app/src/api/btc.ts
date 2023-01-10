@@ -1,4 +1,5 @@
-import { send_cmd, Cmd } from "./cmd";
+import { send_cmd } from "./cmd";
+import type { Cmd } from "./cmd";
 
 export interface BtcInfo {
   automatic_pruning: boolean | any;
@@ -26,6 +27,11 @@ export async function get_info(tag: string) {
   return await btcCmd("GetInfo", tag);
 }
 
-export async function test_mine(tag: string, blocks: number, address: string) {
-  return await btcCmd("TestMine", tag, { blocks, address });
+export async function test_mine(tag: string, blocks: number, address?: string) {
+  return await btcCmd("TestMine", tag, { blocks, ...(address && { address }) });
 }
+
+export async function get_balance(tag: string) {
+  return await btcCmd("GetBalance", tag);
+}
+

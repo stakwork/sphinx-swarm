@@ -1,12 +1,15 @@
 <script lang="ts">
   import Svelvet from "svelvet";
-  import { stack, Node, NodeType, defaultPositions } from "./nodes";
+  import { stack, defaultPositions } from "./nodes";
+  import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode } from "./store";
 
   const nodeCallback = (node) => {
     const n = stack.nodes.find((n) => n.name === node.data.name);
-    if (n) selectedNode.set(n);
+    if (n) {
+      selectedNode.update((node) => (node && node.name === n.name ? null : n));
+    }
   };
 
   function toSvelvet(
@@ -26,7 +29,7 @@
               edgeColor: "#dddddd",
               // noHandle: true,
               type: ns[idx].place === "Internal" ? "bezier" : "straight",
-              animate: ns[idx].place === "External",
+              animate: ns[idx].place === "External" || n.type === "Traefik",
             });
         });
       }
@@ -43,6 +46,7 @@
         data: { html: content(n.type), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
+        className: n.place === "Internal" ? "node-internal" : "node-external",
       };
     });
     return { nodes, edges };
@@ -76,5 +80,6 @@
   bgColor="#101317"
   width={window.innerWidth}
   height={window.innerHeight}
+  initialLocation={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
   movement={true}
 />

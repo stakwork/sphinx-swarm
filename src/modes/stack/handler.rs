@@ -1,8 +1,8 @@
-use crate::cmd::{BitcoindCmd, Cmd, LndCmd, RelayCmd, SwarmCmd};
 use crate::config::{Node, Stack, STATE};
 use crate::dock::container_logs;
 use crate::images::Image;
-use anyhow::{anyhow, Result};
+use crate::modes::stack::cmd::*;
+use anyhow::{Context, Result};
 use bollard::Docker;
 
 // tag is the service name
@@ -22,7 +22,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 // add a node via docker
                 None
             }
-            SwarmCmd::GetContainerLogs(container_name)  => {
+            SwarmCmd::GetContainerLogs(container_name) => {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
@@ -35,41 +35,66 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             RelayCmd::ListUsers => None,
         },
         Cmd::Bitcoind(c) => {
-            let client = state.clients.bitcoind.get(tag);
-            if let None = client {
-                return Err(anyhow!("no bitcoind client".to_string()));
-            }
-            // safe to unwrap here because "None" was already checked
-            let client = client.unwrap();
+            let client = state
+                .clients
+                .bitcoind
+                .get(tag)
+                .context("no bitcoind client")?;
             match c {
                 BitcoindCmd::GetInfo => {
                     let info = client.get_info()?;
                     Some(serde_json::to_string(&info)?)
                 }
                 BitcoindCmd::TestMine(tm) => {
-                    let res = client.test_mine(tm.blocks, &tm.address)?;
+                    let res = client.test_mine(tm.blocks, tm.address)?;
                     Some(serde_json::to_string(&res)?)
                 }
+                BitcoindCmd::GetBalance => {
+                    let res = client.get_wallet_balance()?;
+                    Some(serde_json::to_string(&res)?)
+                },
             }
         }
         Cmd::Lnd(c) => {
-            let client = state.clients.lnd.get_mut(tag);
-            if let None = client {
-                return Err(anyhow!("no lnd client".to_string()));
-            }
-            let client = client.unwrap();
+            let client = state.clients.lnd.get_mut(tag).context("no lnd client")?;
             match c {
                 LndCmd::GetInfo => {
                     let info = client.get_info().await?;
                     Some(serde_json::to_string(&info)?)
                 }
+                LndCmd::ListChannels => {
+                    let channel_list = client.list_channels().await?;
+                    Some(serde_json::to_string(&channel_list.channels)?)
+                }
+                LndCmd::AddPeer(peer) => {
+                    let result = client.add_peer(peer).await?;
+                    Some(serde_json::to_string(&result)?)
+                }
+                LndCmd::AddChannel(channel) => {
+                    let channel = client.create_channel(channel).await?;
+                    Some(serde_json::to_string(&channel)?)
+                }
+                LndCmd::NewAddress => {
+                    let address = client.new_address().await?;
+                    Some(serde_json::to_string(&address.address)?)
+                }
+                LndCmd::GetBalance => {
+                    let bal = client.get_balance().await?;
+                    Some(serde_json::to_string(&bal.confirmed_balance)?)
+                }
+            }
+        }
+        Cmd::Proxy(c) => {
+            let client = state.clients.proxy.get(tag).context("no proxy client")?;
+            match c {
+                ProxyCmd::GetBalance => {
+                    let balance = client.get_balance().await?;
+                    Some(serde_json::to_string(&balance)?)
+                }
             }
         }
     };
-    match ret {
-        Some(r) => Ok(r),
-        None => Err(anyhow::anyhow!("internal error".to_string())),
-    }
+    Ok(ret.context("internal error")?)
 }
 
 // remove sensitive data from Stack when sending over wire

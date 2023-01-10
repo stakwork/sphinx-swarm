@@ -1,20 +1,22 @@
 <script lang="ts">
-  import {
-    Button,
-    Modal,
-    TextArea
-  } from "carbon-components-svelte";
+  import { Button, Modal } from "carbon-components-svelte";
   import Logs from "carbon-icons-svelte/lib/CloudLogging.svelte";
   import * as api from "./api";
+  import { onDestroy } from "svelte";
 
   let open = false;
   export let nodeName = "";
-  let logs = "";
+  let logs = [];
 
   async function getNodeLogs() {
     open = true;
-    logs = await api.swarm.get_logs(`${nodeName}.sphinx`);
+    const theLogs = await api.swarm.get_logs(`${nodeName}.sphinx`);
+    logs = theLogs.reverse();
   }
+
+  onDestroy(() => {
+    logs = [];
+  });
 </script>
 
 <section class="get-logs-btn">
@@ -31,7 +33,12 @@
     on:click:button--secondary={() => (open = !open)}
   >
     <section class="modal-content">
-        <TextArea rows={15} value={String(logs)} />
+      <div class="logs">
+        {#each logs as log}
+          <div class="log">{log}</div>
+        {/each}
+      </div>
+      <!-- <TextArea rows={15} value={String(logs)} /> -->
     </section>
   </Modal>
 </section>
@@ -43,7 +50,19 @@
   .modal-content {
     padding: 0px 1.5rem;
   }
-  .spacer {
-    height: 1rem;
+  .logs {
+    background: #393939;
+    width: 100%;
+    height: 100%;
+    max-height: 400px;
+    overflow: auto;
+    padding: 0.3rem 0.5rem;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .log {
+    color: white;
+    margin: 1px 0;
+    font-size: 0.8rem;
   }
 </style>

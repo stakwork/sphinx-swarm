@@ -1,21 +1,28 @@
+pub mod cmd;
 mod handler;
+mod setup;
 mod srv;
 
 use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
+use crate::conn::proxy::ProxyAPI;
+use crate::conn::relay::RelayAPI;
 use crate::images::Image;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
-use crate::utils::volume_permissions;
-use crate::{cmd::Cmd, dock::*, images, logs};
+use crate::{dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
-use images::{LndImage, ProxyImage, RelayImage};
+use cmd::Cmd;
+use images::{LndImage, ProxyImage};
 use rocket::tokio;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+
+async fn sleep(n: u64) {
+    tokio::time::sleep(std::time::Duration::from_secs(n)).await;
+}
 
 async fn add_node(
     proj: &str,
@@ -37,10 +44,14 @@ async fn add_node(
             let btc_id = create_and_start(&docker, btc1).await?;
             ids.insert(btc.name.clone(), btc_id);
             let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
+            sleep(1).await;
+            client.create_or_load_wallet()?;
             clients.bitcoind.insert(btc.name, client);
             log::info!("created bitcoind");
         }
         Image::Lnd(lnd) => {
+            // log::info!("wait 90 seconds...");
+            // sleep(90).await;
             let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
             let btc = nodes
                 .iter()
@@ -49,15 +60,13 @@ async fn add_node(
                 .as_btc()?;
             let lnd1 = images::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
+
             ids.insert(lnd.name.clone(), lnd_id.clone());
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            if let Err(e) = unlock_lnd(proj, &lnd, &secs).await {
-                log::error!("ERROR UNLOCKING LND {:?}", e);
-            };
-            println!("try to change vol perms");
-            volume_permissions(proj, &lnd.name, "data")?;
-            println!("changed vol perms");
-            let client = LndRPC::new(proj, &lnd).await?;
+
+            // volume_permissions(proj, &lnd.name, "data")?;
+            let (client, test_mine_addy) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
+            setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
+
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
         }
@@ -70,7 +79,11 @@ async fn add_node(
                 .as_lnd()?;
             let proxy1 = images::proxy(proj, &proxy, &lnd);
             let proxy_id = create_and_start(&docker, proxy1).await?;
-            ids.insert(proxy.name, proxy_id.clone());
+            ids.insert(proxy.name.clone(), proxy_id.clone());
+
+            let client = ProxyAPI::new(&proxy).await?;
+            clients.proxy.insert(proxy.name, client);
+
             log::info!("created Proxy {}", proxy_id);
         }
         Image::Relay(relay) => {
@@ -91,10 +104,15 @@ async fn add_node(
             if let None = lnd {
                 return Err(anyhow::anyhow!("LND required for Relay".to_string()));
             }
-            let relay_node = RelayImage::new("relay1", "3000");
-            let relay1 = images::relay(proj, &relay_node, lnd.unwrap(), proxy);
+            let relay1 = images::relay(proj, &relay, lnd.unwrap(), proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
-            ids.insert(relay.name, relay_id.clone());
+            ids.insert(relay.name.clone(), relay_id.clone());
+
+            sleep(1).await;
+            let client = RelayAPI::new(&relay, false).await?;
+            // let client = relay_root_user(proj, &relay.name, client).await?;
+            clients.relay.insert(relay.name, client);
+
             log::info!("created Relay {}", relay_id);
         }
     }
@@ -123,37 +141,6 @@ async fn build_stack(
         .await?;
     }
     Ok((ids, clients))
-}
-
-async fn unlock_lnd(proj: &str, lnd_node: &LndImage, secs: &secrets::Secrets) -> Result<()> {
-    // INIT LND
-    let cert_path = format!("vol/{}/lnd1/tls.cert", proj);
-    let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
-    let unlocker = LndUnlocker::new(&unlock_port, &cert_path).await?;
-    if let Some(_) = secs.get(&lnd_node.name) {
-        let ur = unlocker.unlock_wallet(&lnd_node.unlock_password).await?;
-        if let Some(err_msg) = ur.message {
-            log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
-        } else {
-            log::info!("LND WALLET UNLOCKED!");
-        }
-    } else {
-        let seed = unlocker.gen_seed().await?;
-        if let Some(msg) = seed.message {
-            log::error!("gen seed error: {}", msg);
-        }
-        let mnemonic = seed.cipher_seed_mnemonic.expect("no mnemonic");
-        let ir = unlocker
-            .init_wallet(&lnd_node.unlock_password, mnemonic.clone())
-            .await?;
-        if let Some(err_msg) = ir.message {
-            log::error!("FAILED TO INIT LND {:?}", err_msg);
-        } else {
-            log::info!("LND WALLET INITIALIZED!");
-        }
-        secrets::add_to_secrets(proj, &lnd_node.name, &mnemonic.clone().join(" ")).await;
-    };
-    Ok(())
 }
 
 pub async fn run(docker: Docker) -> Result<()> {
