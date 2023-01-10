@@ -10,12 +10,10 @@
 
   async function getBitcoinInfo() {
     loading = true;
-    
     if ($btcinfo && $btcinfo.blocks) {
       loading = false;
       return;
     }
-
     btcinfo.set(await api.btc.get_info(tag));
     loading = false;
   }

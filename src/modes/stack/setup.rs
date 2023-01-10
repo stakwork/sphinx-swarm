@@ -1,3 +1,4 @@
+use crate::config::Clients;
 use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
 use crate::conn::relay::RelayAPI;
 use crate::images;
@@ -5,6 +6,19 @@ use crate::secrets;
 use anyhow::{Context, Result};
 use images::LndImage;
 use rocket::tokio;
+
+pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut Clients) {
+    if let Some(addy) = test_mine_addy {
+        log::info!("mining 101 blocks to LND address {}", addy);
+        if let Some(btcrpc) = clients.bitcoind.get(btc_name) {
+            if let Err(e) = btcrpc.test_mine(101, Some(addy)) {
+                log::error!("failed to test mine {}", e);
+            } else {
+                log::info!("blocks mined!");
+            }
+        }
+    }
+}
 
 pub async fn lnd_clients(
     proj: &str,
