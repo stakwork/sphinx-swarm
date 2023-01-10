@@ -2,9 +2,11 @@ extern crate bitcoincore_rpc;
 
 use crate::images::BtcImage;
 use anyhow::Result;
-use bitcoincore_rpc::bitcoin::{Address, BlockHash};
+use bitcoincore_rpc::bitcoin::{Address, Amount, BlockHash};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use bitcoincore_rpc_json::{AddressType, GetBlockchainInfoResult};
+use bitcoincore_rpc_json::{
+    AddressType, GetBlockchainInfoResult, LoadWalletResult, WalletProcessPsbtResult,
+};
 use std::str::FromStr;
 
 pub struct BitcoinRPC(Client);
@@ -25,13 +27,21 @@ impl BitcoinRPC {
     pub fn create_or_load_wallet(&self) -> Result<()> {
         let wallet = "wallet";
         // try to create, otherwise load
-        match self.0.create_wallet(wallet, None, None, None, None) {
+        match self.0.create_wallet(wallet, None, None, gitNone, None) {
             Ok(_) => Ok(()),
             Err(_) => {
                 self.0.load_wallet(wallet)?;
                 Ok(())
             }
         }
+    }
+
+    pub fn list_wallets(&self) -> Result<Vec<String>> {
+        Ok(self.0.list_wallets()?)
+    }
+
+    pub fn get_wallet_balance(&self) -> Result<Amount> {
+        Ok(self.0.get_balance(Some(6), None)?)
     }
 
     pub fn test_mine(&self, n: u64, addr: Option<String>) -> Result<Vec<BlockHash>> {
