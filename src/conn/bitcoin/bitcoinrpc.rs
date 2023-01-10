@@ -4,9 +4,7 @@ use crate::images::BtcImage;
 use anyhow::Result;
 use bitcoincore_rpc::bitcoin::{Address, Amount, BlockHash};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use bitcoincore_rpc_json::{
-    AddressType, GetBlockchainInfoResult, LoadWalletResult, WalletProcessPsbtResult,
-};
+use bitcoincore_rpc_json::{AddressType, GetBlockchainInfoResult};
 use std::str::FromStr;
 
 pub struct BitcoinRPC(Client);
