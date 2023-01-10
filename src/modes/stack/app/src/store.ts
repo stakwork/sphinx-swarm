@@ -26,6 +26,8 @@ export const proxy = writable<ProxyBalance>({
   user_count: 0
 });
 
+export const walletBalance = writable<number>(0);
+
 export const balances = derived(channels, ($channels) => ({
   inbound:
     $channels && $channels.length

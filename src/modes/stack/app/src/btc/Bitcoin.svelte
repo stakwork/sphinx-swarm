@@ -1,8 +1,9 @@
 <script>
   import * as api from "../api";
   import { onMount } from "svelte";
-  import { btcinfo } from "../store";
+  import { btcinfo, walletBalance } from "../store";
   import BitcoinMine from "./BitcoinMine.svelte";
+  import { convertBtcToSats, formatSatsNumbers } from "../helpers";
 
   export let tag = "";
 
@@ -11,8 +12,27 @@
     btcinfo.set(await api.btc.get_info(tag));
   }
 
+  async function getWalletBalance() {
+    if($walletBalance) return; {
+      btcinfo.set(await api.btc.get_balance(tag));
+    }
+  }
+
+  async function createOrLoadWallet() {
+    const wallets = await api.btc.list_wallets(tag);
+    if(wallets.length) {
+      await api.btc.create_or_load_wallet(tag);
+    }
+  }
+
   onMount(() => {
     getBitcoinInfo();
+
+    if($btcinfo.chain === "regtest") {
+      createOrLoadWallet();
+    }
+
+    getWalletBalance();
   });
 </script>
 
@@ -33,6 +53,13 @@
       <h3 class="value">{$btcinfo.headers}</h3>
     </section>
     {#if $btcinfo.chain === "regtest"}
+      <section class="value-wrap">
+        <h3 class="title">WALLET BALANCE</h3>
+        <h3 class="value">
+          {formatSatsNumbers(convertBtcToSats($walletBalance))} Sats
+        </h3>
+      </section>
+
       <BitcoinMine {tag} />
     {/if}
   {/if}
