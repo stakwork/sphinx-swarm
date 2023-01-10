@@ -324,7 +324,6 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
             format!("-rpcpassword={}", node.pass),
             format!("-rpcbind={}.sphinx", node.name),
             "-rpcallowip=0.0.0.0/0".to_string(),
-            "-rpcbind=0.0.0.0".to_string(),
             "-rpcport=18443".to_string(),
             "-server".to_string(),
             "-txindex".to_string(),
