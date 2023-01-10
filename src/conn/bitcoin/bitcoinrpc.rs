@@ -2,7 +2,7 @@ extern crate bitcoincore_rpc;
 
 use crate::images::BtcImage;
 use anyhow::Result;
-use bitcoincore_rpc::bitcoin::{Address, BlockHash};
+use bitcoincore_rpc::bitcoin::{Address, Amount, BlockHash};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitcoincore_rpc_json::{AddressType, GetBlockchainInfoResult};
 use std::str::FromStr;
@@ -32,6 +32,10 @@ impl BitcoinRPC {
                 Ok(())
             }
         }
+    }
+
+    pub fn get_wallet_balance(&self) -> Result<f64> {
+        Ok(self.0.get_balance(Some(6), None)?.as_btc())
     }
 
     pub fn test_mine(&self, n: u64, addr: Option<String>) -> Result<Vec<BlockHash>> {

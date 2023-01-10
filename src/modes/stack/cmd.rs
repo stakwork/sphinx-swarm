@@ -50,6 +50,7 @@ pub struct AddChannel {
 pub enum BitcoindCmd {
     GetInfo,
     TestMine(TestMine),
+    GetBalance,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

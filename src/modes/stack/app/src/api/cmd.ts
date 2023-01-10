@@ -18,7 +18,9 @@ export type Cmd =
   | "AddPeer"
   | "CreateChannel"
   | "GetBalance"
-  | "NewAddress";
+  | "NewAddress"
+  | "ListWallets"
+  | "CreateOrLoadWallet";
 
 interface CmdData {
   cmd: Cmd;

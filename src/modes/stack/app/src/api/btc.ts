@@ -30,3 +30,8 @@ export async function get_info(tag: string) {
 export async function test_mine(tag: string, blocks: number, address?: string) {
   return await btcCmd("TestMine", tag, { blocks, ...(address && { address }) });
 }
+
+export async function get_balance(tag: string) {
+  return await btcCmd("GetBalance", tag);
+}
+

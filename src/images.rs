@@ -208,10 +208,10 @@ pub fn relay(
     lnd: &LndImage,
     proxy: Option<&ProxyImage>,
 ) -> Config<String> {
-    let img = "sphinx-relay";
-    let version = "latest";
-    // let img = "sphinxlightning/sphinx-relay";
-    // let version = "v2.2.12".to_string();
+    // let img = "sphinx-relay";
+    // let version = "latest";
+    let img = "sphinxlightning/sphinx-relay";
+    let version = "v2.2.12".to_string();
     let root_vol = "/relay/data";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);

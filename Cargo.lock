@@ -2155,7 +2155,7 @@ dependencies = [
 [[package]]
 name = "tonic_lnd"
 version = "0.5.0"
-source = "git+https://github.com/Evanfeenstra/tonic_lnd?branch=add-serde#5b5fd9073148928773229d94e5f9ce621488aa74"
+source = "git+https://github.com/Evanfeenstra/tonic_lnd?branch=add-serde#b34196ab1f8fd06d6a5fb371836a5ae5f8447d20"
 dependencies = [
  "hex",
  "prost 0.9.0",
