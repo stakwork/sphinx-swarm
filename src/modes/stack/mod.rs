@@ -51,7 +51,7 @@ async fn add_node(
         }
         Image::Lnd(lnd) => {
             // log::info!("wait 90 seconds...");
-            // sleep(90).await;
+            sleep(1).await;
             let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
             let btc = nodes
                 .iter()

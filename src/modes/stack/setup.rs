@@ -27,7 +27,7 @@ pub async fn lnd_clients(
     secs: &secrets::Secrets,
     name: &str,
 ) -> Result<(LndRPC, Option<String>)> {
-    sleep(1).await;
+    sleep(5).await;
     unlock_lnd(proj, lnd_node, secs, name).await?;
     sleep(5).await;
     let mut client = LndRPC::new(proj, lnd_node).await?;

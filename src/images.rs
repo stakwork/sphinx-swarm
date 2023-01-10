@@ -319,14 +319,14 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         hostname: Some(domain(&node.name)),
         // user: Some("bitcoin".to_string()), // from the dockerfile
         cmd: Some(vec![
-            format!("-{}", node.network),
+            format!("-{}=1", node.network),
             format!("-rpcuser={}", node.user),
             format!("-rpcpassword={}", node.pass),
             format!("-rpcbind={}.sphinx", node.name),
             "-rpcallowip=0.0.0.0/0".to_string(),
             "-rpcport=18443".to_string(),
-            "-server".to_string(),
-            "-txindex".to_string(),
+            "-server=1".to_string(),
+            "-txindex=1".to_string(),
             "-rpcallowip=0.0.0.0/0".to_string(),
             "-fallbackfee=0.0002".to_string(),
             "-zmqpubhashblock=tcp://0.0.0.0:28332".to_string(),
