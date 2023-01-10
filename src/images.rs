@@ -306,16 +306,16 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
 }
 
 pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
-    let btc_version = "23.0";
+    let btc_version = "v0.21.1";
     let ports = vec![
         "18443".to_string(),
         "28332".to_string(),
         "28333".to_string(),
     ];
-    let root_vol = "/home/bitcoin/.bitcoin";
+    let root_vol = "/data/.bitcoin";
     // let vols = vec!["/home/bitcoin/.bitcoin"];'
     Config {
-        image: Some(format!("ruimarinho/bitcoin-core:{}", btc_version)),
+        image: Some(format!("lncm/bitcoind:{}", btc_version)),
         hostname: Some(domain(&node.name)),
         // user: Some("bitcoin".to_string()), // from the dockerfile
         cmd: Some(vec![

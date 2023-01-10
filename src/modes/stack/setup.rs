@@ -29,7 +29,7 @@ pub async fn lnd_clients(
 ) -> Result<(LndRPC, Option<String>)> {
     sleep(1).await;
     unlock_lnd(proj, lnd_node, secs, name).await?;
-    sleep(3).await;
+    sleep(5).await;
     let mut client = LndRPC::new(proj, lnd_node).await?;
     let bal = client.get_balance().await?;
     log::info!("balance: {:?}", bal);

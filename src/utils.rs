@@ -141,8 +141,8 @@ fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
             tcp_port(&port),
             Some(vec![PortBinding {
                 host_port: Some(port.to_string()),
-                host_ip: Some("0.0.0.0".to_string()),
-                // host_ip: None,
+                // host_ip: Some("0.0.0.0".to_string()),
+                host_ip: None,
             }]),
         );
     }
