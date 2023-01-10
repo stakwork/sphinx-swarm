@@ -53,14 +53,6 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     let res = client.get_wallet_balance()?;
                     Some(serde_json::to_string(&res)?)
                 },
-                BitcoindCmd::ListWallets => {
-                    let res = client.list_wallets()?;
-                    Some(serde_json::to_string(&res)?)
-                },
-                BitcoindCmd::CreateOrLoadWallet => {
-                    let res = client.create_or_load_wallet()?;
-                    Some(serde_json::to_string(&res)?)
-                }
             }
         }
         Cmd::Lnd(c) => {

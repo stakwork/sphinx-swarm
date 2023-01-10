@@ -51,8 +51,6 @@ pub enum BitcoindCmd {
     GetInfo,
     TestMine(TestMine),
     GetBalance,
-    ListWallets,
-    CreateOrLoadWallet,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

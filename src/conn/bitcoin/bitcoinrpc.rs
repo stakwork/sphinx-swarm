@@ -34,10 +34,6 @@ impl BitcoinRPC {
         }
     }
 
-    pub fn list_wallets(&self) -> Result<Vec<String>> {
-        Ok(self.0.list_wallets()?)
-    }
-
     pub fn get_wallet_balance(&self) -> Result<f64> {
         Ok(self.0.get_balance(Some(6), None)?.as_btc())
     }
