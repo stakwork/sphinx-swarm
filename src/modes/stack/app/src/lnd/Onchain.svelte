@@ -2,4 +2,10 @@
   export let tag = "";
 </script>
 
-<div>onchain</div>
+<div class="wrap">onchain</div>
+
+<style>
+  .wrap {
+    padding: 1rem;
+  }
+</style>
