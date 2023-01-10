@@ -4,19 +4,24 @@ use crate::images;
 use crate::secrets;
 use anyhow::{Context, Result};
 use images::LndImage;
+use rocket::tokio;
 
 pub async fn lnd_clients(
     proj: &str,
     lnd_node: &LndImage,
     secs: &secrets::Secrets,
     name: &str,
-) -> Result<(LndRPC, bool)> {
-    // unlock
+) -> Result<(LndRPC, Option<String>)> {
+    // returns address if test mine needed
     unlock_lnd(proj, lnd_node, secs, name).await?;
+    sleep(1).await;
     let mut client = LndRPC::new(proj, lnd_node).await?;
     let bal = client.get_balance().await?;
-    // return BOOL if there is no balance (needs to test mine)
-    Ok((client, bal.confirmed_balance < 1))
+    if bal.confirmed_balance > 0 {
+        return Ok((client, None));
+    }
+    let addy = client.new_address().await?;
+    Ok((client, Some(addy.address)))
 }
 
 pub async fn unlock_lnd(
@@ -27,7 +32,6 @@ pub async fn unlock_lnd(
 ) -> Result<()> {
     // UNLOCK LND
     let cert_path = format!("vol/{}/{}/tls.cert", proj, name);
-    println!("Cert Path {}", cert_path);
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
     let unlocker = LndUnlocker::new(&unlock_port, &cert_path).await?;
     if let Some(_) = secs.get(&lnd_node.name) {
@@ -67,4 +71,8 @@ pub async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<Re
     let _id = api.claim_user(&new_user.public_key, &token).await?;
     secrets::add_to_secrets(proj, name, &token).await;
     Ok(api)
+}
+
+async fn sleep(n: u64) {
+    tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }

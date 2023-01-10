@@ -9,11 +9,7 @@
 
   async function addChannel() {}
 
-  export let toggleAddChannel = () => {};
-
-  function back() {
-    toggleAddChannel();
-  }
+  export let back = () => {};
 </script>
 
 <section class="channel-wrap">

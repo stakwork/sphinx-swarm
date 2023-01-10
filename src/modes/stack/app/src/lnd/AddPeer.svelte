@@ -5,13 +5,9 @@
 
   $: pubkey = "";
   $: host = "";
-  export let toggleAddPeer = () => {};
+  export let back = () => {};
 
   async function addPeer() {}
-
-  function back() {
-    toggleAddPeer();
-  }
 </script>
 
 <section class="peer-wrap">

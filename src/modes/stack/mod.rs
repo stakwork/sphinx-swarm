@@ -64,9 +64,15 @@ async fn add_node(
             ids.insert(lnd.name.clone(), lnd_id.clone());
             sleep(1).await;
             // volume_permissions(proj, &lnd.name, "data")?;
-            let (client, test_mine) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
-            if test_mine {
-                println!("FIXME test mine here");
+            let (client, test_mine_addy) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
+            if let Some(addy) = test_mine_addy {
+                log::info!("mining 101 blocks to LND address");
+                if let Some(btcrpc) = clients.bitcoind.get(&btc.name) {
+                    if let Err(e) = btcrpc.test_mine(101, Some(addy)) {
+                        log::error!("failed to test mine {}", e);
+                    }
+                }
+                println!("=> FIXME test mine here");
             }
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
