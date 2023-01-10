@@ -154,6 +154,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     // println!("home dir {}", home_dir);
     let root_vol = "/home/.lnd";
     let links = Some(vec![domain(&btc.name)]);
+    let btc_domain = domain(&btc.name);
     let mut cmd = vec![
         format!("--debuglevel=debug"),
         format!("--bitcoin.active"),
@@ -165,9 +166,9 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         format!("--alias={}", &lnd.name),
         format!("--bitcoind.rpcuser={}", &btc.user),
         format!("--bitcoind.rpcpass={}", &btc.pass),
-        format!("--bitcoind.rpchost={}.sphinx", &btc.name),
-        format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name),
-        format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name),
+        format!("--bitcoind.rpchost={}", &btc_domain),
+        format!("--bitcoind.zmqpubrawblock=tcp://{}:28332", &btc_domain),
+        format!("--bitcoind.zmqpubrawtx=tcp://{}:28333", &btc_domain),
         format!("--bitcoin.defaultchanconfs=2"),
         format!("--accept-keysend"),
     ];
@@ -318,7 +319,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         hostname: Some(domain(&node.name)),
         // user: Some("bitcoin".to_string()), // from the dockerfile
         cmd: Some(vec![
-            format!("-{}=1", node.network),
+            format!("-{}", node.network),
             format!("-rpcuser={}", node.user),
             format!("-rpcpassword={}", node.pass),
             format!("-rpcbind={}.sphinx", node.name),
@@ -326,6 +327,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
             "-rpcbind=0.0.0.0".to_string(),
             "-rpcport=18443".to_string(),
             "-server".to_string(),
+            "-txindex".to_string(),
             "-rpcallowip=0.0.0.0/0".to_string(),
             "-fallbackfee=0.0002".to_string(),
             "-zmqpubhashblock=tcp://0.0.0.0:28332".to_string(),

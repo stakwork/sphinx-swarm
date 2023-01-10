@@ -123,7 +123,7 @@ pub fn host_volume_string(project: &str, name: &str) -> String {
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
-        "{}:{}:rw", //"{}/vol/{}/{}:{}:rw",
+        "{}:{}", // "{}:{}:rw",
         host_volume_string(project, name),
         dir
     )

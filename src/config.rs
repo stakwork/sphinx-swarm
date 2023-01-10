@@ -95,7 +95,7 @@ impl Default for Stack {
         let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
         // lnd
         v = "v0.14.3-beta.rc1";
-        let mut lnd = LndImage::new("lnd1", v, &network, "10010");
+        let mut lnd = LndImage::new("lnd1", v, &network, "10009");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
 
