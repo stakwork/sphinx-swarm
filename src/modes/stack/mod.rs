@@ -45,7 +45,7 @@ async fn add_node(
             ids.insert(btc.name.clone(), btc_id);
             let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
             sleep(1).await;
-            client.create_or_load_wallet()?;
+            // client.create_or_load_wallet()?;
             clients.bitcoind.insert(btc.name, client);
             log::info!("created bitcoind");
         }
