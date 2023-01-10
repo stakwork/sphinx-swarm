@@ -59,6 +59,8 @@ pub enum LndCmd {
     ListChannels,
     AddPeer(AddPeer),
     AddChannel(AddChannel),
+    NewAddress,
+    GetBalance,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

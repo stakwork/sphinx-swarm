@@ -86,14 +86,16 @@ impl LndImage {
 pub struct RelayImage {
     pub name: String,
     pub version: String,
+    pub node_env: String,
     pub port: String,
     pub links: Links,
 }
 impl RelayImage {
-    pub fn new(name: &str, version: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, node_env: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
+            node_env: node_env.to_string(),
             port: port.to_string(),
             links: vec![],
         }
@@ -155,6 +157,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     let root_vol = "/home/.lnd";
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
+        format!("--debuglevel=debug"),
         format!("--lnddir={}", root_vol),
         format!("--bitcoin.{}", network),
         format!("--rpclisten=0.0.0.0:{}", &lnd.port),
@@ -205,10 +208,10 @@ pub fn relay(
     lnd: &LndImage,
     proxy: Option<&ProxyImage>,
 ) -> Config<String> {
-    // let img = "sphinx-relay";
-    // let version = "latest";
-    let img = "sphinxlightning/sphinx-relay";
-    let version = "v2.2.12".to_string();
+    let img = "sphinx-relay";
+    let version = "latest";
+    // let img = "sphinxlightning/sphinx-relay";
+    // let version = "v2.2.12".to_string();
     let root_vol = "/relay/data";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
@@ -222,6 +225,8 @@ pub fn relay(
         extra_vols.push(proxy_vol);
         links.push(domain(&p.name));
     }
+    let mut relay_conf = config::relay_env_config(&conf);
+    relay_conf.push(format!("NODE_ENV={}", &relay.node_env));
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&relay.name)),
@@ -235,7 +240,7 @@ pub fn relay(
             Some(extra_vols),
             Some(links),
         ),
-        env: Some(config::relay_env_config(&conf)),
+        env: Some(relay_conf),
         ..Default::default()
     }
 }

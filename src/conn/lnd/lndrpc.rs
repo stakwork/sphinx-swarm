@@ -2,10 +2,7 @@ use crate::images::LndImage;
 use crate::modes::stack::cmd::{AddChannel, AddPeer};
 use crate::utils::wait_for_file;
 use anyhow::Result;
-use tonic_lnd::lnrpc::{
-    ChannelPoint, ConnectPeerRequest, ConnectPeerResponse, GetInfoRequest, GetInfoResponse,
-    LightningAddress, ListChannelsRequest, ListChannelsResponse, OpenChannelRequest,
-};
+use tonic_lnd::lnrpc::*;
 use tonic_lnd::Client;
 
 pub struct LndRPC(Client);
@@ -64,6 +61,23 @@ impl LndRPC {
                 node_pubkey,
                 local_funding_amount: channel.amount,
                 ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn get_balance(&mut self) -> Result<WalletBalanceResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd.wallet_balance(WalletBalanceRequest {}).await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn new_address(&mut self) -> Result<NewAddressResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .new_address(NewAddressRequest {
+                r#type: 1,
+                account: "".to_string(),
             })
             .await?;
         Ok(response.into_inner())

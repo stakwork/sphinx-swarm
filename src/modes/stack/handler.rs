@@ -70,6 +70,14 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     let channel = client.create_channel(channel).await?;
                     Some(serde_json::to_string(&channel)?)
                 }
+                LndCmd::NewAddress => {
+                    let address = client.new_address().await?;
+                    Some(serde_json::to_string(&address.address)?)
+                }
+                LndCmd::GetBalance => {
+                    let bal = client.get_balance().await?;
+                    Some(serde_json::to_string(&bal.confirmed_balance)?)
+                }
             }
         }
         Cmd::Proxy(c) => {

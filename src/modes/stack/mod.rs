@@ -1,10 +1,10 @@
 pub mod cmd;
 mod handler;
+mod setup;
 mod srv;
 
 use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::Image;
@@ -50,6 +50,8 @@ async fn add_node(
             log::info!("created bitcoind");
         }
         Image::Lnd(lnd) => {
+            // log::info!("wait 90 seconds...");
+            // sleep(90).await;
             let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
             let btc = nodes
                 .iter()
@@ -61,11 +63,11 @@ async fn add_node(
 
             ids.insert(lnd.name.clone(), lnd_id.clone());
             sleep(1).await;
-            if let Err(e) = unlock_lnd(proj, &lnd, &secs, &lnd.name).await {
-                log::error!("ERROR UNLOCKING LND {:?}", e);
-            };
             // volume_permissions(proj, &lnd.name, "data")?;
-            let client = LndRPC::new(proj, &lnd).await?;
+            let (client, test_mine) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
+            if test_mine {
+                println!("FIXME test mine here");
+            }
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
         }
@@ -140,56 +142,6 @@ async fn build_stack(
         .await?;
     }
     Ok((ids, clients))
-}
-
-async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<RelayAPI> {
-    let has_admin = api.has_admin().await?;
-    if has_admin {
-        log::info!("relay admin exists already");
-        return Ok(api);
-    }
-    let new_user = api.add_user().await?;
-    let token = secrets::random_word(12);
-    let _id = api.claim_user(&new_user.public_key, &token).await?;
-    secrets::add_to_secrets(proj, name, &token).await;
-    Ok(api)
-}
-
-async fn unlock_lnd(
-    proj: &str,
-    lnd_node: &LndImage,
-    secs: &secrets::Secrets,
-    name: &str,
-) -> Result<()> {
-    // INIT LND
-    let cert_path = format!("vol/{}/{}/tls.cert", proj, name);
-    println!("Cert Path {}", cert_path);
-    let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
-    let unlocker = LndUnlocker::new(&unlock_port, &cert_path).await?;
-    if let Some(_) = secs.get(&lnd_node.name) {
-        let ur = unlocker.unlock_wallet(&lnd_node.unlock_password).await?;
-        if let Some(err_msg) = ur.message {
-            log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
-        } else {
-            log::info!("LND WALLET UNLOCKED!");
-        }
-    } else {
-        let seed = unlocker.gen_seed().await?;
-        if let Some(msg) = seed.message {
-            log::error!("gen seed error: {}", msg);
-        }
-        let mnemonic = seed.cipher_seed_mnemonic.expect("no mnemonic");
-        let ir = unlocker
-            .init_wallet(&lnd_node.unlock_password, mnemonic.clone())
-            .await?;
-        if let Some(err_msg) = ir.message {
-            log::error!("FAILED TO INIT LND {:?}", err_msg);
-        } else {
-            log::info!("LND WALLET INITIALIZED!");
-        }
-        secrets::add_to_secrets(proj, &lnd_node.name, &mnemonic.clone().join(" ")).await;
-    };
-    Ok(())
 }
 
 pub async fn run(docker: Docker) -> Result<()> {

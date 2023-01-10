@@ -95,7 +95,7 @@ impl Default for Stack {
         let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
         // lnd
         v = "v0.14.3-beta.rc1";
-        let mut lnd = LndImage::new("lnd1", v, &network, "10009");
+        let mut lnd = LndImage::new("lnd1", v, &network, "10010");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
 
@@ -106,7 +106,8 @@ impl Default for Stack {
         proxy.links(vec!["lnd1"]);
         // relay
         v = "v2.2.12";
-        let mut relay = RelayImage::new("relay1", v, "3000");
+        let node_env = "development";
+        let mut relay = RelayImage::new("relay1", v, node_env, "3000");
         relay.links(vec!["proxy1", "lnd1"]);
         // internal nodes
         let internal_nodes = vec![
