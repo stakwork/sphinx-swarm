@@ -27,7 +27,7 @@ impl BitcoinRPC {
     pub fn create_or_load_wallet(&self) -> Result<()> {
         let wallet = "wallet";
         // try to create, otherwise load
-        match self.0.create_wallet(wallet, None, None, gitNone, None) {
+        match self.0.create_wallet(wallet, None, None, None, None) {
             Ok(_) => Ok(()),
             Err(_) => {
                 self.0.load_wallet(wallet)?;
