@@ -50,7 +50,7 @@ pub struct AddChannel {
 pub enum BitcoindCmd {
     GetInfo,
     TestMine(TestMine),
-    GetWalletBalance,
+    GetBalance,
     ListWallets,
     CreateOrLoadWallet,
 }

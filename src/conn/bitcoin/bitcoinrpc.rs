@@ -38,8 +38,8 @@ impl BitcoinRPC {
         Ok(self.0.list_wallets()?)
     }
 
-    pub fn get_wallet_balance(&self) -> Result<Amount> {
-        Ok(self.0.get_balance(Some(6), None)?)
+    pub fn get_wallet_balance(&self) -> Result<f64> {
+        Ok(self.0.get_balance(Some(6), None)?.as_btc())
     }
 
     pub fn test_mine(&self, n: u64, addr: Option<String>) -> Result<Vec<BlockHash>> {

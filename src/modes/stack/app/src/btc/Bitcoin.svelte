@@ -6,32 +6,28 @@
   import { convertBtcToSats, formatSatsNumbers } from "../helpers";
 
   export let tag = "";
+  let loading = true;
 
   async function getBitcoinInfo() {
-    if ($btcinfo) return;
+    loading = true;
+    
+    if ($btcinfo && $btcinfo.blocks) {
+      loading = false;
+      return;
+    }
+
     btcinfo.set(await api.btc.get_info(tag));
+    loading = false;
   }
 
   async function getWalletBalance() {
-    if($walletBalance) return; {
-      btcinfo.set(await api.btc.get_balance(tag));
-    }
-  }
+    if ($walletBalance) return;
 
-  async function createOrLoadWallet() {
-    const wallets = await api.btc.list_wallets(tag);
-    if(wallets.length) {
-      await api.btc.create_or_load_wallet(tag);
-    }
+    btcinfo.set(await api.btc.get_balance(tag));
   }
 
   onMount(() => {
     getBitcoinInfo();
-
-    if($btcinfo.chain === "regtest") {
-      createOrLoadWallet();
-    }
-
     getWalletBalance();
   });
 </script>
@@ -39,7 +35,11 @@
 <div class="bitcoin-wrapper">
   <h5 class="info">Bitcoin Info</h5>
   <div class="spacer" />
-  {#if $btcinfo}
+  {#if loading}
+    <div class="loading-wrap">
+      <h5>Loading Bitcoin Info .....</h5>
+    </div>
+  {:else if $btcinfo}
     <section class="value-wrap">
       <h3 class="title">NETWORK</h3>
       <h3 class="value">{$btcinfo.chain}</h3>

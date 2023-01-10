@@ -49,7 +49,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     let res = client.test_mine(tm.blocks, tm.address)?;
                     Some(serde_json::to_string(&res)?)
                 }
-                BitcoindCmd::GetWalletBalance => {
+                BitcoindCmd::GetBalance => {
                     let res = client.get_wallet_balance()?;
                     Some(serde_json::to_string(&res)?)
                 },

@@ -35,11 +35,3 @@ export async function get_balance(tag: string) {
   return await btcCmd("GetBalance", tag);
 }
 
-export async function create_or_load_wallet(tag: string) {
-  return await btcCmd("CreateOrLoadWallet", tag);
-}
-
-export async function list_wallets(tag: string) {
-  return await btcCmd("ListWallets", tag);
-}
-
