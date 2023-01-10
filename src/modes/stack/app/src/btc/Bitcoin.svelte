@@ -20,8 +20,7 @@
 
   async function getWalletBalance() {
     if ($walletBalance) return;
-
-    btcinfo.set(await api.btc.get_balance(tag));
+    walletBalance.set(await api.btc.get_balance(tag));
   }
 
   onMount(() => {

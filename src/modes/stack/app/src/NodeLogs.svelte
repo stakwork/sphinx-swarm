@@ -63,5 +63,6 @@
   .log {
     color: white;
     margin: 1px 0;
+    font-size: 0.8rem;
   }
 </style>

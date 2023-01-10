@@ -20,17 +20,19 @@ pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clien
     }
 }
 
+// returns LndRPC client and address if test mine needed
 pub async fn lnd_clients(
     proj: &str,
     lnd_node: &LndImage,
     secs: &secrets::Secrets,
     name: &str,
 ) -> Result<(LndRPC, Option<String>)> {
-    // returns address if test mine needed
-    unlock_lnd(proj, lnd_node, secs, name).await?;
     sleep(1).await;
+    unlock_lnd(proj, lnd_node, secs, name).await?;
+    sleep(3).await;
     let mut client = LndRPC::new(proj, lnd_node).await?;
     let bal = client.get_balance().await?;
+    log::info!("balance: {:?}", bal);
     if bal.confirmed_balance > 0 {
         return Ok((client, None));
     }

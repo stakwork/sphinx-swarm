@@ -62,7 +62,7 @@ async fn add_node(
             let lnd_id = create_and_start(&docker, lnd1).await?;
 
             ids.insert(lnd.name.clone(), lnd_id.clone());
-            sleep(1).await;
+
             // volume_permissions(proj, &lnd.name, "data")?;
             let (client, test_mine_addy) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
             setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);

@@ -7,7 +7,9 @@
 
   const nodeCallback = (node) => {
     const n = stack.nodes.find((n) => n.name === node.data.name);
-    if (n) selectedNode.set(n);
+    if (n) {
+      selectedNode.update((node) => (node && node.name === n.name ? null : n));
+    }
   };
 
   function toSvelvet(

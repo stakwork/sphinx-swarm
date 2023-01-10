@@ -141,8 +141,6 @@ impl ProxyImage {
 }
 
 pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
-    let mut rng = rand::thread_rng();
-
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -158,6 +156,8 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
     let links = Some(vec![domain(&btc.name)]);
     let mut cmd = vec![
         format!("--debuglevel=debug"),
+        format!("--bitcoin.active"),
+        format!("--bitcoin.node=bitcoind"),
         format!("--lnddir={}", root_vol),
         format!("--bitcoin.{}", network),
         format!("--rpclisten=0.0.0.0:{}", &lnd.port),
@@ -168,11 +168,8 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         format!("--bitcoind.rpchost={}.sphinx", &btc.name),
         format!("--bitcoind.zmqpubrawblock=tcp://{}.sphinx:28332", &btc.name),
         format!("--bitcoind.zmqpubrawtx=tcp://{}.sphinx:28333", &btc.name),
-        "--debuglevel=info".to_string(),
-        "--accept-keysend".to_string(),
-        "--bitcoin.active".to_string(),
-        "--bitcoin.node=bitcoind".to_string(),
-        "--bitcoin.defaultchanconfs=2".to_string(),
+        format!("--bitcoin.defaultchanconfs=2"),
+        format!("--accept-keysend"),
     ];
     if let Some(hp) = lnd.http_port.clone() {
         ports.push(hp.clone());
