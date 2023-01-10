@@ -123,7 +123,15 @@ html {
 	display: flex;
 	justify-content: center;
 }
-
+.lnd-tabs-wrap .bx--tabs__nav-link {
+	width:17rem;
+}
+.lnd-tabs-wrap .bx--tabs__nav-link:active {
+	width:17rem;
+}
+.lnd-tabs-wrap .bx--tabs__nav-link:focus {
+	width:17rem;
+}
 .copy-icon {
 	cursor: pointer;
 	width: 20px;

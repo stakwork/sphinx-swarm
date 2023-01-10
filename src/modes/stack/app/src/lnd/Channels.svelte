@@ -1,16 +1,20 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  import ReceiveLineWrap from "../components/ReceiveLineWrap.svelte";
-  import ReceiveLine from "../components/ReceiveLine.svelte";
-  import DotWrap from "../components/DotWrap.svelte";
-  import Dot from "../components/Dot.svelte";
-  import { channels } from "../store";
+  import { Button } from "carbon-components-svelte";
+  import Add from "carbon-icons-svelte/lib/Add.svelte";
+  import { channels, balances } from "../store";
+  import AddPeer from "./AddPeer.svelte";
+  import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
+  import ChannelRows from "./ChannelRows.svelte";
 
   import { get_info, list_channels } from "../api/lnd";
 
   export let tag = "";
+
+  type ChannelPage = "main" | "add_peer" | "add_channel";
+  let page: ChannelPage = "main";
 
   let lndData = {};
 
@@ -30,191 +34,112 @@
     await listChannels();
   });
 
-  const mockChannels = [
-    {
-      active: true,
-      remote_pubkey:
-        "0350587f325dcd6eb50b1c86874961c134be3ab2b9297d88e61443bb0531d7798e",
-      capacity: 100000,
-      local_balance: 100,
-      remote_balance: 96541,
-    },
-    {
-      active: true,
-      remote_pubkey:
-        "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f",
-      capacity: 500000,
-      local_balance: 218986,
-      remote_balance: 280288,
-    },
-    {
-      active: false,
-      remote_pubkey:
-        "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
-      capacity: 400000,
-      local_balance: 200000,
-      remote_balance: 200000,
-    },
-    {
-      active: false,
-      remote_pubkey:
-        "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b77f",
-      capacity: 450000,
-      local_balance: 18986,
-      remote_balance: 200288,
-    },
-  ];
-
-  function getBarCalculation(chan) {
-    const remote_balance = Number(chan.remote_balance);
-    const local_balance = Number(chan.local_balance);
-    const total = remote_balance + local_balance;
-    const remote_percentage = Math.floor((remote_balance * 100) / total);
-    const local_percentage = Math.floor((local_balance * 100) / total);
-
-    let color = "#52B550";
-    if (local_percentage <= 10 || remote_percentage <= 10) {
-      color = "#ED7474";
-    } else if (local_percentage <= 20 || remote_percentage <= 20) {
-      color = "#F2BC52";
+  function toggleAddPeer() {
+    if (page === "add_peer") {
+      page = "main";
+    } else {
+      page = "add_peer";
     }
-    return {
-      ...chan,
-      color,
-      remote_percentage,
-      local_percentage,
-    };
+  }
+
+  function toggleAddChannel() {
+    if (page === "add_channel") {
+      page = "main";
+    } else {
+      page = "add_channel";
+    }
   }
 </script>
 
-<div class="lnd-table-wrap">
-  <section class="table-head">
-    <div class="th" />
-    <div class="th">CAN SEND</div>
-    <div class="th">CAN RECEIVE</div>
-    <div class="th">PEER / ALIAS</div>
+<div class="wrap">
+  <section class="header-btns">
+    <Button
+      kind="tertiary"
+      type="submit"
+      size="field"
+      icon={Add}
+      disabled={false}
+      on:click={toggleAddPeer}
+    >
+      Add Peer
+    </Button>
+
+    <Button
+      kind="tertiary"
+      type="submit"
+      size="field"
+      icon={Add}
+      class="channel"
+      disabled={false}
+      on:click={toggleAddChannel}
+    >
+      Add Channel
+    </Button>
   </section>
 
-  <section class="table-body">
-    {#each mockChannels.map(getBarCalculation) as chan}
-      <section class="row">
-        <div class="td">
-          <DotWrap>
-            <Dot color={chan.active ? "#52B550" : `#ED7474`} />
-          </DotWrap>
-        </div>
-        <div class="td">
-          <section class="can-receive-wrap">
-            <section class="value">
-              {formatSatsNumbers(chan.local_balance)}
-            </section>
-            <ReceiveLineWrap>
-              <ReceiveLine
-                color={chan.color}
-                width={`${chan.local_percentage}%`}
-              />
-              <ReceiveLine
-                color={chan.color}
-                width={`${chan.remote_percentage}%`}
-              />
-            </ReceiveLineWrap>
-          </section>
-        </div>
-        <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
-        <div class="td">
-          <span class="pubkey">{chan.remote_pubkey}</span>
-        </div>
-      </section>
-    {/each}
+  <section class="liquidity-wrap">
+    <aside>
+      <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
+      <h3 class="value">
+        {formatSatsNumbers($balances.inbound)} <span>SAT</span>
+      </h3>
+    </aside>
+    <aside>
+      <h6 class="title">TOTAL OUTBOUND LIQUIDITY</h6>
+      <h3 class="value">
+        {formatSatsNumbers($balances.outbound)} <span>SAT</span>
+      </h3>
+    </aside>
   </section>
+
+  {#if page === "add_peer"}
+    <AddPeer back={toggleAddPeer} />
+  {:else if page === "add_channel"}
+    <AddChannel back={toggleAddChannel} />
+    <div />
+  {:else}
+    <ChannelRows />
+  {/if}
 </div>
 
 <style>
-  .pubkey {
-    text-overflow: ellipsis;
+  .wrap {
+    position: relative;
   }
-
-  .lnd-table-wrap {
-    max-width: 100%;
-    min-width: 100%;
-    font-family: "Barlow", sans-serif;
+  .liquidity-wrap {
+    background-color: #101317;
+    padding: 25px 30px;
     display: flex;
-    flex-direction: column;
   }
 
-  .lnd-table-wrap .table-head {
-    display: flex;
-    flex-direction: row;
-    border-bottom: 1px solid #101317;
-    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+  .liquidity-wrap aside {
+    text-align: center;
+    width: 50%;
   }
 
-  .lnd-table-wrap .table-head .th {
-    font-size: 0.72rem;
+  .liquidity-wrap aside:first-child {
+    border-right: 1px solid #6a6d6c;
+  }
+
+  .liquidity-wrap aside .title {
+    font-size: 0.85rem;
     color: #6b7a8d;
-    min-height: 50px;
-    padding: 20px 0px;
-    text-align: left;
-    font-weight: 600;
   }
 
-  .lnd-table-wrap .table-head .th:first-child {
-    min-width: 10%;
+  .liquidity-wrap aside .value {
+    font-size: 1.6rem;
+    color: #ffffff;
+    margin-top: 10px;
   }
 
-  .lnd-table-wrap .table-head .th:nth-child(2) {
-    min-width: 48%;
+  .liquidity-wrap aside .value span {
+    color: #6b7a8d;
   }
-
-  .lnd-table-wrap .table-head .th:nth-child(3) {
-    min-width: 15%;
-  }
-
-  .lnd-table-wrap .table-head .th:nth-child(4) {
-    min-width: 27%;
-  }
-
-  .lnd-table-wrap .table-body {
+  .header-btns {
     display: flex;
-    flex-direction: column;
-    max-width: 100%;
-  }
-
-  .lnd-table-wrap .table-body .row {
-    display: flex;
-    flex-direction: row;
-    border-bottom: 1px solid #151e27;
-    align-items: center;
-  }
-
-  .lnd-table-wrap .table-body .row .td {
-    padding: 20px 0px;
-    font-size: 0.97rem;
-    text-align: left;
-    font-weight: 500;
-  }
-
-  .lnd-table-wrap .table-body .row .td:first-child {
-    min-width: 10%;
-  }
-
-  .lnd-table-wrap .table-body .row .td:nth-child(2) {
-    min-width: 48%;
-  }
-
-  .lnd-table-wrap .table-body .row .td:nth-child(3) {
-    min-width: 15%;
-  }
-
-  .lnd-table-wrap .table-body .row .td:nth-child(4) {
-    min-width: 27%;
-  }
-
-  .lnd-table-wrap .table-body .row .td .pubkey {
-    width: 9.4vw;
-    display: inline-block;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
+    margin-left: auto;
+    position: absolute;
+    right: 1rem;
+    top: -5.6rem;
   }
 </style>
