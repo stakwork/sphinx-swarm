@@ -3,12 +3,12 @@
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
-  import { new_address } from "../api/lnd";
+  import * as api from "../api";
   import { lightningAddress } from "../store";
 
   async function newAddress() {
     if ($lightningAddress) return;
-    lightningAddress.set(await new_address(tag));
+    lightningAddress.set(await api.lnd.new_address(tag));
   }
 
   function copyAddressToClipboard() {
