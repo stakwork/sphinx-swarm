@@ -311,11 +311,9 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         "28333".to_string(),
     ];
     let root_vol = "/data/.bitcoin";
-    // let vols = vec!["/home/bitcoin/.bitcoin"];'
     Config {
         image: Some(format!("lncm/bitcoind:{}", node.version)),
         hostname: Some(domain(&node.name)),
-        // user: Some("bitcoin".to_string()), // from the dockerfile
         cmd: Some(vec![
             format!("-{}=1", node.network),
             format!("-rpcuser={}", node.user),
