@@ -115,6 +115,7 @@ async fn add_node(
 
             log::info!("created Relay {}", relay_id);
         }
+        Image::Cache(_) => todo!(),
     }
     Ok(())
 }

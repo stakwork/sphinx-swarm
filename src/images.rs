@@ -16,6 +16,7 @@ pub enum Image {
     Lnd(LndImage),
     Relay(RelayImage),
     Proxy(ProxyImage),
+    Cache(CacheImage),
 }
 
 pub type Links = Vec<String>;
@@ -27,6 +28,7 @@ impl Image {
             Image::Lnd(n) => n.name.clone(),
             Image::Relay(n) => n.name.clone(),
             Image::Proxy(n) => n.name.clone(),
+            Image::Cache(n) => n.name.clone(),
         }
     }
 }
@@ -134,6 +136,30 @@ impl ProxyImage {
     }
     pub fn new_nodes(&mut self, new_nodes: Option<String>) {
         self.new_nodes = new_nodes;
+    }
+    pub fn links(&mut self, links: Vec<&str>) {
+        self.links = strarr(links)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CacheImage {
+    pub name: String,
+    pub version: String,
+    pub network: String,
+    pub port: String,
+    pub links: Links,
+}
+
+impl CacheImage {
+    pub fn new(name: &str, version: &str, network: &str, port: &str, admin_port: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            version: version.to_string(),
+            network: network.to_string(),
+            port: port.to_string(),
+            links: vec![],
+        }
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
