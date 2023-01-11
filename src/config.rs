@@ -65,13 +65,19 @@ impl Node {
     pub fn name(&self) -> String {
         match self {
             Node::Internal(n) => n.name(),
-            Node::External(n) => n.url.clone(),
+            Node::External(n) => n.name().clone(),
         }
     }
     pub fn as_internal(&self) -> Result<Image> {
         match self {
             Node::Internal(n) => Ok(n.clone()),
             Node::External(n) => Err(anyhow::anyhow!("not an internal node".to_string())),
+        }
+    }
+    pub fn as_external(&self) -> Result<ExternalNode> {
+        match self {
+            Node::Internal(n) => Err(anyhow::anyhow!("not an external node".to_string())),
+            Node::External(n) => Ok(n.clone()),
         }
     }
     pub fn as_btc(&self) -> Result<BtcImage> {
@@ -86,6 +92,7 @@ impl Node {
             _ => Err(anyhow::anyhow!("not a LND image".to_string())),
         }
     }
+    
 }
 
 impl Default for Stack {
@@ -114,7 +121,7 @@ impl Default for Stack {
 
         // cache
         v = "0.1.14";
-        let mut cache = CacheImage::new("cache1", v, "9000");
+        let mut cache = CacheImage::new("cache1", v, "9000", "", "", true);
         cache.links(vec!["tribes", "lnd1"]);
 
         // internal nodes
@@ -154,12 +161,19 @@ pub enum ExternalNodeType {
     Meme,
     Postgres,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExternalNode {
     #[serde(rename = "type")]
     pub kind: ExternalNodeType,
     pub name: String,
     pub url: String,
+}
+
+impl ExternalNode {
+    pub fn name(&self) -> String {
+        self.name.to_string()
+    }
 }
 
 impl ExternalNode {

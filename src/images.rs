@@ -5,6 +5,7 @@ use crate::utils::{
 };
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
+use std::env;
 
 // volumes are mapped to {PWD}/vol/{project}/{name}:
 // ports are tcp
@@ -147,16 +148,22 @@ pub struct CacheImage {
     pub name: String,
     pub version: String,
     pub port: String,
+    pub rsa_key: String,
+    pub prv_key: String,
+    pub log: bool,
     pub links: Links,
 }
 
 impl CacheImage {
-    pub fn new(name: &str, version: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, port: &str, rsa_key: &str, prv_key: &str, log: bool) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
+            rsa_key: rsa_key.to_string(),
+            prv_key: prv_key.to_string(),
             links: vec![],
+            log,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -506,7 +513,7 @@ pub fn traefik(project: &str, insecure: bool) -> Config<String> {
     }
 }
 
-pub fn cache(project: &str, node: &CacheImage) -> Config<String> {
+pub fn cache(project: &str, node: &CacheImage, meme_host: &str, mqtt_host: &str) -> Config<String> {
     let name = node.name.clone();
     let img = "sphinxlightning/sphinx-cache";
     let version = format!("{}", node.version);
@@ -520,6 +527,15 @@ pub fn cache(project: &str, node: &CacheImage) -> Config<String> {
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(project, &name, ports, root_vol, None, None),
         cmd: None,
+        env: Some(vec![
+            format!("PRIVATE_KEY={}", node.prv_key),
+            format!("MQTT_HOST={}", mqtt_host),
+            "MQTT_PORT=1883".to_string(),
+            "MQTT_CLIENT_ID=local-123".to_string(),
+            format!("LOG_INCOMING={}", node.log),
+            format!("RSA_KEY={}", node.rsa_key),
+            format!("MEME_HOST={}", meme_host)
+        ]),
         ..Default::default()
     }
 }

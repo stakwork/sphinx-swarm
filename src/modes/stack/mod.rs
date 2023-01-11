@@ -19,6 +19,7 @@ use rocket::tokio;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use url::{Host, Url};
 
 async fn sleep(n: u64) {
     tokio::time::sleep(std::time::Duration::from_secs(n)).await;
@@ -116,15 +117,32 @@ async fn add_node(
             log::info!("created Relay {}", relay_id);
         }
         Image::Cache(cache) => {
-            log::info!("Creating SPhinx cache Node ===");
-            let cache1 = images::cache(proj, &cache);
+            let memes = nodes
+                .iter()
+                .find(|n| &n.name() == "memes")
+                .context("No Memes")?
+                .as_external()?;
+
+            let tribes = nodes
+                .iter()
+                .find(|n| &n.name() == "tribes")
+                .context("No Tribes")?
+                .as_external()?;
+
+            let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
+            let host = tribes_url
+                .host()
+                .unwrap_or(Host::Domain(""))
+                .to_string();
+
+            let cache1 = images::cache(proj, &cache, &memes.name, &host);
             let cache_id = create_and_start(&docker, cache1).await?;
             ids.insert(cache.name.clone(), cache_id);
 
             sleep(1).await;
-            
+
             log::info!("created cache");
-        },
+        }
     }
     Ok(())
 }

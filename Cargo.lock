@@ -1883,6 +1883,7 @@ dependencies = [
  "simple_logger",
  "thiserror",
  "tonic_lnd",
+ "url",
 ]
 
 [[package]]
