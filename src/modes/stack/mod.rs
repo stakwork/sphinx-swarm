@@ -116,6 +116,7 @@ async fn add_node(
             log::info!("created Relay {}", relay_id);
         }
         Image::Cache(cache) => {
+            log::info!("Creating SPhinx cache Node ===");
             let cache1 = images::cache(proj, &cache);
             let cache_id = create_and_start(&docker, cache1).await?;
             ids.insert(cache.name.clone(), cache_id);

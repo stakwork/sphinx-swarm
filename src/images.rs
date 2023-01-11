@@ -146,17 +146,15 @@ impl ProxyImage {
 pub struct CacheImage {
     pub name: String,
     pub version: String,
-    pub network: String,
     pub port: String,
     pub links: Links,
 }
 
 impl CacheImage {
-    pub fn new(name: &str, version: &str, network: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
-            network: network.to_string(),
             port: port.to_string(),
             links: vec![],
         }

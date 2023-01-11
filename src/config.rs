@@ -2,7 +2,7 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
-use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
+use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage, CacheImage};
 use crate::utils;
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -34,6 +34,7 @@ pub struct Clients {
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,
 }
+
 impl Default for Clients {
     fn default() -> Self {
         Self {
@@ -104,29 +105,38 @@ impl Default for Stack {
         let mut proxy = ProxyImage::new("proxy1", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec!["lnd1"]);
+
         // relay
         v = "v2.2.12";
         let node_env = "development";
         let mut relay = RelayImage::new("relay1", v, node_env, "3000");
         relay.links(vec!["proxy1", "lnd1"]);
+
+        // cache
+        v = "v0.0.1.14";
+        let cache = CacheImage::new("cache1", v, "9000");
+
         // internal nodes
         let internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
             Image::Proxy(proxy),
             Image::Relay(relay),
+            Image::Cache(cache),
         ];
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()
             .map(|n| Node::Internal(n.to_owned()))
             .collect();
+
         // external nodes
         nodes.push(Node::External(ExternalNode::new(
             "tribes",
             ExternalNodeType::Tribes,
             "tribes.sphinx.chat",
         )));
+
         nodes.push(Node::External(ExternalNode::new(
             "memes",
             ExternalNodeType::Meme,
@@ -150,6 +160,7 @@ pub struct ExternalNode {
     pub name: String,
     pub url: String,
 }
+
 impl ExternalNode {
     pub fn new(name: &str, kind: ExternalNodeType, url: &str) -> Self {
         Self {
