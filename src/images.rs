@@ -481,3 +481,21 @@ pub fn traefik(project: &str, insecure: bool) -> Config<String> {
         ..Default::default()
     }
 }
+
+pub fn cache(project: &str) -> Config<String> {
+    let name = "cache";
+    let img = "sphinxlightning/sphinx-cache";
+    let version = "v0.1.14".to_string();
+    let root_vol = "/cache/data";
+    let ports = vec!["8000".to_string()];
+
+    Config {
+        image: Some(format!("{}:{}", img, version)),
+        hostname: Some(domain(&name)),
+        user: user(),
+        exposed_ports: exposed_ports(ports.clone()),
+        host_config: host_config(project, &name, ports, root_vol, None, None),
+        cmd: None,
+        ..Default::default()
+    }
+}
