@@ -113,8 +113,9 @@ impl Default for Stack {
         relay.links(vec!["proxy1", "lnd1"]);
 
         // cache
-        v = "v0.0.1.14";
-        let cache = CacheImage::new("cache1", v, "9000");
+        v = "0.1.14";
+        let mut cache = CacheImage::new("cache1", v, "9000");
+        cache.links(vec!["tribes", "lnd1"]);
 
         // internal nodes
         let internal_nodes = vec![
