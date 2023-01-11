@@ -23,10 +23,12 @@ export const channels = writable<Channel[]>([]);
 
 export const proxy = writable<ProxyBalance>({
   total: 0,
-  user_count: 0
+  user_count: 0,
 });
 
 export const walletBalance = writable<number>(0);
+
+export const lightningAddresses = writable<{ [tag: string]: string }>({});
 
 export const balances = derived(channels, ($channels) => ({
   inbound:

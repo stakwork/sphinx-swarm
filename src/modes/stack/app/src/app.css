@@ -35,6 +35,7 @@ html {
 .node-internal {
 	border: 1px solid #5e717a !important;
 }
+
 .node-external {
 	border: 2px dotted #5e717a !important;
 }
@@ -123,15 +124,19 @@ html {
 	display: flex;
 	justify-content: center;
 }
+
 .lnd-tabs-wrap .bx--tabs__nav-link {
-	width:17rem;
+	width: 17rem;
 }
+
 .lnd-tabs-wrap .bx--tabs__nav-link:active {
-	width:17rem;
+	width: 17rem;
 }
+
 .lnd-tabs-wrap .bx--tabs__nav-link:focus {
-	width:17rem;
+	width: 17rem;
 }
+
 .copy-icon {
 	cursor: pointer;
 	width: 20px;
@@ -236,3 +241,4 @@ html {
 	text-align: center;
 	padding: 0;
 }
+
