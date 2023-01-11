@@ -147,7 +147,6 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         "regtest" => "regtest",
         _ => "regtest",
     };
-    let version = "v0.14.3-beta.rc1".to_string();
     let peering_port = "9735";
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
@@ -167,6 +166,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         format!("--bitcoind.rpcuser={}", &btc.user),
         format!("--bitcoind.rpcpass={}", &btc.pass),
         format!("--bitcoind.rpchost={}", &btc_domain),
+        // format!("--bitcoind.rpcpolling"),
         format!("--bitcoind.zmqpubrawblock=tcp://{}:28332", &btc_domain),
         format!("--bitcoind.zmqpubrawtx=tcp://{}:28333", &btc_domain),
         format!("--bitcoin.defaultchanconfs=2"),
@@ -178,7 +178,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &BtcImage) -> Config<String> {
         cmd.push(format!("--restlisten={}:{}", rest_host, hp).to_string());
     }
     Config {
-        image: Some(format!("lightninglabs/lnd:{}", version).to_string()),
+        image: Some(format!("lightninglabs/lnd:{}", lnd.version).to_string()),
         hostname: Some(domain(&lnd.name)),
         user: user(),
         exposed_ports: exposed_ports(ports.clone()),
@@ -209,7 +209,7 @@ pub fn relay(
     // let img = "sphinx-relay";
     // let version = "latest";
     let img = "sphinxlightning/sphinx-relay";
-    let version = "v2.2.12".to_string();
+    let version = relay.version.clone();
     let root_vol = "/relay/data";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
@@ -245,7 +245,6 @@ pub fn relay(
 
 pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String> {
     let img = "sphinxlightning/sphinx-proxy";
-    let version = "0.1.2".to_string();
     // let img = "sphinx-proxy";
     // let version = "latest";
     let macpath = format!(
@@ -288,7 +287,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
         cmd.push(format!("--store-key={}", &sk));
     }
     Config {
-        image: Some(format!("{}:{}", img, version)),
+        image: Some(format!("{}:{}", img, proxy.version)),
         hostname: Some(domain(&proxy.name)),
         user: user(),
         exposed_ports: exposed_ports(ports.clone()),
@@ -306,7 +305,6 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &LndImage) -> Config<String
 }
 
 pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
-    let btc_version = "v0.21.1";
     let ports = vec![
         "18443".to_string(),
         "28332".to_string(),
@@ -315,7 +313,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     let root_vol = "/data/.bitcoin";
     // let vols = vec!["/home/bitcoin/.bitcoin"];'
     Config {
-        image: Some(format!("lncm/bitcoind:{}", btc_version)),
+        image: Some(format!("lncm/bitcoind:{}", node.version)),
         hostname: Some(domain(&node.name)),
         // user: Some("bitcoin".to_string()), // from the dockerfile
         cmd: Some(vec![
@@ -329,8 +327,8 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
             "-txindex=1".to_string(),
             "-rpcallowip=0.0.0.0/0".to_string(),
             "-fallbackfee=0.0002".to_string(),
-            "-zmqpubhashblock=tcp://0.0.0.0:28332".to_string(),
-            "-zmqpubhashtx=tcp://0.0.0.0:28333".to_string(),
+            "-zmqpubrawblock=tcp://0.0.0.0:28332".to_string(),
+            "-zmqpubrawtx=tcp://0.0.0.0:28333".to_string(),
             "-rpcbind=127.0.0.1".to_string(),
         ]),
         host_config: host_config(project, &node.name, ports, root_vol, None, None),
