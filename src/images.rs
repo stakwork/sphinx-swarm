@@ -152,7 +152,7 @@ pub struct CacheImage {
 }
 
 impl CacheImage {
-    pub fn new(name: &str, version: &str, network: &str, port: &str, admin_port: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
@@ -508,12 +508,12 @@ pub fn traefik(project: &str, insecure: bool) -> Config<String> {
     }
 }
 
-pub fn cache(project: &str) -> Config<String> {
-    let name = "cache";
+pub fn cache(project: &str, node: &CacheImage) -> Config<String> {
+    let name = node.name.clone();
     let img = "sphinxlightning/sphinx-cache";
-    let version = "v0.1.14".to_string();
+    let version = format!("{}", node.version);
     let root_vol = "/cache/data";
-    let ports = vec!["8000".to_string()];
+    let ports = vec![node.port.clone()];
 
     Config {
         image: Some(format!("{}:{}", img, version)),

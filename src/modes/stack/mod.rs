@@ -115,7 +115,15 @@ async fn add_node(
 
             log::info!("created Relay {}", relay_id);
         }
-        Image::Cache(_) => todo!(),
+        Image::Cache(cache) => {
+            let cache1 = images::cache(proj, &cache);
+            let cache_id = create_and_start(&docker, cache1).await?;
+            ids.insert(cache.name.clone(), cache_id);
+
+            sleep(1).await;
+            
+            log::info!("created cache");
+        },
     }
     Ok(())
 }
