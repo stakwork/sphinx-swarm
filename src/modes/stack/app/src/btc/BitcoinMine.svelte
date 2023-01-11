@@ -62,7 +62,7 @@
   .mine-wrap .input-wrap input {
     height: 45px;
     margin-right: 20px;
-    padding: 5px 10px;
+    padding: 5px 20px;
     background: transparent;
     color: #fff;
     font-size: 1rem;

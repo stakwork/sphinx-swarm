@@ -28,6 +28,8 @@ export const proxy = writable<ProxyBalance>({
 
 export const walletBalance = writable<number>(0);
 
+export const lightningAddress = writable<string>("");
+
 export const balances = derived(channels, ($channels) => ({
   inbound:
     $channels && $channels.length
