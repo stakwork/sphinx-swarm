@@ -4,15 +4,19 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
   import * as api from "../api";
-  import { lightningAddress } from "../store";
+  import { lightningAddresses } from "../store";
 
   async function newAddress() {
-    if ($lightningAddress) return;
-    lightningAddress.set(await api.lnd.new_address(tag));
+    let new_addy = await api.lnd.new_address(tag);
+    lightningAddresses.update((addys) => {
+      return { ...addys, [tag]: new_addy };
+    });
   }
 
+  $: myNewAddy = $lightningAddresses[tag];
+
   function copyAddressToClipboard() {
-    navigator.clipboard.writeText($lightningAddress);
+    navigator.clipboard.writeText(myNewAddy);
   }
 </script>
 
@@ -24,18 +28,21 @@
         <aside class="data-wrap">
           <input
             name="address"
-            bind:value={$lightningAddress}
+            bind:value={myNewAddy}
             placeholder="Address"
+            readonly
           />
-          <button class="copy-btn" on:click={copyAddressToClipboard}><Copy class="copy-icon" size={32} /></button>
+          <button class="copy-btn" on:click={copyAddressToClipboard}
+            ><Copy class="copy-icon" size={24} /></button
+          >
         </aside>
       </section>
     </div>
 
     <aside class="spacer" />
-    {#if !$lightningAddress}
-      <Button on:click={newAddress} size="field" icon={Add}>Generate Address</Button>
-    {/if}
+    <Button on:click={newAddress} size="field" icon={Add}
+      >Generate Address</Button
+    >
   </aside>
 </div>
 
@@ -56,8 +63,8 @@
     width: 100%;
   }
   .address .input-wrap input {
-    height: 45px;
-    padding: 5px 20px;
+    height: 40px;
+    padding: 5px 15px;
     background: transparent;
     color: #fff;
     font-size: 0.9rem;
