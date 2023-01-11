@@ -123,6 +123,9 @@ async fn add_node(
                 .context("No Memes")?
                 .as_external()?;
 
+            let memes_url = Url::parse(format!("https://{}", memes.url).as_str())?;
+            let memes_host = memes_url.host().unwrap_or(Host::Domain("")).to_string();
+
             let tribes = nodes
                 .iter()
                 .find(|n| &n.name() == "tribes")
@@ -130,12 +133,9 @@ async fn add_node(
                 .as_external()?;
 
             let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
-            let host = tribes_url
-                .host()
-                .unwrap_or(Host::Domain(""))
-                .to_string();
+            let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
 
-            let cache1 = images::cache(proj, &cache, &memes.name, &host);
+            let cache1 = images::cache(proj, &cache, &memes_host, &tribe_host);
             let cache_id = create_and_start(&docker, cache1).await?;
             ids.insert(cache.name.clone(), cache_id);
 

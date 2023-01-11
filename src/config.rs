@@ -121,7 +121,7 @@ impl Default for Stack {
 
         // cache
         v = "0.1.14";
-        let mut cache = CacheImage::new("cache1", v, "9000", "", "", true);
+        let mut cache = CacheImage::new("cache1", v, "9000", true);
         cache.links(vec!["tribes", "lnd1"]);
 
         // internal nodes
