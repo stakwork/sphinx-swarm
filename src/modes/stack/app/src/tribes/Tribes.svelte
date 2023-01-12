@@ -1,16 +1,19 @@
 <script lang="ts">
   import Tribe from "./Tribe.svelte";
-  import { Dropdown } from "carbon-components-svelte";
+  import { Dropdown, TextInput } from "carbon-components-svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
   import { tribes } from "../store";
   import VirtualList from "svelte-tiny-virtual-list";
+  import _ from "lodash";
 
   export let url = "";
 
   let topPartElement;
 
   let loading = false;
+
+  let searchTerm = "";
 
   let selectedTribe;
   $: selectedTribe = $tribes.find((t) => t.uuid === selectedTribe);
@@ -30,6 +33,23 @@
     const tribesData = await api.tribes.get_tribes(url);
     tribes.set(tribesData);
     loading = false;
+  }
+
+  async function search() {
+    const debounced = _.debounce(
+      async () => {
+        if (!searchTerm) return (filterTribes = $tribes);
+
+        filterTribes = await api.tribes.get_tribes(
+          url,
+          "",
+          searchTerm.toLocaleLowerCase()
+        );
+      },
+      0,
+      {}
+    );
+    debounced();
   }
 
   let heightOfVirtualList = 1000;
@@ -105,6 +125,17 @@
         </aside>
       </section>
     </div>
+
+    <section class="sidebar-search-wrap">
+      <form on:submit|preventDefault={search}>
+        <TextInput
+          class="search"
+          placeholder="Search by tribe name"
+          bind:value={searchTerm}
+        />
+      </form>
+    </section>
+
     <VirtualList
       width="100%"
       height={heightOfVirtualList}

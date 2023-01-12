@@ -178,8 +178,12 @@ html {
 	padding: 1.5rem;
 }
 
+.sidebar-search-wrap {
+	margin: 0 1rem;
+	margin-bottom: 10px;
+}
 
-.people-search.bx--text-input {
+.search.bx--text-input {
 	background-color: #1A242E;
 }
 
@@ -241,4 +245,3 @@ html {
 	text-align: center;
 	padding: 0;
 }
-

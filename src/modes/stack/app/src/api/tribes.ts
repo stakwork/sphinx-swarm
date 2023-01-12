@@ -30,14 +30,17 @@ const formatUrl = (url: string): string => {
 
 export async function get_tribes(
   url: string,
-  uuid: string = ""
+  uuid: string = "",
+  search: string = ""
 ): Promise<Tribe[]> {
   let r;
 
-  if (!uuid) {
-    r = await fetch(`${formatUrl(url)}/tribes`);
-  } else {
+  if (search) {
+    r = await fetch(`${formatUrl(url)}/tribes?search=${search}`);
+  } else if (uuid) {
     r = await fetch(`${formatUrl(url)}/tribes/${uuid}`);
+  } else {
+    r = await fetch(`${formatUrl(url)}/tribes`);
   }
 
   const result = await r.json();
