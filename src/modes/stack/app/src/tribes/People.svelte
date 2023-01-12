@@ -68,9 +68,9 @@
       <div class="people-header">
         <p><span class="people-count">{$people.length}</span>People</p>
       </div>
-      <section class="search-wrap">
+      <section class="sidebar-search-wrap">
         <TextInput
-          class="people-search"
+          class="search"
           placeholder="Search by user alias or pubkey"
           bind:value={searchTerm}
           on:input={filter}
@@ -115,9 +115,5 @@
     color: rgba(255, 255, 255, 0.5);
     margin-right: 0.5rem;
     font-weight: 700;
-  }
-  .search-wrap {
-    margin: 0 1rem;
-    margin-bottom: 10px;
   }
 </style>
