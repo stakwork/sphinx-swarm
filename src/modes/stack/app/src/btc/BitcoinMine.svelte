@@ -16,10 +16,8 @@
       // Set values to default
       blockLen = 6;
       address = "";
-
       // Get new Bitcoin info
       btcinfo.set(await api.btc.get_info(tag));
-
       // Get new Wallet balance
       walletBalance.set(await api.btc.get_balance(tag));
     }
