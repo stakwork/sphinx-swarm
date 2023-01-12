@@ -99,10 +99,10 @@ impl Default for Stack {
     fn default() -> Self {
         let network = "regtest".to_string();
         // bitcoind
-        let mut v = "23.0";
+        let mut v = "v23.0";
         let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
         // lnd
-        v = "v0.14.3-beta.rc1";
+        v = "v0.15.5-beta";
         let mut lnd = LndImage::new("lnd1", v, &network, "10009");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
