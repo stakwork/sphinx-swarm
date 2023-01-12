@@ -40,4 +40,5 @@ export const balances = derived(channels, ($channels) => ({
       ? $channels.reduce((acc, chan) => acc + chan.local_balance, 0)
       : 0,
 }));
+
 export const btcinfo = writable<BtcInfo>();
