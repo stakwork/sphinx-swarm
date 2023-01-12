@@ -97,6 +97,13 @@ const stack: Stack = {
       links: ["lnd1", "relay1"],
     },
     {
+      place: "Internal",
+      type: "Cache",
+      version: "0.1.14",
+      name: "cache1",
+      links: ["lnd1", "tribes"],
+    },
+    {
       name: "tribes",
       place: "External",
       type: "Tribes",
@@ -116,7 +123,8 @@ const defaultPositions = [
   [370, 200],
   [660, 130],
   [920, 350],
-  [920, 30],
+  [920, 40],
+  [100, 250],
   [260, 400],
   [560, 500],
 ];

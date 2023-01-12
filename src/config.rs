@@ -2,7 +2,7 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
-use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage};
+use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage, CacheImage};
 use crate::utils;
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -34,6 +34,7 @@ pub struct Clients {
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,
 }
+
 impl Default for Clients {
     fn default() -> Self {
         Self {
@@ -64,13 +65,19 @@ impl Node {
     pub fn name(&self) -> String {
         match self {
             Node::Internal(n) => n.name(),
-            Node::External(n) => n.url.clone(),
+            Node::External(n) => n.name().clone(),
         }
     }
     pub fn as_internal(&self) -> Result<Image> {
         match self {
             Node::Internal(n) => Ok(n.clone()),
             Node::External(n) => Err(anyhow::anyhow!("not an internal node".to_string())),
+        }
+    }
+    pub fn as_external(&self) -> Result<ExternalNode> {
+        match self {
+            Node::Internal(n) => Err(anyhow::anyhow!("not an external node".to_string())),
+            Node::External(n) => Ok(n.clone()),
         }
     }
     pub fn as_btc(&self) -> Result<BtcImage> {
@@ -85,6 +92,7 @@ impl Node {
             _ => Err(anyhow::anyhow!("not a LND image".to_string())),
         }
     }
+    
 }
 
 impl Default for Stack {
@@ -104,29 +112,39 @@ impl Default for Stack {
         let mut proxy = ProxyImage::new("proxy1", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec!["lnd1"]);
+
         // relay
         v = "v2.2.12";
         let node_env = "development";
         let mut relay = RelayImage::new("relay1", v, node_env, "3000");
         relay.links(vec!["proxy1", "lnd1"]);
+
+        // cache
+        v = "0.1.14";
+        let mut cache = CacheImage::new("cache1", v, "9000", true);
+        cache.links(vec!["tribes", "lnd1"]);
+
         // internal nodes
         let internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
             Image::Proxy(proxy),
             Image::Relay(relay),
+            Image::Cache(cache),
         ];
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()
             .map(|n| Node::Internal(n.to_owned()))
             .collect();
+
         // external nodes
         nodes.push(Node::External(ExternalNode::new(
             "tribes",
             ExternalNodeType::Tribes,
             "tribes.sphinx.chat",
         )));
+
         nodes.push(Node::External(ExternalNode::new(
             "memes",
             ExternalNodeType::Meme,
@@ -143,6 +161,7 @@ pub enum ExternalNodeType {
     Meme,
     Postgres,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExternalNode {
     #[serde(rename = "type")]
@@ -150,6 +169,13 @@ pub struct ExternalNode {
     pub name: String,
     pub url: String,
 }
+
+impl ExternalNode {
+    pub fn name(&self) -> String {
+        self.name.to_string()
+    }
+}
+
 impl ExternalNode {
     pub fn new(name: &str, kind: ExternalNodeType, url: &str) -> Self {
         Self {

@@ -10,6 +10,13 @@ pub fn hex_secret() -> String {
     hex::encode(store_key_bytes).to_uppercase()
 }
 
+pub fn hex_secret_32() -> String {
+    let mut store_key_bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut store_key_bytes);
+    hex::encode(store_key_bytes)
+}
+
+
 pub fn random_word(n: usize) -> String {
     rand::thread_rng()
         .sample_iter(&Alphanumeric)

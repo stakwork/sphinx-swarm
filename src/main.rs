@@ -10,6 +10,7 @@ mod rocket_utils;
 mod routes;
 mod secrets;
 mod utils;
+mod rsa;
 
 #[rocket::main]
 async fn main() {

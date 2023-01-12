@@ -19,6 +19,7 @@ use rocket::tokio;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use url::{Host, Url};
 
 async fn sleep(n: u64) {
     tokio::time::sleep(std::time::Duration::from_secs(n)).await;
@@ -114,6 +115,33 @@ async fn add_node(
             clients.relay.insert(relay.name, client);
 
             log::info!("created Relay {}", relay_id);
+        }
+        Image::Cache(cache) => {
+            let memes = nodes
+                .iter()
+                .find(|n| &n.name() == "memes")
+                .context("No Memes")?
+                .as_external()?;
+
+            let memes_url = Url::parse(format!("https://{}", memes.url).as_str())?;
+            let memes_host = memes_url.host().unwrap_or(Host::Domain("")).to_string();
+
+            let tribes = nodes
+                .iter()
+                .find(|n| &n.name() == "tribes")
+                .context("No Tribes")?
+                .as_external()?;
+
+            let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
+            let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
+
+            let cache1 = images::cache(proj, &cache, &memes_host, &tribe_host);
+            let cache_id = create_and_start(&docker, cache1).await?;
+            ids.insert(cache.name.clone(), cache_id);
+
+            sleep(1).await;
+
+            log::info!("created cache");
         }
     }
     Ok(())
