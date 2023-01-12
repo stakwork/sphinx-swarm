@@ -4,6 +4,7 @@
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
   import TribeControls from "../tribes/TribeControls.svelte";
+  import LeftIcon from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import Lnd from "../lnd/Lnd.svelte";
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
@@ -13,10 +14,20 @@
 
   // tag is the name of the container itself
   $: tag = $selectedNode && $selectedNode.name;
+
+  function closeSidebar() {
+    ctrls = false;
+  }
 </script>
 
 {#if ctrls}
   <div class="main" style={`width: ${type === "Lnd" ? "35rem" : "23rem"}`}>
+    <section class="close-btn-wrap">
+      <button on:click={closeSidebar}>
+        <LeftIcon size={32} />
+      </button>
+    </section>
+
     <header>
       <img
         src={`swarm/${type.toLowerCase()}.png`}
@@ -56,7 +67,6 @@
     height: calc(100vh - 4.2rem);
     overflow-y: auto;
     width: 23rem;
-    /* transition: width 400ms; */
     border-radius: 0rem;
     position: fixed;
     right: 0rem;
@@ -75,5 +85,28 @@
   header .node-top-img {
     width: 1.25rem;
     margin-right: 15px;
+  }
+
+  .close-btn-wrap {
+    position: fixed;
+    margin-left: -42px;
+    margin-top: 1.2%;
+    cursor: pointer;
+    width: 30px;
+    outline: 0;
+    z-index: 10;
+  }
+
+  .close-btn-wrap button  {
+    padding: 5px;
+    background: #1a242e;
+    color: #FFF;
+    outline: 0;
+    border: 0;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    box-shadow: 0 4px 8px 0 #1a242e, 0 6px 20px 0 #1a242e;
+    cursor: pointer;
+    box-shadow: none;
   }
 </style>
