@@ -1,13 +1,11 @@
 use crate::config;
+use crate::rsa;
 use crate::secrets;
 use crate::utils::{
     domain, exposed_ports, files_volume, host_config, manual_host_config, user, volume_string,
 };
 use bollard::container::Config;
-use rsa::pkcs1::EncodeRsaPrivateKey;
 use serde::{Deserialize, Serialize};
-use std::env;
-use crate::rsa::_rand_key;
 
 // volumes are mapped to {PWD}/vol/{project}/{name}:
 // ports are tcp
@@ -151,6 +149,8 @@ pub struct CacheImage {
     pub version: String,
     pub port: String,
     pub log: bool,
+    pub priv_key: String,
+    pub rsa_key: String,
     pub links: Links,
 }
 
@@ -162,6 +162,8 @@ impl CacheImage {
             port: port.to_string(),
             links: vec![],
             log,
+            priv_key: secrets::hex_secret_32(),
+            rsa_key: rsa::rand_key(),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -514,28 +516,22 @@ pub fn traefik(project: &str, insecure: bool) -> Config<String> {
 pub fn cache(project: &str, node: &CacheImage, meme_host: &str, mqtt_host: &str) -> Config<String> {
     let name = node.name.clone();
     let img = "sphinxlightning/sphinx-cache";
-    let version = format!("{}", node.version);
     let root_vol = "/cache/data";
     let ports = vec![node.port.clone()];
-
-    let prv_key = secrets::hex_secret_32();
-    let rsa_key = _rand_key();
-
     Config {
-        image: Some(format!("{}:{}", img, version)),
+        image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(project, &name, ports, root_vol, None, None),
-        cmd: None,
         env: Some(vec![
-            format!("PRIVATE_KEY={}", prv_key),
+            format!("PRIVATE_KEY={}", node.priv_key),
             format!("MQTT_HOST={}", mqtt_host),
             "MQTT_PORT=1883".to_string(),
             "MQTT_CLIENT_ID=local-123".to_string(),
             format!("LOG_INCOMING={}", node.log),
-            format!("RSA_KEY={}", rsa_key),
-            format!("MEME_HOST={}", meme_host)
+            format!("RSA_KEY={}", node.rsa_key),
+            format!("MEME_HOST={}", meme_host),
         ]),
         ..Default::default()
     }
