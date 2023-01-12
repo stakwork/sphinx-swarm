@@ -39,7 +39,6 @@
     const debounced = _.debounce(
       async () => {
         if (!searchTerm) return (filterTribes = $tribes);
-
         filterTribes = await api.tribes.get_tribes(
           url,
           "",
@@ -58,7 +57,7 @@
     await getTribes();
     sort();
     const rect = topPartElement.getBoundingClientRect();
-    heightOfVirtualList = Math.ceil(window.innerHeight - rect.bottom) - 2;
+    heightOfVirtualList = Math.ceil(window.innerHeight - rect.bottom) - 58 - 2;
   });
 
   function sort() {
