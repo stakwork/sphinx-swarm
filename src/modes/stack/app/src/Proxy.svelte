@@ -19,14 +19,16 @@
 <div class="proxy-wrapper">
   <h5 class="info">Proxy Stats</h5>
   <div class="spacer" />
-  <section class="value-wrap">
-    <h3 class="title">TOTAL USERS</h3>
-    <h3 class="value">{$proxy.user_count}</h3>
-  </section>
-  <section class="value-wrap">
-    <h3 class="title">TOTAL SATS BALANCE</h3>
-    <h3 class="value">{formatSatsNumbers($proxy.total)}</h3>
-  </section>
+  {#if $proxy}
+    <section class="value-wrap">
+      <h3 class="title">TOTAL USERS</h3>
+      <h3 class="value">{$proxy.user_count}</h3>
+    </section>
+    <section class="value-wrap">
+      <h3 class="title">TOTAL SATS BALANCE</h3>
+      <h3 class="value">{formatSatsNumbers($proxy.total)}</h3>
+    </section>
+  {/if}
 </div>
 
 <style>

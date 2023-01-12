@@ -4,7 +4,7 @@
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
   import TribeControls from "../tribes/TribeControls.svelte";
-  import LeftIcon from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import Close from "carbon-icons-svelte/lib/Close.svelte";
   import Lnd from "../lnd/Lnd.svelte";
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
@@ -24,7 +24,7 @@
   <div class="main" style={`width: ${type === "Lnd" ? "35rem" : "23rem"}`}>
     <section class="close-btn-wrap">
       <button on:click={closeSidebar}>
-        <LeftIcon size={32} />
+        <Close size={24} />
       </button>
     </section>
 
@@ -89,18 +89,18 @@
 
   .close-btn-wrap {
     position: fixed;
-    margin-left: -42px;
-    margin-top: 1.2%;
+    margin-left: -33px;
+    margin-top: 23px;
     cursor: pointer;
     width: 30px;
     outline: 0;
     z-index: 10;
   }
 
-  .close-btn-wrap button  {
+  .close-btn-wrap button {
     padding: 5px;
     background: #1a242e;
-    color: #FFF;
+    color: #fff;
     outline: 0;
     border: 0;
     border-top-left-radius: 10px;
