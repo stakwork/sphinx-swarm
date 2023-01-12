@@ -87,7 +87,7 @@ const stack: Stack = {
       version: "v2.2.12",
       name: "relay1",
       port: "3000",
-      links: ["proxy1", "lnd1", "tribes", "memes"],
+      links: ["proxy1", "lnd1", "tribes", "memes", "cache1"],
     },
     {
       place: "Internal",
@@ -118,15 +118,15 @@ const stack: Stack = {
   ],
 };
 
-const defaultPositions = [
-  [100, 100],
-  [370, 200],
-  [660, 130],
-  [920, 350],
-  [920, 40],
-  [100, 250],
-  [260, 400],
-  [560, 500],
-];
+const defaultPositions = {
+  bitcoind: [90, 100],
+  lnd1: [360, 200],
+  proxy1: [660, 140],
+  relay1: [910, 350],
+  "reverse-proxy": [895, 40],
+  cache1: [660, 250],
+  tribes: [260, 400],
+  memes: [560, 500],
+};
 
 export { stack, defaultPositions };

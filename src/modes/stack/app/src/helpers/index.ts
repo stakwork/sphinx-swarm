@@ -1,4 +1,5 @@
 export function formatSatsNumbers(num) {
+  if (!num) return "0";
   const numFormat = new Intl.NumberFormat().format(num).replaceAll(",", " ");
   return numFormat;
 }
