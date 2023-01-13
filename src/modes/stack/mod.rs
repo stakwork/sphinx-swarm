@@ -215,7 +215,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let _r = srv::launch_rocket(tx.clone(), log_txs).await;
 
     for (_, id) in ids {
-        remove_container(&docker, &id).await?;
+        stop_and_remove(&docker, &id).await?;
     }
 
     Ok(())

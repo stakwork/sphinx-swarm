@@ -1,7 +1,9 @@
 use crate::utils::user;
 use anyhow::Result;
 use bollard::container::Config;
-use bollard::container::{CreateContainerOptions, LogOutput, LogsOptions, RemoveContainerOptions};
+use bollard::container::{
+    CreateContainerOptions, LogOutput, LogsOptions, RemoveContainerOptions, StopContainerOptions,
+};
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
 use bollard::service::ContainerSummary;
@@ -74,12 +76,24 @@ pub async fn list_containers(docker: &Docker) -> Result<Vec<ContainerSummary>> {
     Ok(docker.list_containers::<String>(None).await?)
 }
 
+pub async fn stop_and_remove(docker: &Docker, id: &str) -> Result<()> {
+    stop_container(docker, id).await?;
+    remove_container(&docker, &id).await?;
+    Ok(())
+}
+
+pub async fn stop_container(docker: &Docker, id: &str) -> Result<()> {
+    docker
+        .stop_container(id, Some(StopContainerOptions { t: 30 }))
+        .await?;
+    Ok(())
+}
+
 pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
     docker
         .remove_container(
             id,
             Some(RemoveContainerOptions {
-                force: true,
                 ..Default::default()
             }),
         )

@@ -9,7 +9,7 @@ pub async fn run(docker: Docker) -> anyhow::Result<()> {
     for c in all {
         if let Some(id) = c.id {
             log::info!("=> pulling down {:?}", c.names.unwrap().get(0).unwrap());
-            remove_container(&docker, id.as_str()).await?;
+            stop_and_remove(&docker, id.as_str()).await?;
         }
     }
     Ok(())

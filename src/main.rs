@@ -8,9 +8,9 @@ mod logs;
 pub mod modes;
 mod rocket_utils;
 mod routes;
+mod rsa;
 mod secrets;
 mod utils;
-mod rsa;
 
 #[rocket::main]
 async fn main() {
@@ -41,6 +41,7 @@ async fn main() {
         "down" => modes::down::run(d).await,
         "test" => modes::test::run(d).await,
         "stack" => modes::stack::run(d).await,
+        "btc" => modes::btc_test::run(d).await,
         _ => panic!("invalid cmd"),
     }
     .expect("FAIL")

@@ -1,0 +1,94 @@
+use std::collections::HashMap;
+
+use crate::dock::*;
+use crate::utils::host_port;
+use anyhow::Result;
+use bollard::container::Config;
+use bollard::Docker;
+use bollard_stubs::models::HostConfig;
+use rocket::tokio::signal;
+
+pub async fn run(docker: Docker) -> Result<()> {
+    let proj = "btc_test";
+    let btc1 = btc(proj, "bitcoind");
+    let btc_id = create_and_start(&docker, btc1).await?;
+    log::info!("btc launched!");
+    signal::ctrl_c().await?;
+    stop_and_remove(&docker, &btc_id).await?;
+    Ok(())
+}
+
+pub fn btc(_proj: &str, name: &str) -> Config<String> {
+    let ports = vec![
+        "18443".to_string(),
+        "8333".to_string(),
+        "28332".to_string(),
+        "28333".to_string(),
+    ];
+    let pwd = std::env::current_dir().unwrap_or_default();
+    let vol = format!("{}/bitcoind:/data/.bitcoin:rw", pwd.to_string_lossy());
+    let mut volumes = HashMap::new();
+    volumes.insert("/data/.bitcoin".to_string(), HashMap::new());
+    volumes.insert("/data/.bitcoin/".to_string(), HashMap::new());
+    Config {
+        image: Some(format!("lncm/bitcoind:v23.0")),
+        hostname: Some(format!("{}.test", name)),
+        // cmd: Some(vec![
+        //     format!("-regtest=1"),
+        //     format!("-rpcallowip=0.0.0.0/0"),
+        //     format!("-rpcbind=0.0.0.0"),
+        //     format!("-rpcpassword=thepass"),
+        //     format!("-rpcport=18443"),
+        //     format!("-rpcuser=evan"),
+        //     format!("-server"),
+        // ]),
+        volumes: Some(volumes),
+        host_config: Some(HostConfig {
+            binds: Some(vec![vol]),
+            port_bindings: host_port(ports),
+            // extra_hosts: extra_hosts(),
+            ..Default::default()
+        }),
+        // host_config: host_config(proj, name, ports, &vol, None, None),
+        ..Default::default()
+    }
+}
+
+/*
+
+docker exec -it bitcoind.test sh
+
+bitcoin-cli -regtest -rpcuser=evan -rpcpassword=thepass -getinfo
+
+bitcoin-cli -regtest -rpcuser=evan -rpcpassword=thepass createwallet wallet
+
+bitcoin-cli -regtest -rpcuser=evan -rpcpassword=thepass loadwallet wallet
+
+bitcoin-cli -regtest -rpcuser=evan -rpcpassword=thepass -generate 6
+
+
+docker-compose -f ./src/modes/btc_test.yml --project-directory . up -d
+
+rm -rf ./bitcoind/regtest
+
+docker inspect bitcoind.test
+
+*/
+
+fn extra_hosts() -> Option<Vec<String>> {
+    Some(vec!["host.docker.internal:host-gateway".to_string()])
+}
+
+/*
+
+docker run btc WORKS when innitially loaded by the compose???
+but docker AFTER cargo fails. So the cargo initialization is the problem.
+
+/Users/evanfeenstra/code/sphinx/sphinx-swarm/bitcoind
+/Users/evanfeenstra/code/sphinx/sphinx-swarm/bitcoind
+
+created by cargo
+drwxr-xr-x  12 evanfeenstra  staff   384 Jan 13 12:49 regtest
+drwx------   4 evanfeenstra  staff   128 Jan 13 12:49 blocks
+drwxr-xr-x   2 evanfeenstra  staff    64 Jan 13 12:49 wallets
+*/

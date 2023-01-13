@@ -134,7 +134,7 @@ pub fn files_volume() -> String {
     format!("{}/files:/files:z", pwd.to_string_lossy())
 }
 
-fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
+pub fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
     let mut ports = PortMap::new();
     for port in ports_in {
         ports.insert(

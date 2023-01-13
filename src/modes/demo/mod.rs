@@ -92,9 +92,9 @@ pub async fn run(docker: Docker) -> Result<()> {
     let _r = srv::launch_rocket(tx.clone(), log_txs).await;
 
     // shutdown containers
-    remove_container(&docker_arc, &btc_id).await?;
+    stop_and_remove(&docker_arc, &btc_id).await?;
     for (_tag, id) in id_map.iter() {
-        remove_container(&docker_arc, &id).await?;
+        stop_and_remove(&docker_arc, &id).await?;
     }
     Ok(())
 }
