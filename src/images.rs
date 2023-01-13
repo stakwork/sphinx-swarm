@@ -354,7 +354,6 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
             "-rpcport=18443".to_string(),
             "-server=1".to_string(),
             "-txindex=1".to_string(),
-            "-rpcallowip=0.0.0.0/0".to_string(),
             "-fallbackfee=0.0002".to_string(),
             "-zmqpubrawblock=tcp://0.0.0.0:28332".to_string(),
             "-zmqpubrawtx=tcp://0.0.0.0:28333".to_string(),
