@@ -341,9 +341,11 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         "28332".to_string(),
         "28333".to_string(),
     ];
+    // let image = "ruimarinho/bitcoin-core";
+    let image = "lncm/bitcoind";
     let root_vol = "/data/.bitcoin";
     Config {
-        image: Some(format!("lncm/bitcoind:{}", node.version)),
+        image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&node.name)),
         cmd: Some(vec![
             format!("-{}=1", node.network),
