@@ -3,8 +3,9 @@
   import { Dropdown, TextInput } from "carbon-components-svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
-  import { tribes } from "../store";
+  import { tribes, tribesPage } from "../store";
   import VirtualList from "svelte-tiny-virtual-list";
+  import InfiniteLoading from "svelte-infinite-loading";
   import _ from "lodash";
 
   export let url = "";
@@ -14,6 +15,10 @@
   let loading = false;
 
   let searchTerm = "";
+
+  let page = $tribesPage;
+
+  let limit = 75;
 
   let selectedTribe;
   $: selectedTribe = $tribes.find((t) => t.uuid === selectedTribe);
@@ -26,14 +31,6 @@
     { id: "1", text: "Recent messages" },
     { id: "2", text: "Previewable" },
   ];
-
-  async function getTribes() {
-    if ($tribes && $tribes.length) return;
-    loading = true;
-    const tribesData = await api.tribes.get_tribes(url);
-    tribes.set(tribesData);
-    loading = false;
-  }
 
   async function search() {
     const debounced = _.debounce(
@@ -51,10 +48,9 @@
     debounced();
   }
 
-  let heightOfVirtualList = 1000;
+  let heightOfVirtualList = 0;
 
   onMount(async () => {
-    await getTribes();
     sort();
     const rect = topPartElement.getBoundingClientRect();
     heightOfVirtualList = Math.ceil(window.innerHeight - rect.bottom) - 58 - 2;
@@ -94,6 +90,23 @@
       member_count: data.member_count,
       unique_name: data.unique_name,
     };
+  }
+
+  async function infiniteHandler({ detail: { loaded, complete } }) {
+    const tribesData = await api.tribes.get_tribes(url, "", "", page, limit);
+
+    if (tribesData.length) {
+      page += 1;
+      filterTribes = [...filterTribes, ...tribesData];
+
+      // save data to store
+      tribes.set(filterTribes);
+      tribesPage.set(page);
+
+      loaded();
+    } else {
+      complete();
+    }
   }
 </script>
 
@@ -148,6 +161,9 @@
           selected={false}
           {url}
         />
+      </div>
+      <div slot="footer">
+        <InfiniteLoading on:infinite={infiniteHandler} />
       </div>
     </VirtualList>
   {/if}

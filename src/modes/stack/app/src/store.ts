@@ -17,6 +17,8 @@ export const users = writable<User[]>(initialUsers);
 
 export const tribes = writable<Tribe[]>([]);
 
+export const tribesPage = writable<number>(1);
+
 export const people = writable<Person[]>([]);
 
 export const channels = writable<Channel[]>([]);

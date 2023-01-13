@@ -33,7 +33,7 @@ export async function get_tribes(
   uuid: string = "",
   search: string = "",
   page: number = 1,
-  limit: number = 100
+  limit: number = 75
 ): Promise<Tribe[]> {
   let r;
 
