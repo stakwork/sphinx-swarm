@@ -1,5 +1,5 @@
-use crate::images::LndImage;
-use crate::modes::stack::cmd::{AddChannel, AddPeer};
+use crate::cmd::{AddChannel, AddPeer};
+use crate::images::lnd::LndImage;
 use crate::utils::wait_for_file;
 use anyhow::Result;
 use tonic_lnd::lnrpc::*;

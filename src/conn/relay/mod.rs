@@ -3,7 +3,7 @@ use rocket::tokio;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::images::RelayImage;
+use crate::images::relay::RelayImage;
 
 pub struct RelayAPI {
     pub client: reqwest::Client,

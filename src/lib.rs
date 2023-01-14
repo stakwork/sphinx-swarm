@@ -1,19 +1,27 @@
 pub mod dock;
 
-mod config;
-mod conn;
-mod env;
-mod images;
-mod logs;
-pub mod modes;
-mod rocket_utils;
-mod routes;
-mod rsa;
-mod secrets;
-mod utils;
+pub mod config;
+pub mod conn;
+pub mod env;
+pub mod images;
+pub mod logs;
+// pub mod modes;
+pub mod cmd;
+pub mod rocket_utils;
+pub mod routes;
+pub mod rsa;
+pub mod secrets;
+pub mod utils;
 
 #[rocket::main]
 async fn main() {
+    println!("MODES:");
+    println!("- stack");
+    println!("- demo");
+    println!("- btc");
+    println!("- down");
+    println!("- test");
+
     dotenv::dotenv().ok();
 
     simple_logger::SimpleLogger::new()
@@ -30,19 +38,20 @@ async fn main() {
         .with_module_level("bitcoincore_rpc", log::LevelFilter::Error)
         .with_module_level("rustls", log::LevelFilter::Error)
         .with_module_level("tower", log::LevelFilter::Error)
+        .with_module_level("reqwest", log::LevelFilter::Error)
         .with_module_level("_", log::LevelFilter::Error)
         .init()
         .unwrap();
     let cmd = std::env::args().nth(1).expect("no cmd given");
 
-    let d = dock::er();
-    match cmd.as_str() {
-        "demo" => modes::demo::run(d).await,
-        "down" => modes::down::run(d).await,
-        "test" => modes::test::run(d).await,
-        "stack" => modes::stack::run(d).await,
-        "btc" => modes::btc_test::run(d).await,
-        _ => panic!("invalid cmd"),
-    }
-    .expect("FAIL")
+    // let d = dock::dockr();
+    // match cmd.as_str() {
+    //     "demo" => modes::demo::run(d).await,
+    //     "down" => modes::down::run(d).await,
+    //     "test" => modes::test::run(d).await,
+    //     "stack" => modes::stack::run(d).await,
+    //     "btc" => modes::btc_test::run(d).await,
+    //     _ => panic!("invalid cmd"),
+    // }
+    // .expect("FAIL")
 }

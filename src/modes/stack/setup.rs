@@ -1,11 +1,11 @@
-use crate::config::Clients;
-use crate::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
-use crate::conn::relay::RelayAPI;
-use crate::images;
-use crate::secrets;
 use anyhow::{Context, Result};
-use images::LndImage;
+use images::lnd::LndImage;
 use rocket::tokio;
+use sphinx_swarm::config::Clients;
+use sphinx_swarm::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
+use sphinx_swarm::conn::relay::RelayAPI;
+use sphinx_swarm::images;
+use sphinx_swarm::secrets;
 
 pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut Clients) {
     if let Some(addy) = test_mine_addy {
@@ -32,7 +32,6 @@ pub async fn lnd_clients(
     sleep(5).await;
     let mut client = LndRPC::new(proj, lnd_node).await?;
     let bal = client.get_balance().await?;
-    log::info!("balance: {:?}", bal);
     if bal.confirmed_balance > 0 {
         return Ok((client, None));
     }

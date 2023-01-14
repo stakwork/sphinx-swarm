@@ -1,8 +1,8 @@
 extern crate bitcoincore_rpc;
 
-use crate::images::BtcImage;
+use crate::images::btc::BtcImage;
 use anyhow::Result;
-use bitcoincore_rpc::bitcoin::{Address, Amount, BlockHash};
+use bitcoincore_rpc::bitcoin::{Address, BlockHash};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitcoincore_rpc_json::{AddressType, GetBlockchainInfoResult};
 use std::str::FromStr;

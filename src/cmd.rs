@@ -73,7 +73,7 @@ pub enum ProxyCmd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::images::BtcImage;
+    use crate::images::btc::BtcImage;
 
     #[test]
     fn test_cmd() {

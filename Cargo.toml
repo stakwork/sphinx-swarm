@@ -1,5 +1,5 @@
 [package]
-name = "sphinx-swarm"
+name = "sphinx_swarm"
 version = "0.1.0"
 edition = "2021"
 
@@ -32,3 +32,32 @@ bitcoincore-rpc-json = "0.15.0"
 dotenv = "0.15.0"
 url = "2.2.2"
 rsa = "0.7.2"
+walkdir = "2"
+
+[lib]
+name = "sphinx_swarm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "perm"
+path = "src/perm.rs"
+
+[[bin]]
+name = "stack"
+path = "src/modes/stack/mod.rs"
+
+[[bin]]
+name = "down"
+path = "src/modes/down.rs"
+
+[[bin]]
+name = "demo"
+path = "src/modes/demo/mod.rs"
+
+[[bin]]
+name = "btc"
+path = "src/modes/btc_test.rs"
+
+[[bin]]
+name = "test"
+path = "src/modes/test.rs"

@@ -2,7 +2,9 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
-use crate::images::{BtcImage, Image, LndImage, ProxyImage, RelayImage, CacheImage};
+use crate::images::{
+    btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
+};
 use crate::utils;
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -80,19 +82,6 @@ impl Node {
             Node::External(n) => Ok(n.clone()),
         }
     }
-    pub fn as_btc(&self) -> Result<BtcImage> {
-        match self.as_internal()? {
-            Image::Btc(i) => Ok(i),
-            _ => Err(anyhow::anyhow!("not a BTC image".to_string())),
-        }
-    }
-    pub fn as_lnd(&self) -> Result<LndImage> {
-        match self.as_internal()? {
-            Image::Lnd(i) => Ok(i),
-            _ => Err(anyhow::anyhow!("not a LND image".to_string())),
-        }
-    }
-    
 }
 
 impl Default for Stack {

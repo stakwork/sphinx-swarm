@@ -1,0 +1,103 @@
+pub mod btc;
+pub mod cache;
+pub mod cln_vls;
+pub mod lnd;
+pub mod postgres;
+pub mod proxy;
+pub mod relay;
+pub mod traefik;
+
+use crate::config;
+use serde::{Deserialize, Serialize};
+
+// volumes are mapped to {PWD}/vol/{project}/{name}:
+// ports are tcp
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum Image {
+    Btc(btc::BtcImage),
+    Lnd(lnd::LndImage),
+    Relay(relay::RelayImage),
+    Proxy(proxy::ProxyImage),
+    Cache(cache::CacheImage),
+}
+
+pub type Links = Vec<String>;
+
+impl Image {
+    pub fn name(&self) -> String {
+        match self {
+            Image::Btc(n) => n.name.clone(),
+            Image::Lnd(n) => n.name.clone(),
+            Image::Relay(n) => n.name.clone(),
+            Image::Proxy(n) => n.name.clone(),
+            Image::Cache(n) => n.name.clone(),
+        }
+    }
+}
+
+pub struct LinkedImages(Vec<Image>);
+
+impl LinkedImages {
+    pub fn from_nodes(links: Vec<String>, nodes: Vec<config::Node>) -> Self {
+        let mut images = Vec::new();
+        links.iter().for_each(|l| {
+            if let Some(node) = nodes.iter().find(|n| &n.name() == l) {
+                if let Ok(i) = node.as_internal() {
+                    images.push(i.clone());
+                }
+            }
+        });
+        Self(images)
+    }
+    pub fn find_btc(&self) -> Option<btc::BtcImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_btc() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_lnd(&self) -> Option<lnd::LndImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_lnd() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_proxy(&self) -> Option<proxy::ProxyImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_proxy() {
+                return Some(i);
+            }
+        }
+        None
+    }
+}
+
+impl Image {
+    pub fn as_btc(&self) -> anyhow::Result<btc::BtcImage> {
+        match self {
+            Image::Btc(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not BTC".to_string())),
+        }
+    }
+    pub fn as_lnd(&self) -> anyhow::Result<lnd::LndImage> {
+        match self {
+            Image::Lnd(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not LND".to_string())),
+        }
+    }
+    pub fn as_proxy(&self) -> anyhow::Result<proxy::ProxyImage> {
+        match self {
+            Image::Proxy(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Proxy".to_string())),
+        }
+    }
+}
+
+fn strarr(i: Vec<&str>) -> Vec<String> {
+    i.iter().map(|s| s.to_string()).collect()
+}

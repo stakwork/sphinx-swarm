@@ -1,8 +1,8 @@
-use crate::logs::LogChans;
-use crate::rocket_utils::{CmdRequest, Error, Result, CORS};
-use crate::routes::{cmd, logs, logstream};
 use fs::{relative, FileServer};
 use rocket::*;
+use sphinx_swarm::logs::LogChans;
+use sphinx_swarm::rocket_utils::{CmdRequest, Error, Result, CORS};
+use sphinx_swarm::routes::{cmd, logs, logstream};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 

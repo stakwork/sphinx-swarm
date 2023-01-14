@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 
-use crate::dock::*;
-use crate::utils::host_port;
 use anyhow::Result;
 use bollard::container::Config;
-use bollard::Docker;
 use bollard_stubs::models::HostConfig;
 use rocket::tokio::signal;
+use sphinx_swarm::dock::*;
+use sphinx_swarm::utils::host_port;
 
-pub async fn run(docker: Docker) -> Result<()> {
+#[rocket::main]
+pub async fn main() -> Result<()> {
+    let docker = dockr();
+    sphinx_swarm::utils::setup_logs();
+
     let proj = "btc_test";
     let btc1 = btc(proj, "bitcoind");
     let btc_id = create_and_start(&docker, btc1).await?;
@@ -46,7 +49,7 @@ pub fn btc(_proj: &str, name: &str) -> Config<String> {
         host_config: Some(HostConfig {
             binds: Some(vec![vol]),
             port_bindings: host_port(ports),
-            // extra_hosts: extra_hosts(),
+            extra_hosts: extra_hosts(),
             ..Default::default()
         }),
         // host_config: host_config(proj, name, ports, &vol, None, None),

@@ -1,21 +1,19 @@
-pub mod cmd;
 mod handler;
 mod setup;
 mod srv;
 
-use crate::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
-use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::conn::proxy::ProxyAPI;
-use crate::conn::relay::RelayAPI;
-use crate::images::Image;
-use crate::rocket_utils::CmdRequest;
-use crate::secrets;
-use crate::{dock::*, images, logs};
 use anyhow::{Context, Result};
 use bollard::Docker;
-use cmd::Cmd;
-use images::{LndImage, ProxyImage};
 use rocket::tokio;
+use sphinx_swarm::cmd::Cmd;
+use sphinx_swarm::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
+use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
+use sphinx_swarm::conn::proxy::ProxyAPI;
+use sphinx_swarm::conn::relay::RelayAPI;
+use sphinx_swarm::images::{Image, LinkedImages};
+use sphinx_swarm::rocket_utils::CmdRequest;
+use sphinx_swarm::secrets;
+use sphinx_swarm::{dock::*, images, logs};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -41,7 +39,7 @@ async fn add_node(
     let node = node.as_internal()?;
     match node {
         Image::Btc(btc) => {
-            let btc1 = images::btc(proj, &btc);
+            let btc1 = images::btc::btc(proj, &btc);
             let btc_id = create_and_start(&docker, btc1).await?;
             ids.insert(btc.name.clone(), btc_id);
             let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
@@ -53,13 +51,10 @@ async fn add_node(
         Image::Lnd(lnd) => {
             // log::info!("wait 90 seconds...");
             sleep(1).await;
-            let btc_name = lnd.links.get(0).context("LND requires a BTC")?;
-            let btc = nodes
-                .iter()
-                .find(|n| &n.name() == btc_name)
-                .context("No BTC found for LND")?
-                .as_btc()?;
-            let lnd1 = images::lnd(proj, &lnd, &btc);
+            let li = LinkedImages::from_nodes(lnd.links.clone(), nodes);
+            let btc = li.find_btc().context("BTC required for LND")?;
+
+            let lnd1 = images::lnd::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
 
             ids.insert(lnd.name.clone(), lnd_id.clone());
@@ -72,13 +67,10 @@ async fn add_node(
             log::info!("created LND {}", lnd_id);
         }
         Image::Proxy(proxy) => {
-            let lnd_name = proxy.links.get(0).context("Proxy requires a LND")?;
-            let lnd = nodes
-                .iter()
-                .find(|n| &n.name() == lnd_name)
-                .context("No LND found for Proxy")?
-                .as_lnd()?;
-            let proxy1 = images::proxy(proj, &proxy, &lnd);
+            let li = LinkedImages::from_nodes(proxy.links.clone(), nodes);
+            let lnd = li.find_lnd().context("LND required for Proxy")?;
+
+            let proxy1 = images::proxy::proxy(proj, &proxy, &lnd);
             let proxy_id = create_and_start(&docker, proxy1).await?;
             ids.insert(proxy.name.clone(), proxy_id.clone());
 
@@ -88,24 +80,11 @@ async fn add_node(
             log::info!("created Proxy {}", proxy_id);
         }
         Image::Relay(relay) => {
-            let mut lnd: Option<&LndImage> = None;
-            let mut proxy: Option<&ProxyImage> = None;
-            relay.links.iter().for_each(|l| {
-                if let Some(node) = nodes.iter().find(|n| &n.name() == l) {
-                    match node {
-                        Node::Internal(i) => match i {
-                            Image::Proxy(p) => proxy = Some(p),
-                            Image::Lnd(l) => lnd = Some(l),
-                            _ => (),
-                        },
-                        Node::External(_e) => (),
-                    }
-                }
-            });
-            if let None = lnd {
-                return Err(anyhow::anyhow!("LND required for Relay".to_string()));
-            }
-            let relay1 = images::relay(proj, &relay, lnd.unwrap(), proxy);
+            let li = LinkedImages::from_nodes(relay.links.clone(), nodes);
+            let lnd = li.find_lnd().context("LND required for Relay")?;
+            let proxy = li.find_proxy();
+
+            let relay1 = images::relay::relay(proj, &relay, &lnd, proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
             ids.insert(relay.name.clone(), relay_id.clone());
 
@@ -135,7 +114,7 @@ async fn add_node(
             let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
             let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
 
-            let cache1 = images::cache(proj, &cache, &memes_host, &tribe_host);
+            let cache1 = images::cache::cache(proj, &cache, &memes_host, &tribe_host);
             let cache_id = create_and_start(&docker, cache1).await?;
             ids.insert(cache.name.clone(), cache_id);
 
@@ -171,7 +150,11 @@ async fn build_stack(
     Ok((ids, clients))
 }
 
-pub async fn run(docker: Docker) -> Result<()> {
+#[rocket::main]
+async fn main() -> Result<()> {
+    let docker = dockr();
+    sphinx_swarm::utils::setup_logs();
+
     let proj = "stack";
     let stack: Stack = load_config_file(proj).await;
     let (ids, clients) = build_stack(proj, &docker, &stack).await?;
@@ -212,11 +195,11 @@ pub async fn run(docker: Docker) -> Result<()> {
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
     log::info!("🚀 => http://localhost:{}", port);
     let log_txs = Arc::new(Mutex::new(log_txs));
-    let _r = srv::launch_rocket(tx.clone(), log_txs).await;
+    let _r = srv::launch_rocket(tx.clone(), log_txs).await?;
 
-    for (_, id) in ids {
-        stop_and_remove(&docker, &id).await?;
-    }
+    // for (_, id) in ids {
+    //     stop_and_remove(&docker, &id).await?;
+    // }
 
     Ok(())
 }
