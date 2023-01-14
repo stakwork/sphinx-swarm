@@ -36,6 +36,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     Config {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&node.name)),
+        // user: user(),
         cmd: Some(vec![
             format!("-{}=1", node.network),
             format!("-rpcuser={}", node.user),

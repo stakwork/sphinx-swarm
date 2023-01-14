@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::env;
 
 pub fn dockr() -> Docker {
-    Docker::connect_with_socket_defaults().unwrap()
+    Docker::connect_with_unix_defaults().unwrap()
 }
 
 pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<String> {
