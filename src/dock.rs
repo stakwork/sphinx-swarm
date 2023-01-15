@@ -1,4 +1,4 @@
-use crate::utils::user;
+// use crate::utils::user;
 use anyhow::{Context, Result};
 use bollard::container::Config;
 use bollard::container::{
@@ -12,7 +12,6 @@ use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
-use std::collections::HashMap;
 use std::env;
 
 pub fn dockr() -> Docker {
@@ -198,16 +197,16 @@ pub async fn sleep(millis: u64) {
 }
 
 pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
-    let mut vconf = CreateVolumeOptions {
+    let vconf = CreateVolumeOptions {
         name: name.to_string(),
         driver: "local".to_string(),
         ..Default::default()
     };
-    if let Some(u) = user() {
-        let mut driver_opts = HashMap::new();
-        driver_opts.insert("uid".to_string(), u);
-        vconf.driver_opts = driver_opts;
-    }
+    // if let Some(u) = user() {
+    //     let mut driver_opts = HashMap::new();
+    //     driver_opts.insert("uid".to_string(), u);
+    //     vconf.driver_opts = driver_opts;
+    // }
     docker.create_volume(vconf).await?;
     Ok(())
 }
