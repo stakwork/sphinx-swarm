@@ -44,20 +44,20 @@ path = "src/perm.rs"
 
 [[bin]]
 name = "stack"
-path = "src/modes/stack/mod.rs"
+path = "src/bin/stack/mod.rs"
 
 [[bin]]
 name = "down"
-path = "src/modes/down.rs"
-
-[[bin]]
-name = "demo"
-path = "src/modes/demo/mod.rs"
+path = "src/bin/down.rs"
 
 [[bin]]
 name = "btc"
-path = "src/modes/btc_test.rs"
+path = "src/bin/btc_test.rs"
 
-[[bin]]
-name = "test"
-path = "src/modes/test.rs"
+# [[bin]]
+# name = "demo"
+# path = "src/bin/demo/mod.rs"
+
+# [[bin]]
+# name = "test"
+# path = "src/bin/test.rs"

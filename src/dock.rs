@@ -7,8 +7,8 @@ use bollard::container::{
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
-use bollard::service::ContainerSummary;
-use bollard::volume::CreateVolumeOptions;
+use bollard::service::{ContainerSummary, VolumeListResponse};
+use bollard::volume::{CreateVolumeOptions, RemoveVolumeOptions};
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
@@ -19,7 +19,10 @@ pub fn dockr() -> Docker {
 }
 
 pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<String> {
+    // first create volume with the same name, if needed
     let hostname = c.hostname.clone().context("expected hostname")?;
+    create_volume(&docker, &hostname).await?;
+
     let current_id = id_by_name(docker, &hostname).await;
     if let Some(id) = current_id {
         log::info!("{} already exists", hostname);
@@ -197,6 +200,9 @@ pub async fn sleep(millis: u64) {
 }
 
 pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
+    if let Ok(_v) = docker.inspect_volume(name).await {
+        return Ok(());
+    }
     let vconf = CreateVolumeOptions {
         name: name.to_string(),
         driver: "local".to_string(),
@@ -209,4 +215,16 @@ pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
     // }
     docker.create_volume(vconf).await?;
     Ok(())
+}
+
+pub async fn remove_volume(docker: &Docker, name: &str) -> Result<()> {
+    if let Err(_e) = docker.inspect_volume(name).await {
+        return Ok(());
+    }
+    docker.remove_volume(name, None).await?;
+    Ok(())
+}
+
+pub async fn list_volumes(docker: &Docker) -> Result<VolumeListResponse> {
+    Ok(docker.list_volumes::<String>(None).await?)
 }
