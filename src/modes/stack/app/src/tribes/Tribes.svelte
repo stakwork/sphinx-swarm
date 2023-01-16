@@ -143,7 +143,7 @@
     />
   {:else}
     <div class="tribes" bind:this={topPartElement}>
-      <p><span class="tribes-count">{$tribes.data.length}</span>Tribes</p>
+      <p><span class="tribes-count">{$tribes.total}</span>Tribes</p>
       <section class="filter-wrap">
         <aside>
           <Dropdown
