@@ -2,13 +2,13 @@
 use anyhow::{Context, Result};
 use bollard::container::Config;
 use bollard::container::{
-    CreateContainerOptions, ListContainersOptions, LogOutput, LogsOptions, RemoveContainerOptions,
-    StopContainerOptions,
+    CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
+    LogsOptions, RemoveContainerOptions, StopContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
 use bollard::service::{ContainerSummary, VolumeListResponse};
-use bollard::volume::{CreateVolumeOptions, RemoveVolumeOptions};
+use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
@@ -115,6 +115,40 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
         )
         .await?;
     Ok(())
+}
+
+pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> Result<()> {
+    let mut tar = docker.download_from_container::<String>(
+        id,
+        Some(DownloadFromContainerOptions { path: path.into() }),
+    );
+    let mut ret: Vec<u8> = Vec::new();
+    while let Some(bytes_res) = tar.next().await {
+        if let Ok(bytes) = bytes_res {
+            ret.extend_from_slice(&bytes);
+        }
+    }
+    unzip_tar(ret);
+    Ok(())
+}
+
+fn unzip_tar(bytes: Vec<u8>) {
+    use std::io::Read;
+    use tar::Archive;
+    let mut a = Archive::new(&bytes[..]);
+    for file in a.entries().unwrap() {
+        // Make sure there wasn't an I/O error
+        let mut file = file.unwrap();
+
+        // Inspect metadata about the file
+        println!("file path: {:?}", file.header().path().unwrap());
+
+        // files implement the Read trait
+        let mut s = String::new();
+        file.read_to_string(&mut s).unwrap();
+        println!("=====> FILE <======");
+        println!("{}", s);
+    }
 }
 
 pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {

@@ -33,6 +33,7 @@ dotenv = "0.15.0"
 url = "2.2.2"
 rsa = "0.7.2"
 walkdir = "2"
+tar = "0.4"
 
 [lib]
 name = "sphinx_swarm"

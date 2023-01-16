@@ -1,11 +1,11 @@
 ### stack
 
-`cargo run stack`
+`cargo run --bin stack`
 
-`cd src/modes/stack/app`
+`cd src/bin/stack/app`
 
 `yarn dev`
 
 ### pull nodes down
 
-`cargo run down`
+`cargo run --bin down`
