@@ -8,6 +8,12 @@ export interface Person {
 }
 
 export interface Tribe {
+  total: number;
+  data: TribeData[];
+  page: number;
+}
+
+export interface TribeData {
   preview: boolean;
   member_count: number;
   uuid: string;
@@ -31,8 +37,10 @@ const formatUrl = (url: string): string => {
 export async function get_tribes(
   url: string,
   uuid: string = "",
-  search: string = ""
-): Promise<Tribe[]> {
+  search: string = "",
+  page: number = 1,
+  limit: number = 75
+): Promise<TribeData[]> {
   let r;
 
   if (search) {
@@ -40,7 +48,7 @@ export async function get_tribes(
   } else if (uuid) {
     r = await fetch(`${formatUrl(url)}/tribes/${uuid}`);
   } else {
-    r = await fetch(`${formatUrl(url)}/tribes`);
+    r = await fetch(`${formatUrl(url)}/tribes?page=${page}&limit=${limit}`);
   }
 
   const result = await r.json();
@@ -49,6 +57,12 @@ export async function get_tribes(
 
 export async function get_people(url: string): Promise<Person[]> {
   const r = await fetch(`${formatUrl(url)}/people`);
+  const result = await r.json();
+  return result;
+}
+
+export async function get_tribes_total(url: string): Promise<number> {
+  const r = await fetch(`${formatUrl(url)}/tribes/total`);
   const result = await r.json();
   return result;
 }
