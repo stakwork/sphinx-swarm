@@ -25,6 +25,14 @@ impl RelayImage {
         self.links = strarr(links)
     }
 }
+impl DockerHubImage for RelayImage {
+    fn repo(&self) -> Repository {
+        Repository {
+            org: "sphinxlightning".to_string(),
+            repo: "sphinx-relay".to_string(),
+        }
+    }
+}
 
 pub fn relay(
     project: &str,
@@ -34,7 +42,8 @@ pub fn relay(
 ) -> Config<String> {
     // let img = "sphinx-relay";
     // let version = "latest";
-    let img = "sphinxlightning/sphinx-relay";
+    let repo = relay.repo();
+    let img = format!("{}/{}", repo.org, repo.repo);
     let version = relay.version.clone();
     let root_vol = "/relay/data";
     let mut conf = config::RelayConfig::new(&relay.name, &relay.port);

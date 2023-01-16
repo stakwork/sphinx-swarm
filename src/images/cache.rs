@@ -32,10 +32,19 @@ impl CacheImage {
         self.links = strarr(links)
     }
 }
+impl DockerHubImage for CacheImage {
+    fn repo(&self) -> Repository {
+        Repository {
+            org: "sphinxlightning".to_string(),
+            repo: "sphinx-cache".to_string(),
+        }
+    }
+}
 
 pub fn cache(project: &str, node: &CacheImage, meme_host: &str, mqtt_host: &str) -> Config<String> {
     let name = node.name.clone();
-    let img = "sphinxlightning/sphinx-cache";
+    let repo = node.repo();
+    let img = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/cache/data";
     let ports = vec![node.port.clone()];
     Config {

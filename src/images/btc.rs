@@ -1,3 +1,4 @@
+use super::{DockerHubImage, Repository};
 use crate::secrets;
 use crate::utils::{domain, host_config};
 use bollard::container::Config;
@@ -23,6 +24,14 @@ impl BtcImage {
         }
     }
 }
+impl DockerHubImage for BtcImage {
+    fn repo(&self) -> Repository {
+        Repository {
+            org: "lncm".to_string(),
+            repo: "bitcoind".to_string(),
+        }
+    }
+}
 
 pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
     let ports = vec![
@@ -31,7 +40,8 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         "28333".to_string(),
     ];
     // let image = "ruimarinho/bitcoin-core";
-    let image = "lncm/bitcoind";
+    let repo = node.repo();
+    let image = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/data/.bitcoin";
     Config {
         image: Some(format!("{}:{}", image, node.version)),

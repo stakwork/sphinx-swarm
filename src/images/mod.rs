@@ -23,6 +23,14 @@ pub enum Image {
     Cache(cache::CacheImage),
 }
 
+pub struct Repository {
+    pub org: String,
+    pub repo: String,
+}
+pub trait DockerHubImage {
+    fn repo(&self) -> Repository;
+}
+
 pub type Links = Vec<String>;
 
 impl Image {
@@ -34,6 +42,16 @@ impl Image {
             Image::Proxy(n) => n.name.clone(),
             Image::Cache(n) => n.name.clone(),
         }
+    }
+    pub fn typ(&self) -> String {
+        match self {
+            Image::Btc(_n) => "Btc",
+            Image::Lnd(_n) => "Lnd",
+            Image::Relay(_n) => "Relay",
+            Image::Proxy(_n) => "Proxy",
+            Image::Cache(_n) => "Cache",
+        }
+        .to_string()
     }
 }
 

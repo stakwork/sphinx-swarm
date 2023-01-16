@@ -26,6 +26,13 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
+            SwarmCmd::ListVersions(name) => {
+                // find the node by name
+                // get the image by calling node.repo()
+                // return the json from
+                // https://hub.docker.com/v2/namespaces/{ORG}/repositories/{REPO}/tags
+                Some("".to_string())
+            }
         },
         Cmd::Relay(c) => match c {
             RelayCmd::AddUser => {

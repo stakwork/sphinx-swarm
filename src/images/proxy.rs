@@ -38,9 +38,18 @@ impl ProxyImage {
         self.links = strarr(links)
     }
 }
+impl DockerHubImage for ProxyImage {
+    fn repo(&self) -> Repository {
+        Repository {
+            org: "sphinxlightning".to_string(),
+            repo: "sphinx-proxy".to_string(),
+        }
+    }
+}
 
 pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
-    let img = "sphinxlightning/sphinx-proxy";
+    let repo = proxy.repo();
+    let img = format!("{}/{}", repo.org, repo.repo);
     // let img = "sphinx-proxy";
     // let version = "latest";
     let macpath = format!(
