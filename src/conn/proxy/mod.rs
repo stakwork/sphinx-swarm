@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
-use crate::images::ProxyImage;
+use crate::images::proxy::ProxyImage;
 
 pub struct ProxyAPI {
     pub client: reqwest::Client,

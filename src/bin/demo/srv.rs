@@ -1,9 +1,9 @@
-use crate::env::check_env;
-use crate::logs::LogChans;
-use crate::rocket_utils::{Error, Result, *};
-use crate::routes::{logs, logstream};
 use fs::{relative, FileServer};
 use rocket::*;
+use sphinx_swarm::env::check_env;
+use sphinx_swarm::logs::LogChans;
+use sphinx_swarm::rocket_utils::{Error, Result, *};
+use sphinx_swarm::routes::{logs, logstream};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 

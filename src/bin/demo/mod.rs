@@ -1,16 +1,15 @@
 mod srv;
 
-use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::images::BtcImage;
-use crate::rocket_utils::*;
-use crate::{dock::*, env, images, logs};
 use anyhow::Result;
 use base58::ToBase58;
-use bollard::Docker;
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use rocket::tokio;
 use rocket::tokio::sync::{broadcast, mpsc, Mutex};
+use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
+use sphinx_swarm::images::btc::BtcImage;
+use sphinx_swarm::rocket_utils::*;
+use sphinx_swarm::{dock::*, env, images, logs};
 use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::fs::File;
 use std::hash::{Hash, Hasher};
@@ -28,7 +27,11 @@ static NODES: Lazy<HashMap<String, u8>> = Lazy::new(|| {
     n
 });
 
-pub async fn run(docker: Docker) -> Result<()> {
+#[rocket::main]
+pub async fn main() -> Result<()> {
+    let docker = dockr();
+    sphinx_swarm::utils::setup_logs();
+
     let proj = "demo";
     let network = "regtest";
 
@@ -36,7 +39,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let btc_node = BtcImage::new("bitcoind", "23.0", network, "foo");
 
     // Get Bitcoin Info
-    let btc1 = images::btc(proj, &btc_node);
+    let btc1 = images::btc::btc(proj, &btc_node);
     let btc_id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
 
@@ -49,7 +52,7 @@ pub async fn run(docker: Docker) -> Result<()> {
     let mut log_txs = logs::new_log_chans();
     for (tag, i) in NODES.iter() {
         let name = format!("cln{}", i);
-        let cln1 = images::cln_vls(proj, &name, network, *i as u16, &btc_node);
+        let cln1 = images::cln_vls::cln_vls(proj, &name, network, *i as u16, &btc_node);
         let id = create_and_start(&docker, cln1).await?;
         id_map.insert(tag, id);
         // add in default env var $CLN
@@ -92,9 +95,9 @@ pub async fn run(docker: Docker) -> Result<()> {
     let _r = srv::launch_rocket(tx.clone(), log_txs).await;
 
     // shutdown containers
-    remove_container(&docker_arc, &btc_id).await?;
+    stop_and_remove(&docker_arc, &btc_id).await?;
     for (_tag, id) in id_map.iter() {
-        remove_container(&docker_arc, &id).await?;
+        stop_and_remove(&docker_arc, &id).await?;
     }
     Ok(())
 }

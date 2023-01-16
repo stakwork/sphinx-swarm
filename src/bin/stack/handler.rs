@@ -1,9 +1,9 @@
-use crate::config::{Node, Stack, STATE};
-use crate::dock::container_logs;
-use crate::images::Image;
-use crate::modes::stack::cmd::*;
 use anyhow::{Context, Result};
 use bollard::Docker;
+use sphinx_swarm::cmd::*;
+use sphinx_swarm::config::{Node, Stack, STATE};
+use sphinx_swarm::dock::container_logs;
+use sphinx_swarm::images::Image;
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -52,7 +52,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 BitcoindCmd::GetBalance => {
                     let res = client.get_wallet_balance()?;
                     Some(serde_json::to_string(&res)?)
-                },
+                }
             }
         }
         Cmd::Lnd(c) => {

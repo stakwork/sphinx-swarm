@@ -1,0 +1,21 @@
+version: "3"
+
+# docker-compose -f ./src/modes/btc_test.yml --project-directory . up -d
+
+services:
+  bitcoind:
+    image: lncm/bitcoind:v23.0
+    restart: on-failure
+    container_name: bitcoind.test
+    volumes:
+      - bitcoind.test:/data/.bitcoin
+    ports:
+      - 18443:18443
+      - 8333:8333
+      - 28332:28332
+      - 28333:28333
+    cmd: 
+      - "-regtest=1"
+
+volumes:   
+  bitcoind.test:

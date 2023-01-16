@@ -123,9 +123,8 @@ pub fn host_volume_string(project: &str, name: &str) -> String {
 pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
-        "{}:{}", // "{}:{}:rw",
-        host_volume_string(project, name),
-        dir
+        "{}:{}:rw", // "{}:{}:rw",
+        name, dir
     )
 }
 
@@ -134,7 +133,7 @@ pub fn files_volume() -> String {
     format!("{}/files:/files:z", pwd.to_string_lossy())
 }
 
-fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
+pub fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
     let mut ports = PortMap::new();
     for port in ports_in {
         ports.insert(
@@ -211,4 +210,25 @@ pub async fn wait_for_file(path: &str, iterations: usize) -> Result<()> {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     Err(anyhow!(format!("{} does not exists", path)))
+}
+
+pub fn setup_logs() {
+    simple_logger::SimpleLogger::new()
+        .with_utc_timestamps()
+        .with_module_level("bollard", log::LevelFilter::Warn)
+        .with_module_level("want", log::LevelFilter::Off)
+        .with_module_level("mio", log::LevelFilter::Off)
+        .with_module_level("rocket", log::LevelFilter::Error)
+        .with_module_level("hyper", log::LevelFilter::Warn)
+        .with_module_level("tracing", log::LevelFilter::Error)
+        .with_module_level("tokio_util", log::LevelFilter::Error)
+        .with_module_level("tonic", log::LevelFilter::Error)
+        .with_module_level("h2", log::LevelFilter::Error)
+        .with_module_level("bitcoincore_rpc", log::LevelFilter::Error)
+        .with_module_level("rustls", log::LevelFilter::Error)
+        .with_module_level("tower", log::LevelFilter::Error)
+        .with_module_level("reqwest", log::LevelFilter::Error)
+        .with_module_level("_", log::LevelFilter::Error)
+        .init()
+        .unwrap();
 }

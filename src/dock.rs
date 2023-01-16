@@ -1,39 +1,35 @@
-use crate::utils::user;
-use anyhow::Result;
+// use crate::utils::user;
+use anyhow::{Context, Result};
 use bollard::container::Config;
-use bollard::container::{CreateContainerOptions, LogOutput, LogsOptions, RemoveContainerOptions};
+use bollard::container::{
+    CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
+    LogsOptions, RemoveContainerOptions, StopContainerOptions,
+};
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
-use bollard::service::ContainerSummary;
+use bollard::service::{ContainerSummary, VolumeListResponse};
 use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
-use std::collections::HashMap;
 use std::env;
 
-pub fn er() -> Docker {
-    Docker::connect_with_socket_defaults().unwrap()
-}
-
-pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
-    let mut vconf = CreateVolumeOptions {
-        name: name.to_string(),
-        driver: "local".to_string(),
-        ..Default::default()
-    };
-    if let Some(u) = user() {
-        let mut driver_opts = HashMap::new();
-        driver_opts.insert("uid".to_string(), u);
-        vconf.driver_opts = driver_opts;
-    }
-    docker.create_volume(vconf).await?;
-    Ok(())
+pub fn dockr() -> Docker {
+    Docker::connect_with_unix_defaults().unwrap()
 }
 
 pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<String> {
+    // first create volume with the same name, if needed
+    let hostname = c.hostname.clone().context("expected hostname")?;
+    create_volume(&docker, &hostname).await?;
+
+    let current_id = id_by_name(docker, &hostname).await;
+    if let Some(id) = current_id {
+        log::info!("{} already exists", hostname);
+        return Ok(id);
+    }
     // if it contains a "/" its from the registry
-    if c.image.clone().unwrap().contains("/") {
+    if c.image.clone().context("expected image")?.contains("/") {
         create_image(&docker, &c).await?;
     }
     let id = create_container(&docker, c).await?;
@@ -45,7 +41,7 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
     docker
         .create_image::<String>(
             Some(CreateImageOptions {
-                from_image: c.image.clone().unwrap().into(),
+                from_image: c.image.clone().context("expected image")?.into(),
                 ..Default::default()
             }),
             None,
@@ -57,7 +53,7 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
 }
 
 pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<String> {
-    let name: String = c.hostname.clone().unwrap().into();
+    let name: String = c.hostname.clone().context("expected hostname")?.into();
     let create_opts = CreateContainerOptions { name };
     let id = docker
         .create_container::<String, String>(Some(create_opts), c)
@@ -71,7 +67,42 @@ pub async fn start_container(docker: &Docker, id: &str) -> Result<()> {
 }
 
 pub async fn list_containers(docker: &Docker) -> Result<Vec<ContainerSummary>> {
-    Ok(docker.list_containers::<String>(None).await?)
+    Ok(docker
+        .list_containers::<String>(Some(ListContainersOptions {
+            all: true,
+            ..Default::default()
+        }))
+        .await?)
+}
+
+pub async fn id_by_name(docker: &Docker, the_name: &str) -> Option<String> {
+    let cs = match list_containers(docker).await {
+        Err(_) => return None,
+        Ok(co) => co,
+    };
+    for c in cs {
+        if let Some(names) = c.names.clone() {
+            if let Some(name) = names.get(0) {
+                if name.contains(the_name) {
+                    return c.id;
+                }
+            }
+        };
+    }
+    None
+}
+
+pub async fn stop_and_remove(docker: &Docker, id: &str) -> Result<()> {
+    stop_container(docker, id).await?;
+    remove_container(&docker, &id).await?;
+    Ok(())
+}
+
+pub async fn stop_container(docker: &Docker, id: &str) -> Result<()> {
+    docker
+        .stop_container(id, Some(StopContainerOptions { t: 9 }))
+        .await?;
+    Ok(())
 }
 
 pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
@@ -79,12 +110,45 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
         .remove_container(
             id,
             Some(RemoveContainerOptions {
-                force: true,
                 ..Default::default()
             }),
         )
         .await?;
     Ok(())
+}
+
+pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> Result<()> {
+    let mut tar = docker.download_from_container::<String>(
+        id,
+        Some(DownloadFromContainerOptions { path: path.into() }),
+    );
+    let mut ret: Vec<u8> = Vec::new();
+    while let Some(bytes_res) = tar.next().await {
+        if let Ok(bytes) = bytes_res {
+            ret.extend_from_slice(&bytes);
+        }
+    }
+    unzip_tar(ret);
+    Ok(())
+}
+
+fn unzip_tar(bytes: Vec<u8>) {
+    use std::io::Read;
+    use tar::Archive;
+    let mut a = Archive::new(&bytes[..]);
+    for file in a.entries().unwrap() {
+        // Make sure there wasn't an I/O error
+        let mut file = file.unwrap();
+
+        // Inspect metadata about the file
+        println!("file path: {:?}", file.header().path().unwrap());
+
+        // files implement the Read trait
+        let mut s = String::new();
+        file.read_to_string(&mut s).unwrap();
+        println!("=====> FILE <======");
+        println!("{}", s);
+    }
 }
 
 pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
@@ -167,4 +231,34 @@ pub async fn exec(docker: &Docker, id: &str, cmd: &str) -> Result<String> {
 
 pub async fn sleep(millis: u64) {
     tokio::time::sleep(tokio::time::Duration::from_millis(millis)).await;
+}
+
+pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
+    if let Ok(_v) = docker.inspect_volume(name).await {
+        return Ok(());
+    }
+    let vconf = CreateVolumeOptions {
+        name: name.to_string(),
+        driver: "local".to_string(),
+        ..Default::default()
+    };
+    // if let Some(u) = user() {
+    //     let mut driver_opts = HashMap::new();
+    //     driver_opts.insert("uid".to_string(), u);
+    //     vconf.driver_opts = driver_opts;
+    // }
+    docker.create_volume(vconf).await?;
+    Ok(())
+}
+
+pub async fn remove_volume(docker: &Docker, name: &str) -> Result<()> {
+    if let Err(_e) = docker.inspect_volume(name).await {
+        return Ok(());
+    }
+    docker.remove_volume(name, None).await?;
+    Ok(())
+}
+
+pub async fn list_volumes(docker: &Docker) -> Result<VolumeListResponse> {
+    Ok(docker.list_volumes::<String>(None).await?)
 }
