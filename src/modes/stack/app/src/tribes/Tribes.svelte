@@ -53,12 +53,12 @@
   async function getTotalTribes() {
     const total = await api.tribes.get_tribes_total(url);
 
-    if($tribes.total !== total) {
+    if ($tribes.total !== total && !isNaN(total)) {
       tribes.set({
         total,
         data: $tribes.data,
         page,
-      })
+      });
     }
   }
 
@@ -71,28 +71,28 @@
   });
 
   function sort() {
-    let filter = filterItems.find((item) => item.id === selectedId);
-    const arrayToSort = [...$tribes.data];
+      let filter = filterItems.find((item) => item.id === selectedId);
+      const arrayToSort = [...$tribes.data];
 
-    if (filter.text === "User count") {
-      filterTribes = arrayToSort.sort(
-        (a, b) => b.member_count - a.member_count
-      );
-    } else if (filter.text === "Previewable") {
-      filterTribes = arrayToSort.sort((a, b) => {
-        if (b.preview > a.preview) return 1;
-        if (b.preview < a.preview) return -1;
-        return 0;
-      });
-    } else if (filter.text === "Recent messages") {
-      filterTribes = arrayToSort.sort((a, b) => {
-        if (b.last_active > a.last_active) return 1;
-        if (b.last_active < a.last_active) return -1;
-        return 0;
-      });
-    } else {
-      filterTribes = $tribes.data;
-    }
+      if (filter.text === "User count") {
+        filterTribes = arrayToSort.sort(
+          (a, b) => b.member_count - a.member_count
+        );
+      } else if (filter.text === "Previewable") {
+        filterTribes = arrayToSort.sort((a, b) => {
+          if (b.preview > a.preview) return 1;
+          if (b.preview < a.preview) return -1;
+          return 0;
+        });
+      } else if (filter.text === "Recent messages") {
+        filterTribes = arrayToSort.sort((a, b) => {
+          if (b.last_active > a.last_active) return 1;
+          if (b.last_active < a.last_active) return -1;
+          return 0;
+        });
+      } else {
+        filterTribes = $tribes.data;
+      }
   }
 
   function formatProps(data) {
@@ -109,18 +109,16 @@
 
   async function infiniteHandler({ detail: { loaded, complete } }) {
     const tribesData = await api.tribes.get_tribes(url, "", "", page, limit);
-
     if (tribesData.length) {
       page += 1;
       filterTribes = [...filterTribes, ...tribesData];
 
       // save data to store
-      tribes.set(
-        {
-          page,
-          data: filterTribes,
-          total: $tribes.total
-        });
+      tribes.set({
+        page,
+        data: filterTribes,
+        total: $tribes.total,
+      });
 
       loaded();
     } else {
