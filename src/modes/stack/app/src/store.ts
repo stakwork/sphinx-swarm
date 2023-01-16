@@ -15,9 +15,11 @@ export const stack = writable<Stack>(initialStack);
 
 export const users = writable<User[]>(initialUsers);
 
-export const tribes = writable<Tribe[]>([]);
-
-export const tribesPage = writable<number>(1);
+export const tribes = writable<Tribe>({
+  page: 1,
+  total: 0,
+  data: null,
+});
 
 export const people = writable<Person[]>([]);
 

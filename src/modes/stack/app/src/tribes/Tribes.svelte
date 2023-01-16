@@ -3,7 +3,7 @@
   import { Dropdown, TextInput } from "carbon-components-svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
-  import { tribes, tribesPage } from "../store";
+  import { tribes } from "../store";
   import VirtualList from "svelte-tiny-virtual-list";
   import InfiniteLoading from "svelte-infinite-loading";
   import _ from "lodash";
@@ -16,15 +16,15 @@
 
   let searchTerm = "";
 
-  let page = $tribesPage;
+  let page = $tribes.page;
 
   let limit = 75;
 
   let selectedTribe;
-  $: selectedTribe = $tribes.find((t) => t.uuid === selectedTribe);
+  $: selectedTribe = $tribes.data.find((t) => t.uuid === selectedTribe);
 
   let selectedId = "0";
-  let filterTribes = $tribes;
+  let filterTribes = $tribes.data;
 
   const filterItems = [
     { id: "0", text: "User count" },
@@ -35,7 +35,7 @@
   async function search() {
     const debounced = _.debounce(
       async () => {
-        if (!searchTerm) return (filterTribes = $tribes);
+        if (!searchTerm) return (filterTribes = $tribes.data);
         filterTribes = await api.tribes.get_tribes(
           url,
           "",
@@ -50,15 +50,30 @@
 
   let heightOfVirtualList = 0;
 
+  async function getTotalTribes() {
+    const total = await api.tribes.get_tribes_total(url);
+
+    if($tribes.total !== total) {
+      tribes.set({
+        total,
+        data: $tribes.data,
+        page,
+      })
+    }
+  }
+
   onMount(async () => {
+    getTotalTribes();
     sort();
+
     const rect = topPartElement.getBoundingClientRect();
     heightOfVirtualList = Math.ceil(window.innerHeight - rect.bottom) - 58 - 2;
   });
 
   function sort() {
     let filter = filterItems.find((item) => item.id === selectedId);
-    const arrayToSort = [...$tribes];
+    const arrayToSort = [...$tribes.data];
+
     if (filter.text === "User count") {
       filterTribes = arrayToSort.sort(
         (a, b) => b.member_count - a.member_count
@@ -76,7 +91,7 @@
         return 0;
       });
     } else {
-      filterTribes = $tribes;
+      filterTribes = $tribes.data;
     }
   }
 
@@ -100,8 +115,12 @@
       filterTribes = [...filterTribes, ...tribesData];
 
       // save data to store
-      tribes.set(filterTribes);
-      tribesPage.set(page);
+      tribes.set(
+        {
+          page,
+          data: filterTribes,
+          total: $tribes.total
+        });
 
       loaded();
     } else {
@@ -124,7 +143,7 @@
     />
   {:else}
     <div class="tribes" bind:this={topPartElement}>
-      <p><span class="tribes-count">{$tribes.length}</span>Tribes</p>
+      <p><span class="tribes-count">{$tribes.data.length}</span>Tribes</p>
       <section class="filter-wrap">
         <aside>
           <Dropdown
