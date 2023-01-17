@@ -1,6 +1,6 @@
 use super::*;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, files_volume, host_config, user, volume_string};
+use crate::utils::{domain, exposed_ports, host_config, volume_string};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -50,6 +50,8 @@ impl DockerHubImage for ProxyImage {
 pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
     let repo = proxy.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
+    let version = proxy.version.clone();
+    println!("PROXY VERSION {}", version);
     // let img = "sphinx-proxy";
     // let version = "latest";
     let macpath = format!(
@@ -57,19 +59,14 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         proxy.network
     );
     let links = vec![domain(&lnd.name)];
-    // let vols = vec!["/cert", "/badger", "/macaroons"];
-    let root_vol = "/proxy";
-    // let badger_vol = volume_string(project, &format!("{}/badger", &proxy.name), "/badger");
-    // let mut extra_vols = vec![badger_vol];
-    let mut extra_vols = Vec::new();
+    let root_vol = "/app/proxy";
     let lnd_vol = volume_string(project, &lnd.name, "/lnd");
-    extra_vols.push(lnd_vol);
-    extra_vols.push(files_volume());
+    let extra_vols = vec![lnd_vol];
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
     let mut cmd = vec![
         "/app/sphinx-proxy".to_string(),
-        "--configfile=/files/lnd_proxy.conf".to_string(),
         macpath.to_string(),
+        "--store-dir=/app/proxy/badger".to_string(),
         "--bitcoin.active".to_string(),
         "--bitcoin.basefee=0".to_string(),
         format!("--bitcoin.{}", &proxy.network),
@@ -78,11 +75,11 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         format!("--lnd-ip={}.sphinx", &lnd.name),
         format!("--lnd-port={}", &lnd.port),
         format!("--tlsextradomain={}.sphinx", proxy.name),
-        "--tlscertpath=/proxy/tls.cert".to_string(),
-        "--tlskeypath=/proxy/tls.key".to_string(),
+        "--tlscertpath=/app/proxy/tls.cert".to_string(),
+        "--tlskeypath=/app/proxy/tls.key".to_string(),
         "--tls-location=/lnd/tls.cert".to_string(),
         "--unlock-pwd=hi123456".to_string(),
-        "--server-macaroons-dir=/proxy/macaroons".to_string(),
+        "--server-macaroons-dir=/app/proxy/macaroons".to_string(),
         "--channels-start=2".to_string(),
         "--initial-msat=500000".to_string(),
     ];
@@ -93,9 +90,9 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         cmd.push(format!("--store-key={}", &sk));
     }
     Config {
-        image: Some(format!("{}:{}", img, proxy.version)),
+        image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
-        user: user(),
+        // user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(
             project,

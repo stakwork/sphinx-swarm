@@ -102,7 +102,7 @@ pub async fn main() -> Result<()> {
     Ok(())
 }
 
-const NODES_FILE_PATH: &str = "src/modes/demo/app/public/nodes.json";
+const NODES_FILE_PATH: &str = "src/bin/demo/app/public/nodes.json";
 fn write_nodes_file(n: &HashMap<String, u8>) {
     let st = serde_json::to_string_pretty(n).expect("failed to make json string");
     let mut file = File::create(NODES_FILE_PATH).expect("create failed");
