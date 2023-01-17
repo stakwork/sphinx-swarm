@@ -53,7 +53,10 @@ impl Image {
         }
         .to_string()
     }
-    pub fn repo(&self) -> Repository {
+}
+
+impl DockerHubImage for Image {
+    fn repo(&self) -> Repository {
         match self {
             Image::Btc(n) => n.repo(),
             Image::Lnd(n) => n.repo(),
