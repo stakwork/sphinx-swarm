@@ -1,30 +1,48 @@
 <script lang="ts">
-  import { Modal } from "carbon-components-svelte";
+  import { Modal, Dropdown } from "carbon-components-svelte";
   import * as api from "./api";
   import { onDestroy, onMount } from "svelte";
 
   let open = false;
+  let tag = "";
+
   export let name = "";
   export let version = "";
+
   let versions = [];
+
+  let versionItems = versions.length ? versions.map((v) => ({
+    id: v.name,
+    text: v.name,
+  })) : [{id: "", text: ""}];
 
   function openModal() {
     open = true;
   }
 
-  async function getImageVersions() {
+  async function getVersions() {
+    const nodeVersions = await api.swarm.get_node_images(`${name}.sphinx`);
+
+    versions = nodeVersions.results;
+  }
+
+  async function upgradeVersion() {
     const nodeVersions = await api.swarm.get_node_images(`${name}.sphinx`);
 
     versions = nodeVersions.results;
   }
 
   onMount(() => {
-    getImageVersions();
-  })
+    getVersions();
+  });
 
   onDestroy(() => {
     versions = [];
   });
+
+  function typeSelected() {
+    name = "";
+  }
 </script>
 
 <section class="update-wrap">
@@ -41,9 +59,17 @@
     hasForm={true}
     class="get-logs-modal"
     size="sm"
+    primaryButtonText="Update instance"
+    secondaryButtonText="Cancel"
+    on:submit={upgradeVersion}
     on:click:button--secondary={() => (open = !open)}
   >
     <section class="modal-content">
+      <Dropdown
+        titleText="Versions"
+        bind:selectedId={tag}
+        items={versionItems}
+      />
     </section>
   </Modal>
 </section>
