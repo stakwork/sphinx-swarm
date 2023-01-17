@@ -1,15 +1,15 @@
 use anyhow::{Context, Result};
 use bollard::Docker;
 use sphinx_swarm::cmd::*;
-use sphinx_swarm::config::{load_config_file, Node, Stack, STATE};
+use sphinx_swarm::config::{Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
-use sphinx_swarm::images::{DockerHubImage, Image};
+use sphinx_swarm::images::{Image};
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
     // conf can be mutated in place
     let mut state = STATE.lock().await;
-    let mut stack = &state.stack;
+    let stack = &state.stack;
     // println!("STACK {:?}", stack);
 
     let ret: Option<String> = match cmd {
@@ -28,9 +28,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             }
             SwarmCmd::ListVersions(name) => {
                 // get nodes
-                let proj = "stack";
-                let stack: Stack = load_config_file(proj).await;
-                let nodes = stack.nodes;
+                let nodes = stack.nodes.clone();
                 let msg = format!("Couldn't find ({}) node", name);
 
                 // find the node by name
