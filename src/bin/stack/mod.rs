@@ -6,7 +6,9 @@ use anyhow::{Context, Result};
 use bollard::Docker;
 use rocket::tokio;
 use sphinx_swarm::cmd::Cmd;
-use sphinx_swarm::config::{load_config_file, put_config_file, Clients, Node, Stack, State, STATE};
+use sphinx_swarm::config::{
+    load_config_file, put_config_file, Clients, ExternalNodeType, Node, Stack, State, STATE,
+};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::conn::relay::RelayAPI;
@@ -36,7 +38,7 @@ async fn add_node(
         log::info!("external url {}", n.url);
         return Ok(());
     }
-    let node = node.as_internal()?;
+    let node = node.as_internal().unwrap();
     match node {
         Image::Btc(btc) => {
             let btc1 = images::btc::btc(proj, &btc);
@@ -98,7 +100,7 @@ async fn add_node(
         Image::Cache(cache) => {
             let memes = nodes
                 .iter()
-                .find(|n| &n.name() == "memes")
+                .find(|n| n.is_ext_of_type(ExternalNodeType::Meme))
                 .context("No Memes")?
                 .as_external()?;
 
@@ -107,7 +109,7 @@ async fn add_node(
 
             let tribes = nodes
                 .iter()
-                .find(|n| &n.name() == "tribes")
+                .find(|n| n.is_ext_of_type(ExternalNodeType::Tribes))
                 .context("No Tribes")?
                 .as_external()?;
 
