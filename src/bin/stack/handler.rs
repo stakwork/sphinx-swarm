@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use bollard::Docker;
 use sphinx_swarm::cmd::*;
-use sphinx_swarm::config::{Node, Stack, STATE};
+use sphinx_swarm::config::{load_config_file, Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
-use sphinx_swarm::images::Image;
+use sphinx_swarm::images::{DockerHubImage, Image};
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -27,11 +27,32 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 Some(serde_json::to_string(&logs)?)
             }
             SwarmCmd::ListVersions(name) => {
+                // get nodes
+                let proj = "stack";
+                let stack: Stack = load_config_file(proj).await;
+                let nodes = stack.nodes;
+                let msg = format!("Couldn't find ({}) node", name);
+
                 // find the node by name
                 // get the image by calling node.repo()
+                let node = nodes
+                    .iter()
+                    .find(|n| n.name() == name)
+                    .context(msg)?
+                    .as_internal()?
+                    .get_image();
+
+                let org = node.org;
+                let repo = node.repo;
+
                 // return the json from
-                // https://hub.docker.com/v2/namespaces/{ORG}/repositories/{REPO}/tags
-                Some("".to_string())
+                let url = format!(
+                    "https://hub.docker.com/v2/namespaces/{}/repositories/{}/tags",
+                    org, repo
+                );
+
+                let body = reqwest::get(url).await?.text().await?;
+                Some(body.to_string())
             }
         },
         Cmd::Relay(c) => match c {

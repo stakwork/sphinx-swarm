@@ -19,7 +19,8 @@ export type Cmd =
   | "CreateChannel"
   | "GetBalance"
   | "NewAddress"
-  | "ListWallets";
+  | "ListWallets"
+  | "GetNodeImages";
 
 interface CmdData {
   cmd: Cmd;

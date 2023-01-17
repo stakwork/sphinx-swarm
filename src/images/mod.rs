@@ -8,6 +8,7 @@ pub mod relay;
 pub mod traefik;
 
 use crate::config;
+use rocket::data::N;
 use serde::{Deserialize, Serialize};
 
 // volumes are mapped to {PWD}/vol/{project}/{name}:
@@ -27,6 +28,7 @@ pub struct Repository {
     pub org: String,
     pub repo: String,
 }
+
 pub trait DockerHubImage {
     fn repo(&self) -> Repository;
 }
@@ -52,6 +54,16 @@ impl Image {
             Image::Cache(_n) => "Cache",
         }
         .to_string()
+    }
+
+    pub fn get_image(&self) -> Repository {
+        match self {
+            Image::Btc(n) => n.repo(),
+            Image::Lnd(n) => n.repo(),
+            Image::Relay(n) => n.repo(),
+            Image::Proxy(n) => n.repo(),
+            Image::Cache(n) => n.repo(),
+        }
     }
 }
 
@@ -115,6 +127,15 @@ impl Image {
         }
     }
 }
+
+// impl DockerHubImage for Image {
+//     fn repo(&self) -> Repository {
+//         let org = self.repo().org.clone();
+//         let repo = self.repo().repo.clone();
+
+//         Repository { org, repo }
+//     }
+// }
 
 fn strarr(i: Vec<&str>) -> Vec<String> {
     i.iter().map(|s| s.to_string()).collect()

@@ -4,6 +4,7 @@
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./AddNode.svelte";
   import NodeLogs from "./NodeLogs.svelte";
+  import NodeUpdate from "./NodeUpdate.svelte";
 </script>
 
 <main>
@@ -14,10 +15,7 @@
     </div>
 
     {#if $selectedNode}
-      <div class="title">{$selectedNode.name}</div>
-      {#if $selectedNode.version}
-        <div class="version">({$selectedNode.version})</div>
-      {/if}
+      <NodeUpdate name={$selectedNode.name} version={$selectedNode.version} />
     {/if}
 
     {#if $selectedNode && $selectedNode.place === "Internal"}
@@ -66,17 +64,6 @@
     max-width: 18rem;
     height: 100%;
     border-right: 1px solid #101317;
-  }
-  .title {
-    color: white;
-    margin-left: 2rem;
-    font-size: 1.15rem;
-  }
-  .version {
-    color: white;
-    margin: 0 1rem;
-    font-weight: bold;
-    font-size: 0.8rem;
   }
   .stack-title {
     color: white;

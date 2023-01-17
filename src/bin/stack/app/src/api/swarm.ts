@@ -12,3 +12,11 @@ export async function get_config() {
 export async function get_logs(name) {
   return await swarmCmd("GetContainerLogs", name);
 }
+
+export async function get_node_images(node) {
+  return await swarmCmd("GetNodeImages", node);
+}
+
+export async function update_node_instance(node, version) {
+  return await swarmCmd("GetNodeImages", {node, version});
+}
