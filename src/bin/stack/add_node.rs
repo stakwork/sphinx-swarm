@@ -50,10 +50,9 @@ pub async fn add_node(
             ids.insert(lnd.name.clone(), lnd_id.clone());
 
             // volume_permissions(proj, &lnd.name, "data")?;
-            let (client, test_mine_addy) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
-            setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
-
-            clients.lnd.insert(lnd.name, client);
+            // let (client, test_mine_addy) = setup::lnd_clients(proj, &lnd, &secs, &lnd.name).await?;
+            // setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
+            // clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
         }
         Image::Proxy(proxy) => {
@@ -61,7 +60,9 @@ pub async fn add_node(
             let lnd = li.find_lnd().context("LND required for Proxy")?;
 
             let proxy1 = images::proxy::proxy(proj, &proxy, &lnd);
+            println!("creating proxy... {:?}", proxy1);
             let proxy_id = create_and_start(&docker, proxy1).await?;
+            println!("created proxy...");
             ids.insert(proxy.name.clone(), proxy_id.clone());
 
             let client = ProxyAPI::new(&proxy).await?;

@@ -53,6 +53,15 @@ impl Image {
         }
         .to_string()
     }
+    pub fn repo(&self) -> Repository {
+        match self {
+            Image::Btc(n) => n.repo(),
+            Image::Lnd(n) => n.repo(),
+            Image::Relay(n) => n.repo(),
+            Image::Proxy(n) => n.repo(),
+            Image::Cache(n) => n.repo(),
+        }
+    }
 }
 
 pub struct LinkedImages(Vec<Image>);

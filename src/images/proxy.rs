@@ -59,8 +59,9 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
     let links = vec![domain(&lnd.name)];
     // let vols = vec!["/cert", "/badger", "/macaroons"];
     let root_vol = "/proxy";
-    let badger_vol = volume_string(project, &format!("{}/badger", &proxy.name), "/badger");
-    let mut extra_vols = vec![badger_vol];
+    // let badger_vol = volume_string(project, &format!("{}/badger", &proxy.name), "/badger");
+    // let mut extra_vols = vec![badger_vol];
+    let mut extra_vols = Vec::new();
     let lnd_vol = volume_string(project, &lnd.name, "/lnd");
     extra_vols.push(lnd_vol);
     extra_vols.push(files_volume());
