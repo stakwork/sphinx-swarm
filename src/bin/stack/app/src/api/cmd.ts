@@ -20,7 +20,8 @@ export type Cmd =
   | "GetBalance"
   | "NewAddress"
   | "ListWallets"
-  | "GetNodeImages";
+  | "ListVersions"
+  | "UpdateInstance";
 
 interface CmdData {
   cmd: Cmd;

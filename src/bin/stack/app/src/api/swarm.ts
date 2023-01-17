@@ -14,9 +14,9 @@ export async function get_logs(name) {
 }
 
 export async function get_node_images(node) {
-  return await swarmCmd("GetNodeImages", node);
+  return await swarmCmd("ListVersions", node);
 }
 
 export async function update_node_instance(node, version) {
-  return await swarmCmd("GetNodeImages", {node, version});
+  return await swarmCmd("UpdateInstance", {node, version});
 }
