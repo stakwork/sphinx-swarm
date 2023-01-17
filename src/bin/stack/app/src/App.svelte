@@ -14,13 +14,16 @@
       <span class="stack-title">Sphinx Stack</span>
     </div>
 
-    {#if $selectedNode}
-      <NodeUpdate name={$selectedNode.name} version={$selectedNode.version} />
-    {/if}
+    <section class="header-btn-wrap">
+      {#if $selectedNode}
+        <NodeUpdate name={$selectedNode.name} version={$selectedNode.version} />
+      {/if}
 
-    {#if $selectedNode && $selectedNode.place === "Internal"}
-      <NodeLogs nodeName={$selectedNode.name} />
-    {/if}
+      {#if $selectedNode && $selectedNode.place === "Internal"}
+        <NodeLogs nodeName={$selectedNode.name} />
+      {/if}
+    </section>
+
     <AddNode />
   </header>
   <div class="body">
@@ -69,5 +72,10 @@
     color: white;
     margin-left: 0.5rem;
     font-size: 1.2rem;
+  }
+  .header-btn-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
   }
 </style>

@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { Modal, Dropdown } from "carbon-components-svelte";
+  import { Modal, Dropdown, Button } from "carbon-components-svelte";
   import * as api from "./api";
   import { onDestroy, onMount } from "svelte";
+  import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
 
   let open = false;
   let tag = "";
@@ -11,10 +12,12 @@
 
   let versions = [];
 
-  let versionItems = versions.length ? versions.map((v) => ({
-    id: v.name,
-    text: v.name,
-  })) : [{id: "", text: ""}];
+  let versionItems = versions.length
+    ? versions.map((v) => ({
+        id: v.name,
+        text: v.name,
+      }))
+    : [{ id: "", text: "" }];
 
   function openModal() {
     open = true;
@@ -46,12 +49,14 @@
 </script>
 
 <section class="update-wrap">
-  <button on:click={openModal} class="update-node-btn">
+  <section class="update-node-btn">
     <div class="title">{name}</div>
     {#if version}
       <div class="version">({version})</div>
+
+      <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
     {/if}
-  </button>
+  </section>
 
   <Modal
     bind:open
@@ -76,7 +81,7 @@
 
 <style>
   .update-wrap {
-    margin-left: 2rem;
+    margin-left: 1.5rem;
   }
   .update-node-btn {
     background: transparent;
@@ -85,6 +90,9 @@
     color: white;
     font-size: 1.15rem;
     cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
   }
   .version {
     color: white;
@@ -94,20 +102,5 @@
   }
   .modal-content {
     padding: 0px 1.5rem;
-  }
-  .logs {
-    background: #393939;
-    width: 100%;
-    height: 100%;
-    max-height: 400px;
-    overflow: auto;
-    padding: 0.3rem 0.5rem;
-    display: flex;
-    flex-direction: column-reverse;
-  }
-  .log {
-    color: white;
-    margin: 1px 0;
-    font-size: 0.8rem;
   }
 </style>
