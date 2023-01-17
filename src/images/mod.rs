@@ -139,15 +139,6 @@ impl Image {
     }
 }
 
-// impl DockerHubImage for Image {
-//     fn repo(&self) -> Repository {
-//         let org = self.repo().org.clone();
-//         let repo = self.repo().repo.clone();
-
-//         Repository { org, repo }
-//     }
-// }
-
 fn strarr(i: Vec<&str>) -> Vec<String> {
     i.iter().map(|s| s.to_string()).collect()
 }
