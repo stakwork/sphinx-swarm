@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use images::lnd::LndImage;
 use rocket::tokio;
 use sphinx_swarm::config::Clients;
@@ -30,7 +30,9 @@ pub async fn lnd_clients(
     sleep(5).await;
     unlock_lnd(proj, lnd_node, secs, name).await?;
     sleep(5).await;
-    let mut client = LndRPC::new(proj, lnd_node).await?;
+    let mut client = LndRPC::new(proj, lnd_node)
+        .await
+        .map_err(|e| anyhow!(format!("LndRPC::new failed: {}", e)))?;
     let bal = client.get_balance().await?;
     if bal.confirmed_balance > 0 {
         return Ok((client, None));
@@ -48,7 +50,9 @@ pub async fn unlock_lnd(
     // UNLOCK LND
     let cert_path = format!("vol/{}/{}/tls.cert", proj, name);
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
-    let unlocker = LndUnlocker::new(&unlock_port, &cert_path).await?;
+    let unlocker = LndUnlocker::new(&unlock_port, &cert_path)
+        .await
+        .map_err(|e| anyhow!(format!("LndUnlocker::new failed: {}", e)))?;
     if let Some(_) = secs.get(&lnd_node.name) {
         let ur = unlocker.unlock_wallet(&lnd_node.unlock_password).await?;
         if let Some(err_msg) = ur.message {

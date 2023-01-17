@@ -64,7 +64,6 @@
 
   onMount(async () => {
     getTotalTribes();
-    sort();
 
     const rect = topPartElement.getBoundingClientRect();
     heightOfVirtualList = Math.ceil(window.innerHeight - rect.bottom) - 58 - 2;
@@ -124,6 +123,8 @@
     } else {
       complete();
     }
+
+    sort();
   }
 </script>
 

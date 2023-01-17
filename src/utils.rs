@@ -124,7 +124,8 @@ pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
         "{}:{}:rw", // "{}:{}:rw",
-        name, dir
+        domain(name),
+        dir
     )
 }
 
