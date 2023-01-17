@@ -70,7 +70,7 @@ bitcoin-cli -regtest -rpcuser=evan -rpcpassword=thepass loadwallet wallet
 bitcoin-cli -regtest -rpcuser=evan -rpcpassword=thepass -generate 6
 
 
-docker-compose -f ./src/modes/btc_test.yml --project-directory . up -d
+docker-compose -f ./src/bin/btc_test.yml --project-directory . up -d
 
 rm -rf ./bitcoind/regtest
 

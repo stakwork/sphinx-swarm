@@ -23,7 +23,7 @@ pub async fn launch_rocket(
     log_txs: Arc<Mutex<LogChans>>,
 ) -> Result<Rocket<Ignite>> {
     Ok(rocket::build()
-        .mount("/", FileServer::from(relative!("src/modes/stack/app/dist")))
+        .mount("/", FileServer::from(relative!("src/bin/stack/app/dist")))
         .mount("/api/", routes![cmd, logs, logstream, asdf])
         .attach(CORS)
         .manage(tx)

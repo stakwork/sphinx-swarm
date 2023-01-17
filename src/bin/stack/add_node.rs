@@ -60,9 +60,7 @@ pub async fn add_node(
             let lnd = li.find_lnd().context("LND required for Proxy")?;
 
             let proxy1 = images::proxy::proxy(proj, &proxy, &lnd);
-            println!("creating proxy... {:?}", proxy1);
             let proxy_id = create_and_start(&docker, proxy1).await?;
-            println!("created proxy...");
             ids.insert(proxy.name.clone(), proxy_id.clone());
 
             let client = ProxyAPI::new(&proxy).await?;
