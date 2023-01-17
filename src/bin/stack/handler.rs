@@ -38,7 +38,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     .find(|n| n.name() == name)
                     .context(msg)?
                     .as_internal()?
-                    .get_image();
+                    .repo();
 
                 let org = node.org;
                 let repo = node.repo;

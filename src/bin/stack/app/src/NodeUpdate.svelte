@@ -21,13 +21,13 @@
   }
 
   async function getVersions() {
-    const nodeVersions = await api.swarm.get_node_images(`${name}.sphinx`);
+    const nodeVersions = await api.swarm.get_node_images(name);
 
     versions = nodeVersions.results;
   }
 
   async function upgradeVersion() {
-    const nodeVersions = await api.swarm.get_node_images(`${name}.sphinx`);
+    const nodeVersions = await api.swarm.get_node_images(name);
 
     versions = nodeVersions.results;
   }

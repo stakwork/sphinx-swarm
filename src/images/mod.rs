@@ -8,7 +8,6 @@ pub mod relay;
 pub mod traefik;
 
 use crate::config;
-use rocket::data::N;
 use serde::{Deserialize, Serialize};
 
 // volumes are mapped to {PWD}/vol/{project}/{name}:
@@ -56,7 +55,7 @@ impl Image {
         .to_string()
     }
 
-    pub fn get_image(&self) -> Repository {
+    pub fn repo(&self) -> Repository {
         match self {
             Image::Btc(n) => n.repo(),
             Image::Lnd(n) => n.repo(),
