@@ -1,23 +1,26 @@
 <script lang="ts">
-  import { Modal, Dropdown, Button } from "carbon-components-svelte";
+  import {
+    Modal,
+    Button,
+    StructuredList,
+    StructuredListHead,
+    StructuredListRow,
+    StructuredListCell,
+    StructuredListBody,
+    StructuredListInput,
+  } from "carbon-components-svelte";
   import * as api from "./api";
   import { onDestroy, onMount } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
+  import CheckmarkFilled from "carbon-icons-svelte/lib/CheckmarkFilled.svelte";
 
   let open = false;
-  let tag = "";
 
   export let name = "";
   export let version = "";
 
-  let versions = [];
-
-  let versionItems = versions.length
-    ? versions.map((v) => ({
-        id: v.name,
-        text: v.name,
-      }))
-    : [{ id: "", text: "" }];
+  let versionItems = [];
+  $: selected = "row-0-value";
 
   function openModal() {
     open = true;
@@ -25,22 +28,27 @@
 
   async function getVersions() {
     const nodeVersions = await api.swarm.get_node_images(name);
+    const versions = nodeVersions.results;
 
-    versions = nodeVersions.results;
+    versionItems = versions.map((v, i) => {
+      return {
+        id: i,
+        name: v.name,
+        last_updated: v.last_updated,
+        status: v.tag_status,
+        size: v.full_size
+      };
+    });
   }
 
-  async function upgradeVersion() {
-    const nodeVersions = await api.swarm.get_node_images(name);
-
-    versions = nodeVersions.results;
-  }
+  async function upgradeVersion() {}
 
   onMount(() => {
     getVersions();
   });
 
   onDestroy(() => {
-    versions = [];
+    versionItems = [];
   });
 
   function typeSelected() {
@@ -63,18 +71,46 @@
     modalHeading={`Update ${name} instance`}
     hasForm={true}
     class="get-logs-modal"
-    size="sm"
     primaryButtonText="Update instance"
     secondaryButtonText="Cancel"
     on:submit={upgradeVersion}
     on:click:button--secondary={() => (open = !open)}
   >
     <section class="modal-content">
-      <Dropdown
-        titleText="Versions"
-        bind:selectedId={tag}
-        items={versionItems}
-      />
+      <StructuredList selection {selected}>
+        <StructuredListHead>
+          <StructuredListRow head>
+            <StructuredListCell head>Version</StructuredListCell>
+            <StructuredListCell head>Last Updated</StructuredListCell>
+            <StructuredListCell head>Status</StructuredListCell>
+            <StructuredListCell head>{""}</StructuredListCell>
+          </StructuredListRow>
+        </StructuredListHead>
+        <StructuredListBody>
+          {#each versionItems as item}
+            <StructuredListRow label for="row-{item.id}">
+              <StructuredListCell>{name} {item.name}</StructuredListCell>
+              <StructuredListCell>{item.last_updated}</StructuredListCell>
+              <StructuredListCell>
+                {item.status}
+              </StructuredListCell>
+              <StructuredListInput
+                id="row-{item.id}"
+                value="row-{item.id}-value"
+                title="row-{item.id}-title"
+                name="row-{item.id}-name"
+              />
+              <StructuredListCell>
+                <CheckmarkFilled
+                  class="bx--structured-list-svg"
+                  aria-label="select an option"
+                  title="select an option"
+                />
+              </StructuredListCell>
+            </StructuredListRow>
+          {/each}
+        </StructuredListBody>
+      </StructuredList>
     </section>
   </Modal>
 </section>

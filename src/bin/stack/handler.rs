@@ -50,6 +50,8 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 );
 
                 let body = reqwest::get(url).await?.text().await?;
+                println!("Data === {:?}", body);
+                
                 Some(body.to_string())
             }
         },
