@@ -1,22 +1,14 @@
 use crate::cmd::{AddChannel, AddPeer};
 use crate::images::lnd::LndImage;
-use crate::utils::wait_for_file;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use tonic_lnd::lnrpc::*;
 use tonic_lnd::Client;
 
 pub struct LndRPC(Client);
 
 impl LndRPC {
-    pub async fn new(proj: &str, lnd: &LndImage, cert_pem: &str, macaroon: &str) -> Result<Self> {
+    pub async fn new(lnd: &LndImage, cert_pem: &str, macaroon: &str) -> Result<Self> {
         let address = format!("https://localhost:{}", lnd.port);
-        // let cert_file = format!("vol/{}/{}/tls.cert", proj, lnd.name);
-        // let macaroon_file = format!(
-        //     "vol/{}/{}/data/chain/bitcoin/{}/admin.macaroon",
-        //     proj, lnd.name, lnd.network
-        // );
-        // wait 10 seconds for file to exist, or fail
-        // wait_for_file(&macaroon_file, 10).await?;
         let client = tonic_lnd::connect_from_memory(address, cert_pem, macaroon).await?;
         Ok(Self(client))
     }
@@ -72,6 +64,16 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
+    pub async fn try_get_balance(&mut self) -> Result<WalletBalanceResponse> {
+        for _ in 0..60 {
+            if let Ok(b) = self.get_balance().await {
+                return Ok(b);
+            }
+            sleep_ms(500).await;
+        }
+        Err(anyhow!("failed to get_balance"))
+    }
+
     pub async fn new_address(&mut self) -> Result<NewAddressResponse> {
         let lnd = self.0.lightning();
         let response = lnd
@@ -82,4 +84,8 @@ impl LndRPC {
             .await?;
         Ok(response.into_inner())
     }
+}
+
+pub async fn sleep_ms(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_millis(n)).await;
 }

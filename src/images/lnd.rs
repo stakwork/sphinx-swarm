@@ -54,7 +54,6 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String>
     let peering_port = "9735";
     let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
-    // println!("home dir {}", home_dir);
     let root_vol = "/home/.lnd";
     let links = Some(vec![domain(&btc.name)]);
     let btc_domain = domain(&btc.name);

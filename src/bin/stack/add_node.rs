@@ -48,11 +48,6 @@ pub async fn add_node(
 
             ids.insert(lnd.name.clone(), lnd_id.clone());
 
-            // let cert_path = "/home/.lnd/tls.cert";
-            // let cert = setup::dl_cert(docker, &lnd.name, cert_path).await?;
-            // println!("CERT {:?}", cert);
-            // setup::sleep(5).await;
-            // setup::dl_cert(docker, &lnd.name, cert_path).await?;
             let (client, test_mine_addy) = setup::lnd_clients(docker, proj, &lnd, &secs).await?;
             setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
             clients.lnd.insert(lnd.name, client);

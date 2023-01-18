@@ -40,7 +40,6 @@ impl BitcoinRPC {
 
     pub fn test_mine(&self, n: u64, addr: Option<String>) -> Result<Vec<BlockHash>> {
         let address = if let Some(addy) = addr {
-            println!("MINE TO ADDY {}", &addy);
             Address::from_str(&addy)?
         } else {
             self.0.get_new_address(None, Some(AddressType::Bech32))?

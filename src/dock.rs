@@ -128,6 +128,9 @@ pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> R
             ret.extend_from_slice(&bytes);
         }
     }
+    if ret.len() == 0 {
+        return Err(anyhow::anyhow!("path {} not found", path));
+    }
     Ok(unzip_tar_single_file(ret)?)
 }
 

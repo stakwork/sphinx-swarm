@@ -30,20 +30,18 @@ pub async fn lnd_clients(
     lnd_node: &LndImage,
     secs: &secrets::Secrets,
 ) -> Result<(LndRPC, Option<String>)> {
-    sleep(5).await;
-    let cert = dl_cert(docker, &lnd_node.name, "/home/.lnd/tls.cert").await?;
-    sleep(5).await;
+    let cert_path = "/home/.lnd/tls.cert";
+    let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
     unlock_lnd(&cert, proj, lnd_node, secs).await?;
-    sleep(5).await;
     let macpath = format!(
         "/home/.lnd/data/chain/bitcoin/{}/admin.macaroon",
         lnd_node.network
     );
     let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
-    let mut client = LndRPC::new(proj, lnd_node, &cert, &mac)
+    let mut client = LndRPC::new(lnd_node, &cert, &mac)
         .await
-        .map_err(|e| anyhow!(format!("LndRPC::new failed: {}", e)))?;
-    let bal = client.get_balance().await?;
+        .map_err(|e| anyhow!("LndRPC::new failed: {}", e))?;
+    let bal = client.try_get_balance().await?;
     if bal.confirmed_balance > 0 {
         return Ok((client, None));
     }
@@ -51,15 +49,28 @@ pub async fn lnd_clients(
     Ok((client, Some(addy.address)))
 }
 
+async fn try_dl(docker: &Docker, name: &str, path: &str) -> Result<Vec<u8>> {
+    for _ in 0..60 {
+        if let Ok(bytes) = download_from_container(docker, &domain(name), path).await {
+            return Ok(bytes);
+        }
+        sleep_ms(500).await;
+    }
+    Err(anyhow!(format!(
+        "try_dl failed to find {} in {}",
+        path, name
+    )))
+}
+
 // PEM encoded
 pub async fn dl_cert(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
-    let cert_bytes = download_from_container(docker, &domain(lnd_name), path).await?;
+    let cert_bytes = try_dl(docker, lnd_name, path).await?;
     Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
 }
 
 // hex encoded
 pub async fn dl_macaroon(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
-    let mac_bytes = download_from_container(docker, &domain(lnd_name), path).await?;
+    let mac_bytes = try_dl(docker, lnd_name, path).await?;
     Ok(hex::encode(mac_bytes))
 }
 
@@ -113,6 +124,6 @@ pub async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<Re
     Ok(api)
 }
 
-pub async fn sleep(n: u64) {
-    tokio::time::sleep(std::time::Duration::from_secs(n)).await;
+pub async fn sleep_ms(n: u64) {
+    tokio::time::sleep(std::time::Duration::from_millis(n)).await;
 }
