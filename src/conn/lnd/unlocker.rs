@@ -34,9 +34,9 @@ pub struct GenSeedResponse {
 }
 
 impl LndUnlocker {
-    pub async fn new(port: &str, cert_path: &str) -> Result<Self> {
-        let cont = std::fs::read(cert_path)?;
-        let cert = reqwest::Certificate::from_pem(&cont)?;
+    pub async fn new(port: &str, cert_pem: &str) -> Result<Self> {
+        // let cont = std::fs::read(cert_path)?;
+        let cert = reqwest::Certificate::from_pem(cert_pem.as_bytes())?;
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
             .add_root_certificate(cert)

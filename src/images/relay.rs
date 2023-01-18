@@ -1,5 +1,5 @@
 use super::*;
-use crate::utils::{domain, exposed_ports, host_config, user, volume_string};
+use crate::utils::{domain, exposed_ports, host_config, volume_string};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -45,25 +45,27 @@ pub fn relay(
     let repo = relay.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let version = relay.version.clone();
-    let root_vol = "/relay/data";
+    let root_vol = "/relay";
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
     // add the LND volumes
     let lnd_vol = volume_string(project, &lnd.name, "/lnd");
     let mut extra_vols = vec![lnd_vol];
     let mut links = vec![domain(&lnd.name)];
+    // add the optional Proxy stuff
     if let Some(p) = proxy {
         conf.proxy(&p);
         let proxy_vol = volume_string(project, &p.name, "/proxy");
         extra_vols.push(proxy_vol);
         links.push(domain(&p.name));
     }
+    // relay config from env
     let mut relay_conf = relay_env_config(&conf);
     relay_conf.push(format!("NODE_ENV={}", &relay.node_env));
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&relay.name)),
-        user: user(),
+        // user: Some(format!("1000")), // user(),
         exposed_ports: exposed_ports(vec![relay.port.clone()]),
         host_config: host_config(
             project,
@@ -116,18 +118,18 @@ impl RelayConfig {
         }
     }
     pub fn lnd(&mut self, lnd: &lnd::LndImage) {
-        self.lnd_ip = format!("{}.sphinx", lnd.name);
+        self.lnd_ip = domain(&lnd.name);
         self.lnd_port = lnd.port.to_string();
         self.tls_location = "/lnd/tls.cert".to_string();
-        self.macaroon_location = "/lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string();
+        self.macaroon_location = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", lnd.network);
     }
     pub fn proxy(&mut self, proxy: &proxy::ProxyImage) {
-        self.proxy_lnd_ip = Some(format!("{}.sphinx", proxy.name));
+        self.proxy_lnd_ip = Some(domain(&proxy.name));
         self.proxy_lnd_port = Some(proxy.port.clone());
         self.proxy_admin_token = proxy.admin_token.clone();
         self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
         self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
-        self.proxy_admin_url = Some(format!("{}.sphinx:{}", proxy.name, proxy.admin_port));
+        self.proxy_admin_url = Some(format!("{}:{}", domain(&proxy.name), proxy.admin_port));
         self.proxy_new_nodes = proxy.new_nodes.clone();
     }
 }
@@ -156,7 +158,7 @@ impl Default for RelayConfig {
             node_http_port: "3000".to_string(),
             tribes_mqtt_port: "1883".to_string(),
             db_dialect: "sqlite".to_string(),
-            db_storage: "/relay/data/sphinx.db".to_string(),
+            db_storage: "/relay/sphinx.db".to_string(),
             node_http_protocol: None,
             tribes_insecure: None,
             transport_private_key_location: None,
@@ -177,6 +179,7 @@ impl Default for RelayConfig {
 pub fn _relay_config(project: &str, name: &str) -> RelayConfig {
     use std::fs;
     use std::io::Write;
+    // not using vol/ anymore...
     let path = format!("vol/{}/{}.json", project, name);
     match fs::read(path.clone()) {
         Ok(data) => match serde_json::from_slice(&data) {

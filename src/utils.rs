@@ -110,11 +110,11 @@ fn tcp_port(p: &str) -> String {
 
 pub fn _volume_permissions(project: &str, name: &str, dir: &str) -> Result<()> {
     let perms = std::fs::Permissions::from_mode(0o777);
-    let directory = format!("{}/{}", host_volume_string(project, name), dir);
+    let directory = format!("{}/{}", _host_volume_string(project, name), dir);
     std::fs::set_permissions(directory, perms).map_err(|e| anyhow!(e.to_string()))
 }
 
-pub fn host_volume_string(project: &str, name: &str) -> String {
+pub fn _host_volume_string(project: &str, name: &str) -> String {
     let pwd = std::env::current_dir().unwrap_or_default();
     format!("{}/vol/{}/{}", pwd.to_string_lossy(), project, name)
 }

@@ -12,18 +12,6 @@ pub async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let vols = list_volumes(&docker).await?;
-    if let Some(vols) = vols.volumes {
-        if vol && vols.len() > 0 {
-            for v in vols {
-                if v.name.ends_with(".sphinx") {
-                    log::info!("=> removing volume {:?}", &v.name);
-                    remove_volume(&docker, &v.name).await?;
-                }
-            }
-        }
-    }
-
     let all = list_containers(&docker).await?;
     if all.len() == 0 {
         log::info!("=> no running containers");
@@ -36,6 +24,19 @@ pub async fn main() -> anyhow::Result<()> {
             }
         }
     }
+
+    let vols = list_volumes(&docker).await?;
+    if let Some(vols) = vols.volumes {
+        if vol && vols.len() > 0 {
+            for v in vols {
+                if v.name.ends_with(".sphinx") {
+                    log::info!("=> removing volume {:?}", &v.name);
+                    remove_volume(&docker, &v.name).await?;
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 

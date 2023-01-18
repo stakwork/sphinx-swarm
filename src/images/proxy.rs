@@ -51,7 +51,6 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
     let repo = proxy.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let version = proxy.version.clone();
-    println!("PROXY VERSION {}", version);
     // let img = "sphinx-proxy";
     // let version = "latest";
     let macpath = format!(

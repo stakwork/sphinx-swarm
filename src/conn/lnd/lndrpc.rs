@@ -8,16 +8,16 @@ use tonic_lnd::Client;
 pub struct LndRPC(Client);
 
 impl LndRPC {
-    pub async fn new(proj: &str, lnd: &LndImage) -> Result<Self> {
+    pub async fn new(proj: &str, lnd: &LndImage, cert_pem: &str, macaroon: &str) -> Result<Self> {
         let address = format!("https://localhost:{}", lnd.port);
-        let cert_file = format!("vol/{}/{}/tls.cert", proj, lnd.name);
-        let macaroon_file = format!(
-            "vol/{}/{}/data/chain/bitcoin/{}/admin.macaroon",
-            proj, lnd.name, lnd.network
-        );
+        // let cert_file = format!("vol/{}/{}/tls.cert", proj, lnd.name);
+        // let macaroon_file = format!(
+        //     "vol/{}/{}/data/chain/bitcoin/{}/admin.macaroon",
+        //     proj, lnd.name, lnd.network
+        // );
         // wait 10 seconds for file to exist, or fail
-        wait_for_file(&macaroon_file, 10).await?;
-        let client = tonic_lnd::connect(address, cert_file, macaroon_file).await?;
+        // wait_for_file(&macaroon_file, 10).await?;
+        let client = tonic_lnd::connect_from_memory(address, cert_pem, macaroon).await?;
         Ok(Self(client))
     }
 

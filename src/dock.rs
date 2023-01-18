@@ -117,7 +117,7 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> Result<()> {
+pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> Result<Vec<u8>> {
     let mut tar = docker.download_from_container::<String>(
         id,
         Some(DownloadFromContainerOptions { path: path.into() }),
@@ -128,27 +128,30 @@ pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> R
             ret.extend_from_slice(&bytes);
         }
     }
-    unzip_tar(ret);
-    Ok(())
+    Ok(unzip_tar_single_file(ret)?)
 }
 
-fn unzip_tar(bytes: Vec<u8>) {
+fn unzip_tar_single_file(bytes: Vec<u8>) -> Result<Vec<u8>> {
     use std::io::Read;
     use tar::Archive;
     let mut a = Archive::new(&bytes[..]);
     for file in a.entries().unwrap() {
-        // Make sure there wasn't an I/O error
+        if let Err(e) = file {
+            return Err(anyhow::anyhow!(format!("failed to unzip tar: {}", e)));
+        }
         let mut file = file.unwrap();
-
         // Inspect metadata about the file
-        println!("file path: {:?}", file.header().path().unwrap());
-
+        // println!("file path: {:?}", file.header().path().unwrap());
         // files implement the Read trait
-        let mut s = String::new();
-        file.read_to_string(&mut s).unwrap();
-        println!("=====> FILE <======");
-        println!("{}", s);
+        let mut s = Vec::new();
+        return match file.read_to_end(&mut s) {
+            Ok(_) => Ok(s),
+            Err(e) => Err(anyhow::anyhow!(format!("failed to read tar file: {}", e))),
+        };
+        // println!("=====> FILE <======");
+        // println!("{}", s);
     }
+    Err(anyhow::anyhow!("no tar file found"))
 }
 
 pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {

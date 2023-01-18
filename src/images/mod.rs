@@ -10,9 +10,6 @@ pub mod traefik;
 use crate::config;
 use serde::{Deserialize, Serialize};
 
-// volumes are mapped to {PWD}/vol/{project}/{name}:
-// ports are tcp
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Image {
