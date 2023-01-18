@@ -53,8 +53,7 @@ pub async fn add_node(
             // println!("CERT {:?}", cert);
             // setup::sleep(5).await;
             // setup::dl_cert(docker, &lnd.name, cert_path).await?;
-            let (client, test_mine_addy) =
-                setup::lnd_clients(docker, proj, &lnd, &secs, &lnd.name).await?;
+            let (client, test_mine_addy) = setup::lnd_clients(docker, proj, &lnd, &secs).await?;
             setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);

@@ -29,12 +29,11 @@ pub async fn lnd_clients(
     proj: &str,
     lnd_node: &LndImage,
     secs: &secrets::Secrets,
-    name: &str,
 ) -> Result<(LndRPC, Option<String>)> {
     sleep(5).await;
     let cert = dl_cert(docker, &lnd_node.name, "/home/.lnd/tls.cert").await?;
     sleep(5).await;
-    unlock_lnd(&cert, proj, lnd_node, secs, name).await?;
+    unlock_lnd(&cert, proj, lnd_node, secs).await?;
     sleep(5).await;
     let macpath = format!(
         "/home/.lnd/data/chain/bitcoin/{}/admin.macaroon",
@@ -52,11 +51,13 @@ pub async fn lnd_clients(
     Ok((client, Some(addy.address)))
 }
 
+// PEM encoded
 pub async fn dl_cert(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
     let cert_bytes = download_from_container(docker, &domain(lnd_name), path).await?;
     Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
 }
 
+// hex encoded
 pub async fn dl_macaroon(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
     let mac_bytes = download_from_container(docker, &domain(lnd_name), path).await?;
     Ok(hex::encode(mac_bytes))
@@ -67,7 +68,6 @@ pub async fn unlock_lnd(
     proj: &str,
     lnd_node: &LndImage,
     secs: &secrets::Secrets,
-    name: &str,
 ) -> Result<()> {
     // UNLOCK LND
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
