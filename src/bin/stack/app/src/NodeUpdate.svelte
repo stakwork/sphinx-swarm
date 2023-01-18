@@ -10,7 +10,7 @@
     StructuredListInput,
   } from "carbon-components-svelte";
   import * as api from "./api";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, afterUpdate } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import CheckmarkFilled from "carbon-icons-svelte/lib/CheckmarkFilled.svelte";
 
@@ -18,17 +18,32 @@
 
   export let name = "";
   export let version = "";
+  let org = "";
+  let repo = "";
+  let loading = false;
 
   let versionItems = [];
   $: selected = "row-0-value";
 
   function openModal() {
     open = true;
+
+    clearData();
+    getVersions();
+  }
+
+  function clearData() {
+    versionItems = [];
+    org = "";
+    repo = "";
   }
 
   async function getVersions() {
     const nodeVersions = await api.swarm.get_node_images(name);
-    const versions = nodeVersions.results;
+    const versions = JSON.parse(nodeVersions.images).results;
+
+    org = nodeVersions.org;
+    repo = nodeVersions.repo;
 
     versionItems = versions.map((v, i) => {
       return {
@@ -43,12 +58,8 @@
 
   async function upgradeVersion() {}
 
-  onMount(() => {
-    getVersions();
-  });
-
   onDestroy(() => {
-    versionItems = [];
+    clearData();
   });
 
   function typeSelected() {
@@ -89,7 +100,7 @@
         <StructuredListBody>
           {#each versionItems as item}
             <StructuredListRow label for="row-{item.id}">
-              <StructuredListCell>{name} {item.name}</StructuredListCell>
+              <StructuredListCell>{repo}@{item.name}</StructuredListCell>
               <StructuredListCell>{item.last_updated}</StructuredListCell>
               <StructuredListCell>
                 {item.status}

@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
 use bollard::Docker;
+use serde::{Deserialize, Serialize};
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
-use sphinx_swarm::images::{Image};
+use sphinx_swarm::images::Image;
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -26,7 +27,15 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
-            SwarmCmd::ListVersions(name) => {
+            SwarmCmd::ListVersions(name) => {                
+                // declare structs for json data format
+                #[derive(Serialize, Deserialize, Debug, Clone)]
+                struct ImageData {
+                    org: String,
+                    repo: String,
+                    images: String,
+                }
+
                 // get nodes
                 let nodes = stack.nodes.clone();
                 let msg = format!("Couldn't find ({}) node", name);
@@ -50,9 +59,14 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 );
 
                 let body = reqwest::get(url).await?.text().await?;
-                println!("Data === {:?}", body);
-                
-                Some(body.to_string())
+
+                let data = ImageData {
+                    org,
+                    repo,
+                    images: body
+                };
+
+                Some(serde_json::to_string(&data)?)
             }
         },
         Cmd::Relay(c) => match c {
