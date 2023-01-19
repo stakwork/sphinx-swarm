@@ -10,7 +10,7 @@
     StructuredListInput,
   } from "carbon-components-svelte";
   import * as api from "./api";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import CheckmarkFilled from "carbon-icons-svelte/lib/CheckmarkFilled.svelte";
   import InfiniteScroll from "svelte-infinite-loading";
@@ -26,15 +26,14 @@
   let page = 1;
 
   $: versionItems = [];
-  $: selected = "";
 
-  let topPartElement;
+  let selected = "";
 
   function openModal() {
     open = true;
 
     clearData();
-    getInitialVersions();
+    getInitials();
   }
 
   function clearData() {
@@ -60,20 +59,20 @@
     });
   }
 
-  async function getInitialVersions() {
+  async function getInitials() {
     loading = true;
-
     const nodeVersions = await api.swarm.get_node_images(name, page);
     const versions = parseVersionData(nodeVersions);
 
     org = nodeVersions.org;
     repo = nodeVersions.repo;
 
-    versionItems = formatVersionData(versions);
+    const items = formatVersionData(versions);
 
-    selected = `row-${versionItems[0].name}-value`;
+    selected = `row-${items[0].name}-value`;
 
-    page += 1;
+    versionItems = items;
+
     loading = false;
   }
 
@@ -87,7 +86,7 @@
     const nodeVersions = await api.swarm.get_node_images(name, page);
     const versions = parseVersionData(nodeVersions);
 
-    const items = (versionItems = formatVersionData(versions));
+    const items = versions ? (versionItems = formatVersionData(versions)) : [];
 
     if (items.length) {
       page += 1;
@@ -126,7 +125,7 @@
           <h5>Loading image versions .....</h5>
         </div>
       {:else}
-        <div class="list" bind:this={topPartElement}>
+        <div class="list">
           <StructuredList selection {selected}>
             <StructuredListHead>
               <StructuredListRow head>
@@ -139,9 +138,7 @@
             <StructuredListBody>
               {#each versionItems as item}
                 <StructuredListRow label for="row-{item.id}">
-                  <StructuredListCell
-                    >{repo}@{item.name}</StructuredListCell
-                  >
+                  <StructuredListCell>{repo}@{item.name}</StructuredListCell>
                   <StructuredListCell
                     >{moment(item.last_updated).fromNow()}</StructuredListCell
                   >
@@ -163,11 +160,13 @@
                   </StructuredListCell>
                 </StructuredListRow>
               {/each}
-              <InfiniteScroll
-                on:infinite={infiniteHandler}
-              />
             </StructuredListBody>
           </StructuredList>
+          <!-- <InfiniteScroll
+            distance={20}
+            identifier={name}
+            on:infinite={infiniteHandler}
+          /> -->
         </div>
       {/if}
     </section>
@@ -202,6 +201,7 @@
 
   .list {
     max-height: 400px;
-    overflow-x: scroll;
+    min-height: 400px;
+    overflow-y: auto;
   }
 </style>
