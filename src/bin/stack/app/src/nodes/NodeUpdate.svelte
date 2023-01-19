@@ -14,6 +14,7 @@
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
   import InfiniteScroll from "svelte-infinite-loading";
+  import { dialogs } from "svelte-dialogs";
 
   let open = false;
 
@@ -75,7 +76,9 @@
     loading = false;
   }
 
-  async function upgradeVersion() {}
+  async function upgradeVersion() {
+    dialogs.modal(htmlString);
+  }
 
   onDestroy(() => {
     clearData();
@@ -96,6 +99,15 @@
       complete();
     }
   }
+
+  const htmlString = `
+    <div>
+        <h1 id="dialog-title-id">all the html you want</h1>
+        <div style="text-align: center">
+            <p>now in text!</p>
+        </div>
+    </div>`;
+
 </script>
 
 <section class="update-wrap">
