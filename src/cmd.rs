@@ -12,12 +12,18 @@ pub enum Cmd {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ImageRequest {
+    pub name: String,
+    pub page: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
     AddNode(Image),
     GetContainerLogs(String),
-    ListVersions(String),
+    ListVersions(ImageRequest),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

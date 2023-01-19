@@ -13,10 +13,10 @@ export async function get_logs(name) {
   return await swarmCmd("GetContainerLogs", name);
 }
 
-export async function get_node_images(node) {
-  return await swarmCmd("ListVersions", node);
+export async function get_node_images(name, page) {
+  return await swarmCmd("ListVersions", {name, page});
 }
 
-export async function update_node_instance(node, version) {
-  return await swarmCmd("UpdateInstance", {node, version});
+export async function update_node_instance(name, version) {
+  return await swarmCmd("UpdateInstance", {name, version});
 }

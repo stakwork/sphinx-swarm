@@ -10,9 +10,11 @@
     StructuredListInput,
   } from "carbon-components-svelte";
   import * as api from "./api";
-  import { onDestroy, onMount, afterUpdate } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import CheckmarkFilled from "carbon-icons-svelte/lib/CheckmarkFilled.svelte";
+  import InfiniteScroll from "svelte-infinite-loading";
+  import moment from "moment";
 
   let open = false;
 
@@ -21,39 +23,58 @@
   let org = "";
   let repo = "";
   let loading = false;
+  let page = 1;
 
-  let versionItems = [];
-  $: selected = "row-0-value";
+  $: versionItems = [];
+  $: selected = "";
+
+  let topPartElement;
 
   function openModal() {
     open = true;
 
     clearData();
-    getVersions();
+    getInitialVersions();
   }
 
   function clearData() {
     versionItems = [];
     org = "";
     repo = "";
+    page = 1;
   }
 
-  async function getVersions() {
-    const nodeVersions = await api.swarm.get_node_images(name);
-    const versions = JSON.parse(nodeVersions.images).results;
+  function parseVersionData(nodeVersions) {
+    return JSON.parse(nodeVersions.images).results;
+  }
 
-    org = nodeVersions.org;
-    repo = nodeVersions.repo;
-
-    versionItems = versions.map((v, i) => {
+  function formatVersionData(versions) {
+    return versions.map((v, i) => {
       return {
         id: i,
         name: v.name,
         last_updated: v.last_updated,
         status: v.tag_status,
-        size: v.full_size
+        size: v.full_size,
       };
     });
+  }
+
+  async function getInitialVersions() {
+    loading = true;
+
+    const nodeVersions = await api.swarm.get_node_images(name, page);
+    const versions = parseVersionData(nodeVersions);
+
+    org = nodeVersions.org;
+    repo = nodeVersions.repo;
+
+    versionItems = formatVersionData(versions);
+
+    selected = `row-${versionItems[0].name}-value`;
+
+    page += 1;
+    loading = false;
   }
 
   async function upgradeVersion() {}
@@ -62,8 +83,20 @@
     clearData();
   });
 
-  function typeSelected() {
-    name = "";
+  async function infiniteHandler({ detail: { loaded, complete } }) {
+    const nodeVersions = await api.swarm.get_node_images(name, page);
+    const versions = parseVersionData(nodeVersions);
+
+    const items = (versionItems = formatVersionData(versions));
+
+    if (items.length) {
+      page += 1;
+      versionItems = [...versionItems, ...items];
+
+      loaded();
+    } else {
+      complete();
+    }
   }
 </script>
 
@@ -88,40 +121,55 @@
     on:click:button--secondary={() => (open = !open)}
   >
     <section class="modal-content">
-      <StructuredList selection {selected}>
-        <StructuredListHead>
-          <StructuredListRow head>
-            <StructuredListCell head>Version</StructuredListCell>
-            <StructuredListCell head>Last Updated</StructuredListCell>
-            <StructuredListCell head>Status</StructuredListCell>
-            <StructuredListCell head>{""}</StructuredListCell>
-          </StructuredListRow>
-        </StructuredListHead>
-        <StructuredListBody>
-          {#each versionItems as item}
-            <StructuredListRow label for="row-{item.id}">
-              <StructuredListCell>{repo}@{item.name}</StructuredListCell>
-              <StructuredListCell>{item.last_updated}</StructuredListCell>
-              <StructuredListCell>
-                {item.status}
-              </StructuredListCell>
-              <StructuredListInput
-                id="row-{item.id}"
-                value="row-{item.id}-value"
-                title="row-{item.id}-title"
-                name="row-{item.id}-name"
+      {#if loading}
+        <div class="loading-wrap">
+          <h5>Loading image versions .....</h5>
+        </div>
+      {:else}
+        <div class="list" bind:this={topPartElement}>
+          <StructuredList selection {selected}>
+            <StructuredListHead>
+              <StructuredListRow head>
+                <StructuredListCell head>Version</StructuredListCell>
+                <StructuredListCell head>Last Updated</StructuredListCell>
+                <StructuredListCell head>Status</StructuredListCell>
+                <StructuredListCell head>{""}</StructuredListCell>
+              </StructuredListRow>
+            </StructuredListHead>
+            <StructuredListBody>
+              {#each versionItems as item}
+                <StructuredListRow label for="row-{item.id}">
+                  <StructuredListCell
+                    >{repo}@{item.name}</StructuredListCell
+                  >
+                  <StructuredListCell
+                    >{moment(item.last_updated).fromNow()}</StructuredListCell
+                  >
+                  <StructuredListCell>
+                    {item.status}
+                  </StructuredListCell>
+                  <StructuredListInput
+                    id="row-{item.name}"
+                    value="row-{item.name}-value"
+                    title="row-{item.name}-title"
+                    name="row-{item.name}-name"
+                  />
+                  <StructuredListCell>
+                    <CheckmarkFilled
+                      class="bx--structured-list-svg"
+                      aria-label="select an option"
+                      title="select an option"
+                    />
+                  </StructuredListCell>
+                </StructuredListRow>
+              {/each}
+              <InfiniteScroll
+                on:infinite={infiniteHandler}
               />
-              <StructuredListCell>
-                <CheckmarkFilled
-                  class="bx--structured-list-svg"
-                  aria-label="select an option"
-                  title="select an option"
-                />
-              </StructuredListCell>
-            </StructuredListRow>
-          {/each}
-        </StructuredListBody>
-      </StructuredList>
+            </StructuredListBody>
+          </StructuredList>
+        </div>
+      {/if}
     </section>
   </Modal>
 </section>
@@ -149,5 +197,11 @@
   }
   .modal-content {
     padding: 0px 1.5rem;
+    /* width: 100%; */
+  }
+
+  .list {
+    max-height: 400px;
+    overflow-x: scroll;
   }
 </style>

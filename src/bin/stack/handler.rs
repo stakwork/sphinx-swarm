@@ -27,7 +27,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
-            SwarmCmd::ListVersions(name) => {                
+            SwarmCmd::ListVersions(req) => {
                 // declare structs for json data format
                 #[derive(Serialize, Deserialize, Debug, Clone)]
                 struct ImageData {
@@ -38,13 +38,13 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
 
                 // get nodes
                 let nodes = stack.nodes.clone();
-                let msg = format!("Couldn't find ({}) node", name);
+                let msg = format!("Couldn't find ({}) node", req.name);
 
                 // find the node by name
                 // get the image by calling node.repo()
                 let node = nodes
                     .iter()
-                    .find(|n| n.name() == name)
+                    .find(|n| n.name() == req.name)
                     .context(msg)?
                     .as_internal()?
                     .repo();
@@ -54,8 +54,8 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
 
                 // return the json from
                 let url = format!(
-                    "https://hub.docker.com/v2/namespaces/{}/repositories/{}/tags",
-                    org, repo
+                    "https://hub.docker.com/v2/namespaces/{}/repositories/{}/tags?page={}",
+                    org, repo, req.page
                 );
 
                 let body = reqwest::get(url).await?.text().await?;
@@ -63,7 +63,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 let data = ImageData {
                     org,
                     repo,
-                    images: body
+                    images: body,
                 };
 
                 Some(serde_json::to_string(&data)?)
