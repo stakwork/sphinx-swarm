@@ -28,45 +28,29 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 Some(serde_json::to_string(&logs)?)
             }
             SwarmCmd::ListVersions(req) => {
-                // declare structs for json data format
                 #[derive(Serialize, Deserialize, Debug, Clone)]
-                struct ImageData {
+                struct ListVersionsResult {
                     org: String,
                     repo: String,
                     images: String,
                 }
-
-                // get nodes
-                let nodes = stack.nodes.clone();
-                let msg = format!("Couldn't find ({}) node", req.name);
-
-                // find the node by name
-                // get the image by calling node.repo()
-                let node = nodes
+                let img = stack
+                    .nodes
                     .iter()
                     .find(|n| n.name() == req.name)
-                    .context(msg)?
+                    .context(format!("cant find node {}", &req.name))?
                     .as_internal()?
                     .repo();
-
-                let org = node.org;
-                let repo = node.repo;
-
-                // return the json from
                 let url = format!(
                     "https://hub.docker.com/v2/namespaces/{}/repositories/{}/tags?page={}",
-                    org, repo, req.page
+                    img.org, img.repo, req.page
                 );
-
                 let body = reqwest::get(url).await?.text().await?;
-
-                let data = ImageData {
-                    org,
-                    repo,
+                Some(serde_json::to_string(&ListVersionsResult {
+                    org: img.org,
+                    repo: img.repo,
                     images: body,
-                };
-
-                Some(serde_json::to_string(&data)?)
+                })?)
             }
         },
         Cmd::Relay(c) => match c {
