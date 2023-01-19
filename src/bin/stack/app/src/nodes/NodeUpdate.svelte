@@ -14,7 +14,6 @@
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
   import InfiniteScroll from "svelte-infinite-loading";
-  import { dialogs } from "svelte-dialogs";
 
   let open = false;
 
@@ -77,7 +76,6 @@
   }
 
   async function upgradeVersion() {
-    dialogs.modal(htmlString);
   }
 
   onDestroy(() => {
