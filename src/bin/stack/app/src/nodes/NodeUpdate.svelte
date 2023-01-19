@@ -20,6 +20,8 @@
   let org = "";
   let repo = "";
   let loading = false;
+  let scrollLoading = false;
+  let hasMore = true;
   let page = 1;
 
   $: versionItems = [];
@@ -81,17 +83,21 @@
     clearData();
   });
 
-  let list;
-
   async function scrolled(el) {
     let obj = el.target;
     if (Math.ceil(obj.scrollTop) === obj.scrollHeight - obj.offsetHeight) {
       page += 1;
+      scrollLoading = true;
+
       const nodeVersions = await api.swarm.get_node_images(name, page);
       const newVersions = parseVersionData(nodeVersions);
       const items = newVersions ? formatVersionData(newVersions) : [];
+
       if (items.length) {
         versionItems = [...versionItems, ...items];
+        scrollLoading = false;
+      } else {
+        hasMore = false;
       }
     }
   }
@@ -122,7 +128,7 @@
           <h5>Loading image versions .....</h5>
         </div>
       {:else}
-        <div class="list" bind:this={list} on:scroll={scrolled}>
+        <div class="list" on:scroll={scrolled}>
           <StructuredList selection {selected}>
             <StructuredListHead>
               <StructuredListRow head>
@@ -138,6 +144,11 @@
               {/each}
             </StructuredListBody>
           </StructuredList>
+          {#if scrollLoading && hasMore}
+            <p class="scroll-msg">Loading more ...</p>
+            {:else}
+            <p class="scroll-msg">No more data</p>
+          {/if }
         </div>
       {/if}
     </section>
@@ -167,12 +178,18 @@
   }
   .modal-content {
     padding: 0px 1.5rem;
-    /* width: 100%; */
+    width: 100%;
   }
-
   .list {
     max-height: 400px;
     min-height: 400px;
+    min-width: 100%;
     overflow-y: auto;
+  }
+  .scroll-msg {
+    text-align: center;
+    padding: 0;
+    margin: 0;
+    margin-top: -50px;
   }
 </style>
