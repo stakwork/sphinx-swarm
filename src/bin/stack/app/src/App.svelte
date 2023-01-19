@@ -2,9 +2,9 @@
   import { selectedNode } from "./store";
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
-  import AddNode from "./AddNode.svelte";
-  import NodeLogs from "./NodeLogs.svelte";
-  import NodeUpdate from "./NodeUpdate.svelte";
+  import AddNode from "./nodes/AddNode.svelte";
+  import NodeLogs from "./nodes/NodeLogs.svelte";
+  import NodeUpdate from "./nodes/NodeUpdate.svelte";
 </script>
 
 <main>

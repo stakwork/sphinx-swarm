@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Modal } from "carbon-components-svelte";
   import Logs from "carbon-icons-svelte/lib/CloudLogging.svelte";
-  import * as api from "./api";
+  import * as api from "../api";
   import { onDestroy } from "svelte";
 
   let open = false;

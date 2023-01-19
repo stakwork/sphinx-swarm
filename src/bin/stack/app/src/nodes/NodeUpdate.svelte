@@ -9,12 +9,11 @@
     StructuredListBody,
     StructuredListInput,
   } from "carbon-components-svelte";
-  import * as api from "./api";
+  import * as api from "../api";
   import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
-  import CheckmarkFilled from "carbon-icons-svelte/lib/CheckmarkFilled.svelte";
+  import ImageRow from "./ImageRow.svelte";
   import InfiniteScroll from "svelte-infinite-loading";
-  import moment from "moment";
 
   let open = false;
 
@@ -137,28 +136,7 @@
             </StructuredListHead>
             <StructuredListBody>
               {#each versionItems as item}
-                <StructuredListRow label for="row-{item.id}">
-                  <StructuredListCell>{repo}@{item.name}</StructuredListCell>
-                  <StructuredListCell
-                    >{moment(item.last_updated).fromNow()}</StructuredListCell
-                  >
-                  <StructuredListCell>
-                    {item.status}
-                  </StructuredListCell>
-                  <StructuredListInput
-                    id="row-{item.name}"
-                    value="row-{item.name}-value"
-                    title="row-{item.name}-title"
-                    name="row-{item.name}-name"
-                  />
-                  <StructuredListCell>
-                    <CheckmarkFilled
-                      class="bx--structured-list-svg"
-                      aria-label="select an option"
-                      title="select an option"
-                    />
-                  </StructuredListCell>
-                </StructuredListRow>
+                <ImageRow {item} {repo}/>
               {/each}
             </StructuredListBody>
           </StructuredList>
