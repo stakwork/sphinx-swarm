@@ -66,7 +66,7 @@
 
     const items = formatVersionData(versions);
 
-    selected = `row-${items[0].name}-value`;
+    selected = `row-${version}-value`;
 
     versionItems = items;
 
