@@ -14,7 +14,6 @@
   <svelte:fragment slot="content">
     <TabContent><Users /></TabContent>
     <TabContent>
-      <Controls ctrls={$selectedNode && controls["Relay"]} {tag} />
     </TabContent>
   </svelte:fragment>
 </Tabs>
