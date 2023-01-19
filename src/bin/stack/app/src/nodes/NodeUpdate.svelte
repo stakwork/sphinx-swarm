@@ -7,14 +7,11 @@
     StructuredListRow,
     StructuredListCell,
     StructuredListBody,
-    StructuredListInput,
   } from "carbon-components-svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
-  import InfiniteScroll from "svelte-infinite-loading";
-  import { dialogs } from "svelte-dialogs";
 
   let open = false;
 
@@ -77,37 +74,27 @@
   }
 
   async function upgradeVersion() {
-    dialogs.modal(htmlString);
+    console.log("UPDATE IMAGE");
   }
 
   onDestroy(() => {
     clearData();
   });
 
-  async function infiniteHandler({ detail: { loaded, complete } }) {
-    const nodeVersions = await api.swarm.get_node_images(name, page);
-    const versions = parseVersionData(nodeVersions);
+  let list;
 
-    const items = versions ? (versionItems = formatVersionData(versions)) : [];
-
-    if (items.length) {
+  async function scrolled(el) {
+    let obj = el.target;
+    if (Math.ceil(obj.scrollTop) === obj.scrollHeight - obj.offsetHeight) {
       page += 1;
-      versionItems = [...versionItems, ...items];
-
-      loaded();
-    } else {
-      complete();
+      const nodeVersions = await api.swarm.get_node_images(name, page);
+      const newVersions = parseVersionData(nodeVersions);
+      const items = newVersions ? formatVersionData(newVersions) : [];
+      if (items.length) {
+        versionItems = [...versionItems, ...items];
+      }
     }
   }
-
-  const htmlString = `
-    <div>
-        <h1 id="dialog-title-id">all the html you want</h1>
-        <div style="text-align: center">
-            <p>now in text!</p>
-        </div>
-    </div>`;
-
 </script>
 
 <section class="update-wrap">
@@ -115,7 +102,6 @@
     <div class="title">{name}</div>
     {#if version}
       <div class="version">({version})</div>
-
       <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
     {/if}
   </section>
@@ -136,7 +122,7 @@
           <h5>Loading image versions .....</h5>
         </div>
       {:else}
-        <div class="list">
+        <div class="list" bind:this={list} on:scroll={scrolled}>
           <StructuredList selection {selected}>
             <StructuredListHead>
               <StructuredListRow head>
@@ -148,15 +134,10 @@
             </StructuredListHead>
             <StructuredListBody>
               {#each versionItems as item}
-                <ImageRow {item} {repo}/>
+                <ImageRow {item} {repo} />
               {/each}
             </StructuredListBody>
           </StructuredList>
-          <!-- <InfiniteScroll
-            distance={20}
-            identifier={name}
-            on:infinite={infiniteHandler}
-          /> -->
         </div>
       {/if}
     </section>
