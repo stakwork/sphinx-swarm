@@ -77,13 +77,6 @@
     margin-left: 15px;
     font-weight: 700;
   }
-  .divider {
-    min-height: 2px;
-    background: #101317;
-    display: block;
-    width: 100%;
-    margin: 15px 0px;
-  }
 
   .search-wrap {
     margin: 0 1rem;

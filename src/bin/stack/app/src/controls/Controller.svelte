@@ -37,7 +37,7 @@
       {$selectedNode.name}
     </header>
     {#if type === "Relay"}
-      <RelayControls {tag} />
+      <RelayControls />
     {:else if type === "Tribes"}
       <TribeControls url={$selectedNode.url} />
     {:else if type === "Lnd"}
