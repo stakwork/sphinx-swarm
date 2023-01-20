@@ -3,7 +3,7 @@
     import Add from "carbon-icons-svelte/lib/Add.svelte";
     import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   
-    $: pubkey = "";
+    $: pubkey = 0;
   
     async function addUser() {};
   
@@ -17,8 +17,9 @@
     <section class="user-content">
       <div class="spacer" />
       <TextInput
-        labelText={"Pubkey"}
-        placeholder={"Enter user pubkey"}
+        labelText={"Satoshis to Allocate (optional)"}
+        placeholder={"Enter amount in sats"}
+        type="number"
         bind:value={pubkey}
       />
       <div class="spacer" />
