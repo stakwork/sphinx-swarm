@@ -5,8 +5,7 @@
   import QrCode from "svelte-qrcode";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
-  import DeleteIcon from "carbon-icons-svelte/lib/TrashCan.svelte";
-  import { dialogs } from "svelte-dialogs";
+ 
 
   export let select = (pubkey: string) => {};
   export let alias = "";
@@ -27,13 +26,6 @@
     navigator.clipboard.writeText(value);
   }
 
-  const opts = {
-    title: "Delete user",
-    text: "Are you sure you want to delete this user",
-    titleClass: "my-title-class",
-    closeButton: false,
-    closeOnBg: true,
-  };
 </script>
 
 <div
@@ -60,12 +52,6 @@
     <div class="signed-up" style={`opacity:${signedUp ? 1 : "0.5"}`}>
       <Login size={16} />
       <span>Signed Up</span>
-
-      {#if selected}
-      <button class="user-delete" on:click={() => dialogs.confirm(opts)}>
-        <DeleteIcon size={24} />
-      </button>
-      {/if}
     </div>
   </div>
   {#if selected}
