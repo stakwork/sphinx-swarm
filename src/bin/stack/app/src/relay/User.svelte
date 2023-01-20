@@ -5,6 +5,7 @@
   import QrCode from "svelte-qrcode";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
+ 
 
   export let select = (pubkey: string) => {};
   export let alias = "";
@@ -24,6 +25,7 @@
   function copyToClipboard(value) {
     navigator.clipboard.writeText(value);
   }
+
 </script>
 
 <div
@@ -176,5 +178,13 @@
     height: 0.85rem;
     width: 6rem;
     background: #263442;
+  }
+
+  .user-delete {
+    margin-left: 10px;
+    background: transparent;
+    padding: 0;
+    border: 0;
+    color: red;
   }
 </style>

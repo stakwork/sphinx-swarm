@@ -2,8 +2,9 @@
   import { selectedNode } from "./store";
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
-  import AddNode from "./AddNode.svelte";
-  import NodeLogs from "./NodeLogs.svelte";
+  import AddNode from "./nodes/AddNode.svelte";
+  import NodeLogs from "./nodes/NodeLogs.svelte";
+  import NodeUpdate from "./nodes/NodeUpdate.svelte";
 </script>
 
 <main>
@@ -13,16 +14,16 @@
       <span class="stack-title">Sphinx Stack</span>
     </div>
 
-    {#if $selectedNode}
-      <div class="title">{$selectedNode.name}</div>
-      {#if $selectedNode.version}
-        <div class="version">({$selectedNode.version})</div>
+    <section class="header-btn-wrap">
+      {#if $selectedNode}
+        <NodeUpdate name={$selectedNode.name} version={$selectedNode.version} />
       {/if}
-    {/if}
 
-    {#if $selectedNode && $selectedNode.place === "Internal"}
-      <NodeLogs nodeName={$selectedNode.name} />
-    {/if}
+      {#if $selectedNode && $selectedNode.place === "Internal"}
+        <NodeLogs nodeName={$selectedNode.name} />
+      {/if}
+    </section>
+
     <AddNode />
   </header>
   <div class="body">
@@ -67,20 +68,14 @@
     height: 100%;
     border-right: 1px solid #101317;
   }
-  .title {
-    color: white;
-    margin-left: 2rem;
-    font-size: 1.15rem;
-  }
-  .version {
-    color: white;
-    margin: 0 1rem;
-    font-weight: bold;
-    font-size: 0.8rem;
-  }
   .stack-title {
     color: white;
     margin-left: 0.5rem;
     font-size: 1.2rem;
+  }
+  .header-btn-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
   }
 </style>
