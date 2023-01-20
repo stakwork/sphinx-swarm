@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   export let add = () => {};
 
   import { Button, TextInput } from "carbon-components-svelte";
@@ -6,6 +6,7 @@
   import { users } from "../store";
   import User from "./User.svelte";
   import { afterUpdate } from "svelte";
+  import AddUser from "./AddUser.svelte";
 
   let selectedPubkey = "";
   $: filteredUsers = $users;
@@ -21,6 +22,17 @@
         (u.alias && u.alias.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   });
+
+  type UserPage = "main" | "add_user";
+  let page: UserPage = "main";
+
+  function toggleAddUser() {
+    if (page === "add_user") {
+      page = "main";
+    } else {
+      page = "add_user";
+    }
+  }
 </script>
 
 <div>
@@ -35,7 +47,7 @@
     <div class="users">
       <p>Current Users <span class="users-count">42</span></p>
       <Button
-        on:click={add}
+        on:click={toggleAddUser}
         kind="tertiary"
         type="submit"
         size="field"
@@ -44,21 +56,25 @@
       >
     </div>
     <div class="divider" />
-    <section class="search-wrap">
-      <TextInput
-        labelText="Search Users"
-        class="users-search"
-        placeholder="Search by user alias or pubkey"
-        bind:value={searchTerm}
-      />
-    </section>
-    {#each filteredUsers as user}
-      <User
-        {...user}
-        select={(pubkey) => (selectedPubkey = pubkey)}
-        selected={false}
-      />
-    {/each}
+    {#if page === "add_user"}
+      <AddUser back={toggleAddUser} />
+    {:else if page === "main"}
+      <section class="search-wrap">
+        <TextInput
+          labelText="Search Users"
+          class="users-search"
+          placeholder="Search by user alias or pubkey"
+          bind:value={searchTerm}
+        />
+      </section>
+      {#each filteredUsers as user}
+        <User
+          {...user}
+          select={(pubkey) => (selectedPubkey = pubkey)}
+          selected={false}
+        />
+      {/each}
+    {/if}
   {/if}
 </div>
 
