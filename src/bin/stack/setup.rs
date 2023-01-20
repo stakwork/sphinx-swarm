@@ -117,9 +117,10 @@ pub async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<Re
         log::info!("relay admin exists already");
         return Ok(api);
     }
-    let new_user = api.add_user().await?;
+    let root_pubkey = api.initial_admin_pubkey().await?;
+    // let new_user = api.add_user().await?;
     let token = secrets::random_word(12);
-    let _id = api.claim_user(&new_user.public_key, &token).await?;
+    let _id = api.claim_user(&root_pubkey, &token).await?;
     secrets::add_to_secrets(proj, name, &token).await;
     Ok(api)
 }

@@ -75,8 +75,35 @@ impl RelayAPI {
         Ok(res.json().await?)
     }
 
-    pub async fn add_user(&self) -> Result<User> {
-        let route = format!("http://{}/add_user", self.url);
+    pub async fn initial_admin_pubkey(&self) -> Result<String> {
+        #[derive(Deserialize)]
+        struct InitialPubkeyResult {
+            pubkey: String,
+        }
+        let route = format!("http://{}/initial_admin_pubkey", self.url);
+        let res = self.client.get(route.as_str()).send().await?;
+        let ipr: InitialPubkeyResult = res.json().await?;
+        Ok(ipr.pubkey)
+    }
+
+    pub async fn add_default_tribe(&self, id: u16) -> Result<bool> {
+        let route = format!("http://{}/default_tribe/{}", self.url, id);
+        let res = self.client.post(route.as_str()).send().await?;
+        Ok(res.json().await?)
+    }
+
+    pub async fn remove_default_tribe(&self, id: u16) -> Result<bool> {
+        let route = format!("http://{}/default_tribe/{}", self.url, id);
+        let res = self.client.delete(route.as_str()).send().await?;
+        Ok(res.json().await?)
+    }
+
+    pub async fn add_user(&self, initial_sats: Option<u64>) -> Result<User> {
+        let mut sats = "".to_string();
+        if let Some(s) = initial_sats {
+            sats = format!("?sats={}", s);
+        }
+        let route = format!("http://{}/add_user{}", self.url, sats);
         let res = self
             .client
             .get(route.as_str())

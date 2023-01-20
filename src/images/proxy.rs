@@ -65,6 +65,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
     let mut cmd = vec![
         "/app/sphinx-proxy".to_string(),
         macpath.to_string(),
+        "--rpclisten=0.0.0.0:11111".to_string(),
         "--store-dir=/app/proxy/badger".to_string(),
         "--bitcoin.active".to_string(),
         "--bitcoin.basefee=0".to_string(),
@@ -79,7 +80,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         "--tls-location=/lnd/tls.cert".to_string(),
         "--unlock-pwd=hi123456".to_string(),
         "--server-macaroons-dir=/app/proxy/macaroons".to_string(),
-        "--channels-start=2".to_string(),
+        "--channels-start=0".to_string(),
         "--initial-msat=500000".to_string(),
     ];
     if let Some(at) = &proxy.admin_token {

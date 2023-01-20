@@ -23,16 +23,18 @@ async fn build_stack(
     let mut ids = HashMap::new();
     let mut clients: Clients = Default::default();
     for node in stack.nodes.clone().iter() {
-        add_node::add_node(
+        let id_opt = add_node::add_node(
             proj,
             &node,
             stack.nodes.clone(),
             docker,
-            &mut ids,
             &secs,
             &mut clients,
         )
         .await?;
+        if let Some(id) = id_opt {
+            ids.insert(node.name(), id);
+        }
     }
     Ok((ids, clients))
 }
