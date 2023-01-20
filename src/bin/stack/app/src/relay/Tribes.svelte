@@ -12,16 +12,8 @@
 
   let defaultTribes = [
     {
-      id: "1",
-      name: "Testing Sphinx",
-    },
-    {
-      id: "2",
-      name: "Sphinx dev",
-    },
-    {
-      id: "3",
-      name: "Nostr",
+      id: "X",
+      name: "Testing default tribes",
     },
   ];
 

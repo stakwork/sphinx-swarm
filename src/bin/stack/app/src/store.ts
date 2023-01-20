@@ -8,7 +8,7 @@ import type { Tribe, Person, TribeData } from "./api/tribes";
 import type { Channel } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
-import * as api  from "./api";
+import * as api from "./api";
 
 export const selectedNode = writable<Node>();
 
@@ -51,7 +51,26 @@ export const balances = derived(channels, ($channels) => ({
 export const btcinfo = writable<BtcInfo>();
 
 async function fetchTribes() {
-  allTribes.set(await api.tribes.get_tribes("tribes.sphinx.chat"));
+  let tribesKey = "tribes";
+  let tribes = [];
+
+  const setTribes = (tribes) => localStorage.setItem("tribes", JSON.stringify(tribes));
+  
+  const tribesApi = await api.tribes.get_tribes("tribes.sphinx.chat");
+
+  if (localStorage.getItem(tribesKey)) {
+    tribes = JSON.parse(localStorage.getItem(tribesKey));
+
+    if(tribesApi.length > tribes.length) {
+      localStorage.setItem(tribesKey, JSON.stringify(tribesApi));
+      setTribes(tribesApi);
+    }
+  } else {
+    tribes = tribesApi;
+    setTribes(tribes);
+  }
+
+  allTribes.set(tribes);
 }
 
 fetchTribes();
