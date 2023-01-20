@@ -1,24 +1,31 @@
 <script>
-  import Delete from "carbon-icons-svelte/lib/RuleCancelled.svelte";
   import { Dropdown, Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
+  import {allTribes} from "../store";
+
+  let items = $allTribes.map((t) => ({
+    id: t.uuid,
+    text: t.name,
+  }));
+
+  items = [{id: "", text: "Select a tribe"}, ...items];
 
   let defaultTribes = [
     {
-      id: 1,
+      id: "1",
       name: "Testing Sphinx",
     },
     {
-      id: 2,
+      id: "2",
       name: "Sphinx dev",
     },
     {
-      id: 3,
+      id: "3",
       name: "Nostr",
     },
   ];
 
-  $: tribe = "";
+  let selectedTribe = "";
 
   function deleteTribe(id) {
     const tribeIndex = defaultTribes.findIndex((t) => t.id === id);
@@ -28,7 +35,16 @@
     }
   }
 
-  function addDefaulttribe() {}
+  function addDefaulttribe(id) {
+    // Check if tribe as already been added
+    const tribeIndex = defaultTribes.findIndex(t => t.id === id);
+
+    if(defaultTribes.length < 5 && tribeIndex === -1) {
+      const tribe = items.find(t => t.id === id);
+
+      defaultTribes = [...defaultTribes, {id: tribe.id, name: tribe.text}]
+    }
+  }
 </script>
 
 <div class="tribes-wrap">
@@ -43,7 +59,7 @@
       <section class="tribes">
         <p class="name">{tribe.name}</p>
         <button on:click={() => deleteTribe(tribe.id)} class="delete-btn"
-          ><Delete size={20} /></button
+          >X</button
         >
       </section>
     {/each}
@@ -52,10 +68,10 @@
     <section class="add-tribe-wrap">
       <label for="tribes">Add tribe</label>
       <section class="form">
-        <Dropdown bind:selectedId={tribe} />
+        <Dropdown bind:selectedId={selectedTribe} value="" {items} />
         <div class="spacer" />
-        {#if tribe}
-          <Button on:click={addDefaulttribe} size="field" icon={Add}>Add</Button
+        {#if selectedTribe && defaultTribes.length < 5}
+          <Button on:click={() => addDefaulttribe(selectedTribe)} size="field" icon={Add}>Add</Button
           >
         {/if}
       </section>
@@ -102,6 +118,8 @@
     border: 0;
     width: 20px;
     height: 20px;
+    font-size: 0.95rem;
+    font-weight: bolder;
   }
   .add-tribe-wrap {
     margin-top: 20px;

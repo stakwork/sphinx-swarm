@@ -4,16 +4,19 @@ import { stack as initialStack } from "./nodes";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
-import type { Tribe, Person } from "./api/tribes";
+import type { Tribe, Person, TribeData } from "./api/tribes";
 import type { Channel } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
+import * as api  from "./api";
 
 export const selectedNode = writable<Node>();
 
 export const stack = writable<Stack>(initialStack);
 
 export const users = writable<User[]>(initialUsers);
+
+export const allTribes = writable<TribeData[]>([]);
 
 export const tribes = writable<Tribe>({
   page: 1,
@@ -46,3 +49,9 @@ export const balances = derived(channels, ($channels) => ({
 }));
 
 export const btcinfo = writable<BtcInfo>();
+
+async function fetchTribes() {
+  allTribes.set(await api.tribes.get_tribes("tribes.sphinx.chat"));
+}
+
+fetchTribes();
