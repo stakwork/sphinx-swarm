@@ -1,6 +1,4 @@
 <script lang="ts">
-  export let add = () => {};
-
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { users } from "../store";
