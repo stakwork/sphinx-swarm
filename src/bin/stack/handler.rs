@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use bollard::Docker;
+use serde::{Deserialize, Serialize};
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
@@ -9,7 +10,7 @@ use sphinx_swarm::images::Image;
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
     // conf can be mutated in place
     let mut state = STATE.lock().await;
-    let mut stack = &state.stack;
+    let stack = &state.stack;
     // println!("STACK {:?}", stack);
 
     let ret: Option<String> = match cmd {
@@ -26,12 +27,30 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 let logs = container_logs(docker, &container_name).await;
                 Some(serde_json::to_string(&logs)?)
             }
-            SwarmCmd::ListVersions(name) => {
-                // find the node by name
-                // get the image by calling node.repo()
-                // return the json from
-                // https://hub.docker.com/v2/namespaces/{ORG}/repositories/{REPO}/tags
-                Some("".to_string())
+            SwarmCmd::ListVersions(req) => {
+                #[derive(Serialize, Deserialize, Debug, Clone)]
+                struct ListVersionsResult {
+                    org: String,
+                    repo: String,
+                    images: String,
+                }
+                let img = stack
+                    .nodes
+                    .iter()
+                    .find(|n| n.name() == req.name)
+                    .context(format!("cant find node {}", &req.name))?
+                    .as_internal()?
+                    .repo();
+                let url = format!(
+                    "https://hub.docker.com/v2/namespaces/{}/repositories/{}/tags?page={}",
+                    img.org, img.repo, req.page
+                );
+                let body = reqwest::get(url).await?.text().await?;
+                Some(serde_json::to_string(&ListVersionsResult {
+                    org: img.org,
+                    repo: img.repo,
+                    images: body,
+                })?)
             }
         },
         Cmd::Relay(c) => match c {

@@ -24,6 +24,7 @@ pub struct Repository {
     pub org: String,
     pub repo: String,
 }
+
 pub trait DockerHubImage {
     fn repo(&self) -> Repository;
 }
@@ -49,6 +50,16 @@ impl Image {
             Image::Cache(_n) => "Cache",
         }
         .to_string()
+    }
+
+    pub fn repo(&self) -> Repository {
+        match self {
+            Image::Btc(n) => n.repo(),
+            Image::Lnd(n) => n.repo(),
+            Image::Relay(n) => n.repo(),
+            Image::Proxy(n) => n.repo(),
+            Image::Cache(n) => n.repo(),
+        }
     }
 }
 
