@@ -1,11 +1,7 @@
 <script>
   import Users from "./Users.svelte";
   import { Tabs, Tab, TabContent } from "carbon-components-svelte";
-  import { selectedNode } from "../store";
-  import Controls from "../controls/Controls.svelte";
-  import { controls } from "../controls/controls";
-
-  export let tag = "";
+  import Tribes from "./Tribes.svelte";
 </script>
 
 <Tabs>
@@ -14,6 +10,7 @@
   <svelte:fragment slot="content">
     <TabContent><Users /></TabContent>
     <TabContent>
+      <Tribes />
     </TabContent>
   </svelte:fragment>
 </Tabs>

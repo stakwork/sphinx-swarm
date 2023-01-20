@@ -245,3 +245,11 @@ html {
 	text-align: center;
 	padding: 0;
 }
+
+.divider {
+	min-height: 1.5px;
+	background: #6A6C6D;
+	display: block;
+	width: 100%;
+	margin: 15px 0px;
+}
