@@ -52,7 +52,7 @@ const stack: Stack = {
     {
       place: "Internal",
       type: "Btc",
-      version: "23.0",
+      version: "v23.0",
       name: "bitcoind",
       network: "regtest",
       user: "user",

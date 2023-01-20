@@ -32,6 +32,7 @@ impl CacheImage {
         self.links = strarr(links)
     }
 }
+
 impl DockerHubImage for CacheImage {
     fn repo(&self) -> Repository {
         Repository {

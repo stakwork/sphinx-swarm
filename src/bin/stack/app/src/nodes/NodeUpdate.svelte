@@ -7,13 +7,11 @@
     StructuredListRow,
     StructuredListCell,
     StructuredListBody,
-    StructuredListInput,
   } from "carbon-components-svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
-  import InfiniteScroll from "svelte-infinite-loading";
 
   let open = false;
 
@@ -22,6 +20,8 @@
   let org = "";
   let repo = "";
   let loading = false;
+  let scrollLoading = false;
+  let hasMore = true;
   let page = 1;
 
   $: versionItems = [];
@@ -68,7 +68,7 @@
 
     const items = formatVersionData(versions);
 
-    selected = `row-${items[0].name}-value`;
+    selected = `row-${version}-value`;
 
     versionItems = items;
 
@@ -76,26 +76,29 @@
   }
 
   async function upgradeVersion() {
-
+    console.log("UPDATE IMAGE");
   }
 
   onDestroy(() => {
     clearData();
   });
 
-  async function infiniteHandler({ detail: { loaded, complete } }) {
-    const nodeVersions = await api.swarm.get_node_images(name, page);
-    const versions = parseVersionData(nodeVersions);
-
-    const items = versions ? (versionItems = formatVersionData(versions)) : [];
-
-    if (items.length) {
+  async function scrolled(el) {
+    let obj = el.target;
+    if (Math.ceil(obj.scrollTop) === obj.scrollHeight - obj.offsetHeight) {
       page += 1;
-      versionItems = [...versionItems, ...items];
+      scrollLoading = true;
 
-      loaded();
-    } else {
-      complete();
+      const nodeVersions = await api.swarm.get_node_images(name, page);
+      const newVersions = parseVersionData(nodeVersions);
+      const items = newVersions ? formatVersionData(newVersions) : [];
+
+      if (items.length) {
+        versionItems = [...versionItems, ...items];
+        scrollLoading = false;
+      } else {
+        hasMore = false;
+      }
     }
   }
 </script>
@@ -105,7 +108,6 @@
     <div class="title">{name}</div>
     {#if version}
       <div class="version">({version})</div>
-
       <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
     {/if}
   </section>
@@ -126,7 +128,7 @@
           <h5>Loading image versions .....</h5>
         </div>
       {:else}
-        <div class="list">
+        <div class="list" on:scroll={scrolled}>
           <StructuredList selection {selected}>
             <StructuredListHead>
               <StructuredListRow head>
@@ -138,15 +140,15 @@
             </StructuredListHead>
             <StructuredListBody>
               {#each versionItems as item}
-                <ImageRow {item} {repo}/>
+                <ImageRow {item} {repo} />
               {/each}
             </StructuredListBody>
           </StructuredList>
-          <!-- <InfiniteScroll
-            distance={20}
-            identifier={name}
-            on:infinite={infiniteHandler}
-          /> -->
+          {#if scrollLoading && hasMore}
+            <p class="scroll-msg">Loading more ...</p>
+            {:else}
+            <p class="scroll-msg">No more data</p>
+          {/if }
         </div>
       {/if}
     </section>
@@ -176,12 +178,18 @@
   }
   .modal-content {
     padding: 0px 1.5rem;
-    /* width: 100%; */
+    width: 100%;
   }
-
   .list {
     max-height: 400px;
     min-height: 400px;
+    min-width: 100%;
     overflow-y: auto;
+  }
+  .scroll-msg {
+    text-align: center;
+    padding: 0;
+    margin: 0;
+    margin-top: -50px;
   }
 </style>
