@@ -247,9 +247,9 @@ html {
 }
 
 .divider {
-    min-height: 1.5px;
-    background: #6A6C6D;
-    display: block;
-    width: 100%;
-    margin: 15px 0px;
-  }
+	min-height: 1.5px;
+	background: #6A6C6D;
+	display: block;
+	width: 100%;
+	margin: 15px 0px;
+}
