@@ -28,7 +28,6 @@ pub async fn add_node(
         Image::Btc(btc) => {
             let btc1 = images::btc::btc(proj, &btc);
             let btc_id = create_and_start(&docker, btc1).await?;
-
             let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
             sleep(1).await;
             client.create_or_load_wallet()?;

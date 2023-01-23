@@ -142,7 +142,7 @@ fn remove_tokens(s: &Stack) -> Stack {
                 Node::Internal(Image::Proxy(p))
             }
             Image::Relay(r) => Node::Internal(Image::Relay(r)),
-            Image::Cache(_) => todo!(),
+            Image::Cache(c) => Node::Internal(Image::Cache(c))
         },
     });
     Stack {

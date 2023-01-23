@@ -96,6 +96,7 @@ impl Default for Stack {
         // bitcoind
         let mut v = "v23.0";
         let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+
         // lnd
         v = "v0.15.5-beta";
         let mut lnd = LndImage::new("lnd1", v, &network, "10009");
@@ -112,7 +113,7 @@ impl Default for Stack {
         v = "v2.2.12";
         let node_env = "development";
         let mut relay = RelayImage::new("relay1", v, node_env, "3000");
-        relay.links(vec!["proxy1", "lnd1"]);
+        relay.links(vec!["proxy1", "lnd1", "tribes", "memes"]);
 
         // cache
         v = "0.1.14";

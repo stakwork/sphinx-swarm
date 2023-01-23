@@ -1,5 +1,4 @@
 import { writable, derived } from "svelte/store";
-import { localStorageStore } from "./storage";
 import { stack as initialStack } from "./nodes";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
@@ -10,9 +9,11 @@ import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
 import * as api from "./api";
 
+export const emptyStack: Stack  = {network: "regtest", nodes: []};
+
 export const selectedNode = writable<Node>();
 
-export const stack = writable<Stack>(initialStack);
+export const stack = writable<Stack>(emptyStack);
 
 export const users = writable<User[]>(initialUsers);
 

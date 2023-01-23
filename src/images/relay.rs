@@ -4,7 +4,7 @@ use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
 // in relay:
-// docker build -f --no-cache Dockerfile.swarm .
+// docker build --no-cache -f Dockerfile.swarm .
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelayImage {
@@ -43,11 +43,11 @@ pub fn relay(
     lnd: &lnd::LndImage,
     proxy: Option<proxy::ProxyImage>,
 ) -> Config<String> {
-    let img = "sphinx-relay";
-    let version = "latest";
-    // let repo = relay.repo();
-    // let img = format!("{}/{}", repo.org, repo.repo);
-    // let version = relay.version.clone();
+    // let img = "sphinx-relay";
+    // let version = "latest";
+    let repo = relay.repo();
+    let img = format!("{}/{}", repo.org, repo.repo);
+    let version = relay.version.clone();
     let root_vol = "/relay";
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
