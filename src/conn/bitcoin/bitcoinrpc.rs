@@ -28,7 +28,7 @@ impl BitcoinRPC {
         match self.0.create_wallet(wallet, None, None, None, None) {
             Ok(_) => Ok(()),
             Err(_) => {
-                self.0.load_wallet(wallet)?;
+                let _ = self.0.load_wallet(wallet);
                 Ok(())
             }
         }

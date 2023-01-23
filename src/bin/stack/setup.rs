@@ -41,6 +41,9 @@ pub async fn lnd_clients(
     let mut client = LndRPC::new(lnd_node, &cert, &mac)
         .await
         .map_err(|e| anyhow!("LndRPC::new failed: {}", e))?;
+    if &lnd_node.network != "regtest" {
+        return Ok((client, None));
+    }
     let bal = client.try_get_balance().await?;
     if bal.confirmed_balance > 0 {
         return Ok((client, None));
@@ -88,7 +91,9 @@ pub async fn unlock_lnd(
     if let Some(_) = secs.get(&lnd_node.name) {
         let ur = unlocker.unlock_wallet(&lnd_node.unlock_password).await?;
         if let Some(err_msg) = ur.message {
-            log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
+            if !err_msg.contains("wallet already unlocked") {
+                log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
+            }
         } else {
             log::info!("LND WALLET UNLOCKED!");
         }
