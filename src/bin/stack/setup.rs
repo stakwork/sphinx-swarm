@@ -42,6 +42,9 @@ pub async fn lnd_clients(
     let mut client = LndRPC::new(lnd_node, &cert, &mac)
         .await
         .map_err(|e| anyhow!("LndRPC::new failed: {}", e))?;
+    if &lnd_node.network != "regtest" {
+        return Ok((client, None));
+    }
     let bal = client.try_get_balance().await?;
     if bal.confirmed_balance > 0 {
         return Ok((client, None));
