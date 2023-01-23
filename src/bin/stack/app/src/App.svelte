@@ -6,14 +6,20 @@
   import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
-  import { emptyStack } from "./store";
+  import { emptyStack, stack } from "./store";
   import { onMount } from "svelte";
   import * as api from "./api";
+  import type { Stack } from "./nodes";
 
   let conf = emptyStack;
 
   async function getConfig() {
-    conf = await api.swarm.get_config();
+    const stackRemote: Stack = await api.swarm.get_config();
+    if(stackRemote.nodes !== $stack.nodes) {
+      stack.set(stackRemote);
+    }
+    
+    conf = $stack;
   }
 
   onMount(() => {
