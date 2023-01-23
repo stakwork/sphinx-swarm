@@ -1,6 +1,6 @@
 <script lang="ts">
   import { selectedNode } from "./store";
-  import {Loading} from "carbon-components-svelte"; 
+  import { Loading } from "carbon-components-svelte";
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./nodes/AddNode.svelte";
@@ -11,15 +11,11 @@
   import * as api from "./api";
   import type { Stack } from "./nodes";
 
-  let conf = emptyStack;
-
   async function getConfig() {
     const stackRemote: Stack = await api.swarm.get_config();
-    if(stackRemote.nodes !== $stack.nodes) {
+    if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
     }
-    
-    conf = $stack;
   }
 
   onMount(() => {
@@ -47,11 +43,11 @@
     <AddNode />
   </header>
   <div class="body">
-    {#if conf.nodes.length}
-      <Flow stack={conf} />
-      {:else}
+    {#if $stack.nodes.length}
+      <Flow />
+    {:else}
       <div class="loader">
-        <Loading/>
+        <Loading />
       </div>
     {/if}
     <Controller />
