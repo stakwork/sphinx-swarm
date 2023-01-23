@@ -32,7 +32,7 @@ impl DockerHubImage for RelayImage {
     fn repo(&self) -> Repository {
         Repository {
             org: "sphinxlightning".to_string(),
-            repo: "sphinx-relay".to_string(),
+            repo: "sphinx-relay-swarm".to_string(),
         }
     }
 }
