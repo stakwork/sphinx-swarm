@@ -88,7 +88,9 @@ pub async fn unlock_lnd(
     if let Some(_) = secs.get(&lnd_node.name) {
         let ur = unlocker.unlock_wallet(&lnd_node.unlock_password).await?;
         if let Some(err_msg) = ur.message {
-            log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
+            if !err_msg.contains("wallet already unlocked") {
+                log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
+            }
         } else {
             log::info!("LND WALLET UNLOCKED!");
         }

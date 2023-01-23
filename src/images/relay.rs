@@ -4,7 +4,7 @@ use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
 // in relay:
-// docker build -f --no-cache Dockerfile.swarm .
+// docker build --no-cache -f Dockerfile.swarm .
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelayImage {
