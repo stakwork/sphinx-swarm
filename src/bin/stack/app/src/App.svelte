@@ -1,10 +1,24 @@
 <script lang="ts">
   import { selectedNode } from "./store";
+  import {Loading} from "carbon-components-svelte"; 
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
+  import { emptyStack } from "./store";
+  import { onMount } from "svelte";
+  import * as api from "./api";
+
+  let conf = emptyStack;
+
+  async function getConfig() {
+    conf = await api.swarm.get_config();
+  }
+
+  onMount(() => {
+    getConfig();
+  });
 </script>
 
 <main>
@@ -27,7 +41,13 @@
     <AddNode />
   </header>
   <div class="body">
-    <Flow />
+    {#if conf.nodes.length}
+      <Flow stack={conf} />
+      {:else}
+      <div class="loader">
+        <Loading/>
+      </div>
+    {/if}
     <Controller />
   </div>
 </main>
@@ -77,5 +97,14 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+  }
+  .loader {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    justify-items: center;
   }
 </style>

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import {onMount} from "svelte";
   import Svelvet from "svelvet";
-  import { stack, defaultPositions } from "./nodes";
+  import { defaultPositions, type Stack } from "./nodes";
   import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode } from "./store";
-  import * as api from "./api";
+  import { onMount } from "svelte";
+
+  export let stack: Stack = { network: "regtest", nodes: [] };
 
   const nodeCallback = (node) => {
     const n = stack.nodes.find((n) => n.name === node.data.name);
@@ -13,6 +14,8 @@
       selectedNode.update((node) => (node && node.name === n.name ? null : n));
     }
   };
+
+  $: flow = toSvelvet(stack.nodes, nodeCallback);
 
   function toSvelvet(
     ns: Node[],
@@ -73,17 +76,11 @@
     </section>`;
   }
 
-  $: flow = toSvelvet(stack.nodes, nodeCallback);
-
-  async function getConfig(params:type) {
-   const config = await api.swarm.get_config();
-
-   console.log("Config ===", config);
-  }
-
   onMount(() => {
-    getConfig();
-  })
+    () => {
+      flow = toSvelvet(stack.nodes, nodeCallback);
+    };
+  });
 </script>
 
 <Svelvet
