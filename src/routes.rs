@@ -1,7 +1,11 @@
+use crate::auth;
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use crate::rocket_utils::{Error, Result, *};
 use response::stream::{Event, EventStream};
-use rocket::serde::json::json;
+use rocket::serde::{
+    json::{json, Json},
+    Deserialize, Serialize,
+};
 use rocket::*;
 use std::sync::Arc;
 use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
@@ -43,4 +47,35 @@ pub async fn logstream(
             yield Event::json(&msg);
         }
     }
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct LoginData {
+    pub username: String,
+    pub password: String,
+}
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct LoginResult {
+    pub token: String,
+}
+
+#[rocket::post("/login", data = "<body>")]
+pub async fn login(body: Json<LoginData>) -> Result<Json<LoginResult>> {
+    let pass_hash = "";
+    let valid = bcrypt::verify(&body.password, pass_hash)?;
+    if !valid {
+        return Err(Error::Unauthorized);
+    }
+    Ok(Json(LoginResult {
+        token: auth::make_jwt(1)?,
+    }))
+}
+
+#[rocket::get("/refresh_jwt")]
+pub async fn refresh_jwt(claims: auth::AdminJwtClaims) -> Result<Json<LoginResult>> {
+    Ok(Json(LoginResult {
+        token: auth::make_jwt(claims.user)?,
+    }))
 }

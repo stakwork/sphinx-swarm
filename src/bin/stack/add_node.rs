@@ -44,7 +44,7 @@ pub async fn add_node(
             let lnd1 = images::lnd::lnd(proj, &lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
 
-            sleep(1).await;
+            // sleep(1).await;
             let (client, test_mine_addy) = setup::lnd_clients(docker, proj, &lnd, &secs).await?;
             setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
             clients.lnd.insert(lnd.name, client);

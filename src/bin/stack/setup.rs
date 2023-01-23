@@ -32,6 +32,7 @@ pub async fn lnd_clients(
 ) -> Result<(LndRPC, Option<String>)> {
     let cert_path = "/home/.lnd/tls.cert";
     let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
+    // sleep_ms(1000).await;
     unlock_lnd(&cert, proj, lnd_node, secs).await?;
     let macpath = format!(
         "/home/.lnd/data/chain/bitcoin/{}/admin.macaroon",

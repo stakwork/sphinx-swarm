@@ -34,6 +34,10 @@ url = "2.2.2"
 rsa = "0.7.2"
 walkdir = "2"
 tar = "0.4"
+jwt = "0.16.0"
+bcrypt = "0.13"
+sha2 = "0.10"
+hmac = "0.12"
 
 [lib]
 name = "sphinx_swarm"
