@@ -79,3 +79,19 @@ pub async fn refresh_jwt(claims: auth::AdminJwtClaims) -> Result<Json<LoginResul
         token: auth::make_jwt(claims.user)?,
     }))
 }
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdatePasswordData {
+    pub password: String,
+}
+#[rocket::put("/admin/password", data = "<body>")]
+pub async fn update_password(
+    body: Json<UpdatePasswordData>,
+    _claims: auth::AdminJwtClaims,
+) -> Result<Json<bool>> {
+    let _password = body.password.clone();
+    // FIXME
+    // update password - claims.user
+    Ok(Json(true))
+}
