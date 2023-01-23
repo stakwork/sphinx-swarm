@@ -1,16 +1,19 @@
 <script lang="ts">
   import Svelvet from "svelvet";
-  import { stack, defaultPositions } from "./nodes";
+  import { defaultPositions, type Stack } from "./nodes";
   import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
-  import { selectedNode } from "./store";
+  import { selectedNode, stack } from "./store";
+  import { onMount } from "svelte";
 
   const nodeCallback = (node) => {
-    const n = stack.nodes.find((n) => n.name === node.data.name);
+    const n = $stack.nodes.find((n) => n.name === node.data.name);
     if (n) {
       selectedNode.update((node) => (node && node.name === n.name ? null : n));
     }
   };
+
+  $: flow = toSvelvet($stack.nodes, nodeCallback);
 
   function toSvelvet(
     ns: Node[],
@@ -70,8 +73,6 @@
       <p class="node-text">${t}</p>
     </section>`;
   }
-
-  $: flow = toSvelvet(stack.nodes, nodeCallback);
 </script>
 
 <Svelvet
