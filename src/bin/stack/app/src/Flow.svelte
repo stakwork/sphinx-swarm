@@ -1,9 +1,11 @@
 <script lang="ts">
+  import {onMount} from "svelte";
   import Svelvet from "svelvet";
   import { stack, defaultPositions } from "./nodes";
   import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode } from "./store";
+  import * as api from "./api";
 
   const nodeCallback = (node) => {
     const n = stack.nodes.find((n) => n.name === node.data.name);
@@ -72,6 +74,16 @@
   }
 
   $: flow = toSvelvet(stack.nodes, nodeCallback);
+
+  async function getConfig(params:type) {
+   const config = await api.swarm.get_config();
+
+   console.log("Config ===", config);
+  }
+
+  onMount(() => {
+    getConfig();
+  })
 </script>
 
 <Svelvet
