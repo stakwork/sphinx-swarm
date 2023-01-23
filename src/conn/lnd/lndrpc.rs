@@ -8,7 +8,7 @@ pub struct LndRPC(Client);
 
 impl LndRPC {
     pub async fn new(lnd: &LndImage, cert_pem: &str, macaroon: &str) -> Result<Self> {
-        let address = format!("https://localhost:{}", lnd.port);
+        let address = format!("https://localhost:{}", lnd.rpc_port);
         let client = tonic_lnd::connect_from_memory(address, cert_pem, macaroon).await?;
         Ok(Self(client))
     }

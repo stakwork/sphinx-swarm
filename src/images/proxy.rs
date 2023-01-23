@@ -73,7 +73,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),
         format!("--lnd-ip={}.sphinx", &lnd.name),
-        format!("--lnd-port={}", &lnd.port),
+        format!("--lnd-port={}", &lnd.rpc_port),
         format!("--tlsextradomain={}.sphinx", proxy.name),
         "--tlscertpath=/app/proxy/tls.cert".to_string(),
         "--tlskeypath=/app/proxy/tls.key".to_string(),
