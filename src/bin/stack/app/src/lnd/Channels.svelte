@@ -76,7 +76,6 @@
         : 0,
   }));
 
-  $: totalPeers = $peers.hasOwnProperty(tag) ? $peers[tag].length : 0;
 </script>
 
 <div class="wrap">
@@ -129,7 +128,7 @@
       disabled={false}
       on:click={() => {}}
     >
-      Total Peers ({totalPeers})
+      Total Peers ({$peers.hasOwnProperty(tag) ? $peers[tag].length : 0})
     </Button>
   </section>
   <section class="divider" />
