@@ -1,10 +1,9 @@
-import { writable, derived } from "svelte/store";
-import { stack as initialStack } from "./nodes";
+import { writable } from "svelte/store";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
 import type { Tribe, Person, TribeData } from "./api/tribes";
-import type { Channel } from "./api/lnd";
+import type { Channel, Peer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
 import * as api from "./api";
@@ -38,26 +37,9 @@ export const walletBalance = writable<number>(0);
 
 export const lightningAddresses = writable<{ [tag: string]: string }>({});
 
-// export const balances = derived(channels, ($channels) => {
-//   let allBalances = {};
-//   for (const key in $channels) {
-//     let data = {
-//       inbound:
-//         $channels.hasOwnProperty(key) && $channels[key].length
-//           ? $channels[key].reduce((acc, chan) => acc + chan.remote_balance, 0)
-//           : 0,
-//       outbound:
-//       $channels.hasOwnProperty(key)  && $channels[key].length
-//           ? $channels[key].reduce((acc, chan) => acc + chan.local_balance, 0)
-//           : 0,
-//     };
-//     allBalances[key] = data;
-//   }
-
-//   return allBalances;
-// });
-
 export const btcinfo = writable<BtcInfo>();
+
+export const peers = writable<{[tag: string]: Peer[]}>({});
 
 async function fetchTribes() {
   let tribesKey = "tribes";

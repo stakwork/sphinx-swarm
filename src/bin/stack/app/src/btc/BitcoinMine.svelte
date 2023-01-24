@@ -11,7 +11,6 @@
 
   async function mine() {
     const result = await api.btc.test_mine(tag, blockLen, address || null);
-    console.log(result);
     if (result) {
       // Set values to default
       blockLen = 6;

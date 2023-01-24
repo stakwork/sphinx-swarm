@@ -3,13 +3,14 @@
 
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { channels } from "../store";
+  import View from "carbon-icons-svelte/lib/List.svelte";
+  import { channels, peers } from "../store";
   import AddPeer from "./AddPeer.svelte";
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
 
-  import { get_info, list_channels } from "../api/lnd";
+  import { get_info, list_channels, list_peers } from "../api/lnd";
   import { derived } from "svelte/store";
 
   export let tag = "";
@@ -33,9 +34,19 @@
     });
   }
 
+  async function listPeers() {
+    if ($peers[tag] && $peers[tag].length) return;
+    const peersData = await list_peers(tag);
+
+    peers.update((peer) => {
+      return { ...peer, [tag]: peersData.peers };
+    });
+  }
+
   onMount(async () => {
     await getLndInfo();
     await listChannels();
+    await listPeers();
   });
 
   function toggleAddPeer() {
@@ -64,6 +75,8 @@
         ? $channels[tag].reduce((acc, chan) => acc + chan.local_balance, 0)
         : 0,
   }));
+
+  $: totalPeers = $peers.hasOwnProperty(tag) ? $peers[tag].length : 0;
 </script>
 
 <div class="wrap">
@@ -107,6 +120,20 @@
     </aside>
   </section>
 
+  <section class="peers">
+    <Button
+      kind="tertiary"
+      type="submit"
+      size="field"
+      icon={View}
+      disabled={false}
+      on:click={() => {}}
+    >
+      Total Peers ({totalPeers})
+    </Button>
+  </section>
+  <section class="divider" />
+
   {#if page === "add_peer"}
     <AddPeer back={toggleAddPeer} {tag} />
   {:else if page === "add_channel"}
@@ -115,7 +142,11 @@
   {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />
   {:else}
-    <section class="no-data-wrap"><h3>No available channels, click on the add channel button to create one.</h3></section>
+    <section class="no-data-wrap">
+      <h3>
+        No available channels, click on the add channel button to create one.
+      </h3>
+    </section>
   {/if}
 </div>
 
@@ -164,10 +195,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 60vh;
+    min-height: 50vh;
     width: 100%;
   }
   .no-data-wrap h3 {
     font-size: 0.9rem;
+  }
+
+  .peers {
+    align-items: center;
+    padding: 20px 25px;
+    padding-bottom: 5px;
   }
 </style>
