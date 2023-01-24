@@ -123,7 +123,7 @@
   {#if page === "add_peer"}
     <AddPeer back={toggleAddPeer} {tag} />
   {:else if page === "add_channel"}
-    <AddChannel back={toggleAddChannel} {tag} />
+    <AddChannel back={toggleAddChannel} />
     <div />
   {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />

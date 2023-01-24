@@ -10,7 +10,6 @@
   async function addChannel() {}
 
   export let back = () => {};
-  export let tag = "";
 </script>
 
 <section class="channel-wrap">

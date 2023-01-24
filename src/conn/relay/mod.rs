@@ -44,8 +44,30 @@ pub struct ClaimRes {
     pub id: u32,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Chat {
+    id: u16,
+    uuid: String,
+    name: String,
+    photo_url: String,
+    r#type: u16,
+    group_key: String,
+    host: String,
+    price_to_join: u64,
+    price_per_message: u64,
+    escrow_amount: u64,
+    escrow_millis: u64,
+    private: bool,
+    app_url: String,
+    feed_url: String,
+    tenant: u16,
+    pin: String,
+    default_join: bool,
+}
+pub type ChatsRes = Vec<Chat>;
+
 impl RelayAPI {
-    pub async fn new(relay: &RelayImage, check_is_setup: bool) -> Result<Self> {
+    pub async fn new(relay: &RelayImage, token: &str, check_is_setup: bool) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(20))
             .danger_accept_invalid_certs(true)
@@ -54,17 +76,17 @@ impl RelayAPI {
         let api = Self {
             url: format!("localhost:{}", relay.port),
             client,
-            token: "".to_string(),
+            token: token.to_string(),
         };
         if !check_is_setup {
             return Ok(api);
         }
-        for _ in 0..10 {
+        for i in 0..15 {
             if let Ok(_) = api.is_setup().await {
                 return Ok(api);
             }
-            log::info!("checking for relay setup...");
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            log::info!("checking for relay setup... {}", i);
+            sleep_ms(2000).await;
         }
         Err(anyhow::anyhow!("relay api could not set up!"))
     }
@@ -104,15 +126,35 @@ impl RelayAPI {
         Ok(ipr.response.pubkey)
     }
 
+    pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {
+        let route = format!("http://{}/contacts/tokens", self.url);
+        let body = ClaimBody {
+            pubkey: pubkey.to_string(),
+            token: token.to_string(),
+        };
+        let res = self.client.post(route.as_str()).json(&body).send().await?;
+        Ok(res.json().await?)
+    }
+
     pub async fn add_default_tribe(&self, id: u16) -> Result<RelayRes<bool>> {
         let route = format!("http://{}/default_tribe/{}", self.url, id);
-        let res = self.client.post(route.as_str()).send().await?;
+        let res = self
+            .client
+            .post(route.as_str())
+            .header("x-admin-token", self.token.clone())
+            .send()
+            .await?;
         Ok(res.json().await?)
     }
 
     pub async fn remove_default_tribe(&self, id: u16) -> Result<RelayRes<bool>> {
         let route = format!("http://{}/default_tribe/{}", self.url, id);
-        let res = self.client.delete(route.as_str()).send().await?;
+        let res = self
+            .client
+            .delete(route.as_str())
+            .header("x-admin-token", self.token.clone())
+            .send()
+            .await?;
         Ok(res.json().await?)
     }
 
@@ -142,17 +184,12 @@ impl RelayAPI {
         Ok(res.json().await?)
     }
 
-    pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {
-        let route = format!("http://{}/contacts/tokens", self.url);
-        let body = ClaimBody {
-            pubkey: pubkey.to_string(),
-            token: token.to_string(),
-        };
+    pub async fn get_chats(&self) -> Result<RelayRes<ChatsRes>> {
+        let route = format!("http://{}/chats", self.url);
         let res = self
             .client
-            .post(route.as_str())
-            .json(&body)
-            .header("x-user-token", self.token.clone())
+            .get(route.as_str())
+            .header("x-admin-token", self.token.clone())
             .send()
             .await?;
         Ok(res.json().await?)

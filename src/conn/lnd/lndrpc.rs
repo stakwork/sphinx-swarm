@@ -38,7 +38,7 @@ impl LndRPC {
                     host: peer.host.clone(),
                 }),
                 perm: true,
-                timeout: 100000,
+                timeout: 15,
             })
             .await?;
 

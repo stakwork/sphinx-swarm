@@ -53,13 +53,31 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 })?)
             }
         },
-        Cmd::Relay(c) => match c {
-            RelayCmd::AddUser => {
-                // hit new relay add user in proxy route
-                None
+        Cmd::Relay(c) => {
+            let client = state.clients.relay.get(tag).context("no relay client")?;
+            match c {
+                RelayCmd::AddUser(u) => {
+                    let res = client.add_user(u.initial_sats).await?;
+                    Some(serde_json::to_string(&res.response)?)
+                }
+                RelayCmd::ListUsers => {
+                    let res = client.list_users().await?;
+                    Some(serde_json::to_string(&res.response)?)
+                }
+                RelayCmd::GetChats => {
+                    let res = client.get_chats().await?;
+                    Some(serde_json::to_string(&res.response)?)
+                }
+                RelayCmd::AddDefaultTribe(t) => {
+                    let res = client.add_default_tribe(t.id).await?;
+                    Some(serde_json::to_string(&res.response)?)
+                }
+                RelayCmd::RemoveDefaultTribe(t) => {
+                    let res = client.remove_default_tribe(t.id).await?;
+                    Some(serde_json::to_string(&res.response)?)
+                }
             }
-            RelayCmd::ListUsers => None,
-        },
+        }
         Cmd::Bitcoind(c) => {
             let client = state
                 .clients
@@ -95,11 +113,11 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 LndCmd::AddPeer(peer) => {
                     let result = client.add_peer(peer).await?;
                     Some(serde_json::to_string(&result)?)
-                },
+                }
                 LndCmd::ListPeers => {
                     let result = client.list_peers().await?;
                     Some(serde_json::to_string(&result)?)
-                },
+                }
                 LndCmd::AddChannel(channel) => {
                     let channel = client.create_channel(channel).await?;
                     Some(serde_json::to_string(&channel)?)
@@ -146,7 +164,7 @@ fn remove_tokens(s: &Stack) -> Stack {
                 Node::Internal(Image::Proxy(p))
             }
             Image::Relay(r) => Node::Internal(Image::Relay(r)),
-            Image::Cache(c) => Node::Internal(Image::Cache(c))
+            Image::Cache(c) => Node::Internal(Image::Cache(c)),
         },
     });
     Stack {

@@ -27,10 +27,21 @@ pub enum SwarmCmd {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddUser {
+    pub initial_sats: Option<u64>,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DefaultTribe {
+    pub id: u16,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum RelayCmd {
     ListUsers,
-    AddUser,
+    AddUser(AddUser),
+    GetChats,
+    AddDefaultTribe(DefaultTribe),
+    RemoveDefaultTribe(DefaultTribe),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -89,8 +100,8 @@ mod tests {
         let c = Cmd::Swarm(SwarmCmd::AddNode(Image::Btc(btc)));
         println!("{}", serde_json::to_string(&c).unwrap());
 
-        let c2 = Cmd::Relay(RelayCmd::AddUser);
-        println!("{}", serde_json::to_string(&c2).unwrap());
+        // let c2 = Cmd::Relay(RelayCmd::AddUser);
+        // println!("{}", serde_json::to_string(&c2).unwrap());
 
         let c3 = Cmd::Swarm(SwarmCmd::GetConfig);
         println!("{}", serde_json::to_string(&c3).unwrap());

@@ -5,7 +5,6 @@ use rocket::tokio;
 use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use sphinx_swarm::conn::proxy::ProxyAPI;
-use sphinx_swarm::conn::relay::RelayAPI;
 use sphinx_swarm::images::{Image, LinkedImages};
 use sphinx_swarm::{dock::*, images};
 use url::{Host, Url};
@@ -70,8 +69,7 @@ pub async fn add_node(
             let relay1 = images::relay::relay(proj, &relay, &lnd, proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
 
-            let client = RelayAPI::new(&relay, false).await?;
-            let client = setup::relay_root_user(proj, &relay.name, client).await?;
+            let client = setup::relay_client(proj, &relay).await?;
             clients.relay.insert(relay.name, client);
 
             // RELAY NEEDS TO NOT BE USER 1000 either!

@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
 use images::lnd::LndImage;
+use images::relay::RelayImage;
 use rocket::tokio;
 use sphinx_swarm::config::Clients;
 use sphinx_swarm::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
@@ -121,7 +122,13 @@ pub async fn unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<(
     Ok(())
 }
 
-pub async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<RelayAPI> {
+pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
+    let secs = secrets::load_secrets(proj).await;
+    let relay_token = match secs.get(&relay.name) {
+        Some(token) => token.clone(),
+        None => secrets::random_word(12),
+    };
+    let api = RelayAPI::new(&relay, &relay_token, false).await?;
     let has_admin = api.try_has_admin().await?.response;
     if has_admin {
         log::info!("relay admin exists already");
@@ -129,10 +136,9 @@ pub async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<Re
     }
     sleep_ms(400).await;
     let root_pubkey = api.initial_admin_pubkey().await?;
-    let token = secrets::random_word(12);
-    let claim_res = api.claim_user(&root_pubkey, &token).await?;
+    let claim_res = api.claim_user(&root_pubkey, &relay_token).await?;
+    secrets::add_to_secrets(proj, &relay.name, &relay_token).await;
     println!("Relay Root User claimed! {}", claim_res.response.id);
-    secrets::add_to_secrets(proj, name, &token).await;
     Ok(api)
 }
 
