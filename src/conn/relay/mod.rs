@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rocket::tokio;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -9,6 +9,12 @@ pub struct RelayAPI {
     pub client: reqwest::Client,
     pub url: String,
     pub token: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RelayRes<T> {
+    pub success: bool,
+    pub response: T,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -63,13 +69,25 @@ impl RelayAPI {
         Err(anyhow::anyhow!("relay api could not set up!"))
     }
 
-    pub async fn is_setup(&self) -> Result<bool> {
+    pub async fn is_setup(&self) -> Result<RelayRes<bool>> {
         let route = format!("http://{}/is_setup", self.url);
         let res = self.client.get(route.as_str()).send().await?;
         Ok(res.json().await?)
     }
 
-    pub async fn has_admin(&self) -> Result<bool> {
+    pub async fn try_has_admin(&self) -> Result<RelayRes<bool>> {
+        let mut err = anyhow!("try_has_admin never started");
+        for _ in 0..60 {
+            match self.has_admin().await {
+                Ok(b) => return Ok(b),
+                Err(e) => err = e,
+            }
+            sleep_ms(500).await;
+        }
+        Err(anyhow!(format!("try_has_admin ERROR: {}", err)))
+    }
+
+    pub async fn has_admin(&self) -> Result<RelayRes<bool>> {
         let route = format!("http://{}/has_admin", self.url);
         let res = self.client.get(route.as_str()).send().await?;
         Ok(res.json().await?)
@@ -82,23 +100,23 @@ impl RelayAPI {
         }
         let route = format!("http://{}/initial_admin_pubkey", self.url);
         let res = self.client.get(route.as_str()).send().await?;
-        let ipr: InitialPubkeyResult = res.json().await?;
-        Ok(ipr.pubkey)
+        let ipr: RelayRes<InitialPubkeyResult> = res.json().await?;
+        Ok(ipr.response.pubkey)
     }
 
-    pub async fn add_default_tribe(&self, id: u16) -> Result<bool> {
+    pub async fn add_default_tribe(&self, id: u16) -> Result<RelayRes<bool>> {
         let route = format!("http://{}/default_tribe/{}", self.url, id);
         let res = self.client.post(route.as_str()).send().await?;
         Ok(res.json().await?)
     }
 
-    pub async fn remove_default_tribe(&self, id: u16) -> Result<bool> {
+    pub async fn remove_default_tribe(&self, id: u16) -> Result<RelayRes<bool>> {
         let route = format!("http://{}/default_tribe/{}", self.url, id);
         let res = self.client.delete(route.as_str()).send().await?;
         Ok(res.json().await?)
     }
 
-    pub async fn add_user(&self, initial_sats: Option<u64>) -> Result<User> {
+    pub async fn add_user(&self, initial_sats: Option<u64>) -> Result<RelayRes<User>> {
         let mut sats = "".to_string();
         if let Some(s) = initial_sats {
             sats = format!("?sats={}", s);
@@ -113,7 +131,7 @@ impl RelayAPI {
         Ok(res.json().await?)
     }
 
-    pub async fn list_users(&self) -> Result<Users> {
+    pub async fn list_users(&self) -> Result<RelayRes<Users>> {
         let route = format!("http://{}/list_users", self.url);
         let res = self
             .client
@@ -124,7 +142,7 @@ impl RelayAPI {
         Ok(res.json().await?)
     }
 
-    pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<ClaimRes> {
+    pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {
         let route = format!("http://{}/contacts/tokens", self.url);
         let body = ClaimBody {
             pubkey: pubkey.to_string(),
@@ -139,4 +157,8 @@ impl RelayAPI {
             .await?;
         Ok(res.json().await?)
     }
+}
+
+pub async fn sleep_ms(n: u64) {
+    tokio::time::sleep(std::time::Duration::from_millis(n)).await;
 }

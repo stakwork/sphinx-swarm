@@ -7,7 +7,6 @@ use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::conn::relay::RelayAPI;
 use sphinx_swarm::images::{Image, LinkedImages};
-use sphinx_swarm::secrets;
 use sphinx_swarm::{dock::*, images};
 use url::{Host, Url};
 
@@ -16,7 +15,6 @@ pub async fn add_node(
     node: &Node,
     nodes: Vec<Node>,
     docker: &Docker,
-    secs: &secrets::Secrets,
     clients: &mut Clients,
 ) -> Result<Option<String>> {
     if let Node::External(n) = node {
@@ -44,7 +42,7 @@ pub async fn add_node(
             let lnd_id = create_and_start(&docker, lnd1).await?;
 
             sleep(1).await;
-            let (client, test_mine_addy) = setup::lnd_clients(docker, proj, &lnd, &secs).await?;
+            let (client, test_mine_addy) = setup::lnd_clients(docker, proj, &lnd).await?;
             setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
             clients.lnd.insert(lnd.name, client);
             log::info!("created LND {}", lnd_id);
@@ -73,7 +71,7 @@ pub async fn add_node(
             let relay_id = create_and_start(&docker, relay1).await?;
 
             let client = RelayAPI::new(&relay, false).await?;
-            // let client = relay_root_user(proj, &relay.name, client).await?;
+            let client = setup::relay_root_user(proj, &relay.name, client).await?;
             clients.relay.insert(relay.name, client);
 
             // RELAY NEEDS TO NOT BE USER 1000 either!

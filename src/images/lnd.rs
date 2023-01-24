@@ -74,8 +74,12 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String>
         // format!("--bitcoind.rpcpolling"),
         format!("--bitcoind.zmqpubrawblock=tcp://{}:28332", &btc_domain),
         format!("--bitcoind.zmqpubrawtx=tcp://{}:28333", &btc_domain),
+        format!("--bitcoin.basefee=0"),
+        format!("--bitcoin.feerate=3"),
         format!("--bitcoin.defaultchanconfs=2"),
         format!("--accept-keysend"),
+        format!("--accept-amp"),
+        format!("--db.bolt.auto-compact"),
     ];
     if let Some(hp) = lnd.http_port.clone() {
         ports.push(hp.clone());
