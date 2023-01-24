@@ -113,7 +113,7 @@
     <AddChannel back={toggleAddChannel} />
     <div />
   {:else}
-    <ChannelRows />
+    <ChannelRows {tag} />
   {/if}
 </div>
 

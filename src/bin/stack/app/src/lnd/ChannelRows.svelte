@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-
   import ReceiveLineWrap from "../components/ReceiveLineWrap.svelte";
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
@@ -8,62 +6,7 @@
   import { channels } from "../store";
   import { formatSatsNumbers } from "../helpers";
 
-  import { get_info, list_channels } from "../api/lnd";
-
   export let tag = "";
-
-  let lndData = {};
-
-  async function getLndInfo() {
-    const lndRes = await get_info(tag);
-    lndData = lndRes;
-  }
-
-  async function listChannels() {
-    // if ($channels && $channels.length) return;
-    // const channelsData = await list_channels(tag);
-    // channels.set(channelsData);
-  }
-
-  onMount(async () => {
-    await getLndInfo();
-    await listChannels();
-  });
-
-  const mockChannels = [
-    {
-      active: true,
-      remote_pubkey:
-        "0350587f325dcd6eb50b1c86874961c134be3ab2b9297d88e61443bb0531d7798e",
-      capacity: 100000,
-      local_balance: 100,
-      remote_balance: 96541,
-    },
-    {
-      active: true,
-      remote_pubkey:
-        "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f",
-      capacity: 500000,
-      local_balance: 218986,
-      remote_balance: 280288,
-    },
-    {
-      active: false,
-      remote_pubkey:
-        "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b55e",
-      capacity: 400000,
-      local_balance: 200000,
-      remote_balance: 200000,
-    },
-    {
-      active: false,
-      remote_pubkey:
-        "023d70f2f76d283c6c4e58109ee3b1815eb9d8feb40b23d62469060a2b2867b77f",
-      capacity: 450000,
-      local_balance: 18986,
-      remote_balance: 200288,
-    },
-  ];
 
   function getBarCalculation(chan) {
     const remote_balance = Number(chan.remote_balance);
@@ -96,36 +39,38 @@
   </section>
 
   <section class="table-body">
-    {#each mockChannels.map(getBarCalculation) as chan}
-      <section class="row">
-        <div class="td">
-          <DotWrap>
-            <Dot color={chan.active ? "#52B550" : `#ED7474`} />
-          </DotWrap>
-        </div>
-        <div class="td">
-          <section class="can-receive-wrap">
-            <section class="value">
-              {formatSatsNumbers(chan.local_balance)}
+    {#if $channels.hasOwnProperty(tag)}
+      {#each $channels[tag].map(getBarCalculation) as chan}
+        <section class="row">
+          <div class="td">
+            <DotWrap>
+              <Dot color={chan.active ? "#52B550" : `#ED7474`} />
+            </DotWrap>
+          </div>
+          <div class="td">
+            <section class="can-receive-wrap">
+              <section class="value">
+                {formatSatsNumbers(chan.local_balance)}
+              </section>
+              <ReceiveLineWrap>
+                <ReceiveLine
+                  color={chan.color}
+                  width={`${chan.local_percentage}%`}
+                />
+                <ReceiveLine
+                  color={chan.color}
+                  width={`${chan.remote_percentage}%`}
+                />
+              </ReceiveLineWrap>
             </section>
-            <ReceiveLineWrap>
-              <ReceiveLine
-                color={chan.color}
-                width={`${chan.local_percentage}%`}
-              />
-              <ReceiveLine
-                color={chan.color}
-                width={`${chan.remote_percentage}%`}
-              />
-            </ReceiveLineWrap>
-          </section>
-        </div>
-        <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
-        <div class="td">
-          <span class="pubkey">{chan.remote_pubkey}</span>
-        </div>
-      </section>
-    {/each}
+          </div>
+          <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
+          <div class="td">
+            <span class="pubkey">{chan.remote_pubkey}</span>
+          </div>
+        </section>
+      {/each}
+    {/if}
   </section>
 </div>
 
