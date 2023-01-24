@@ -10,29 +10,15 @@ use sphinx_swarm::images;
 use sphinx_swarm::secrets;
 use sphinx_swarm::utils::domain;
 
-pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut Clients) {
-    if let Some(addy) = test_mine_addy {
-        log::info!("mining 101 blocks to LND address {}", addy);
-        if let Some(btcrpc) = clients.bitcoind.get(btc_name) {
-            if let Err(e) = btcrpc.test_mine(101, Some(addy)) {
-                log::error!("failed to test mine {}", e);
-            } else {
-                log::info!("blocks mined!");
-            }
-        }
-    }
-}
-
 // returns LndRPC client and address if test mine needed
 pub async fn lnd_clients(
     docker: &Docker,
     proj: &str,
     lnd_node: &LndImage,
-    secs: &secrets::Secrets,
 ) -> Result<(LndRPC, Option<String>)> {
     let cert_path = "/home/.lnd/tls.cert";
     let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
-    unlock_lnd(&cert, proj, lnd_node, secs).await?;
+    try_unlock_lnd(&cert, proj, lnd_node).await?;
     let macpath = format!(
         "/home/.lnd/data/chain/bitcoin/{}/admin.macaroon",
         lnd_node.network
@@ -52,6 +38,18 @@ pub async fn lnd_clients(
     Ok((client, Some(addy.address)))
 }
 
+pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut Clients) {
+    if let Some(addy) = test_mine_addy {
+        log::info!("mining 101 blocks to LND address {}", addy);
+        if let Some(btcrpc) = clients.bitcoind.get(btc_name) {
+            if let Err(e) = btcrpc.test_mine(101, Some(addy)) {
+                log::error!("failed to test mine {}", e);
+            } else {
+                log::info!("blocks mined!");
+            }
+        }
+    }
+}
 async fn try_dl(docker: &Docker, name: &str, path: &str) -> Result<Vec<u8>> {
     for _ in 0..60 {
         if let Ok(bytes) = download_from_container(docker, &domain(name), path).await {
@@ -77,12 +75,19 @@ pub async fn dl_macaroon(docker: &Docker, lnd_name: &str, path: &str) -> Result<
     Ok(hex::encode(mac_bytes))
 }
 
-pub async fn unlock_lnd(
-    cert: &str,
-    proj: &str,
-    lnd_node: &LndImage,
-    secs: &secrets::Secrets,
-) -> Result<()> {
+async fn try_unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<()> {
+    let mut err = anyhow!("try_unlock_lnd never started");
+    for _ in 0..60 {
+        match unlock_lnd(cert, proj, lnd_node).await {
+            Ok(_) => return Ok(()),
+            Err(e) => err = e,
+        }
+        sleep_ms(500).await;
+    }
+    Err(anyhow!(format!("try_unlock_lnd failed: {:?}", err)))
+}
+pub async fn unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<()> {
+    let secs = secrets::load_secrets(proj).await;
     // UNLOCK LND
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
     let unlocker = LndUnlocker::new(&unlock_port, cert)
@@ -117,15 +122,15 @@ pub async fn unlock_lnd(
 }
 
 pub async fn relay_root_user(proj: &str, name: &str, api: RelayAPI) -> Result<RelayAPI> {
-    let has_admin = api.has_admin().await?;
+    let has_admin = api.try_has_admin().await?.response;
     if has_admin {
         log::info!("relay admin exists already");
         return Ok(api);
     }
     let root_pubkey = api.initial_admin_pubkey().await?;
-    // let new_user = api.add_user().await?;
     let token = secrets::random_word(12);
-    let _id = api.claim_user(&root_pubkey, &token).await?;
+    let claim_res = api.claim_user(&root_pubkey, &token).await?;
+    println!("Relay Root User claimed! {}", claim_res.response.id);
     secrets::add_to_secrets(proj, name, &token).await;
     Ok(api)
 }
