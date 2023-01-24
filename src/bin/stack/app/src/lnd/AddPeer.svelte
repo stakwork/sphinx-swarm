@@ -2,16 +2,16 @@
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import {add_peer} from "../api/lnd";
+  import { add_peer } from "../api/lnd";
 
   $: pubkey = "";
   $: host = "";
-  
+
   export let back = () => {};
   export let tag = "";
 
   async function addPeer() {
-    if(await add_peer(tag, pubkey, host)) {
+    if (await add_peer(tag, pubkey, host)) {
       pubkey = "";
       host = "";
     }

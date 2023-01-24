@@ -24,6 +24,7 @@
     "vite": "^4.0.0"
   },
   "dependencies": {
+    "@zerodevx/svelte-toast": "^0.8.2",
     "lodash": "^4.17.21",
     "lodash.debounce": "^4.0.8",
     "moment": "^2.29.4",

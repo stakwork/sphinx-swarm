@@ -6,7 +6,7 @@
   import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
-  import { emptyStack, stack } from "./store";
+  import { stack } from "./store";
   import { onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";

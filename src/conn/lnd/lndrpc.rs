@@ -45,6 +45,17 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
+    pub async fn list_peers(&mut self) -> Result<ListPeersResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .list_peers(ListPeersRequest {
+                ..Default::default()
+            })
+            .await?;
+
+        Ok(response.into_inner())
+    }
+
     pub async fn create_channel(&mut self, channel: AddChannel) -> Result<ChannelPoint> {
         let lnd = self.0.lightning();
         let node_pubkey = hex::decode(channel.pubkey)?;
