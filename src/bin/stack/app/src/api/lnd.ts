@@ -32,6 +32,18 @@ export interface Channel {
   thaw_height: number;
 }
 
+export interface Peer {
+  pub_key: string;
+  address: string;
+  bytes_sent: number;
+  bytes_recv: number;
+  sat_sent: number;
+  sat_recv: number;
+  inbound: number;
+  ping_time: number;
+  sync_type: number;
+}
+
 async function lndCmd(cmd: Cmd, tag: string, content?: any) {
   return await send_cmd("Lnd", { cmd, content }, tag);
 }
@@ -46,6 +58,10 @@ export async function list_channels(tag: string) {
 
 export async function add_peer(tag: string, pubkey: string, host: string) {
   return await lndCmd("AddPeer", tag, { pubkey, host });
+}
+
+export async function list_peers(tag: string) {
+  return await lndCmd("ListPeers", tag);
 }
 
 export async function get_balance(tag: string) {

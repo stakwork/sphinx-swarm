@@ -82,7 +82,7 @@ html {
 	font-size: 0.8rem;
 }
 
-.header-btns .bx--btn--tertiary {
+.header-btns .bx--btn--tertiary, .peers .bx--btn--tertiary  {
 	border-radius: 8px;
 }
 

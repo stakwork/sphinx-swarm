@@ -2,12 +2,27 @@
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import { add_peer, list_peers } from "../api/lnd";
+  import {peers} from "../store";
 
   $: pubkey = "";
   $: host = "";
-  export let back = () => {};
 
-  async function addPeer() {}
+  export let back = () => {};
+  export let tag = "";
+
+  async function addPeer() {
+    if (await add_peer(tag, pubkey, host)) {
+      pubkey = "";
+      host = "";
+
+      const peersData = await list_peers(tag);
+      
+      peers.update((peer) => {
+        return { ...peer, [tag]: peersData.peers };
+      });
+    }
+  }
 </script>
 
 <section class="peer-wrap">

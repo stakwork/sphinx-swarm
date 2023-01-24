@@ -19,7 +19,6 @@ const btcControls: Control[] = [
     type: "button",
     action: async (tag: string) => {
       const info = await api.btc.get_info(tag);
-      console.log(info);
     },
   },
 ];
@@ -44,7 +43,6 @@ const lndControls: Control[] = [
     type: "button",
     action: async (tag: string) => {
       const info = await api.lnd.get_info(tag);
-      console.log(info);
     },
   },
   { name: "LND 2", type: "number", value: 42 },

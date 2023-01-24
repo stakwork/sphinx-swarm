@@ -8,7 +8,7 @@ pub struct LndRPC(Client);
 
 impl LndRPC {
     pub async fn new(lnd: &LndImage, cert_pem: &str, macaroon: &str) -> Result<Self> {
-        let address = format!("https://localhost:{}", lnd.port);
+        let address = format!("https://localhost:{}", lnd.rpc_port);
         let client = tonic_lnd::connect_from_memory(address, cert_pem, macaroon).await?;
         Ok(Self(client))
     }
@@ -34,13 +34,25 @@ impl LndRPC {
         let response = lnd
             .connect_peer(ConnectPeerRequest {
                 addr: Some(LightningAddress {
-                    pubkey: peer.pubkey,
-                    host: peer.host,
+                    pubkey: peer.pubkey.clone(),
+                    host: peer.host.clone(),
                 }),
                 perm: true,
                 timeout: 100000,
             })
             .await?;
+
+        Ok(response.into_inner())
+    }
+
+    pub async fn list_peers(&mut self) -> Result<ListPeersResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .list_peers(ListPeersRequest {
+                ..Default::default()
+            })
+            .await?;
+
         Ok(response.into_inner())
     }
 

@@ -122,7 +122,7 @@ impl RelayConfig {
     }
     pub fn lnd(&mut self, lnd: &lnd::LndImage) {
         self.lnd_ip = domain(&lnd.name);
-        self.lnd_port = lnd.port.to_string();
+        self.lnd_port = lnd.rpc_port.to_string();
         self.tls_location = "/lnd/tls.cert".to_string();
         self.macaroon_location = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", lnd.network);
     }
@@ -210,6 +210,7 @@ mod tests {
             "v0.14.3-beta.rc1",
             "regtest",
             "10009",
+            "9735",
         ));
         relay_env_config(&c);
         assert!(true == true)

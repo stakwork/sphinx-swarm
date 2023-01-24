@@ -16,6 +16,7 @@ export type Cmd =
   | "TestMine"
   | "ListChannels"
   | "AddPeer"
+  | "ListPeers"
   | "CreateChannel"
   | "GetBalance"
   | "NewAddress"

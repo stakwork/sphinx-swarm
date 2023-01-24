@@ -9,18 +9,20 @@ pub struct LndImage {
     pub name: String,
     pub version: String,
     pub network: String,
-    pub port: String,
+    pub rpc_port: String,
+    pub peer_port: String,
     pub http_port: Option<String>,
     pub links: Links,
     pub unlock_password: String,
 }
 impl LndImage {
-    pub fn new(name: &str, version: &str, network: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str, rpc_port: &str, peer_port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
             network: network.to_string(),
-            port: port.to_string(),
+            rpc_port: rpc_port.to_string(),
+            peer_port: peer_port.to_string(),
             http_port: None,
             links: vec![],
             unlock_password: secrets::random_word(12),
@@ -51,8 +53,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String>
     };
     let repo = lnd.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
-    let peering_port = "9735";
-    let mut ports = vec![peering_port.to_string(), lnd.port.clone()];
+    let mut ports = vec![lnd.peer_port.to_string(), lnd.rpc_port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
     let root_vol = "/home/.lnd";
     let links = Some(vec![domain(&btc.name)]);
@@ -63,7 +64,8 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String>
         format!("--bitcoin.node=bitcoind"),
         format!("--lnddir={}", root_vol),
         format!("--bitcoin.{}", network),
-        format!("--rpclisten=0.0.0.0:{}", &lnd.port),
+        format!("--listen=0.0.0.0:{}", &lnd.peer_port),
+        format!("--rpclisten=0.0.0.0:{}", &lnd.rpc_port),
         format!("--tlsextradomain={}.sphinx", lnd.name),
         format!("--alias={}", &lnd.name),
         format!("--bitcoind.rpcuser={}", &btc.user),

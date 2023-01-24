@@ -65,6 +65,7 @@ pub enum BitcoindCmd {
 pub enum LndCmd {
     GetInfo,
     ListChannels,
+    ListPeers,
     AddPeer(AddPeer),
     AddChannel(AddChannel),
     NewAddress,

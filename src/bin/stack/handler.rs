@@ -95,7 +95,11 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 LndCmd::AddPeer(peer) => {
                     let result = client.add_peer(peer).await?;
                     Some(serde_json::to_string(&result)?)
-                }
+                },
+                LndCmd::ListPeers => {
+                    let result = client.list_peers().await?;
+                    Some(serde_json::to_string(&result)?)
+                },
                 LndCmd::AddChannel(channel) => {
                     let channel = client.create_channel(channel).await?;
                     Some(serde_json::to_string(&channel)?)

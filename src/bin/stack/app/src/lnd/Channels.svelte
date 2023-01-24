@@ -3,13 +3,15 @@
 
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { channels, balances } from "../store";
+  import View from "carbon-icons-svelte/lib/List.svelte";
+  import { channels, peers } from "../store";
   import AddPeer from "./AddPeer.svelte";
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
 
-  import { get_info, list_channels } from "../api/lnd";
+  import { get_info, list_channels, list_peers } from "../api/lnd";
+  import { derived } from "svelte/store";
 
   export let tag = "";
 
@@ -24,14 +26,27 @@
   }
 
   async function listChannels() {
-    if ($channels && $channels.length) return;
+    if ($channels[tag] && $channels[tag].length) return;
     const channelsData = await list_channels(tag);
-    channels.set(channelsData);
+
+    channels.update((chans) => {
+      return { ...chans, [tag]: channelsData };
+    });
+  }
+
+  async function listPeers() {
+    if ($peers[tag] && $peers[tag].length) return;
+    const peersData = await list_peers(tag);
+
+    peers.update((peer) => {
+      return { ...peer, [tag]: peersData.peers };
+    });
   }
 
   onMount(async () => {
     await getLndInfo();
     await listChannels();
+    await listPeers();
   });
 
   function toggleAddPeer() {
@@ -49,6 +64,18 @@
       page = "add_channel";
     }
   }
+
+  $: balances = derived(channels, ($channels) => ({
+    inbound:
+      $channels[tag] && $channels[tag].length
+        ? $channels[tag].reduce((acc, chan) => acc + chan.remote_balance, 0)
+        : 0,
+    outbound:
+      $channels[tag] && $channels[tag].length
+        ? $channels[tag].reduce((acc, chan) => acc + chan.local_balance, 0)
+        : 0,
+  }));
+
 </script>
 
 <div class="wrap">
@@ -92,13 +119,33 @@
     </aside>
   </section>
 
+  <section class="peers">
+    <Button
+      kind="tertiary"
+      type="submit"
+      size="field"
+      icon={View}
+      disabled={false}
+      on:click={() => {}}
+    >
+      Total Peers ({$peers.hasOwnProperty(tag) ? $peers[tag].length : 0})
+    </Button>
+  </section>
+  <section class="divider" />
+
   {#if page === "add_peer"}
-    <AddPeer back={toggleAddPeer} />
+    <AddPeer back={toggleAddPeer} {tag} />
   {:else if page === "add_channel"}
-    <AddChannel back={toggleAddChannel} />
+    <AddChannel back={toggleAddChannel} {tag} />
     <div />
+  {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
+    <ChannelRows {tag} />
   {:else}
-    <ChannelRows />
+    <section class="no-data-wrap">
+      <h3>
+        No available channels, click on the add channel button to create one.
+      </h3>
+    </section>
   {/if}
 </div>
 
@@ -141,5 +188,22 @@
     position: absolute;
     right: 1rem;
     top: -5.6rem;
+  }
+  .no-data-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    width: 100%;
+  }
+  .no-data-wrap h3 {
+    font-size: 0.9rem;
+  }
+
+  .peers {
+    align-items: center;
+    padding: 20px 25px;
+    padding-bottom: 5px;
   }
 </style>
