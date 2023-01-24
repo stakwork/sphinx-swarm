@@ -3,7 +3,7 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { add_peer, list_peers } from "../api/lnd";
-  import {peers} from "../store";
+  import { peers } from "../store";
 
   $: pubkey = "";
   $: host = "";
@@ -17,7 +17,7 @@
       host = "";
 
       const peersData = await list_peers(tag);
-      
+
       peers.update((peer) => {
         return { ...peer, [tag]: peersData.peers };
       });

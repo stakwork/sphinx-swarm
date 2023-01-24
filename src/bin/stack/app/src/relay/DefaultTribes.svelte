@@ -1,14 +1,14 @@
 <script>
   import { Dropdown, Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import {allTribes} from "../store";
+  import { allTribes } from "../store";
 
   let items = $allTribes.map((t) => ({
     id: t.uuid,
     text: t.name,
   }));
 
-  items = [{id: "", text: "Select a tribe"}, ...items];
+  items = [{ id: "", text: "Select a tribe" }, ...items];
 
   let defaultTribes = [
     {
@@ -29,12 +29,12 @@
 
   function addDefaulttribe(id) {
     // Check if tribe as already been added
-    const tribeIndex = defaultTribes.findIndex(t => t.id === id);
+    const tribeIndex = defaultTribes.findIndex((t) => t.id === id);
 
-    if(defaultTribes.length < 5 && tribeIndex === -1) {
-      const tribe = items.find(t => t.id === id);
+    if (defaultTribes.length < 5 && tribeIndex === -1) {
+      const tribe = items.find((t) => t.id === id);
 
-      defaultTribes = [...defaultTribes, {id: tribe.id, name: tribe.text}]
+      defaultTribes = [...defaultTribes, { id: tribe.id, name: tribe.text }];
     }
   }
 </script>
@@ -63,7 +63,10 @@
         <Dropdown bind:selectedId={selectedTribe} value="" {items} />
         <div class="spacer" />
         {#if selectedTribe && defaultTribes.length < 5}
-          <Button on:click={() => addDefaulttribe(selectedTribe)} size="field" icon={Add}>Add</Button
+          <Button
+            on:click={() => addDefaulttribe(selectedTribe)}
+            size="field"
+            icon={Add}>Add</Button
           >
         {/if}
       </section>

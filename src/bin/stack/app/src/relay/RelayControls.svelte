@@ -1,7 +1,7 @@
 <script>
   import Users from "./Users.svelte";
   import { Tabs, Tab, TabContent } from "carbon-components-svelte";
-  import Tribes from "./Tribes.svelte";
+  import DefaultTribes from "./DefaultTribes.svelte";
 </script>
 
 <Tabs>
@@ -10,7 +10,7 @@
   <svelte:fragment slot="content">
     <TabContent><Users /></TabContent>
     <TabContent>
-      <Tribes />
+      <DefaultTribes />
     </TabContent>
   </svelte:fragment>
 </Tabs>
