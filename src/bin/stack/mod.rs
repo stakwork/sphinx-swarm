@@ -8,7 +8,7 @@ use bollard::Docker;
 use rocket::tokio;
 use sphinx_swarm::cmd::Cmd;
 use sphinx_swarm::config::{load_config_file, put_config_file, Clients, Stack, State, STATE};
-use sphinx_swarm::{dock::*, logs, rocket_utils::CmdRequest, secrets};
+use sphinx_swarm::{dock::*, logs, rocket_utils::CmdRequest};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -19,19 +19,11 @@ async fn build_stack(
     docker: &Docker,
     stack: &Stack,
 ) -> Result<(HashMap<String, String>, Clients)> {
-    let secs = secrets::load_secrets(proj).await;
     let mut ids = HashMap::new();
     let mut clients: Clients = Default::default();
     for node in stack.nodes.clone().iter() {
-        let id_opt = add_node::add_node(
-            proj,
-            &node,
-            stack.nodes.clone(),
-            docker,
-            &secs,
-            &mut clients,
-        )
-        .await?;
+        let id_opt =
+            add_node::add_node(proj, &node, stack.nodes.clone(), docker, &mut clients).await?;
         if let Some(id) = id_opt {
             ids.insert(node.name(), id);
         }
@@ -46,7 +38,7 @@ async fn main() -> Result<()> {
 
     let proj = "stack";
     let stack: Stack = load_config_file(proj).await;
-    let (ids, clients) = build_stack(proj, &docker, &stack).await?;
+    let (_ids, clients) = build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
 
     // set into the main state mutex
