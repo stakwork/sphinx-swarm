@@ -39,38 +39,36 @@
   </section>
 
   <section class="table-body">
-    {#if $channels.hasOwnProperty(tag)}
-      {#each $channels[tag].map(getBarCalculation) as chan}
-        <section class="row">
-          <div class="td">
-            <DotWrap>
-              <Dot color={chan.active ? "#52B550" : `#ED7474`} />
-            </DotWrap>
-          </div>
-          <div class="td">
-            <section class="can-receive-wrap">
-              <section class="value">
-                {formatSatsNumbers(chan.local_balance)}
-              </section>
-              <ReceiveLineWrap>
-                <ReceiveLine
-                  color={chan.color}
-                  width={`${chan.local_percentage}%`}
-                />
-                <ReceiveLine
-                  color={chan.color}
-                  width={`${chan.remote_percentage}%`}
-                />
-              </ReceiveLineWrap>
+    {#each $channels[tag].map(getBarCalculation) as chan}
+      <section class="row">
+        <div class="td">
+          <DotWrap>
+            <Dot color={chan.active ? "#52B550" : `#ED7474`} />
+          </DotWrap>
+        </div>
+        <div class="td">
+          <section class="can-receive-wrap">
+            <section class="value">
+              {formatSatsNumbers(chan.local_balance)}
             </section>
-          </div>
-          <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
-          <div class="td">
-            <span class="pubkey">{chan.remote_pubkey}</span>
-          </div>
-        </section>
-      {/each}
-    {/if}
+            <ReceiveLineWrap>
+              <ReceiveLine
+                color={chan.color}
+                width={`${chan.local_percentage}%`}
+              />
+              <ReceiveLine
+                color={chan.color}
+                width={`${chan.remote_percentage}%`}
+              />
+            </ReceiveLineWrap>
+          </section>
+        </div>
+        <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
+        <div class="td">
+          <span class="pubkey">{chan.remote_pubkey}</span>
+        </div>
+      </section>
+    {/each}
   </section>
 </div>
 

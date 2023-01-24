@@ -112,8 +112,10 @@
   {:else if page === "add_channel"}
     <AddChannel back={toggleAddChannel} />
     <div />
-  {:else}
+  {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />
+  {:else}
+    <section class="no-data-wrap"><h3>No available channels, click on the add channel button to create one</h3></section>
   {/if}
 </div>
 
@@ -156,5 +158,16 @@
     position: absolute;
     right: 1rem;
     top: -5.6rem;
+  }
+  .no-data-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    width: 100%;
+  }
+  .no-data-wrap h3 {
+    font-size: 0.9rem;
   }
 </style>
