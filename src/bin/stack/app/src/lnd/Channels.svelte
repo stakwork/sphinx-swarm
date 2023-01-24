@@ -108,14 +108,14 @@
   </section>
 
   {#if page === "add_peer"}
-    <AddPeer back={toggleAddPeer} />
+    <AddPeer back={toggleAddPeer} {tag} />
   {:else if page === "add_channel"}
-    <AddChannel back={toggleAddChannel} />
+    <AddChannel back={toggleAddChannel} {tag} />
     <div />
   {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />
   {:else}
-    <section class="no-data-wrap"><h3>No available channels, click on the add channel button to create one</h3></section>
+    <section class="no-data-wrap"><h3>No available channels, click on the add channel button to create one.</h3></section>
   {/if}
 </div>
 

@@ -34,13 +34,14 @@ impl LndRPC {
         let response = lnd
             .connect_peer(ConnectPeerRequest {
                 addr: Some(LightningAddress {
-                    pubkey: peer.pubkey,
-                    host: peer.host,
+                    pubkey: peer.pubkey.clone(),
+                    host: peer.host.clone(),
                 }),
                 perm: true,
                 timeout: 100000,
             })
             .await?;
+
         Ok(response.into_inner())
     }
 
