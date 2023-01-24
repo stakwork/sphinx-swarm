@@ -115,10 +115,10 @@ impl Default for Stack {
         proxy.links(vec!["lnd1"]);
 
         // relay
-        v = "v0.1.0";
-        let node_env = "development";
-        let mut relay = RelayImage::new("relay1", v, node_env, "3000");
-        relay.links(vec!["proxy1", "lnd1", "tribes", "memes"]);
+        // v = "v0.1.0";
+        // let node_env = "development";
+        // let mut relay = RelayImage::new("relay1", v, node_env, "3000");
+        // relay.links(vec!["proxy1", "lnd1", "tribes", "memes"]);
 
         // cache
         v = "0.1.14";
@@ -131,7 +131,7 @@ impl Default for Stack {
             Image::Lnd(lnd),
             Image::Lnd(lnd2),
             Image::Proxy(proxy),
-            Image::Relay(relay),
+            // Image::Relay(relay),
             Image::Cache(cache),
         ];
 

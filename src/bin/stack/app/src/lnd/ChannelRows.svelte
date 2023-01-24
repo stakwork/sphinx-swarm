@@ -20,9 +20,9 @@
   }
 
   async function listChannels() {
-    if ($channels && $channels.length) return;
-    const channelsData = await list_channels(tag);
-    channels.set(channelsData);
+    // if ($channels && $channels.length) return;
+    // const channelsData = await list_channels(tag);
+    // channels.set(channelsData);
   }
 
   onMount(async () => {

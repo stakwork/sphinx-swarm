@@ -27,7 +27,7 @@ export const tribes = writable<Tribe>({
 
 export const people = writable<Person[]>([]);
 
-export const channels = writable<Channel[]>([]);
+export const channels = writable<{[tag: string]: Channel[]}>({});
 
 export const proxy = writable<ProxyBalance>({
   total: 0,
@@ -38,16 +38,24 @@ export const walletBalance = writable<number>(0);
 
 export const lightningAddresses = writable<{ [tag: string]: string }>({});
 
-export const balances = derived(channels, ($channels) => ({
-  inbound:
-    $channels && $channels.length
-      ? $channels.reduce((acc, chan) => acc + chan.remote_balance, 0)
-      : 0,
-  outbound:
-    $channels && $channels.length
-      ? $channels.reduce((acc, chan) => acc + chan.local_balance, 0)
-      : 0,
-}));
+// export const balances = derived(channels, ($channels) => {
+//   let allBalances = {};
+//   for (const key in $channels) {
+//     let data = {
+//       inbound:
+//         $channels.hasOwnProperty(key) && $channels[key].length
+//           ? $channels[key].reduce((acc, chan) => acc + chan.remote_balance, 0)
+//           : 0,
+//       outbound:
+//       $channels.hasOwnProperty(key)  && $channels[key].length
+//           ? $channels[key].reduce((acc, chan) => acc + chan.local_balance, 0)
+//           : 0,
+//     };
+//     allBalances[key] = data;
+//   }
+
+//   return allBalances;
+// });
 
 export const btcinfo = writable<BtcInfo>();
 

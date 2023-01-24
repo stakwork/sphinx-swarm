@@ -3,13 +3,14 @@
 
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { channels, balances } from "../store";
+  import { channels } from "../store";
   import AddPeer from "./AddPeer.svelte";
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
 
   import { get_info, list_channels } from "../api/lnd";
+  import { derived } from "svelte/store";
 
   export let tag = "";
 
@@ -24,9 +25,12 @@
   }
 
   async function listChannels() {
-    if ($channels && $channels.length) return;
+    if ($channels[tag] && $channels[tag].length) return;
     const channelsData = await list_channels(tag);
-    channels.set(channelsData);
+
+    channels.update((chans) => {
+      return { ...chans, [tag]: channelsData };
+    });
   }
 
   onMount(async () => {
@@ -49,6 +53,17 @@
       page = "add_channel";
     }
   }
+
+  $: balances = derived(channels, ($channels) => ({
+    inbound:
+      $channels[tag] && $channels[tag].length
+        ? $channels[tag].reduce((acc, chan) => acc + chan.remote_balance, 0)
+        : 0,
+    outbound:
+      $channels[tag] && $channels[tag].length
+        ? $channels[tag].reduce((acc, chan) => acc + chan.local_balance, 0)
+        : 0,
+  }));
 </script>
 
 <div class="wrap">
