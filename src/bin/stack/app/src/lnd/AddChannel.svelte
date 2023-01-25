@@ -1,8 +1,11 @@
 <script lang="ts">
-  import { Button, TextInput } from "carbon-components-svelte";
+  import { Button, TextInput, Dropdown } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import { create_channel } from "../api/lnd";
+  import { create_channel, get_balance } from "../api/lnd";
+  import { onMount } from "svelte";
+  import { nodeBalances, peers as peersStore } from "../store";
+  import { formatSatsNumbers } from "../helpers";
 
   export let activeKey: string = null;
 
@@ -12,7 +15,23 @@
 
   export let tag = "";
 
-  $: addDisabled = !pubkey || !amount;
+  $: balance = $nodeBalances.hasOwnProperty(tag) ? $nodeBalances[tag] : 0;
+
+  $: addDisabled = !pubkey || !amount || amount > balance;
+
+  $: peers = $peersStore && $peersStore[tag];
+
+  // Check for length to avoid map error
+  $: peerData = peers.length ? peers.map((p) => ({
+    id: p.pub_key,
+    text: p.pub_key,
+  })) : [];
+
+  /**
+   * Add an empty object to avoid udefined displayed when 
+   * the addchannel is not trigger by clicking on a peer
+  */
+  $: peerItems = [{id: "", text: "Select peer"}, ...peerData]
 
   async function addChannel() {
     if (await create_channel(tag, pubkey, amount, sats)) {
@@ -22,6 +41,20 @@
     }
   }
 
+  async function getBalance() {
+    const balance = await get_balance(tag);
+    if (nodeBalances.hasOwnProperty(tag) && nodeBalances[tag] === balance)
+      return;
+
+    nodeBalances.update((n) => {
+      return { ...n, [tag]: balance };
+    });
+  }
+
+  onMount(() => {
+    getBalance();
+  });
+
   export let back = () => {};
 </script>
 
@@ -29,16 +62,22 @@
   <div class="back" on:click={back} on:keypress={() => {}}>
     <ArrowLeft size={24} />
   </div>
+  <div class="balance-wrap">
+    <section class="value-wrap">
+      <h3 class="title">WALLET BALANCE</h3>
+      <h3 class="value">{formatSatsNumbers(balance)}</h3>
+    </section>
+  </div>
   <section class="channel-content">
     <div class="spacer" />
-    <TextInput
-      labelText={"Peer Pubkey"}
-      placeholder={"Enter node pubkey"}
-      bind:value={pubkey}
-    />
+    <Dropdown
+        titleText="Peer Pubkey"
+        bind:selectedId={pubkey}
+        items={peerItems}
+      />
     <div class="spacer" />
     <TextInput
-      labelText={"Amount"}
+      labelText={"Amount (can't be greater than wallet balance)"}
       placeholder={"Enter channel amount"}
       type={"number"}
       bind:value={amount}
@@ -73,5 +112,8 @@
     height: 2rem;
     display: flex;
     align-items: center;
+  }
+  .balance-wrap {
+    margin-top: 10px;
   }
 </style>

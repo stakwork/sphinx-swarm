@@ -11,6 +11,7 @@
   export let back = () => {};
   export let tag = "";
   export let newChannel = (p: Peer) => {};
+
   $: peers = $peersStore && $peersStore[tag];
 
   async function addPeer() {
