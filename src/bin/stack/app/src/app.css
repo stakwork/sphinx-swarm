@@ -82,7 +82,7 @@ html {
 	font-size: 0.8rem;
 }
 
-.header-btns .bx--btn--tertiary, .peers .bx--btn--tertiary  {
+.header-btns .bx--btn--tertiary, .peers .bx--btn--tertiary, .peer .bx--btn--tertiary {
 	border-radius: 8px;
 }
 
@@ -93,6 +93,19 @@ html {
 
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before {
 	background: #618AFF !important;
+}
+
+
+.peer .bx--btn--tertiary {
+	width: 165px;
+	font-size: 0.75rem;
+	padding: none;
+	display: inline-block;
+	text-align: center;
+}
+
+.peer .bx--btn--tertiary::after {
+	padding: 0;
 }
 
 .node-html {
