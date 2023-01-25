@@ -38,29 +38,38 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         "18443".to_string(),
         "28332".to_string(),
         "28333".to_string(),
+        "8333".to_string(),
+        "8332".to_string(),
     ];
     // let image = "ruimarinho/bitcoin-core";
     let repo = node.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/data/.bitcoin";
+    let mut cmd = vec![
+        format!("-rpcuser={}", node.user),
+        format!("-rpcpassword={}", node.pass),
+        format!("-rpcbind={}.sphinx", node.name),
+        "-rpcallowip=0.0.0.0/0".to_string(),
+        "-rpcport=18443".to_string(),
+        "-server=1".to_string(),
+        "-txindex=1".to_string(),
+        "-fallbackfee=0.0002".to_string(),
+        "-zmqpubrawblock=tcp://0.0.0.0:28332".to_string(),
+        "-zmqpubrawtx=tcp://0.0.0.0:28333".to_string(),
+        "-rpcbind=127.0.0.1".to_string(),
+        "-maxconnections=10".to_string(),
+        "-minrelaytxfee=0.00000000".to_string(),
+        "-incrementalrelayfee=0.00000010".to_string(),
+    ];
+    // "bitcoin" network is default is not specified
+    if node.network != "bitcoin" {
+        cmd.push(format!("-{}=1", node.network));
+    }
     Config {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&node.name)),
         // user: user(),
-        cmd: Some(vec![
-            format!("-{}=1", node.network),
-            format!("-rpcuser={}", node.user),
-            format!("-rpcpassword={}", node.pass),
-            format!("-rpcbind={}.sphinx", node.name),
-            "-rpcallowip=0.0.0.0/0".to_string(),
-            "-rpcport=18443".to_string(),
-            "-server=1".to_string(),
-            "-txindex=1".to_string(),
-            "-fallbackfee=0.0002".to_string(),
-            "-zmqpubrawblock=tcp://0.0.0.0:28332".to_string(),
-            "-zmqpubrawtx=tcp://0.0.0.0:28333".to_string(),
-            "-rpcbind=127.0.0.1".to_string(),
-        ]),
+        cmd: Some(cmd),
         host_config: host_config(project, &node.name, ports, root_vol, None, None),
         ..Default::default()
     }

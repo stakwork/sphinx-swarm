@@ -59,6 +59,10 @@ path = "src/bin/down.rs"
 name = "btc"
 path = "src/bin/btc_test.rs"
 
+[[bin]]
+name = "btc_prod"
+path = "src/bin/btc_prod.rs"
+
 # [[bin]]
 # name = "demo"
 # path = "src/bin/demo/mod.rs"
