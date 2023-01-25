@@ -1,9 +1,11 @@
-<script>
+<script lang="ts">
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
 
-  $: pubkey = "";
+  export let activeKey: string = null;
+
+  $: pubkey = activeKey ? activeKey : "";
   $: amount = "";
   $: sats = "";
 

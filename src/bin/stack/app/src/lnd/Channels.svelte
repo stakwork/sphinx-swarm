@@ -15,6 +15,7 @@
     list_channels,
     list_peers,
     type LndInfo,
+    type Peer,
   } from "../api/lnd";
 
   export let tag = "";
@@ -29,6 +30,8 @@
   let page: ChannelPage = "main";
 
   let lndData: LndInfo;
+
+  let activePeer: Peer = null;
 
   async function getLndInfo() {
     const lndRes = await get_info(tag);
@@ -87,6 +90,11 @@
     navigator.clipboard.writeText(lndData.identity_pubkey);
     copied = true;
     setTimeout(() => (copied = false), 350);
+  }
+
+  function peerAddChannel (peer: Peer) {
+    activePeer = peer;
+    toggleAddChannel();
   }
 </script>
 
@@ -153,9 +161,9 @@
   <section class="divider" /> -->
 
   {#if page === "peers"}
-    <Peers back={toggleAddPeer} {tag} />
+    <Peers back={toggleAddPeer} {tag} newChannel={peerAddChannel} />
   {:else if page === "add_channel"}
-    <AddChannel back={toggleAddChannel} />
+    <AddChannel back={toggleAddChannel} activeKey={activePeer ? activePeer.pub_key : ""}  />
     <div />
   {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />
