@@ -45,7 +45,7 @@
   }
 
   async function listPeers() {
-    if (peers) return;
+    if (peers && peers.length) return console.log("peers", peers);
     const peersData = await list_peers(tag);
     console.log("PEERS", peersData);
     peersStore.update((peer) => {

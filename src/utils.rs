@@ -1,8 +1,10 @@
+use crate::dock;
 use anyhow::{anyhow, Result};
 use bollard::container::NetworkingConfig;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{
     HostConfig, HostConfigLogConfig, Ipam, IpamConfig, PortBinding, PortMap, ResourcesUlimits,
+    RestartPolicy, RestartPolicyNameEnum,
 };
 use rocket::tokio;
 use serde::{de::DeserializeOwned, Serialize};
@@ -11,14 +13,12 @@ use std::os::unix::fs::PermissionsExt;
 use tokio::{fs, io::AsyncWriteExt};
 
 pub fn host_config(
-    project: &str,
     name: &str,
     ports: Vec<String>,
     root_vol: &str,
     extra_vols: Option<Vec<String>>,
-    links: Option<Vec<String>>,
 ) -> Option<HostConfig> {
-    let mut dvols = vec![volume_string(project, name, root_vol)];
+    let mut dvols = vec![volume_string(name, root_vol)];
     if let Some(evs) = extra_vols {
         dvols.extend(evs);
     }
@@ -26,7 +26,11 @@ pub fn host_config(
         binds: Some(dvols),
         port_bindings: host_port(ports),
         extra_hosts: extra_hosts(),
-        links,
+        network_mode: Some(dock::DEFAULT_NETWORK.to_string()),
+        restart_policy: Some(RestartPolicy {
+            name: Some(RestartPolicyNameEnum::ON_FAILURE),
+            maximum_retry_count: Some(100),
+        }),
         ..Default::default()
     })
 }
@@ -120,7 +124,7 @@ pub fn _host_volume_string(project: &str, name: &str) -> String {
 }
 
 // DIR/vol/{project}/{container_name}:{dir}
-pub fn volume_string(project: &str, name: &str, dir: &str) -> String {
+pub fn volume_string(name: &str, dir: &str) -> String {
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(
         "{}:{}:rw", // "{}:{}:rw",

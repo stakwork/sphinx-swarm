@@ -1,7 +1,7 @@
 use super::*;
 use crate::rsa;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, host_config, user};
+use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -42,7 +42,7 @@ impl DockerHubImage for CacheImage {
     }
 }
 
-pub fn cache(project: &str, node: &CacheImage, meme_host: &str, mqtt_host: &str) -> Config<String> {
+pub fn cache(node: &CacheImage, meme_host: &str, mqtt_host: &str) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
@@ -51,9 +51,8 @@ pub fn cache(project: &str, node: &CacheImage, meme_host: &str, mqtt_host: &str)
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
-        user: user(),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(project, &name, ports, root_vol, None, None),
+        host_config: host_config(&name, ports, root_vol, None),
         env: Some(vec![
             format!("PRIVATE_KEY={}", node.priv_key),
             format!("MQTT_HOST={}", mqtt_host),

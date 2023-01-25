@@ -21,13 +21,7 @@ fn vls_ports(idx: u16) -> Ports {
     }
 }
 
-pub fn cln_vls(
-    project: &str,
-    name: &str,
-    network: &str,
-    idx: u16,
-    btc: &btc::BtcImage,
-) -> Config<String> {
+pub fn cln_vls(name: &str, network: &str, idx: u16, btc: &btc::BtcImage) -> Config<String> {
     let version = "0.1.5"; // docker tag
     let cln_version = "v0.11.0.1-793-g243f8e3";
     let ps = vls_ports(idx);
@@ -38,7 +32,6 @@ pub fn cln_vls(
         ps.http.clone(),
     ];
     let root_vol = "/root/.lightning";
-    let links = Some(vec![domain(&btc.name)]);
     Config {
         image: Some(format!("sphinxlightning/sphinx-cln-vls:{}", version)),
         hostname: Some(domain(name)),
@@ -49,10 +42,10 @@ pub fn cln_vls(
             format!("--addr=0.0.0.0:{}", ps.main),
             format!("--grpc-port={}", ps.grpc),
             "--network=regtest".to_string(),
-            "--bitcoin-rpcconnect=bitcoind".to_string(),
+            format!("--bitcoin-rpcconnect={}", &domain(&btc.name)),
             "--bitcoin-rpcport=18443".to_string(),
-            "--bitcoin-rpcuser=foo".to_string(),
-            "--bitcoin-rpcpassword=bar".to_string(),
+            format!("--bitcoin-rpcuser={}", btc.user),
+            format!("--bitcoin-rpcpassword={}", btc.pass),
             "--log-level=debug".to_string(),
             "--accept-htlc-tlv-types=133773310".to_string(),
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker".to_string(),
@@ -66,7 +59,7 @@ pub fn cln_vls(
             format!("BROKER_MQTT_PORT={}", ps.mqtt),
             format!("BROKER_HTTP_PORT={}", ps.http),
         ]),
-        host_config: host_config(project, name, ports, root_vol, None, links),
+        host_config: host_config(name, ports, root_vol, None),
         ..Default::default()
     }
 }

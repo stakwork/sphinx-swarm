@@ -44,7 +44,7 @@ impl DockerHubImage for LndImage {
     }
 }
 
-pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
+pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     let network = match lnd.network.as_str() {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
@@ -56,11 +56,6 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String>
     let mut ports = vec![lnd.peer_port.to_string(), lnd.rpc_port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
     let root_vol = "/home/.lnd";
-    let links: Vec<String> = if lnd.links.len() > 0 {
-        lnd.links.iter().map(|l| domain(l)).collect()
-    } else {
-        vec![domain(&btc.name)]
-    };
     // println!("LND LINKS {:?}", links);
     let btc_domain = domain(&btc.name);
     let mut cmd = vec![
@@ -96,7 +91,7 @@ pub fn lnd(project: &str, lnd: &LndImage, btc: &btc::BtcImage) -> Config<String>
         hostname: Some(domain(&lnd.name)),
         user: user(),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(project, &lnd.name, ports, root_vol, None, Some(links)),
+        host_config: host_config(&lnd.name, ports, root_vol, None),
         cmd: Some(cmd),
         ..Default::default()
     }

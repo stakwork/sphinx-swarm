@@ -7,6 +7,7 @@ use bollard::container::{
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
+use bollard::network::CreateNetworkOptions;
 use bollard::service::{ContainerSummary, VolumeListResponse};
 use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
@@ -267,4 +268,28 @@ pub async fn remove_volume(docker: &Docker, name: &str) -> Result<()> {
 
 pub async fn list_volumes(docker: &Docker) -> Result<VolumeListResponse> {
     Ok(docker.list_volumes::<String>(None).await?)
+}
+
+pub const DEFAULT_NETWORK: &str = "sphinx-swarm";
+
+pub async fn create_network(docker: &Docker, name: Option<&str>) -> Result<String> {
+    let name = name.unwrap_or(DEFAULT_NETWORK);
+    if let Ok(_v) = docker.inspect_network::<String>(name, None).await {
+        return Ok(name.to_string());
+    }
+    let vconf = CreateNetworkOptions {
+        name: name.to_string(),
+        ..Default::default()
+    };
+    docker.create_network(vconf).await?;
+    Ok(name.to_string())
+}
+
+pub async fn remove_network(docker: &Docker, name: Option<&str>) -> Result<String> {
+    let name = name.unwrap_or(DEFAULT_NETWORK);
+    if let Err(_) = docker.inspect_network::<String>(name, None).await {
+        return Ok(name.to_string());
+    }
+    docker.remove_network(name).await?;
+    Ok(name.to_string())
 }

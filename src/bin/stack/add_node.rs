@@ -23,7 +23,7 @@ pub async fn add_node(
     let node = node.as_internal().unwrap();
     let id = match node {
         Image::Btc(btc) => {
-            let btc1 = images::btc::btc(proj, &btc);
+            let btc1 = images::btc::btc(&btc);
             let btc_id = create_and_start(&docker, btc1).await?;
             let client = BitcoinRPC::new(&btc, "http://127.0.0.1", "18443")?;
             sleep(1).await;
@@ -37,7 +37,7 @@ pub async fn add_node(
             let li = LinkedImages::from_nodes(lnd.links.clone(), nodes);
             let btc = li.find_btc().context("BTC required for LND")?;
 
-            let lnd1 = images::lnd::lnd(proj, &lnd, &btc);
+            let lnd1 = images::lnd::lnd(&lnd, &btc);
             let lnd_id = create_and_start(&docker, lnd1).await?;
 
             sleep(1).await;
@@ -51,7 +51,7 @@ pub async fn add_node(
             let li = LinkedImages::from_nodes(proxy.links.clone(), nodes);
             let lnd = li.find_lnd().context("LND required for Proxy")?;
 
-            let proxy1 = images::proxy::proxy(proj, &proxy, &lnd);
+            let proxy1 = images::proxy::proxy(&proxy, &lnd);
             let proxy_id = create_and_start(&docker, proxy1).await?;
 
             let client = ProxyAPI::new(&proxy).await?;
@@ -66,7 +66,7 @@ pub async fn add_node(
             let lnd = li.find_lnd().context("LND required for Relay")?;
             let proxy = li.find_proxy();
 
-            let relay1 = images::relay::relay(proj, &relay, &lnd, proxy);
+            let relay1 = images::relay::relay(&relay, &lnd, proxy);
             let relay_id = create_and_start(&docker, relay1).await?;
 
             let client = setup::relay_client(proj, &relay).await?;
@@ -95,7 +95,7 @@ pub async fn add_node(
             let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
             let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
 
-            let cache1 = images::cache::cache(proj, &cache, &memes_host, &tribe_host);
+            let cache1 = images::cache::cache(&cache, &memes_host, &tribe_host);
             let cache_id = create_and_start(&docker, cache1).await?;
 
             log::info!("created cache");

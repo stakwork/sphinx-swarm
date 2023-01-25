@@ -8,7 +8,7 @@ pub async fn main() -> Result<()> {
     sphinx_swarm::utils::setup_logs();
 
     let btc_node = images::btc::BtcImage::new("bitcoind", "23.0", "regtest", "foo");
-    let btc1 = images::btc::btc("test", &btc_node);
+    let btc1 = images::btc::btc(&btc_node);
     let _id = create_and_start(&docker, btc1).await?;
     log::info!("created bitcoind");
     let logs = container_logs(&docker, "bitcoind").await;

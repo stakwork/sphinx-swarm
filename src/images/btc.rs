@@ -33,7 +33,7 @@ impl DockerHubImage for BtcImage {
     }
 }
 
-pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
+pub fn btc(node: &BtcImage) -> Config<String> {
     let ports = vec![
         "18443".to_string(),
         "28332".to_string(),
@@ -70,7 +70,7 @@ pub fn btc(project: &str, node: &BtcImage) -> Config<String> {
         hostname: Some(domain(&node.name)),
         // user: user(),
         cmd: Some(cmd),
-        host_config: host_config(project, &node.name, ports, root_vol, None, None),
+        host_config: host_config(&node.name, ports, root_vol, None),
         ..Default::default()
     }
 }

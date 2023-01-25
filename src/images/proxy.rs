@@ -47,7 +47,7 @@ impl DockerHubImage for ProxyImage {
     }
 }
 
-pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
+pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
     let repo = proxy.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let version = proxy.version.clone();
@@ -57,9 +57,8 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         "--macaroon-location=/lnd/data/chain/bitcoin/{}/admin.macaroon",
         proxy.network
     );
-    let links = vec![domain(&lnd.name)];
     let root_vol = "/app/proxy";
-    let lnd_vol = volume_string(project, &lnd.name, "/lnd");
+    let lnd_vol = volume_string(&lnd.name, "/lnd");
     let extra_vols = vec![lnd_vol];
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
     let mut cmd = vec![
@@ -94,14 +93,7 @@ pub fn proxy(project: &str, proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<S
         hostname: Some(domain(&proxy.name)),
         // user: user(),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(
-            project,
-            &proxy.name,
-            ports,
-            root_vol,
-            Some(extra_vols),
-            Some(links),
-        ),
+        host_config: host_config(&proxy.name, ports, root_vol, Some(extra_vols)),
         cmd: Some(cmd),
         ..Default::default()
     }

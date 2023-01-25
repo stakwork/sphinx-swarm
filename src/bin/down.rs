@@ -37,6 +37,9 @@ pub async fn main() -> anyhow::Result<()> {
         }
     }
 
+    let net_name = remove_network(&docker, None).await?;
+    log::info!("=> removed network {}", net_name);
+
     Ok(())
 }
 

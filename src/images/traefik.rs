@@ -26,10 +26,9 @@ ulimits:
         soft: 1000000
         hard: 1000000
 */
-pub fn traefik(project: &str, img: &TraefikImage) -> Config<String> {
+pub fn traefik(img: &TraefikImage) -> Config<String> {
     let name = "traefik";
     let image = "traefik:v2.2.1";
-    let root_vol = "traefik";
     let mut ports = vec!["8080", "443", "8883"];
     if img.insecure {
         ports.push("80");

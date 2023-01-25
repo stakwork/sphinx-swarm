@@ -19,7 +19,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 let res = remove_tokens(stack);
                 Some(serde_json::to_string(&res)?)
             }
-            SwarmCmd::AddNode(node) => {
+            SwarmCmd::AddNode(_node) => {
                 // add a node via docker
                 None
             }

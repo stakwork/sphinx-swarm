@@ -38,7 +38,6 @@ impl DockerHubImage for RelayImage {
 }
 
 pub fn relay(
-    project: &str,
     relay: &RelayImage,
     lnd: &lnd::LndImage,
     proxy: Option<proxy::ProxyImage>,
@@ -52,15 +51,13 @@ pub fn relay(
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
     // add the LND volumes
-    let lnd_vol = volume_string(project, &lnd.name, "/lnd");
+    let lnd_vol = volume_string(&lnd.name, "/lnd");
     let mut extra_vols = vec![lnd_vol];
-    let mut links = vec![domain(&lnd.name)];
     // add the optional Proxy stuff
     if let Some(p) = proxy {
         conf.proxy(&p);
-        let proxy_vol = volume_string(project, &p.name, "/proxy");
+        let proxy_vol = volume_string(&p.name, "/proxy");
         extra_vols.push(proxy_vol);
-        links.push(domain(&p.name));
     }
     // relay config from env
     let mut relay_conf = relay_env_config(&conf);
@@ -71,12 +68,10 @@ pub fn relay(
         // user: Some(format!("1000")), // user(),
         exposed_ports: exposed_ports(vec![relay.port.clone()]),
         host_config: host_config(
-            project,
             &relay.name,
             vec![relay.port.clone()],
             root_vol,
             Some(extra_vols),
-            Some(links),
         ),
         env: Some(relay_conf),
         ..Default::default()

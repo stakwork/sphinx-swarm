@@ -21,6 +21,7 @@ async fn build_stack(
 ) -> Result<(HashMap<String, String>, Clients)> {
     let mut ids = HashMap::new();
     let mut clients: Clients = Default::default();
+    create_network(docker, None).await?;
     for node in stack.nodes.clone().iter() {
         let id_opt =
             add_node::add_node(proj, &node, stack.nodes.clone(), docker, &mut clients).await?;
