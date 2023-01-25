@@ -22,16 +22,18 @@
   $: peers = $peersStore && $peersStore[tag];
 
   // Check for length to avoid map error
-  $: peerData = peers.length ? peers.map((p) => ({
-    id: p.pub_key,
-    text: p.pub_key,
-  })) : [];
+  $: peerData = peers.length
+    ? peers.map((p) => ({
+        id: p.pub_key,
+        text: p.pub_key,
+      }))
+    : [];
 
   /**
-   * Add an empty object to avoid udefined displayed when 
+   * Add an empty object to avoid udefined displayed when
    * the addchannel is not trigger by clicking on a peer
-  */
-  $: peerItems = [{id: "", text: "Select peer"}, ...peerData]
+   */
+  $: peerItems = [{ id: "", text: "Select peer" }, ...peerData];
 
   async function addChannel() {
     if (await create_channel(tag, pubkey, amount, sats)) {
@@ -71,10 +73,10 @@
   <section class="channel-content">
     <div class="spacer" />
     <Dropdown
-        titleText="Peer Pubkey"
-        bind:selectedId={pubkey}
-        items={peerItems}
-      />
+      titleText="Peer Pubkey"
+      bind:selectedId={pubkey}
+      items={peerItems}
+    />
     <div class="spacer" />
     <TextInput
       labelText={"Amount (can't be greater than wallet balance)"}

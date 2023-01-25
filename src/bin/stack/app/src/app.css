@@ -97,9 +97,9 @@ html {
 
 
 .peer .bx--btn--tertiary {
-	width: 165px;
+	width: 120px;
+	padding: 0;
 	font-size: 0.75rem;
-	padding: none;
 	display: inline-block;
 	text-align: center;
 }

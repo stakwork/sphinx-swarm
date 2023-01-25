@@ -62,6 +62,7 @@
   }
 
   function toggleAddPeer() {
+    activePeer = null;
     if (page === "peers") {
       page = "main";
     } else {
@@ -72,6 +73,7 @@
   function toggleAddChannel() {
     if (page === "add_channel") {
       page = "main";
+      activePeer = null;
     } else {
       page = "add_channel";
     }
@@ -85,7 +87,7 @@
   function copyPubkey() {
     navigator.clipboard.writeText(lndData.identity_pubkey);
     copied = true;
-    setTimeout(() => (copied = false), 350);
+    setTimeout(() => (copied = false), 150);
   }
 
   function peerAddChannel(peer: Peer) {
@@ -98,7 +100,11 @@
   <section class="header-btns">
     {#if lndData && lndData.identity_pubkey}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="pubkey" on:click={copyPubkey}>
+      <div
+        class="pubkey"
+        on:click={copyPubkey}
+        style={`transform:scale(${copied ? 1.1 : 1});`}
+      >
         {formatPubkey(lndData.identity_pubkey)}
       </div>
     {/if}
@@ -225,6 +231,7 @@
     color: #ddd;
     margin-right: 1rem;
     cursor: pointer;
+    transform-origin: center center;
   }
   .pubkey:hover {
     color: white;

@@ -116,7 +116,7 @@
     font-size: 0.95rem;
   }
   .peer-address {
-    margin: 0 0.4rem;
+    margin: 0 1rem 0 0.4rem;
     font-size: 0.95rem;
   }
 </style>
