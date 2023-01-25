@@ -79,7 +79,7 @@ export async function create_channel(
   tag: string,
   pubkey: string,
   amount: number,
-  satsperbyte
+  satsperbyte: number
 ) {
-  return await lndCmd("CreateChannel", tag, { pubkey, amount, satsperbyte });
+  return await lndCmd("AddChannel", tag, { pubkey, amount, satsperbyte });
 }

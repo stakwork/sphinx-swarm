@@ -2,14 +2,25 @@
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import { create_channel } from "../api/lnd";
 
   export let activeKey: string = null;
 
   $: pubkey = activeKey ? activeKey : "";
-  $: amount = "";
-  $: sats = "";
+  $: amount = 0;
+  $: sats = 0;
 
-  async function addChannel() {}
+  export let tag = "";
+
+  $: addDisabled = !pubkey || !amount;
+
+  async function addChannel() {
+    if (await create_channel(tag, pubkey, amount, sats)) {
+      pubkey = "";
+      amount = 0;
+      sats = 0;
+    }
+  }
 
   export let back = () => {};
 </script>
@@ -41,8 +52,12 @@
     />
     <div class="spacer" />
     <center
-      ><Button class="peer-btn" on:click={addChannel} size="field" icon={Add}
-        >Add Channel</Button
+      ><Button
+        disabled={addDisabled}
+        class="peer-btn"
+        on:click={addChannel}
+        size="field"
+        icon={Add}>Add Channel</Button
       ></center
     >
   </section>

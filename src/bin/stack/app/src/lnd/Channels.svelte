@@ -50,7 +50,6 @@
   async function listPeers() {
     if (peers) return;
     const peersData = await list_peers(tag);
-    console.log("PEERS", peersData);
     peersStore.update((peer) => {
       return { ...peer, [tag]: peersData.peers };
     });
@@ -61,9 +60,6 @@
     await listChannels();
     await listPeers();
   }
-  // onMount(() => {
-  //   setup(tag);
-  // });
 
   function toggleAddPeer() {
     if (page === "peers") {
@@ -92,7 +88,7 @@
     setTimeout(() => (copied = false), 350);
   }
 
-  function peerAddChannel (peer: Peer) {
+  function peerAddChannel(peer: Peer) {
     activePeer = peer;
     toggleAddChannel();
   }
@@ -146,24 +142,14 @@
     </aside>
   </section>
 
-  <!-- <section class="peers">
-    <Button
-      kind="tertiary"
-      type="submit"
-      size="field"
-      icon={View}
-      disabled={false}
-      on:click={() => {}}
-    >
-      Total Peers ({$peers.hasOwnProperty(tag) ? $peers[tag].length : 0})
-    </Button>
-  </section>
-  <section class="divider" /> -->
-
   {#if page === "peers"}
     <Peers back={toggleAddPeer} {tag} newChannel={peerAddChannel} />
   {:else if page === "add_channel"}
-    <AddChannel back={toggleAddChannel} activeKey={activePeer ? activePeer.pub_key : ""}  />
+    <AddChannel
+      back={toggleAddChannel}
+      activeKey={activePeer ? activePeer.pub_key : ""}
+      {tag}
+    />
     <div />
   {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />
