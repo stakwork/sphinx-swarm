@@ -1,6 +1,9 @@
 import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 
+export interface LndInfo {
+  identity_pubkey: string;
+}
 export interface Channel {
   active: boolean;
   remote_pubkey: string;

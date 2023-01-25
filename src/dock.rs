@@ -32,7 +32,7 @@ pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<Stri
     if c.image.clone().context("expected image")?.contains("/") {
         create_image(&docker, &c).await?;
     }
-    let id = create_container(&docker, c).await?;
+    let id = create_container(&docker, c.clone()).await?;
     start_container(&docker, &id).await?;
     Ok(id)
 }

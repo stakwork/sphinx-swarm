@@ -101,7 +101,7 @@ impl Default for Stack {
         v = "v0.15.5-beta";
         let mut lnd = LndImage::new("lnd1", v, &network, "10009", "9735");
         lnd.http_port = Some("8881".to_string());
-        lnd.links(vec!["bitcoind", "lnd2"]);
+        lnd.links(vec!["bitcoind"]);
 
         // lnd2
         let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");

@@ -19,7 +19,7 @@
   <section class="channel-content">
     <div class="spacer" />
     <TextInput
-      labelText={"Pubkey"}
+      labelText={"Peer Pubkey"}
       placeholder={"Enter node pubkey"}
       bind:value={pubkey}
     />
@@ -54,6 +54,7 @@
   .back {
     cursor: pointer;
     height: 2rem;
-    width: 2rem;
+    display: flex;
+    align-items: center;
   }
 </style>

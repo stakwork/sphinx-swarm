@@ -6,7 +6,7 @@
 
 `exit` to quit
 
-### connect to lnd1
+### connect to lnd2
 
 `docker exec -it lnd2.sphinx sh`
 
@@ -32,6 +32,6 @@ generate an address in LND, then
 
 `lncli newaddress p2wkh`
 
-`lncli connect $PUBKEY@$HOST:$PORT`
+`lncli --network=regtest --lnddir=/home/.lnd connect $PUBKEY@$HOST:$PORT`
 
 `lncli openchannel $PUBKEY --local_amt=1000000 --push_amt=500000 --sat_per_byte=6`

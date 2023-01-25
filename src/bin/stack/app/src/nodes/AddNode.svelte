@@ -55,8 +55,12 @@
 </script>
 
 <section class="add-node-btn">
-  <Button type="submit" size="field" icon={Add} on:click={() => (open = true)}
-    >Add New Node</Button
+  <Button
+    disabled={true}
+    type="submit"
+    size="field"
+    icon={Add}
+    on:click={() => (open = true)}>New Node</Button
   >
 
   <Modal
@@ -99,7 +103,7 @@
 <style>
   .add-node-btn {
     margin-left: auto;
-    margin-right: 2.5rem;
+    margin-right: 1.2rem;
   }
   .modal-content {
     padding: 0px 1.5rem;

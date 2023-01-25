@@ -4,20 +4,31 @@
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import View from "carbon-icons-svelte/lib/List.svelte";
-  import { channels, peers, balances } from "../store";
-  import AddPeer from "./AddPeer.svelte";
+  import { channels, peers as peersStore, balances } from "../store";
+  import Peers from "./Peers.svelte";
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
 
-  import { get_info, list_channels, list_peers } from "../api/lnd";
+  import {
+    get_info,
+    list_channels,
+    list_peers,
+    type LndInfo,
+  } from "../api/lnd";
 
   export let tag = "";
 
-  type ChannelPage = "main" | "add_peer" | "add_channel";
+  $: {
+    setup(tag);
+  }
+
+  $: peers = $peersStore && $peersStore[tag];
+
+  type ChannelPage = "main" | "peers" | "add_channel";
   let page: ChannelPage = "main";
 
-  let lndData = {};
+  let lndData: LndInfo;
 
   async function getLndInfo() {
     const lndRes = await get_info(tag);
@@ -34,25 +45,28 @@
   }
 
   async function listPeers() {
-    if ($peers[tag] && $peers[tag].length) return;
+    if (peers) return;
     const peersData = await list_peers(tag);
-
-    peers.update((peer) => {
+    console.log("PEERS", peersData);
+    peersStore.update((peer) => {
       return { ...peer, [tag]: peersData.peers };
     });
   }
 
-  onMount(async () => {
+  async function setup(_tag) {
     await getLndInfo();
     await listChannels();
     await listPeers();
-  });
+  }
+  // onMount(() => {
+  //   setup(tag);
+  // });
 
   function toggleAddPeer() {
-    if (page === "add_peer") {
+    if (page === "peers") {
       page = "main";
     } else {
-      page = "add_peer";
+      page = "peers";
     }
   }
 
@@ -63,19 +77,37 @@
       page = "add_channel";
     }
   }
+
+  function formatPubkey(pk: string) {
+    return `${pk.substring(0, 6)}...${pk.substring(pk.length - 6)}`;
+  }
+
+  let copied = false;
+  function copyPubkey() {
+    navigator.clipboard.writeText(lndData.identity_pubkey);
+    copied = true;
+    setTimeout(() => (copied = false), 350);
+  }
 </script>
 
 <div class="wrap">
   <section class="header-btns">
+    {#if lndData && lndData.identity_pubkey}
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <div class="pubkey" on:click={copyPubkey}>
+        {formatPubkey(lndData.identity_pubkey)}
+      </div>
+    {/if}
+
     <Button
       kind="tertiary"
       type="submit"
       size="field"
-      icon={Add}
+      icon={View}
       disabled={false}
       on:click={toggleAddPeer}
     >
-      Add Peer
+      Peers
     </Button>
 
     <Button
@@ -87,7 +119,7 @@
       disabled={false}
       on:click={toggleAddChannel}
     >
-      Add Channel
+      Channel
     </Button>
   </section>
 
@@ -106,7 +138,7 @@
     </aside>
   </section>
 
-  <section class="peers">
+  <!-- <section class="peers">
     <Button
       kind="tertiary"
       type="submit"
@@ -118,10 +150,10 @@
       Total Peers ({$peers.hasOwnProperty(tag) ? $peers[tag].length : 0})
     </Button>
   </section>
-  <section class="divider" />
+  <section class="divider" /> -->
 
-  {#if page === "add_peer"}
-    <AddPeer back={toggleAddPeer} {tag} />
+  {#if page === "peers"}
+    <Peers back={toggleAddPeer} {tag} />
   {:else if page === "add_channel"}
     <AddChannel back={toggleAddChannel} />
     <div />
@@ -187,10 +219,20 @@
   .no-data-wrap h3 {
     font-size: 0.9rem;
   }
-
-  .peers {
+  .pubkey {
+    font-size: 0.8rem;
+    width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: flex;
     align-items: center;
-    padding: 20px 25px;
-    padding-bottom: 5px;
+    padding-left: 1rem;
+    color: #ddd;
+    margin-right: 1rem;
+    cursor: pointer;
+  }
+  .pubkey:hover {
+    color: white;
   }
 </style>
