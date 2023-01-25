@@ -15,6 +15,7 @@
     list_channels,
     list_peers,
     type LndInfo,
+    type Peer,
   } from "../api/lnd";
 
   export let tag = "";
@@ -29,6 +30,8 @@
   let page: ChannelPage = "main";
 
   let lndData: LndInfo;
+
+  let activePeer: Peer = null;
 
   async function getLndInfo() {
     const lndRes = await get_info(tag);
@@ -47,7 +50,6 @@
   async function listPeers() {
     if (peers && peers.length) return console.log("peers", peers);
     const peersData = await list_peers(tag);
-    console.log("PEERS", peersData);
     peersStore.update((peer) => {
       return { ...peer, [tag]: peersData.peers };
     });
@@ -58,11 +60,9 @@
     await listChannels();
     await listPeers();
   }
-  // onMount(() => {
-  //   setup(tag);
-  // });
 
   function toggleAddPeer() {
+    activePeer = null;
     if (page === "peers") {
       page = "main";
     } else {
@@ -73,6 +73,7 @@
   function toggleAddChannel() {
     if (page === "add_channel") {
       page = "main";
+      activePeer = null;
     } else {
       page = "add_channel";
     }
@@ -86,7 +87,12 @@
   function copyPubkey() {
     navigator.clipboard.writeText(lndData.identity_pubkey);
     copied = true;
-    setTimeout(() => (copied = false), 350);
+    setTimeout(() => (copied = false), 150);
+  }
+
+  function peerAddChannel(peer: Peer) {
+    activePeer = peer;
+    toggleAddChannel();
   }
 </script>
 
@@ -94,7 +100,11 @@
   <section class="header-btns">
     {#if lndData && lndData.identity_pubkey}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="pubkey" on:click={copyPubkey}>
+      <div
+        class="pubkey"
+        on:click={copyPubkey}
+        style={`transform:scale(${copied ? 1.1 : 1});`}
+      >
         {formatPubkey(lndData.identity_pubkey)}
       </div>
     {/if}
@@ -138,24 +148,14 @@
     </aside>
   </section>
 
-  <!-- <section class="peers">
-    <Button
-      kind="tertiary"
-      type="submit"
-      size="field"
-      icon={View}
-      disabled={false}
-      on:click={() => {}}
-    >
-      Total Peers ({$peers.hasOwnProperty(tag) ? $peers[tag].length : 0})
-    </Button>
-  </section>
-  <section class="divider" /> -->
-
   {#if page === "peers"}
-    <Peers back={toggleAddPeer} {tag} />
+    <Peers back={toggleAddPeer} {tag} newChannel={peerAddChannel} />
   {:else if page === "add_channel"}
-    <AddChannel back={toggleAddChannel} />
+    <AddChannel
+      back={toggleAddChannel}
+      activeKey={activePeer ? activePeer.pub_key : ""}
+      {tag}
+    />
     <div />
   {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
     <ChannelRows {tag} />
@@ -231,6 +231,7 @@
     color: #ddd;
     margin-right: 1rem;
     cursor: pointer;
+    transform-origin: center center;
   }
   .pubkey:hover {
     color: white;

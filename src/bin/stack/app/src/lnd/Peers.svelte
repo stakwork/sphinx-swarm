@@ -11,6 +11,7 @@
   export let back = () => {};
   export let tag = "";
   export let newChannel = (p: Peer) => {};
+
   $: peers = $peersStore && $peersStore[tag];
 
   async function addPeer() {
@@ -95,14 +96,15 @@
     margin-top: 1rem;
   }
   .peers-label {
-    margin-left: 1rem;
+    margin-left: 0rem;
+    margin-bottom: 5px;
   }
   .peer-list {
     display: flex;
     flex-direction: column;
   }
   .peer {
-    margin: 0.2rem 0.4rem;
+    margin: 0.2rem 0rem;
     display: flex;
     align-items: center;
   }
@@ -111,8 +113,10 @@
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+    font-size: 0.95rem;
   }
   .peer-address {
-    margin: 0 0.4rem;
+    margin: 0 1rem 0 0.4rem;
+    font-size: 0.95rem;
   }
 </style>

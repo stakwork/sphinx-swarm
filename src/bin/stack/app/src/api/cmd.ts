@@ -17,7 +17,7 @@ export type Cmd =
   | "ListChannels"
   | "AddPeer"
   | "ListPeers"
-  | "CreateChannel"
+  | "AddChannel"
   | "GetBalance"
   | "NewAddress"
   | "ListWallets"

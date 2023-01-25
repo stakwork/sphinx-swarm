@@ -82,7 +82,7 @@ html {
 	font-size: 0.8rem;
 }
 
-.header-btns .bx--btn--tertiary, .peers .bx--btn--tertiary  {
+.header-btns .bx--btn--tertiary, .peers .bx--btn--tertiary, .peer .bx--btn--tertiary {
 	border-radius: 8px;
 }
 
@@ -93,6 +93,19 @@ html {
 
 .bx--toggle-input:checked+.bx--toggle-input__label>.bx--toggle__switch::before {
 	background: #618AFF !important;
+}
+
+
+.peer .bx--btn--tertiary {
+	width: 120px;
+	padding: 0;
+	font-size: 0.75rem;
+	display: inline-block;
+	text-align: center;
+}
+
+.peer .bx--btn--tertiary::after {
+	padding: 0;
 }
 
 .node-html {
@@ -252,4 +265,21 @@ html {
 	display: block;
 	width: 100%;
 	margin: 15px 0px;
+}
+
+.value-wrap {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20px;
+}
+
+.title {
+	color: #c6c6c6;
+	font-size: 0.75rem;
+}
+
+.value {
+	font-size: 0.85rem;
+	margin-left: auto;
+	font-weight: 600;
 }

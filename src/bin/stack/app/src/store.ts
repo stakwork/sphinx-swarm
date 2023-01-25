@@ -41,6 +41,8 @@ export const btcinfo = writable<BtcInfo>();
 
 export const peers = writable<{ [tag: string]: Peer[] }>({});
 
+export const nodeBalances = writable<{[tag: string]: number}>({});
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {

@@ -70,18 +70,4 @@
     font-size: 1rem;
     margin-bottom: 30px;
   }
-  .value-wrap {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .title {
-    color: #c6c6c6;
-    font-size: 0.75rem;
-  }
-  .value {
-    font-size: 0.85rem;
-    margin-left: auto;
-    font-weight: 600;
-  }
 </style>

@@ -96,6 +96,28 @@ impl LndRPC {
             .await?;
         Ok(response.into_inner())
     }
+
+    pub async fn add_invoice(&mut self) -> Result<AddInvoiceResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .add_invoice(Invoice {
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn pay_kensend(&mut self) -> Result<SendResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .send_payment_sync(SendRequest {
+                dest: todo!(),
+                amt: todo!(),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
 }
 
 pub async fn sleep_ms(n: u64) {
