@@ -48,7 +48,7 @@
         </div>
         <div class="td">
           <section class="can-receive-wrap">
-            <section class="value">
+            <section>
               {formatSatsNumbers(chan.local_balance)}
             </section>
             <ReceiveLineWrap>

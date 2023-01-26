@@ -43,6 +43,8 @@ export const peers = writable<{ [tag: string]: Peer[] }>({});
 
 export const nodeBalances = writable<{[tag: string]: number}>({});
 
+export const activeInvoice = writable<{[tag: string]: string}>({});
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {

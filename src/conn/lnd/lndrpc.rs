@@ -1,4 +1,4 @@
-use crate::cmd::{AddChannel, AddPeer};
+use crate::cmd::{AddChannel, AddPeer, AddInvoice};
 use crate::images::lnd::LndImage;
 use anyhow::{anyhow, Result};
 use tonic_lnd::lnrpc::*;
@@ -97,10 +97,11 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn add_invoice(&mut self) -> Result<AddInvoiceResponse> {
+    pub async fn add_invoice(&mut self, invoice: AddInvoice) -> Result<AddInvoiceResponse> {
         let lnd = self.0.lightning();
         let response = lnd
             .add_invoice(Invoice {
+                value: invoice.amt_paid_sat,
                 ..Default::default()
             })
             .await?;

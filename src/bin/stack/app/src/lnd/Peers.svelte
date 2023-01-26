@@ -27,10 +27,8 @@
     }
   }
 
-  $: peersLength = "No";
-  $: peersLabel = "peers";
-  if (peers && peers.length == 1) peersLabel = "peer";
-
+  $: peersLength = peers && peers.length ? peers.length : "No";
+  $: peersLabel = peers && peers.length <= 1 ? "peer" : "peers";
   $: addDisabled = !pubkey || !host;
 </script>
 
@@ -98,6 +96,7 @@
   .peers-label {
     margin-left: 0rem;
     margin-bottom: 5px;
+    font-weight: 800;
   }
   .peer-list {
     display: flex;
