@@ -18,7 +18,6 @@
       activeInvoice.update((inv) => {
         return { ...inv, [tag]: invoiceRes.payment_request };
       });
-      
     }
   }
 
