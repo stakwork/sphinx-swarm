@@ -3,19 +3,23 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import * as LND from "../api/lnd";
   import QrCode from "svelte-qrcode";
+  import { activeInvoice} from "../store";
 
   export let tag = "";
   $: amount = 0;
-  $: pay_req = "";
 
   $: invDisabled = !amount;
 
+  $: invoice = $activeInvoice[tag] || "";
+
   async function newInvoice() {
-    const invoice = await LND.add_invoice(tag, amount);
-    if (invoice) {
-      pay_req = invoice.payment_request;
+    const invoiceRes = await LND.add_invoice(tag, amount);
+    if (invoiceRes) {
+      activeInvoice.update((inv) => {
+        return { ...inv, [tag]: invoiceRes.payment_request };
+      });
+      
     }
-    // console.log("Invoice ===", await LND.add_invoice(tag, amount));
   }
 
   function copyToClipboard(value) {
@@ -49,13 +53,15 @@
   </section>
   <section class="invoice-data">
     <p class="invoice-title">Invoice QR code</p>
-    <QrCode padding={1.5} value={pay_req} />
+    <QrCode padding={1.5} value={invoice} />
 
     <div class="invoice">
-      {pay_req}
+      {invoice}
     </div>
 
-    <button class="invoice-btn" on:click={() => copyToClipboard(pay_req)}>Copy Invoice</button>
+    <button class="invoice-btn" on:click={() => copyToClipboard(invoice)}
+      >Copy Invoice</button
+    >
   </section>
 </main>
 
@@ -79,7 +85,7 @@
     height: 110px;
     overflow-wrap: break-word;
     font-size: 0.9rem;
-    border: 0.5px solid #FFF;
+    border: 0.5px solid #fff;
     min-width: 100%;
     max-width: 100%;
     border-radius: 10px;
@@ -91,13 +97,13 @@
     font-size: 0.88rem;
   }
 
-.invoice-btn {
-   padding: 12px 15px;
-   margin-top: 20px;
-   font-size: 0.8rem;
-   background-color: transparent;
-   color: #FFF;
-   outline: 0;
-   border: 1px solid #FFF;
-}
+  .invoice-btn {
+    padding: 12px 15px;
+    margin-top: 20px;
+    font-size: 0.8rem;
+    background-color: transparent;
+    color: #fff;
+    outline: 0;
+    border: 1px solid #fff;
+  }
 </style>
