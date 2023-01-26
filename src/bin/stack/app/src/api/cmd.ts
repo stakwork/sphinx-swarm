@@ -22,7 +22,9 @@ export type Cmd =
   | "NewAddress"
   | "ListWallets"
   | "ListVersions"
-  | "UpdateInstance";
+  | "UpdateInstance"
+  | "AddInvoice"
+  | "KeySend";
 
 interface CmdData {
   cmd: Cmd;

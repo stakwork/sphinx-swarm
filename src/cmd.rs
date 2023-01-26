@@ -56,6 +56,12 @@ pub struct AddPeer {
     pub host: String,
 }
 
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddInvoice {
+    pub amt_paid_sat: i64,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddChannel {
     pub pubkey: String,
@@ -81,6 +87,7 @@ pub enum LndCmd {
     AddChannel(AddChannel),
     NewAddress,
     GetBalance,
+    AddInvoice(AddInvoice),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

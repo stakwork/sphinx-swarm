@@ -84,6 +84,10 @@ export async function new_address(tag: string) {
   return await lndCmd("NewAddress", tag);
 }
 
+export async function add_invoice(tag: string, amt_paid_sat) {
+  return await lndCmd("AddInvoice", tag, { amt_paid_sat });
+}
+
 export async function keysend(tag: string) {
-  return await lndCmd("Keysend", tag);
+  return await lndCmd("KeySend", tag);
 }
