@@ -48,14 +48,14 @@
     </center>
   </section>
   <section class="invoice-data">
-    <p class="">Invoice QR code</p>
+    <p class="invoice-title">Invoice QR code</p>
     <QrCode padding={1.5} value={pay_req} />
 
     <div class="invoice">
       {pay_req}
     </div>
 
-    <button on:click={() => copyToClipboard(pay_req)}>Copy</button>
+    <button class="invoice-btn" on:click={() => copyToClipboard(pay_req)}>Copy Invoice</button>
   </section>
 </main>
 
@@ -64,12 +64,40 @@
     padding: 25px 30px;
   }
   .invoice-wrap {
-    margin-bottom: 10px;
+    margin-bottom: 20px;
   }
+
+  .invoice-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   .invoice {
-    max-width: 100%;
     overflow: scroll;
     text-overflow: clip;
-    height: 200px;
+    height: 110px;
+    overflow-wrap: break-word;
+    font-size: 0.9rem;
+    border: 0.5px solid #FFF;
+    min-width: 100%;
+    max-width: 100%;
+    border-radius: 10px;
+    margin-top: 20px;
+    padding: 10px;
   }
+  .invoice-title {
+    margin-bottom: 10px;
+    font-size: 0.88rem;
+  }
+
+.invoice-btn {
+   padding: 12px 15px;
+   margin-top: 20px;
+   font-size: 0.8rem;
+   background-color: transparent;
+   color: #FFF;
+   outline: 0;
+   border: 1px solid #FFF;
+}
 </style>
