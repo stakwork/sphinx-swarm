@@ -107,7 +107,7 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn pay_kensend(&mut self) -> Result<SendResponse> {
+    pub async fn pay_keysend(&mut self) -> Result<SendResponse> {
         let lnd = self.0.lightning();
         let response = lnd
             .send_payment_sync(SendRequest {

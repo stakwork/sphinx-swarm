@@ -1,6 +1,6 @@
 use super::*;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, host_config, user};
+use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -89,7 +89,6 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     Config {
         image: Some(format!("{}:{}", img, lnd.version).to_string()),
         hostname: Some(domain(&lnd.name)),
-        user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&lnd.name, ports, root_vol, None),
         cmd: Some(cmd),

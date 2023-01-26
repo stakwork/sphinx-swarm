@@ -1,5 +1,5 @@
 use super::*;
-use crate::utils::{domain, exposed_ports, host_config, user};
+use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 
 struct Ports {
@@ -35,7 +35,6 @@ pub fn cln_vls(name: &str, network: &str, idx: u16, btc: &btc::BtcImage) -> Conf
     Config {
         image: Some(format!("sphinxlightning/sphinx-cln-vls:{}", version)),
         hostname: Some(domain(name)),
-        user: user(),
         domainname: Some(name.to_string()),
         cmd: Some(vec![
             format!("--alias=sphinx-{}", name),

@@ -91,7 +91,6 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
-        // user: user(),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&proxy.name, ports, root_vol, Some(extra_vols)),
         cmd: Some(cmd),

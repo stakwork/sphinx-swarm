@@ -65,7 +65,6 @@ pub fn relay(
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&relay.name)),
-        // user: Some(format!("1000")), // user(),
         exposed_ports: exposed_ports(vec![relay.port.clone()]),
         host_config: host_config(
             &relay.name,

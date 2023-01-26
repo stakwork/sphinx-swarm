@@ -71,10 +71,6 @@ export async function get_balance(tag: string) {
   return await lndCmd("GetBalance", tag);
 }
 
-export async function new_address(tag: string) {
-  return await lndCmd("NewAddress", tag);
-}
-
 export async function create_channel(
   tag: string,
   pubkey: string,
@@ -82,4 +78,12 @@ export async function create_channel(
   satsperbyte: number
 ) {
   return await lndCmd("AddChannel", tag, { pubkey, amount, satsperbyte });
+}
+
+export async function new_address(tag: string) {
+  return await lndCmd("NewAddress", tag);
+}
+
+export async function keysend(tag: string) {
+  return await lndCmd("Keysend", tag);
 }

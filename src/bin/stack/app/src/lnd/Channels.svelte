@@ -10,13 +10,7 @@
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
 
-  import {
-    get_info,
-    list_channels,
-    list_peers,
-    type LndInfo,
-    type Peer,
-  } from "../api/lnd";
+  import * as LND from "../api/lnd";
 
   export let tag = "";
 
@@ -29,18 +23,18 @@
   type ChannelPage = "main" | "peers" | "add_channel";
   let page: ChannelPage = "main";
 
-  let lndData: LndInfo;
+  let lndData: LND.LndInfo;
 
-  let activePeer: Peer = null;
+  let activePeer: LND.Peer = null;
 
   async function getLndInfo() {
-    const lndRes = await get_info(tag);
+    const lndRes = await LND.get_info(tag);
     lndData = lndRes;
   }
 
   async function listChannels() {
     if ($channels[tag] && $channels[tag].length) return;
-    const channelsData = await list_channels(tag);
+    const channelsData = await LND.list_channels(tag);
 
     channels.update((chans) => {
       return { ...chans, [tag]: channelsData };
@@ -49,7 +43,7 @@
 
   async function listPeers() {
     if (peers && peers.length) return console.log("peers", peers);
-    const peersData = await list_peers(tag);
+    const peersData = await LND.list_peers(tag);
     peersStore.update((peer) => {
       return { ...peer, [tag]: peersData.peers };
     });
@@ -90,7 +84,7 @@
     setTimeout(() => (copied = false), 150);
   }
 
-  function peerAddChannel(peer: Peer) {
+  function peerAddChannel(peer: LND.Peer) {
     activePeer = peer;
     toggleAddChannel();
   }
