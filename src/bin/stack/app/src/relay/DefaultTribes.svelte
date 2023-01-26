@@ -3,6 +3,8 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { allTribes } from "../store";
 
+  export let tag = "";
+
   let items = $allTribes.map((t) => ({
     id: t.uuid,
     text: t.name,

@@ -5,12 +5,21 @@
   import User from "./User.svelte";
   import { afterUpdate } from "svelte";
   import AddUser from "./AddUser.svelte";
+  import { onMount } from "svelte";
+  import * as api from "../api";
+
+  export let tag = "";
 
   let selectedPubkey = "";
   $: filteredUsers = $users;
   $: selectedUser = $users.find((u) => u.pubkey === selectedPubkey);
 
   let searchTerm = "";
+
+  onMount(async () => {
+    const userList = await api.relay.list_users(tag);
+    console.log(userList);
+  });
 
   afterUpdate(() => {
     if (!searchTerm) return (filteredUsers = $users);

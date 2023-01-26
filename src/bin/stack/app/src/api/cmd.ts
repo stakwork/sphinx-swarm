@@ -24,7 +24,10 @@ export type Cmd =
   | "ListVersions"
   | "UpdateInstance"
   | "AddInvoice"
-  | "KeySend";
+  | "KeySend"
+  | "AddDefaultTribe"
+  | "RemoveDefaultTribe"
+  | "GetChats";
 
 interface CmdData {
   cmd: Cmd;
