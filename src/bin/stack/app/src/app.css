@@ -150,6 +150,10 @@ html {
 	width: 11.3rem;
 }
 
+.invoice-tabs-wrap button {
+	margin:0 0.4rem;
+}
+
 .copy-icon {
 	cursor: pointer;
 	width: 20px;

@@ -10,14 +10,13 @@
 
   $: amount = 0;
 
-  $: invDisabled = !dest || !amount;
+  $: invDisabled = !dest || !amount || (dest && dest.length !== 66);
 
   async function payKeysend() {
     const payRes = await LND.keysend(tag, dest, amount);
     if (payRes) {
       dest = "";
       amount = 0;
-
       /**
        * After successfully invoice payment fetch the new channels
        * To update the balance
@@ -32,11 +31,10 @@
 
 <main>
   <section class="invoice-wrap">
-    <TextArea
-      labelText={"Invoice Payment Request"}
-      placeholder={"Enter the payment request of the invoice"}
+    <TextInput
+      labelText={"Pubkey"}
+      placeholder={"Destintaion Public Key"}
       bind:value={dest}
-      rows={2}
     />
     <div class="spacer" />
 
