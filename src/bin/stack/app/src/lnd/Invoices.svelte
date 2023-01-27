@@ -2,6 +2,7 @@
   import { Tabs, Tab, TabContent } from "carbon-components-svelte";
   import AddInvoice from "./invoices/AddInvoice.svelte";
   import PayInvoice from "./invoices/PayInvoice.svelte";
+  import PayKeysend from "./invoices/PayKeysend.svelte";
 
   export let tag = "";
 </script>
@@ -13,10 +14,8 @@
     <Tab label="Pay Keysend" />
     <svelte:fragment slot="content">
       <TabContent><AddInvoice {tag} /></TabContent>
-      <TabContent> <PayInvoice {tag} /></TabContent>
-      <TabContent>
-        <!-- <Onchain {tag} /> -->
-      </TabContent>
+      <TabContent><PayInvoice {tag} /></TabContent>
+      <TabContent><PayKeysend {tag} /></TabContent>
     </svelte:fragment>
   </Tabs>
 </div>

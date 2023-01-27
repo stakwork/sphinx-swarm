@@ -1,19 +1,22 @@
 <script lang="ts">
-  import { Button, TextArea } from "carbon-components-svelte";
+  import { Button, TextArea, TextInput } from "carbon-components-svelte";
   import Pay from "carbon-icons-svelte/lib/Money.svelte";
   import * as LND from "../../api/lnd";
   import { channels } from "../../store";
 
   export let tag = "";
 
-  $: pay_req = "";
+  $: dest = "";
 
-  $: invDisabled = !pay_req;
+  $: amount = 0;
 
-  async function payInvoice() {
-    const payRes = await LND.pay_invoice(tag, pay_req);
+  $: invDisabled = !dest || !amount;
+
+  async function payKeysend() {
+    const payRes = await LND.keysend(tag, dest, amount);
     if (payRes) {
-      pay_req = "";
+      dest = "";
+      amount = 0;
 
       /**
        * After successfully invoice payment fetch the new channels
@@ -32,8 +35,16 @@
     <TextArea
       labelText={"Invoice Payment Request"}
       placeholder={"Enter the payment request of the invoice"}
-      bind:value={pay_req}
-      rows={5}
+      bind:value={dest}
+      rows={2}
+    />
+    <div class="spacer" />
+
+    <TextInput
+      labelText={"Amount"}
+      placeholder={"Enter amount"}
+      type={"number"}
+      bind:value={amount}
     />
     <div class="spacer" />
 
@@ -45,7 +56,7 @@
         icon={Pay}
         class="channel"
         disabled={invDisabled}
-        on:click={payInvoice}
+        on:click={payKeysend}
       >
         Pay Invoice
       </Button>
