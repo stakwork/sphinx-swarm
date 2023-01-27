@@ -19,9 +19,11 @@ async fn build_stack(
     docker: &Docker,
     stack: &Stack,
 ) -> Result<(HashMap<String, String>, Clients)> {
+    // first create the default network
+    create_network(docker, None).await?;
+    // then add the containers
     let mut ids = HashMap::new();
     let mut clients: Clients = Default::default();
-    create_network(docker, None).await?;
     for node in stack.nodes.clone().iter() {
         let id_opt =
             add_node::add_node(proj, &node, stack.nodes.clone(), docker, &mut clients).await?;
