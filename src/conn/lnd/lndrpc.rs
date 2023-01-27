@@ -122,10 +122,10 @@ impl LndRPC {
 
     pub async fn pay_keysend(&mut self, keysend: PayKeysend) -> Result<SendResponse> {
         let lnd = self.0.lightning();
-
+        
         let response = lnd
             .send_payment_sync(SendRequest {
-                dest: base64::encode(keysend.dest).into_bytes(),
+                dest: hex::decode(keysend.dest)?,
                 amt: keysend.amt,
                 ..Default::default()
             })
