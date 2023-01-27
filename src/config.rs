@@ -95,7 +95,11 @@ impl Default for Stack {
         let network = "regtest".to_string();
         // bitcoind
         let mut v = "v23.0";
-        let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+        let mut bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+        // connect to already running BTC node
+        if let Ok(btc_pass) = std::env::var("BTC_PASS") {
+            bitcoind.set_password(&btc_pass);
+        }
 
         // lnd
         v = "v0.15.5-beta";

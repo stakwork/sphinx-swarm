@@ -23,6 +23,9 @@ impl BtcImage {
             pass: secrets::random_word(12),
         }
     }
+    pub fn set_password(&mut self, password: &str) {
+        self.pass = password.to_string();
+    }
 }
 impl DockerHubImage for BtcImage {
     fn repo(&self) -> Repository {
