@@ -61,7 +61,15 @@ pub struct AddPeer {
 pub struct AddInvoice {
     pub amt_paid_sat: i64,
 }
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PayInvoice {
+    pub payment_request: String,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PayKeysend {
+    pub amt: i64,
+    pub dest: String,
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddChannel {
     pub pubkey: String,
