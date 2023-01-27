@@ -42,11 +42,11 @@ pub fn relay(
     lnd: &lnd::LndImage,
     proxy: Option<proxy::ProxyImage>,
 ) -> Config<String> {
-    // let img = "sphinx-relay";
-    // let version = "latest";
-    let repo = relay.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
-    let version = relay.version.clone();
+    let img = "sphinx-relay";
+    let version = "latest";
+    // let repo = relay.repo();
+    // let img = format!("{}/{}", repo.org, repo.repo);
+    // let version = relay.version.clone();
     let root_vol = "/relay";
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
@@ -126,7 +126,11 @@ impl RelayConfig {
         self.proxy_admin_token = proxy.admin_token.clone();
         self.proxy_macaroons_dir = Some("/proxy/macaroons".to_string());
         self.proxy_tls_location = Some("/proxy/tls.cert".to_string());
-        self.proxy_admin_url = Some(format!("{}:{}", domain(&proxy.name), proxy.admin_port));
+        self.proxy_admin_url = Some(format!(
+            "http://{}:{}",
+            domain(&proxy.name),
+            proxy.admin_port
+        ));
         self.proxy_new_nodes = proxy.new_nodes.clone();
     }
 }

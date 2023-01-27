@@ -24,13 +24,16 @@ pub struct Users {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
-    pub alias: String,
+    pub id: u32,
     pub public_key: String,
-    pub route_hint: String,
-    pub photo_url: String,
-    pub contact_key: String,
+    pub deleted: u8,
+    pub created_at: String,
+    pub alias: Option<String>,
+    pub route_hint: Option<String>,
+    pub photo_url: Option<String>,
+    pub contact_key: Option<String>,
     pub person_uuid: Option<String>,
-    pub is_admin: bool,
+    pub is_admin: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -170,7 +173,10 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        Ok(res.json().await?)
+        let hm = res.text().await?;
+        println!("ADDED USER {:?}", &hm);
+        Ok(serde_json::from_str(&hm)?)
+        // Ok(res.json().await?)
     }
 
     pub async fn list_users(&self) -> Result<RelayRes<Users>> {
@@ -181,7 +187,10 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        Ok(res.json().await?)
+        let hm = res.text().await?;
+        println!("HM {:?}", &hm);
+        Ok(serde_json::from_str(&hm)?)
+        // Ok(res.json().await?)
     }
 
     pub async fn get_chats(&self) -> Result<RelayRes<ChatsRes>> {

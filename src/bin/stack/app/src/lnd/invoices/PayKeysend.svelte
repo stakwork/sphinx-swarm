@@ -58,7 +58,7 @@
         disabled={invDisabled}
         on:click={payKeysend}
       >
-        Pay Invoice
+        Pay Keysend
       </Button>
     </center>
   </section>

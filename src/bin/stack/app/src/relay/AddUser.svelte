@@ -2,12 +2,17 @@
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import * as api from "../api";
+
+  export let back = () => {};
+  export let tag = "";
 
   $: initialSats = 0;
 
-  async function addUser() {}
-
-  export let back = () => {};
+  async function addUser() {
+    await api.relay.add_user(tag, initialSats || null);
+    back();
+  }
 </script>
 
 <section class="add-user-wrap">

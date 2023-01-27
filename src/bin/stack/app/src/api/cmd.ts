@@ -25,7 +25,10 @@ export type Cmd =
   | "UpdateInstance"
   | "AddInvoice"
   | "PayInvoice"
-  | "KeySend";
+  | "PayKeysend"
+  | "AddDefaultTribe"
+  | "RemoveDefaultTribe"
+  | "GetChats";
 
 interface CmdData {
   cmd: Cmd;

@@ -79,8 +79,8 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
         "--tls-location=/lnd/tls.cert".to_string(),
         "--unlock-pwd=hi123456".to_string(),
         "--server-macaroons-dir=/app/proxy/macaroons".to_string(),
-        "--channels-start=0".to_string(),
-        "--initial-msat=500000".to_string(),
+        "--channels-start=1".to_string(),
+        "--initial-msat=0".to_string(),
     ];
     if let Some(at) = &proxy.admin_token {
         cmd.push(format!("--admin-token={}", &at));
