@@ -96,6 +96,8 @@ pub enum LndCmd {
     NewAddress,
     GetBalance,
     AddInvoice(AddInvoice),
+    PayInvoice(PayInvoice),
+    PayKeysend(PayKeysend)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
