@@ -24,6 +24,7 @@ export type Cmd =
   | "ListVersions"
   | "UpdateInstance"
   | "AddInvoice"
+  | "PayInvoice"
   | "KeySend";
 
 interface CmdData {
