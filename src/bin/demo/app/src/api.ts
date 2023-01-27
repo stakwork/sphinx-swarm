@@ -36,7 +36,7 @@ export async function send_cmd(txt: string) {
   if (!ctag) return console.error("not logged in");
   const r = await fetch(`${root}/cmd?txt=${txt}&tag=${ctag}`);
   const newtxt = await r.text();
-  console.log(newtxt);
+  // console.log(newtxt);
   if (newtxt.startsWith("{")) {
     rez.update((r) => [newtxt, ...r]);
   } else {

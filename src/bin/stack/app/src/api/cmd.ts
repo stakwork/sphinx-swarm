@@ -24,7 +24,8 @@ export type Cmd =
   | "ListVersions"
   | "UpdateInstance"
   | "AddInvoice"
-  | "KeySend"
+  | "PayInvoice"
+  | "PayKeysend"
   | "AddDefaultTribe"
   | "RemoveDefaultTribe"
   | "GetChats";

@@ -16,7 +16,6 @@ pub fn hex_secret_32() -> String {
     hex::encode(store_key_bytes)
 }
 
-
 pub fn random_word(n: usize) -> String {
     rand::thread_rng()
         .sample_iter(&Alphanumeric)

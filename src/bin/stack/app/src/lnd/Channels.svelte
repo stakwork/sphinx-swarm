@@ -42,7 +42,7 @@
   }
 
   async function listPeers() {
-    if (peers && peers.length) return console.log("peers", peers);
+    if (peers && peers.length) return;
     const peersData = await LND.list_peers(tag);
     peersStore.update((peer) => {
       return { ...peer, [tag]: peersData.peers };

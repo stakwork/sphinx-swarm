@@ -88,6 +88,10 @@ export async function add_invoice(tag: string, amt_paid_sat) {
   return await lndCmd("AddInvoice", tag, { amt_paid_sat });
 }
 
-export async function keysend(tag: string) {
-  return await lndCmd("KeySend", tag);
+export async function pay_invoice(tag: string, payment_request) {
+  return await lndCmd("PayInvoice", tag, { payment_request });
+}
+
+export async function keysend(tag: string, dest: string, amt: number) {
+  return await lndCmd("PayKeysend", tag, {dest, amt});
 }
