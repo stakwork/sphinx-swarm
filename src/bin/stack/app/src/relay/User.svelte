@@ -5,19 +5,17 @@
   import QrCode from "svelte-qrcode";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
- 
+  import type { User } from "./users";
 
   export let select = (pubkey: string) => {};
-  export let alias = "";
-  export let pubkey = "";
-  export let routeHint = "";
+  export let user: User;
   export let balance = 0;
   export let selected = false;
 
-  const signedUp = alias ? true : false;
+  const signedUp = user.alias ? true : false;
 
   function mainSelect() {
-    if (!selected) select(pubkey);
+    if (!selected) select(user.public_key);
   }
   function back() {
     select(null);
@@ -25,7 +23,6 @@
   function copyToClipboard(value) {
     navigator.clipboard.writeText(value);
   }
-
 </script>
 
 <div
@@ -43,43 +40,43 @@
       <DotWrap>
         <Dot color={`${signedUp ? "#52B550" : "grey"}`} />
       </DotWrap>
-      {#if alias}
-        <div class="alias">{alias}</div>
+      {#if user.alias}
+        <div class="alias">{user.alias}</div>
       {:else}
         <div class="empty-alias" />
       {/if}
     </div>
     <div class="signed-up" style={`opacity:${signedUp ? 1 : "0.5"}`}>
       <Login size={16} />
-      <span>Signed Up</span>
+      <span>{`${signedUp ? "" : "Not "}Signed Up`}</span>
     </div>
   </div>
   {#if selected}
     <div class="fields">
       <p class="user-values-title">Pubkey</p>
       <section class="value-wrap">
-        <p class="user-value">{pubkey}</p>
+        <p class="user-value">{user.public_key}</p>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <span on:click={() => copyToClipboard(pubkey)}
+        <span on:click={() => copyToClipboard(user.public_key)}
           ><CopyIcon size={16} class="copy-icon" /></span
         >
       </section>
-      {#if routeHint}
+      {#if user.route_hint}
         <p class="user-values-title">Route hint</p>
         <section class="value-wrap">
-          <p class="user-value">{routeHint}</p>
+          <p class="user-value">{user.route_hint}</p>
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <span on:click={() => copyToClipboard(routeHint)}
+          <span on:click={() => copyToClipboard(user.route_hint)}
             ><CopyIcon size={16} class="copy-icon" /></span
           >
         </section>
       {/if}
       <p class="user-values-title">Invite QR code</p>
-      <QrCode padding={1.5} value={pubkey} />
+      <QrCode padding={1.5} value={`connect::${user.public_key}`} />
     </div>
   {:else}
     <div class="pubkey collapsed">
-      {pubkey}
+      {user.public_key}
     </div>
     <div class="balance collapsed">
       {`${balance} sats`}
@@ -177,7 +174,7 @@
   .empty-alias {
     height: 0.85rem;
     width: 6rem;
-    background: #263442;
+    background: #283d52;
   }
 
   .user-delete {
