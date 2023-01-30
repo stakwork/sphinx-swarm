@@ -14,14 +14,16 @@ export interface Tribe {
 }
 
 export interface TribeData {
+  id: number;
   preview: boolean;
   member_count: number;
   uuid: string;
   price_per_message: number;
-  logo: string;
+  img: string;
   name: string;
   unique_name: string;
   last_active: number;
+  default_join: number;
 }
 
 const IS_DEV = window.location.host === "localhost:8080";

@@ -76,6 +76,10 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     let res = client.remove_default_tribe(t.id).await?;
                     Some(serde_json::to_string(&res.response)?)
                 }
+                RelayCmd::CreateTribe(t) => {
+                    let res = client.create_tribe(&t.name).await?;
+                    Some(serde_json::to_string(&res.response)?)
+                }
             }
         }
         Cmd::Bitcoind(c) => {
@@ -133,15 +137,15 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 LndCmd::AddInvoice(invoice) => {
                     let invoice = client.add_invoice(invoice).await?;
                     Some(serde_json::to_string(&invoice)?)
-                },
+                }
                 LndCmd::PayInvoice(invoice) => {
                     let invoice = client.pay_invoice(invoice).await?;
                     Some(serde_json::to_string(&invoice)?)
-                },
+                }
                 LndCmd::PayKeysend(keysend) => {
                     let invoice = client.pay_keysend(keysend).await?;
                     Some(serde_json::to_string(&invoice)?)
-                },
+                }
             }
         }
         Cmd::Proxy(c) => {

@@ -16,8 +16,6 @@ export const stack = writable<Stack>(emptyStack);
 
 export const users = writable<User[]>(initialUsers);
 
-export const allTribes = writable<TribeData[]>([]);
-
 export const tribes = writable<Tribe>({
   page: 1,
   total: 0,
@@ -41,9 +39,9 @@ export const btcinfo = writable<BtcInfo>();
 
 export const peers = writable<{ [tag: string]: Peer[] }>({});
 
-export const nodeBalances = writable<{[tag: string]: number}>({});
+export const nodeBalances = writable<{ [tag: string]: number }>({});
 
-export const activeInvoice = writable<{[tag: string]: string}>({});
+export const activeInvoice = writable<{ [tag: string]: string }>({});
 
 export const balances = derived(
   [channels, selectedNode],
@@ -64,29 +62,3 @@ export const balances = derived(
     };
   }
 );
-
-async function fetchTribes() {
-  let tribesKey = "tribes";
-  let tribes = [];
-
-  const setTribes = (tribes) =>
-    localStorage.setItem("tribes", JSON.stringify(tribes));
-
-  const tribesApi = await api.tribes.get_tribes("tribes.sphinx.chat");
-
-  if (localStorage.getItem(tribesKey)) {
-    tribes = JSON.parse(localStorage.getItem(tribesKey));
-
-    if (tribesApi.length > tribes.length) {
-      localStorage.setItem(tribesKey, JSON.stringify(tribesApi));
-      setTribes(tribesApi);
-    }
-  } else {
-    tribes = tribesApi;
-    setTribes(tribes);
-  }
-
-  allTribes.set(tribes);
-}
-
-fetchTribes();

@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::*;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
 use bollard::container::Config;
@@ -13,6 +14,7 @@ pub struct RelayImage {
     pub node_env: String,
     pub port: String,
     pub links: Links,
+    pub host: Option<String>,
 }
 impl RelayImage {
     pub fn new(name: &str, version: &str, node_env: &str, port: &str) -> Self {
@@ -22,10 +24,16 @@ impl RelayImage {
             node_env: node_env.to_string(),
             port: port.to_string(),
             links: vec![],
+            host: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("{}.{}", self.name, h));
+        }
     }
 }
 impl DockerHubImage for RelayImage {
@@ -62,7 +70,7 @@ pub fn relay(
     // relay config from env
     let mut relay_conf = relay_env_config(&conf);
     relay_conf.push(format!("NODE_ENV={}", &relay.node_env));
-    Config {
+    let mut c = Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&relay.name)),
         exposed_ports: exposed_ports(vec![relay.port.clone()]),
@@ -74,7 +82,11 @@ pub fn relay(
         ),
         env: Some(relay_conf),
         ..Default::default()
+    };
+    if let Some(host) = relay.host.clone() {
+        c.labels = Some(traefik_labels(&relay.name, &host, &relay.port));
     }
+    c
 }
 
 // #[serde(skip_serializing_if = "Option::is_none")]

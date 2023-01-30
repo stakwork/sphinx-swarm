@@ -1,76 +1,100 @@
-<script>
+<script lang="ts">
   import { Dropdown, Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { allTribes } from "../store";
+  import { onMount } from "svelte";
+  import * as api from "../api";
 
   export let tag = "";
 
-  let items = $allTribes.map((t) => ({
-    id: t.uuid,
-    text: t.name,
-  }));
+  let myChats: api.tribes.TribeData[] = [];
 
-  items = [{ id: "", text: "Select a tribe" }, ...items];
+  onMount(async () => {
+    if (!tag) return;
+    const chats = await refreshTribes();
+    console.log("chats", chats);
+    if (chats.length === 0) {
+      const created = await api.relay.create_tribe(tag, "TestTribeee");
+      console.log(created);
+    }
+  });
 
-  let defaultTribes = [
-    {
-      id: "X",
-      name: "Testing default tribes",
-    },
-  ];
+  $: items = myChats
+    .filter((t) => !t.default_join)
+    .map((t) => ({
+      id: t.id,
+      text: t.name,
+    }));
+
+  $: defaultTribes = myChats.filter((t) => t.default_join);
 
   let selectedTribe = "";
 
-  function deleteTribe(id) {
-    const tribeIndex = defaultTribes.findIndex((t) => t.id === id);
-
-    if (tribeIndex !== -1) {
-      defaultTribes = defaultTribes.filter((_, i) => i !== tribeIndex);
+  async function refreshTribes() {
+    const chats = await api.relay.get_chats(tag);
+    if (chats.length) {
+      myChats = chats;
     }
+    return chats;
   }
 
-  function addDefaulttribe(id) {
-    // Check if tribe as already been added
-    const tribeIndex = defaultTribes.findIndex((t) => t.id === id);
+  async function deleteTribe(id) {
+    await api.relay.remove_default_tribe(tag, id);
+    refreshTribes();
+  }
 
-    if (defaultTribes.length < 5 && tribeIndex === -1) {
-      const tribe = items.find((t) => t.id === id);
-
-      defaultTribes = [...defaultTribes, { id: tribe.id, name: tribe.text }];
-    }
+  async function addDefaultTribe(id) {
+    await api.relay.add_default_tribe(tag, id);
+    refreshTribes();
+    selectedTribe = "";
   }
 </script>
 
 <div class="tribes-wrap">
   <section class="header-wrap">
     <h1 class="default-header">Default Tribes</h1>
-    <small>(A maximum of 5 default tribes)</small>
+    <!-- <small>(A maximum of 5 default tribes)</small> -->
+    <small>(New users automatically added)</small>
   </section>
   <div class="divider" />
 
   <div class="tribes-data">
-    {#each defaultTribes as tribe}
-      <section class="tribes">
-        <p class="name">{tribe.name}</p>
-        <button on:click={() => deleteTribe(tribe.id)} class="delete-btn"
-          >X</button
-        >
-      </section>
-    {/each}
+    {#if defaultTribes && defaultTribes.length}
+      {#each defaultTribes as tribe}
+        <section class="tribes">
+          <p class="name">{tribe.name}</p>
+          <button on:click={() => deleteTribe(tribe.id)} class="delete-btn">
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="white"
+              stroke-width="3"
+              stroke-linecap="round"
+            >
+              <line x1="2" y1="2" x2="22" y2="22" />
+              <line x1="22" y1="2" x2="2" y2="22" />
+            </svg></button
+          >
+        </section>
+      {/each}
+      <div class="divider" />
+    {/if}
 
-    <div class="divider" />
     <section class="add-tribe-wrap">
       <label for="tribes">Add tribe</label>
       <section class="form">
-        <Dropdown bind:selectedId={selectedTribe} value="" {items} />
+        <Dropdown
+          bind:selectedId={selectedTribe}
+          value=""
+          items={[{ id: "", text: "Select a tribe" }, ...items]}
+        />
         <div class="spacer" />
-        {#if selectedTribe && defaultTribes.length < 5}
-          <Button
-            on:click={() => addDefaulttribe(selectedTribe)}
-            size="field"
-            icon={Add}>Add</Button
-          >
-        {/if}
+        <Button
+          disabled={!(selectedTribe && defaultTribes.length < 5)}
+          on:click={() => addDefaultTribe(selectedTribe)}
+          size="field"
+          icon={Add}>Add</Button
+        >
       </section>
     </section>
   </div>
@@ -111,12 +135,17 @@
     margin-left: auto;
     background-color: transparent;
     color: red;
-    padding: 0;
+    padding: 2px;
     border: 0;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     font-size: 0.95rem;
     font-weight: bolder;
+    cursor: pointer;
+    transform-origin: center center;
+  }
+  .tribes-data .tribes .delete-btn:hover {
+    transform: scale(1.1);
   }
   .add-tribe-wrap {
     margin-top: 20px;

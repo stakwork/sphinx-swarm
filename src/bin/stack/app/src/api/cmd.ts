@@ -28,7 +28,8 @@ export type Cmd =
   | "PayKeysend"
   | "AddDefaultTribe"
   | "RemoveDefaultTribe"
-  | "GetChats";
+  | "GetChats"
+  | "CreateTribe";
 
 interface CmdData {
   cmd: Cmd;

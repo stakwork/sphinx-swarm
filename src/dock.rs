@@ -26,7 +26,7 @@ pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<Stri
 
     let current_id = id_by_name(docker, &hostname).await;
     if let Some(id) = current_id {
-        // log::info!("{} already exists", hostname);
+        log::info!("=> {} already exists", hostname);
         return Ok(id);
     }
     // if it contains a "/" its from the registry
@@ -35,6 +35,7 @@ pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<Stri
     }
     let id = create_container(&docker, c.clone()).await?;
     start_container(&docker, &id).await?;
+    log::info!("=> created {}", hostname);
     Ok(id)
 }
 

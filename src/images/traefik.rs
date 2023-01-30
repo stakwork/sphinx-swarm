@@ -26,6 +26,7 @@ ulimits:
         soft: 1000000
         hard: 1000000
 */
+
 pub fn traefik(img: &TraefikImage) -> Config<String> {
     let name = "traefik";
     let image = "traefik:v2.2.1";
@@ -69,16 +70,16 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
     }
 }
 
-pub fn traefik_labels(host: &str, port: &str) -> HashMap<String, String> {
+pub fn traefik_labels(name: &str, host: &str, port: &str) -> HashMap<String, String> {
     let mut labels = HashMap::new();
-    let lb = "traefik.http.services.elements.loadbalancer.server.port";
+    let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
     let def = vec![
         "traefik.enable=true".to_string(),
-        format!("traefik.http.routers.elements.rule=Host(`{}`)", host),
         format!("{}={}", lb, port),
-        "traefik.http.routers.elements.tls=true".to_string(),
-        "traefik.http.routers.elements.tls.certresolver=myresolver".to_string(),
-        "traefik.http.routers.elements.entrypoints=websecure".to_string(),
+        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
+        format!("traefik.http.routers.{}.tls=true", name),
+        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
     def.iter().for_each(|l| {
         let parts = l.split("=").collect::<Vec<&str>>();

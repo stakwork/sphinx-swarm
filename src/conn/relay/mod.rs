@@ -60,14 +60,30 @@ pub struct Chat {
     price_per_message: u64,
     escrow_amount: u64,
     escrow_millis: u64,
-    private: bool,
+    private: u8,
     app_url: String,
     feed_url: String,
     tenant: u16,
     pin: String,
-    default_join: bool,
+    default_join: u8,
 }
 pub type ChatsRes = Vec<Chat>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreateTribe {
+    name: String,
+    is_tribe: bool,
+    unlisted: bool,
+}
+impl Default for CreateTribe {
+    fn default() -> Self {
+        Self {
+            name: "".to_string(),
+            is_tribe: true,
+            unlisted: true,
+        }
+    }
+}
 
 impl RelayAPI {
     pub async fn new(relay: &RelayImage, token: &str, check_is_setup: bool) -> Result<Self> {
@@ -173,10 +189,10 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        let hm = res.text().await?;
-        println!("ADDED USER {:?}", &hm);
-        Ok(serde_json::from_str(&hm)?)
-        // Ok(res.json().await?)
+        // let hm = res.text().await?;
+        // println!("ADDED USER {:?}", &hm);
+        // Ok(serde_json::from_str(&hm)?)
+        Ok(res.json().await?)
     }
 
     pub async fn list_users(&self) -> Result<RelayRes<Users>> {
@@ -187,10 +203,10 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        let hm = res.text().await?;
-        println!("HM {:?}", &hm);
-        Ok(serde_json::from_str(&hm)?)
-        // Ok(res.json().await?)
+        // let hm = res.text().await?;
+        // println!("HM {:?}", &hm);
+        // Ok(serde_json::from_str(&hm)?)
+        Ok(res.json().await?)
     }
 
     pub async fn get_chats(&self) -> Result<RelayRes<ChatsRes>> {
@@ -201,6 +217,28 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
+        // let hm = res.text().await?;
+        // println!("HM {:?}", &hm);
+        // Ok(serde_json::from_str(&hm)?)
+        Ok(res.json().await?)
+    }
+
+    pub async fn create_tribe(&self, name: &str) -> Result<RelayRes<Chat>> {
+        let ct = CreateTribe {
+            name: name.to_string(),
+            ..Default::default()
+        };
+        let route = format!("http://{}/group", self.url);
+        let res = self
+            .client
+            .post(route.as_str())
+            .json(&ct)
+            .header("x-admin-token", self.token.clone())
+            .send()
+            .await?;
+        // let hm = res.text().await?;
+        // println!("CREATED CHAT {:?}", &hm);
+        // Ok(serde_json::from_str(&hm)?)
         Ok(res.json().await?)
     }
 }

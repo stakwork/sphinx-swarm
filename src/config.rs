@@ -11,6 +11,7 @@ use once_cell::sync::Lazy;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::str::FromStr;
 
 pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
 
@@ -92,16 +93,34 @@ impl Node {
 
 impl Default for Stack {
     fn default() -> Self {
-        let network = "regtest".to_string();
+        // network
+        let mut network = "regtest".to_string();
+        if let Ok(env_net) = std::env::var("NETWORK") {
+            if env_net == "bitcoin" || env_net == "regtest" {
+                network = env_net;
+            }
+        }
+
+        let mut host = std::env::var("HOST").ok();
+        // must include a "."
+        if !host.clone().unwrap_or(".".to_string()).contains(".") {
+            host = None
+        }
+
         // bitcoind
         let mut v = "v23.0";
-        let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+        let mut bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+        // connect to already running BTC node
+        if let Ok(btc_pass) = std::env::var("BTC_PASS") {
+            bitcoind.set_password(&btc_pass);
+        }
 
         // lnd
         v = "v0.15.5-beta";
         let mut lnd = LndImage::new("lnd1", v, &network, "10009", "9735");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
+        lnd.host(host.clone());
 
         // lnd2
         let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");
@@ -115,10 +134,11 @@ impl Default for Stack {
         proxy.links(vec!["lnd1"]);
 
         // relay
-        v = "v0.1.2";
+        v = "v0.1.4";
         let node_env = "development";
         let mut relay = RelayImage::new("relay1", v, node_env, "3000");
         relay.links(vec!["proxy1", "lnd1", "tribes", "memes"]);
+        relay.host(host);
 
         // cache
         v = "0.1.14";
@@ -199,4 +219,32 @@ pub async fn get_config_file(project: &str) -> Stack {
 pub async fn put_config_file(project: &str, rs: &Stack) {
     let path = format!("vol/{}/config.json", project);
     utils::put_json(&path, rs).await
+}
+
+#[derive(Eq, PartialEq)]
+pub enum Mode {
+    Dev,
+    Prod,
+}
+
+impl Mode {
+    pub fn from_env() -> Self {
+        let mode = std::env::var("MODE").unwrap_or("dev".to_string());
+        Mode::from_str(&mode).unwrap_or(Mode::Dev)
+    }
+    pub fn is_prod() -> bool {
+        Mode::from_env() == Mode::Prod
+    }
+}
+impl FromStr for Mode {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dev" => Ok(Mode::Dev),
+            "development" => Ok(Mode::Dev),
+            "prod" => Ok(Mode::Prod),
+            "production" => Ok(Mode::Prod),
+            _ => Err(()),
+        }
+    }
 }

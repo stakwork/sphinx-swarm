@@ -112,7 +112,7 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn pay_invoice(&mut self, invoice: PayInvoice)  -> Result<SendResponse> {
+    pub async fn pay_invoice(&mut self, invoice: PayInvoice) -> Result<SendResponse> {
         let lnd = self.0.lightning();
         let response = lnd
             .send_payment_sync(SendRequest {

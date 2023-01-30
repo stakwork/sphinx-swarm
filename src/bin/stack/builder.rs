@@ -2,12 +2,34 @@ use super::setup;
 use anyhow::{Context, Result};
 use bollard::Docker;
 use rocket::tokio;
-use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
+use sphinx_swarm::config::Stack;
+use sphinx_swarm::config::{Clients, ExternalNodeType, Mode, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::images::{Image, LinkedImages};
 use sphinx_swarm::{dock::*, images};
+use std::collections::HashMap;
 use url::{Host, Url};
+
+// return a map of name:docker_id
+pub async fn build_stack(
+    proj: &str,
+    docker: &Docker,
+    stack: &Stack,
+) -> Result<(HashMap<String, String>, Clients)> {
+    // first create the default network
+    create_network(docker, None).await?;
+    // then add the containers
+    let mut ids = HashMap::new();
+    let mut clients: Clients = Default::default();
+    for node in stack.nodes.clone().iter() {
+        let id_opt = add_node(proj, &node, stack.nodes.clone(), docker, &mut clients).await?;
+        if let Some(id) = id_opt {
+            ids.insert(node.name(), id);
+        }
+    }
+    Ok((ids, clients))
+}
 
 pub async fn add_node(
     proj: &str,
@@ -29,7 +51,6 @@ pub async fn add_node(
             sleep(1).await;
             client.create_or_load_wallet()?;
             clients.bitcoind.insert(btc.name, client);
-            log::info!("created bitcoind");
             btc_id
         }
         Image::Lnd(lnd) => {
@@ -44,7 +65,6 @@ pub async fn add_node(
             let (client, test_mine_addy) = setup::lnd_clients(docker, proj, &lnd).await?;
             setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
             clients.lnd.insert(lnd.name, client);
-            log::info!("created LND {}", lnd_id);
             lnd_id
         }
         Image::Proxy(proxy) => {
@@ -56,8 +76,6 @@ pub async fn add_node(
 
             let client = ProxyAPI::new(&proxy).await?;
             clients.proxy.insert(proxy.name, client);
-
-            log::info!("created Proxy {}", proxy_id);
             proxy_id
         }
         Image::Relay(relay) => {
@@ -71,9 +89,6 @@ pub async fn add_node(
 
             let client = setup::relay_client(proj, &relay).await?;
             clients.relay.insert(relay.name, client);
-
-            // RELAY NEEDS TO NOT BE USER 1000 either!
-            log::info!("created Relay {}", relay_id);
             relay_id
         }
         Image::Cache(cache) => {
@@ -98,7 +113,6 @@ pub async fn add_node(
             let cache1 = images::cache::cache(&cache, &memes_host, &tribe_host);
             let cache_id = create_and_start(&docker, cache1).await?;
 
-            log::info!("created cache");
             cache_id
         }
     };
