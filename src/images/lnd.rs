@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::*;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
@@ -14,6 +15,7 @@ pub struct LndImage {
     pub http_port: Option<String>,
     pub links: Links,
     pub unlock_password: String,
+    pub host: Option<String>,
 }
 impl LndImage {
     pub fn new(name: &str, version: &str, network: &str, rpc_port: &str, peer_port: &str) -> Self {
@@ -26,6 +28,7 @@ impl LndImage {
             http_port: None,
             links: vec![],
             unlock_password: secrets::random_word(12),
+            host: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -33,6 +36,11 @@ impl LndImage {
     }
     pub fn unlock_password(&mut self, up: &str) {
         self.unlock_password = up.to_string();
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("{}.{}", self.name, h));
+        }
     }
 }
 impl DockerHubImage for LndImage {
@@ -86,12 +94,16 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         let rest_host = "0.0.0.0";
         cmd.push(format!("--restlisten={}:{}", rest_host, hp).to_string());
     }
-    Config {
+    let mut c = Config {
         image: Some(format!("{}:{}", img, lnd.version).to_string()),
         hostname: Some(domain(&lnd.name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&lnd.name, ports, root_vol, None),
         cmd: Some(cmd),
         ..Default::default()
+    };
+    if let Some(host) = lnd.host.clone() {
+        c.labels = Some(traefik_labels(&lnd.name, &host, &lnd.peer_port));
     }
+    c
 }

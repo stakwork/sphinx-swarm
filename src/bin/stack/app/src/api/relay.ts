@@ -13,6 +13,10 @@ export async function get_chats(tag: string) {
   return await relayCmd("GetChats", tag);
 }
 
+export async function create_tribe(tag: string, name: string) {
+  return await relayCmd("CreateTribe", tag, { name });
+}
+
 export async function add_user(tag: string, initial_sats?: number) {
   return await relayCmd("AddUser", tag, {
     ...(initial_sats && { initial_sats }),

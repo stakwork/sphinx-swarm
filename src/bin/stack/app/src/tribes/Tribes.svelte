@@ -70,28 +70,28 @@
   });
 
   function sort() {
-      let filter = filterItems.find((item) => item.id === selectedId);
-      const arrayToSort = [...$tribes.data];
+    let filter = filterItems.find((item) => item.id === selectedId);
+    const arrayToSort = [...$tribes.data];
 
-      if (filter.text === "User count") {
-        filterTribes = arrayToSort.sort(
-          (a, b) => b.member_count - a.member_count
-        );
-      } else if (filter.text === "Previewable") {
-        filterTribes = arrayToSort.sort((a, b) => {
-          if (b.preview > a.preview) return 1;
-          if (b.preview < a.preview) return -1;
-          return 0;
-        });
-      } else if (filter.text === "Recent messages") {
-        filterTribes = arrayToSort.sort((a, b) => {
-          if (b.last_active > a.last_active) return 1;
-          if (b.last_active < a.last_active) return -1;
-          return 0;
-        });
-      } else {
-        filterTribes = $tribes.data;
-      }
+    if (filter.text === "User count") {
+      filterTribes = arrayToSort.sort(
+        (a, b) => b.member_count - a.member_count
+      );
+    } else if (filter.text === "Previewable") {
+      filterTribes = arrayToSort.sort((a, b) => {
+        if (b.preview > a.preview) return 1;
+        if (b.preview < a.preview) return -1;
+        return 0;
+      });
+    } else if (filter.text === "Recent messages") {
+      filterTribes = arrayToSort.sort((a, b) => {
+        if (b.last_active > a.last_active) return 1;
+        if (b.last_active < a.last_active) return -1;
+        return 0;
+      });
+    } else {
+      filterTribes = $tribes.data;
+    }
   }
 
   function formatProps(data) {
@@ -103,6 +103,7 @@
       uuid: data.uuid,
       member_count: data.member_count,
       unique_name: data.unique_name,
+      default_join: data.default_join,
     };
   }
 

@@ -1,7 +1,6 @@
-use crate::cmd::{AddChannel, AddPeer, AddInvoice, PayInvoice, PayKeysend};
+use crate::cmd::{AddChannel, AddInvoice, AddPeer, PayInvoice, PayKeysend};
 use crate::images::lnd::LndImage;
 use anyhow::{anyhow, Result};
-use jwt::ToBase64;
 use tonic_lnd::lnrpc::*;
 use tonic_lnd::Client;
 
@@ -109,7 +108,7 @@ impl LndRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn pay_invoice(&mut self, invoice: PayInvoice)  -> Result<SendResponse> {
+    pub async fn pay_invoice(&mut self, invoice: PayInvoice) -> Result<SendResponse> {
         let lnd = self.0.lightning();
         let response = lnd
             .send_payment_sync(SendRequest {

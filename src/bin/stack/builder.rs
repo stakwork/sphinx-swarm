@@ -2,12 +2,34 @@ use super::setup;
 use anyhow::{Context, Result};
 use bollard::Docker;
 use rocket::tokio;
-use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
+use sphinx_swarm::config::Stack;
+use sphinx_swarm::config::{Clients, ExternalNodeType, Mode, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::images::{Image, LinkedImages};
 use sphinx_swarm::{dock::*, images};
+use std::collections::HashMap;
 use url::{Host, Url};
+
+// return a map of name:docker_id
+pub async fn build_stack(
+    proj: &str,
+    docker: &Docker,
+    stack: &Stack,
+) -> Result<(HashMap<String, String>, Clients)> {
+    // first create the default network
+    create_network(docker, None).await?;
+    // then add the containers
+    let mut ids = HashMap::new();
+    let mut clients: Clients = Default::default();
+    for node in stack.nodes.clone().iter() {
+        let id_opt = add_node(proj, &node, stack.nodes.clone(), docker, &mut clients).await?;
+        if let Some(id) = id_opt {
+            ids.insert(node.name(), id);
+        }
+    }
+    Ok((ids, clients))
+}
 
 pub async fn add_node(
     proj: &str,
