@@ -12,6 +12,12 @@ pub enum Cmd {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum NewNode {
+    Relay,
+    Lnd
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ImageRequest {
     pub name: String,
     pub page: u8,
@@ -22,6 +28,7 @@ pub struct ImageRequest {
 pub enum SwarmCmd {
     GetConfig,
     AddNode(Image),
+    AddNewNode(NewNode),
     GetContainerLogs(String),
     ListVersions(ImageRequest),
 }

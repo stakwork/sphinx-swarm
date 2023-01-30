@@ -52,6 +52,7 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     images: body,
                 })?)
             }
+            SwarmCmd::AddNewNode(_) => todo!(),
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

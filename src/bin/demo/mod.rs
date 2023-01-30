@@ -58,6 +58,10 @@ pub async fn main() -> Result<()> {
         // add in default env var $CLN
         env::add_to_env(tag, "CLN", &format!("lightning-cli --network={}", network)).await;
         env::add_to_env(tag, "HOST", "host.docker.internal").await;
+        // add default ports]
+        env::add_to_env(tag, "LND_RPC_PORT", 10009).await;
+        env::add_to_env(tag, "LND_PEER_PORT", 9735).await;
+        env::add_to_env(tag, "LND_RELAY_PORT", 3000).await;
         // streaming logs
         let mut stream = logs_stream(&docker, &name);
         let (log_tx, _) = broadcast::channel(1000);
