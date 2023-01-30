@@ -91,6 +91,9 @@ impl Node {
     }
 }
 
+// NETWORK = "bitcoin", "regtest"
+// HOST = hostname for this server (swarmx.sphinx.chat)
+// BTC_PASS = already created BTC password
 impl Default for Stack {
     fn default() -> Self {
         // network
@@ -123,9 +126,9 @@ impl Default for Stack {
         lnd.host(host.clone());
 
         // lnd2
-        let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");
-        lnd2.http_port = Some("8882".to_string());
-        lnd2.links(vec!["bitcoind", "lnd1"]);
+        // let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");
+        // lnd2.http_port = Some("8882".to_string());
+        // lnd2.links(vec!["bitcoind", "lnd1"]);
 
         // proxy
         v = "0.1.5";
@@ -149,9 +152,9 @@ impl Default for Stack {
         let internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
-            Image::Lnd(lnd2),
+            // Image::Lnd(lnd2),
             Image::Proxy(proxy),
-            // Image::Relay(relay),
+            Image::Relay(relay),
             Image::Cache(cache),
         ];
 
