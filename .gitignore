@@ -10,3 +10,5 @@ somefile
 perm.md
 notes-new.md
 notes-*.md
+.env.*
+.labels.*

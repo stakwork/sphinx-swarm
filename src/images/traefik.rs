@@ -27,6 +27,27 @@ ulimits:
         hard: 1000000
 */
 
+// all 3 required for inclusion
+fn aws_env() -> Option<Vec<String>> {
+    let aws_key = std::env::var("AWS_ACCESS_KEY_ID");
+    let aws_secret = std::env::var("AWS_SECRET_ACCESS_KEY");
+    let aws_region = std::env::var("AWS_REGION");
+    if let Err(_) = aws_key {
+        return None;
+    }
+    if let Err(_) = aws_secret {
+        return None;
+    }
+    if let Err(_) = aws_region {
+        return None;
+    }
+    Some(vec![
+        format!("AWS_ACCESS_KEY_ID={}", aws_key.unwrap()),
+        format!("AWS_SECRET_ACCESS_KEY={}", aws_secret.unwrap()),
+        format!("AWS_REGION={}", aws_region.unwrap()),
+    ])
+}
+
 pub fn traefik(img: &TraefikImage) -> Config<String> {
     let name = "traefik";
     let image = "traefik:v2.2.1";
@@ -65,6 +86,7 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
             add_ulimits,
             add_log_limit,
         ),
+        env: aws_env(),
         cmd: Some(strarr(cmd)),
         ..Default::default()
     }

@@ -27,4 +27,7 @@ docker run --name=sphinx-swarm \
  --restart=on-failure \
  --volume=/var/run/docker.sock:/var/run/docker.sock \
  --volume=/home/admin/vol:/vol \
+ --env-file ./.env.prod \
+ -p 8000:8000 \
+ --detached \
  sphinxlightning/sphinx-swarm:0.1.1
