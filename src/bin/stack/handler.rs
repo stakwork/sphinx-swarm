@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use bollard::Docker;
+use rocket::form::validate::len;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{Node, Stack, STATE};
@@ -54,8 +55,28 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             }
             SwarmCmd::AddNewNode(node) => {
                 match node {
-                    NewNode::Relay => todo!(),
-                    NewNode::Lnd => todo!(),
+                    NewNode::Relay => {
+                        let relay_count = stack
+                            .nodes
+                            .iter()
+                            .filter(|n| n.name().contains("relay"))
+                            .cloned()
+                            .collect::<Vec<Node>>()
+                            .len();
+
+                        // Some(serde_json::to_string())
+                        todo!()
+                    }
+                    NewNode::Lnd => {
+                        let lnd_count = stack
+                            .nodes
+                            .iter()
+                            .filter(|n| n.name().contains("lnd"))
+                            .cloned()
+                            .collect::<Vec<Node>>()
+                            .len();
+                        todo!()
+                    }
                 }
             }
         },
