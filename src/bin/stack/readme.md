@@ -30,4 +30,4 @@ docker run --name=sphinx-swarm \
  --env-file ./.env.prod \
  -p 8000:8000 \
  --detached \
- sphinxlightning/sphinx-swarm:0.1.1
+ sphinxlightning/sphinx-swarm:0.1.2
