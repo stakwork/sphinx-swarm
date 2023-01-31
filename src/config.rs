@@ -3,7 +3,8 @@ use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::{
-    btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
+    btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage,
+    traefik::TraefikImage, Image,
 };
 use crate::utils;
 use anyhow::Result;
@@ -153,14 +154,21 @@ impl Default for Stack {
         cache.links(vec!["tribes", "lnd1"]);
 
         // internal nodes
-        let internal_nodes = vec![
+        let mut internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
             // Image::Lnd(lnd2),
             Image::Proxy(proxy),
             Image::Relay(relay),
-            Image::Cache(cache),
+            // Image::Cache(cache),
         ];
+
+        // prod load balancer and certs
+        if let Some(_h) = &host {
+            let mut traefik = TraefikImage::new("reverse-proxy", true);
+            traefik.links(vec!["lnd1", "relay1"]);
+            internal_nodes.push(Image::Traefik(traefik));
+        }
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()

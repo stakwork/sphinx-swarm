@@ -115,6 +115,12 @@ pub async fn add_node(
 
             cache_id
         }
+        Image::Traefik(traefik) => {
+            sleep(1).await;
+            let t1 = images::traefik::traefik(&traefik);
+            let tid = create_and_start(&docker, t1).await?;
+            tid
+        }
     };
     Ok(Some(id))
 }

@@ -38,7 +38,6 @@ pub fn host_config(
 pub fn manual_host_config(
     ports: Vec<String>,
     vols: Option<Vec<String>>,
-    links: Option<Vec<String>>,
     add_ulimits: bool,
     add_log_limit: bool,
 ) -> Option<HostConfig> {
@@ -46,7 +45,6 @@ pub fn manual_host_config(
         binds: vols,
         port_bindings: host_port(ports),
         extra_hosts: extra_hosts(),
-        links,
         ..Default::default()
     };
     if add_ulimits {

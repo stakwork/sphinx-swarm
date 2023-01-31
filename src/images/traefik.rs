@@ -10,6 +10,27 @@ pub struct TraefikImage {
     pub links: Links,
 }
 
+impl TraefikImage {
+    pub fn new(name: &str, insecure: bool) -> Self {
+        Self {
+            name: name.to_string(),
+            insecure,
+            links: vec![],
+        }
+    }
+    pub fn links(&mut self, links: Vec<&str>) {
+        self.links = strarr(links)
+    }
+}
+impl DockerHubImage for TraefikImage {
+    fn repo(&self) -> Repository {
+        Repository {
+            org: "".to_string(),
+            repo: "traefik".to_string(),
+        }
+    }
+}
+
 /*
 environment:
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
@@ -49,7 +70,7 @@ fn aws_env() -> Option<Vec<String>> {
 }
 
 pub fn traefik(img: &TraefikImage) -> Config<String> {
-    let name = "traefik";
+    let name = img.name.clone();
     let image = "traefik:v2.2.1";
     let mut ports = vec!["8080", "443", "8883"];
     if img.insecure {
@@ -78,11 +99,10 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
     let add_log_limit = true;
     Config {
         image: Some(image.to_string()),
-        hostname: Some(domain(name)),
+        hostname: Some(domain(&name)),
         host_config: manual_host_config(
             strarr(ports),
             Some(strarr(extra_vols)),
-            Some(img.links.clone()),
             add_ulimits,
             add_log_limit,
         ),

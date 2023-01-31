@@ -18,6 +18,7 @@ pub enum Image {
     Relay(relay::RelayImage),
     Proxy(proxy::ProxyImage),
     Cache(cache::CacheImage),
+    Traefik(traefik::TraefikImage),
 }
 
 pub struct Repository {
@@ -39,6 +40,7 @@ impl Image {
             Image::Relay(n) => n.name.clone(),
             Image::Proxy(n) => n.name.clone(),
             Image::Cache(n) => n.name.clone(),
+            Image::Traefik(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -48,19 +50,21 @@ impl Image {
             Image::Relay(_n) => "Relay",
             Image::Proxy(_n) => "Proxy",
             Image::Cache(_n) => "Cache",
+            Image::Traefik(_n) => "Traefik",
         }
         .to_string()
     }
 
-    pub fn repo(&self) -> Repository {
-        match self {
-            Image::Btc(n) => n.repo(),
-            Image::Lnd(n) => n.repo(),
-            Image::Relay(n) => n.repo(),
-            Image::Proxy(n) => n.repo(),
-            Image::Cache(n) => n.repo(),
-        }
-    }
+    // pub fn repo(&self) -> Repository {
+    //     match self {
+    //         Image::Btc(n) => n.repo(),
+    //         Image::Lnd(n) => n.repo(),
+    //         Image::Relay(n) => n.repo(),
+    //         Image::Proxy(n) => n.repo(),
+    //         Image::Cache(n) => n.repo(),
+    //         Image::Traefik(n) => n.repo(),
+    //     }
+    // }
 }
 
 impl DockerHubImage for Image {
@@ -71,6 +75,7 @@ impl DockerHubImage for Image {
             Image::Relay(n) => n.repo(),
             Image::Proxy(n) => n.repo(),
             Image::Cache(n) => n.repo(),
+            Image::Traefik(n) => n.repo(),
         }
     }
 }

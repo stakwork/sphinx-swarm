@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
-use sphinx_swarm::images::Image;
+use sphinx_swarm::images::{DockerHubImage, Image};
 
 // tag is the service name
 pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -181,6 +181,7 @@ fn remove_tokens(s: &Stack) -> Stack {
             }
             Image::Relay(r) => Node::Internal(Image::Relay(r)),
             Image::Cache(c) => Node::Internal(Image::Cache(c)),
+            Image::Traefik(t) => Node::Internal(Image::Traefik(t)),
         },
     });
     Stack {
