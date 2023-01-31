@@ -63,8 +63,13 @@ pub struct LoginResult {
 
 #[rocket::post("/login", data = "<body>")]
 pub async fn login(body: Json<LoginData>) -> Result<Json<LoginResult>> {
-    let pass_hash = "";
-    let valid = bcrypt::verify(&body.password, pass_hash)?;
+    let default_username = "admin";
+    let default_password = "password";
+    if &body.username != default_username {
+        return Err(Error::Unauthorized);
+    }
+    let pass_hash = bcrypt::hash(default_password, bcrypt::DEFAULT_COST)?;
+    let valid = bcrypt::verify(&body.password, &pass_hash)?;
     if !valid {
         return Err(Error::Unauthorized);
     }

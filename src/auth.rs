@@ -50,13 +50,6 @@ pub fn make_jwt(user: u32) -> Result<String> {
     Ok(token)
 }
 
-pub fn single_claim_jwt(key: &str, value: &str) -> Result<String> {
-    let mut claims = BTreeMap::new();
-    claims.insert(key, value);
-    let token = claims.sign_with_key(&jwt_key())?;
-    Ok(token)
-}
-
 pub fn days(n: u32) -> u32 {
     n * 24 * 60 * 60
 }
@@ -96,8 +89,7 @@ impl<'r> FromRequest<'r> for AdminJwtClaims {
     }
 }
 
-pub fn hash_pass() -> Result<bool> {
-    let pwd = "passw0rd";
+pub fn hash_pass(pwd: &str) -> Result<bool> {
     let hashed = bcrypt::hash(pwd, bcrypt::DEFAULT_COST)?;
     let valid = bcrypt::verify(pwd, &hashed)?;
     Ok(valid)
