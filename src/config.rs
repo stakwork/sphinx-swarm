@@ -52,6 +52,7 @@ pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
     pub nodes: Vec<Node>,
+    pub host: Option<String>, // root host for traefik
 }
 
 // optional node, could be external
@@ -138,10 +139,13 @@ impl Default for Stack {
 
         // relay
         v = "v0.1.4";
-        let node_env = "development";
+        let node_env = match host {
+            Some(_) => "production",
+            None => "development",
+        };
         let mut relay = RelayImage::new("relay1", v, node_env, "3000");
         relay.links(vec!["proxy1", "lnd1", "tribes", "memes"]);
-        relay.host(host);
+        relay.host(host.clone());
 
         // cache
         v = "0.1.14";
@@ -175,7 +179,11 @@ impl Default for Stack {
             ExternalNodeType::Meme,
             "meme.sphinx.chat",
         )));
-        Stack { network, nodes }
+        Stack {
+            network,
+            nodes,
+            host,
+        }
     }
 }
 
