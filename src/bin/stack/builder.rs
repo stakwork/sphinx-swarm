@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use bollard::Docker;
 use rocket::tokio;
 use sphinx_swarm::config::Stack;
-use sphinx_swarm::config::{Clients, ExternalNodeType, Mode, Node};
+use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::images::{Image, LinkedImages};

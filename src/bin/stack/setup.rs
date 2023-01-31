@@ -91,7 +91,7 @@ pub async fn unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<(
     let secs = secrets::load_secrets(proj).await;
     // UNLOCK LND
     let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
-    let unlocker = LndUnlocker::new(&unlock_port, cert)
+    let unlocker = LndUnlocker::new(lnd_node, cert)
         .await
         .map_err(|e| anyhow!(format!("LndUnlocker::new failed: {}", e)))?;
     if let Some(_) = secs.get(&lnd_node.name) {

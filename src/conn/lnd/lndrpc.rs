@@ -1,18 +1,20 @@
 use std::collections::HashMap;
 
-use crate::cmd::{AddChannel, AddPeer, AddInvoice, PayInvoice, PayKeysend};
+use crate::cmd::{AddChannel, AddInvoice, AddPeer, PayInvoice, PayKeysend};
 use crate::images::lnd::LndImage;
 use crate::secrets::hex_secret_32;
+use crate::utils::docker_domain;
 use anyhow::{anyhow, Result};
+use sha2::{Digest, Sha256};
 use tonic_lnd::lnrpc::*;
 use tonic_lnd::Client;
-use sha2::{Sha256, Digest};
 
 pub struct LndRPC(Client);
 
 impl LndRPC {
     pub async fn new(lnd: &LndImage, cert_pem: &str, macaroon: &str) -> Result<Self> {
-        let address = format!("https://localhost:{}", lnd.rpc_port);
+        let host = docker_domain(&lnd.name);
+        let address = format!("https://{}:{}", &host, lnd.rpc_port);
         let client = tonic_lnd::connect_from_memory(address, cert_pem, macaroon).await?;
         Ok(Self(client))
     }
@@ -126,7 +128,7 @@ impl LndRPC {
     pub async fn pay_keysend(&mut self, keysend: PayKeysend) -> Result<SendResponse> {
         let lnd = self.0.lightning();
         const LND_KEYSEND_KEY: u64 = 5482373484;
-        
+
         let rando_str = hex_secret_32();
         let preimage = hex::decode(rando_str)?;
         let mut hasher = Sha256::new();
@@ -134,10 +136,10 @@ impl LndRPC {
         hasher.update(preimage.clone());
 
         let payment_hash = hasher.finalize().to_vec();
-      
+
         let mut dest_custom_records = HashMap::new();
         dest_custom_records.insert(LND_KEYSEND_KEY, preimage.clone());
-        
+
         let response = lnd
             .send_payment_sync(SendRequest {
                 dest: hex::decode(keysend.dest)?,

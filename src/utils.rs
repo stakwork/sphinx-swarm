@@ -100,6 +100,14 @@ pub fn domain(name: &str) -> String {
     format!("{}.sphinx", name)
 }
 
+pub fn docker_domain(name: &str) -> String {
+    if let Ok(_) = std::env::var("DOCKER_RUN") {
+        domain(name)
+    } else {
+        "localhost".to_string()
+    }
+}
+
 pub fn exposed_ports(ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
     let mut ps = HashMap::new();
     for port in ports {

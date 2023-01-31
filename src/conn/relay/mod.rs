@@ -1,9 +1,9 @@
+use crate::images::relay::RelayImage;
+use crate::utils::docker_domain;
 use anyhow::{anyhow, Result};
 use rocket::tokio;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-
-use crate::images::relay::RelayImage;
 
 pub struct RelayAPI {
     pub client: reqwest::Client,
@@ -92,8 +92,9 @@ impl RelayAPI {
             .danger_accept_invalid_certs(true)
             .build()
             .expect("couldnt build proxy reqwest client");
+        let host = docker_domain(&relay.name);
         let api = Self {
-            url: format!("localhost:{}", relay.port),
+            url: format!("{}:{}", host, relay.port),
             client,
             token: token.to_string(),
         };
