@@ -4,7 +4,6 @@
   import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
-  import { onMount } from "svelte";
 
   const nodeCallback = (node) => {
     const n = $stack.nodes.find((n) => n.name === node.data.name);
