@@ -8,7 +8,6 @@ version: '2'
 services:
 
   load_balancer:
-    # The official v2 Traefik docker image
     image: traefik:v2.2.1
     container_name: load_balancer
     networks:
@@ -74,3 +73,4 @@ services:
 
 networks:
   sphinx-swarm:
+    external: true
