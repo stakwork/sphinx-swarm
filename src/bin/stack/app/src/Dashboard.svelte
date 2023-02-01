@@ -6,7 +6,7 @@
     import AddNode from "./nodes/AddNode.svelte";
     import NodeLogs from "./nodes/NodeLogs.svelte";
     import NodeUpdate from "./nodes/NodeUpdate.svelte";
-    import { stack } from "./store";
+    import { stack, logoutUser } from "./store";
     import { onMount } from "svelte";
     import * as api from "./api";
     import type { Stack } from "./nodes";
@@ -41,6 +41,7 @@
       </section>
   
       <AddNode />
+      <button on:click={logoutUser} class="logout-btn">Logout</button>
     </header>
     <div class="body">
       {#if $stack.nodes.length}
@@ -108,6 +109,16 @@
       align-items: center;
       justify-content: center;
       justify-items: center;
+    }
+    .logout-btn {
+        background-color: transparent;
+        color: #FEFEFE;
+        border: 0;
+        outline: 0;
+        margin-right: 2.5rem;
+        font-size: 0.88rem;
+        font-weight: 500;
+        cursor: pointer;
     }
   </style>
   

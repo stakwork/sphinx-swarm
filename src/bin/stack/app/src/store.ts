@@ -7,6 +7,7 @@ import type { Channel, Peer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
 import type { TokenData } from "./api/swarm";
+import { userKey } from "./api/swarm";
 import { decode } from "js-base64";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
@@ -67,7 +68,6 @@ export const balances = derived(
 );
 
 export const saveUserToStore = (user: string = "") => {
-  const userKey = "SPHINX_TOKEN";
   if (user) {
     localStorage.setItem(userKey, user);
     return activeUser.set(user);
@@ -85,6 +85,11 @@ export const saveUserToStore = (user: string = "") => {
     }
   }
 };
+
+export const logoutUser = () => {
+  localStorage.setItem(userKey, "");
+  return activeUser.set("");
+}
 
 /*
  * Call to get user token from localstorage

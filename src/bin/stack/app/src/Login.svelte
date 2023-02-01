@@ -1,5 +1,5 @@
 <script>
-  import { Button, TextInput } from "carbon-components-svelte";
+  import { Button, TextInput, Loading } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "./api";
   import { saveUserToStore } from "./store";
@@ -9,14 +9,21 @@
 
   $: addDisabled = !username || !password;
 
+  let loading = false;
+
   async function login() {
-    const result = await api.swarm.login(username, password);
-    // console.log("Login Result ===", result);
-    if (result) {
-      saveUserToStore(result.token);
-      
-      username = "";
-      password = "";
+    try {
+      loading = true;
+      const result = await api.swarm.login(username, password);
+
+      if (result) {
+        saveUserToStore(result.token);
+        username = "";
+        password = "";
+      }
+      loading = false;
+    } catch (_) {
+      loading = false;
     }
   }
 </script>
@@ -27,31 +34,35 @@
     <span class="stack-title">Sphinx</span>
   </div>
   <div class="container">
-    <section class="login-wrap">
-      <h3 class="header-text">Login to Sphinx Swarm</h3>
-      <TextInput
-        labelText={"Username"}
-        placeholder={"Enter username"}
-        bind:value={username}
-      />
-      <div class="spacer" />
-      <TextInput
-        labelText={"Password"}
-        placeholder={"Enter password"}
-        type={"password"}
-        bind:value={password}
-      />
-      <div class="spacer" />
-      <center
-        ><Button
-          disabled={addDisabled}
-          class="peer-btn"
-          on:click={login}
-          size="field"
-          icon={Icon}>Login</Button
-        ></center
-      >
-    </section>
+    {#if loading}
+      <Loading />
+    {:else}
+      <section class="login-wrap">
+        <h3 class="header-text">Login to Sphinx Swarm</h3>
+        <TextInput
+          labelText={"Username"}
+          placeholder={"Enter username"}
+          bind:value={username}
+        />
+        <div class="spacer" />
+        <TextInput
+          labelText={"Password"}
+          placeholder={"Enter password"}
+          type={"password"}
+          bind:value={password}
+        />
+        <div class="spacer" />
+        <center
+          ><Button
+            disabled={addDisabled}
+            class="peer-btn"
+            on:click={login}
+            size="field"
+            icon={Icon}>Login</Button
+          ></center
+        >
+      </section>
+    {/if}
   </div>
 </main>
 
@@ -66,7 +77,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 88vh;
+    min-height: 85vh;
   }
   .logo-wrap {
     padding: 22px;

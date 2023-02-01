@@ -7,6 +7,8 @@ export interface TokenData {
   user: number;
 }
 
+export const userKey = "SPHINX_TOKEN";
+
 async function swarmCmd(cmd: Cmd, content?: any) {
   return await send_cmd("Swarm", { cmd, content });
 }
