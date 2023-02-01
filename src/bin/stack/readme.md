@@ -21,6 +21,18 @@ docker run --name=sphinx-swarm \
  --detach \
  sphinx-swarm
 
+### run prod stack
+
+copy the .env.md
+
+docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up -d
+
+docker logs sphinx-swarm --follow
+
+docker logs load_balancer --follow
+
+docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . down
+
 ### run sphinx swarm in prod
 
 docker pull traefik:v2.2.1

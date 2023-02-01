@@ -35,7 +35,7 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/ec2-user/letsencrypt:/letsencrypt
+      - /home/admin/letsencrypt:/letsencrypt
     environment: 
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
