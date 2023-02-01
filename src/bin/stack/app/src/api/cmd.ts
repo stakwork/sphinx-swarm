@@ -1,6 +1,6 @@
 const IS_DEV = window.location.host === "localhost:5173" || "127.0.0.1:5173";
 
-let root = "/api";
+export let root = "/api";
 if (IS_DEV) {
   root = "http://localhost:8000/api";
 }
