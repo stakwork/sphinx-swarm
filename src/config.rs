@@ -53,7 +53,7 @@ pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
     pub nodes: Vec<Node>,
-    pub host: Option<String>, // root host for traefik
+    pub host: Option<String>, // root host for traefik (PRODUCTION)
 }
 
 // optional node, could be external
@@ -122,7 +122,7 @@ impl Default for Stack {
 
         // lnd
         v = "v0.15.5-beta";
-        let mut lnd = LndImage::new("lnd1", v, &network, "10009", "9735");
+        let mut lnd = LndImage::new("lnd", v, &network, "10009", "9735");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec!["bitcoind"]);
         lnd.host(host.clone());
@@ -130,13 +130,13 @@ impl Default for Stack {
         // lnd2
         // let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");
         // lnd2.http_port = Some("8882".to_string());
-        // lnd2.links(vec!["bitcoind", "lnd1"]);
+        // lnd2.links(vec!["bitcoind", "lnd"]);
 
         // proxy
         v = "0.1.5";
-        let mut proxy = ProxyImage::new("proxy1", v, &network, "11111", "5050");
+        let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
-        proxy.links(vec!["lnd1"]);
+        proxy.links(vec!["lnd"]);
 
         // relay
         v = "v0.1.4";
@@ -144,14 +144,14 @@ impl Default for Stack {
             Some(_) => "production",
             None => "development",
         };
-        let mut relay = RelayImage::new("relay1", v, node_env, "3000");
-        relay.links(vec!["proxy1", "lnd1", "tribes", "memes"]);
+        let mut relay = RelayImage::new("relay", v, node_env, "3000");
+        relay.links(vec!["proxy", "lnd", "tribes", "memes"]);
         relay.host(host.clone());
 
         // cache
         v = "0.1.14";
-        let mut cache = CacheImage::new("cache1", v, "9000", true);
-        cache.links(vec!["tribes", "lnd1"]);
+        let mut cache = CacheImage::new("cache", v, "9000", true);
+        cache.links(vec!["tribes", "lnd"]);
 
         // internal nodes
         let mut internal_nodes = vec![
@@ -165,8 +165,8 @@ impl Default for Stack {
 
         // prod load balancer and certs
         if let Some(_h) = &host {
-            let mut traefik = TraefikImage::new("reverse-proxy", true);
-            traefik.links(vec!["lnd1", "relay1"]);
+            let mut traefik = TraefikImage::new("load balancer", true);
+            traefik.links(vec!["lnd", "relay"]);
             internal_nodes.push(Image::Traefik(traefik));
         }
 

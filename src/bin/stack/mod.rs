@@ -20,7 +20,7 @@ async fn main() -> Result<()> {
 
     let proj = "stack";
     let stack: Stack = load_config_file(proj).await;
-    let (_ids, clients) = builder::build_stack(proj, &docker, &stack).await?;
+    let clients = builder::build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
 
     // set into the main state mutex

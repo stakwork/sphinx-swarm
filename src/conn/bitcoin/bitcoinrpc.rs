@@ -18,6 +18,13 @@ impl BitcoinRPC {
         )?))
     }
 
+    pub async fn new_and_create_wallet(btc: &BtcImage, url: &str, port: &str) -> Result<Self> {
+        let c = BitcoinRPC::new(btc, url, port)?;
+        sleep(1).await;
+        c.create_or_load_wallet()?;
+        Ok(c)
+    }
+
     pub fn get_info(&self) -> Result<GetBlockchainInfoResult> {
         Ok(self.0.get_blockchain_info()?)
     }
@@ -46,4 +53,8 @@ impl BitcoinRPC {
         };
         Ok(self.0.generate_to_address(n, &address)?)
     }
+}
+
+async fn sleep(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }

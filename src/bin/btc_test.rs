@@ -17,10 +17,10 @@ pub async fn main() -> Result<()> {
     let proj = "btc_test";
     let btc1 = btc(proj, "bitcoind");
 
-    let btc_id = create_and_start(&docker, btc1).await?;
+    let btc_id = create_and_start(&docker, btc1, false).await?;
     log::info!("btc launched!");
     signal::ctrl_c().await?;
-    stop_and_remove(&docker, &btc_id).await?;
+    stop_and_remove(&docker, &btc_id.unwrap_or("".to_string())).await?;
     Ok(())
 }
 

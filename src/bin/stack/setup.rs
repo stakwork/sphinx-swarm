@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use bollard::Docker;
 use images::lnd::LndImage;
 use images::relay::RelayImage;
@@ -90,7 +90,6 @@ async fn try_unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<(
 pub async fn unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<()> {
     let secs = secrets::load_secrets(proj).await;
     // UNLOCK LND
-    let unlock_port = lnd_node.http_port.clone().context("no unlock port")?;
     let unlocker = LndUnlocker::new(lnd_node, cert)
         .await
         .map_err(|e| anyhow!(format!("LndUnlocker::new failed: {}", e)))?;

@@ -19,15 +19,30 @@ pub fn dockr() -> Docker {
     Docker::connect_with_unix_defaults().unwrap()
 }
 
-pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<String> {
-    // first create volume with the same name, if needed
+// retuns container id
+pub async fn create_and_start(
+    docker: &Docker,
+    c: Config<String>,
+    skip: bool,
+) -> Result<Option<String>> {
     let hostname = c.hostname.clone().context("expected hostname")?;
+    let current_id = id_by_name(docker, &hostname).await;
+    if skip {
+        log::info!("=> skip {}", &hostname);
+        if let Some(id) = current_id {
+            return Ok(Some(id));
+        } else {
+            // dont make the client
+            return Ok(None);
+        }
+    }
+
+    // first create volume with the same name, if needed
     create_volume(&docker, &hostname).await?;
 
-    let current_id = id_by_name(docker, &hostname).await;
     if let Some(id) = current_id {
-        log::info!("=> {} already exists", hostname);
-        return Ok(id);
+        log::info!("=> {} already exists", &hostname);
+        return Ok(Some(id));
     }
     // if it contains a "/" its from the registry
     if c.image.clone().context("expected image")?.contains("/") {
@@ -35,8 +50,8 @@ pub async fn create_and_start(docker: &Docker, c: Config<String>) -> Result<Stri
     }
     let id = create_container(&docker, c.clone()).await?;
     start_container(&docker, &id).await?;
-    log::info!("=> created {}", hostname);
-    Ok(id)
+    log::info!("=> created {}", &hostname);
+    Ok(Some(id))
 }
 
 pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {

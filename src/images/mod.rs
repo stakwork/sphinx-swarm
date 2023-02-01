@@ -83,7 +83,7 @@ impl DockerHubImage for Image {
 pub struct LinkedImages(Vec<Image>);
 
 impl LinkedImages {
-    pub fn from_nodes(links: Vec<String>, nodes: Vec<config::Node>) -> Self {
+    pub fn from_nodes(links: Vec<String>, nodes: &Vec<config::Node>) -> Self {
         let mut images = Vec::new();
         links.iter().for_each(|l| {
             if let Some(node) = nodes.iter().find(|n| &n.name() == l) {

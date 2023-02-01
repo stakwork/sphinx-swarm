@@ -2,9 +2,9 @@
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.2
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.5
 
-docker push sphinxlightning/sphinx-swarm:0.1.2
+docker push sphinxlightning/sphinx-swarm:0.1.5
 
 ### run sphinx swarm in dev
 
@@ -15,8 +15,8 @@ docker run --name=sphinx-swarm \
  --restart=on-failure \
  --volume=/var/run/docker.sock:/var/run/docker.sock \
  --volume=/Users/evanfeenstra/vol:/vol \
- -p 8000:8000 \
- -e DOCKER_RUN=true \
+ --env DOCKER_RUN=true \
+ --publish 8000:8000 \
  --detached \
  sphinx-swarm
 
@@ -28,6 +28,6 @@ docker run --name=sphinx-swarm \
  --volume=/var/run/docker.sock:/var/run/docker.sock \
  --volume=/home/admin/vol:/vol \
  --env-file ./.env.prod \
- -p 8000:8000 \
+ --publish 8000:8000 \
  --detached \
- sphinxlightning/sphinx-swarm:0.1.2
+ sphinxlightning/sphinx-swarm:0.1.5

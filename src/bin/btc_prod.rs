@@ -19,7 +19,7 @@ pub async fn main() -> Result<()> {
     let btc1 = btc(&img);
 
     // launch btc
-    let btc_id = create_and_start(&docker, btc1).await?;
-    log::info!("btc launched! {}", btc_id);
+    let btc_id = create_and_start(&docker, btc1, false).await?;
+    log::info!("btc launched! {:?}", btc_id);
     Ok(())
 }
