@@ -2,6 +2,11 @@ import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 import { root } from "./cmd";
 
+export interface TokenData {
+  exp: number;
+  user: number;
+}
+
 async function swarmCmd(cmd: Cmd, content?: any) {
   return await send_cmd("Swarm", { cmd, content });
 }

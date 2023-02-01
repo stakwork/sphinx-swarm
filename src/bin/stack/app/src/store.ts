@@ -6,6 +6,8 @@ import type { Tribe, Person } from "./api/tribes";
 import type { Channel, Peer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
+import type { TokenData } from "./api/swarm";
+import { decode } from "js-base64";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -66,20 +68,26 @@ export const balances = derived(
 
 export const saveUserToStore = (user: string = "") => {
   const userKey = "SPHINX_TOKEN";
-  if(user) {
+  if (user) {
     localStorage.setItem(userKey, user);
     return activeUser.set(user);
-  } 
+  }
 
   let storageUser = localStorage.getItem(userKey);
 
   if (storageUser) {
-    return activeUser.set(storageUser);
+    const jwts = storageUser.split(".");
+
+    const decodedData: TokenData = JSON.parse(decode(jwts[1]));
+
+    if (decodedData.exp * 1000 > Date.now()) {
+      return activeUser.set(storageUser);
+    }
   }
-}
+};
 
 /*
-* Call to get user token from localstorage
-* and save to store
-*/
+ * Call to get user token from localstorage
+ * and save to store
+ */
 saveUserToStore();

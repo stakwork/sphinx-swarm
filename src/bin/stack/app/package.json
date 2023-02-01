@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@zerodevx/svelte-toast": "^0.8.2",
+    "js-base64": "^3.7.4",
     "lodash": "^4.17.21",
     "lodash.debounce": "^4.0.8",
     "moment": "^2.29.4",
