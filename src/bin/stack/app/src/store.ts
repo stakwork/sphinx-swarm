@@ -72,8 +72,14 @@ export const saveUserToStore = (user: string = "") => {
   } 
 
   let storageUser = localStorage.getItem(userKey);
-  
+
   if (storageUser) {
-    return activeUser.set(user);
+    return activeUser.set(storageUser);
   }
 }
+
+/*
+* Call to get user token from localstorage
+* and save to store
+*/
+saveUserToStore();
