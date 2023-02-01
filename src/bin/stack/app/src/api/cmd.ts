@@ -1,4 +1,6 @@
-const IS_DEV = window.location.host === "localhost:5173" || "127.0.0.1:5173";
+const IS_DEV =
+  window.location.host === "localhost:5173" ||
+  window.location.host === "127.0.0.1:5173";
 
 let root = "/api";
 if (IS_DEV) {
