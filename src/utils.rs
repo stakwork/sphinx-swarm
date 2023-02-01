@@ -75,7 +75,7 @@ fn log_limit() -> Option<HostConfigLogConfig> {
     let mut config = HashMap::new();
     config.insert("max-size".to_string(), "10m".to_string());
     Some(HostConfigLogConfig {
-        typ: Some("options".to_string()),
+        typ: Some("json-file".to_string()),
         config: Some(config),
     })
 }

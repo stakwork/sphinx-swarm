@@ -6,15 +6,13 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TraefikImage {
     pub name: String,
-    pub insecure: bool,
     pub links: Links,
 }
 
 impl TraefikImage {
-    pub fn new(name: &str, insecure: bool) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            insecure,
             links: vec![],
         }
     }
@@ -63,22 +61,27 @@ fn aws_env() -> Option<Vec<String>> {
         return None;
     }
     Some(vec![
+        format!("AWS_REGION={}", aws_region.unwrap()),
         format!("AWS_ACCESS_KEY_ID={}", aws_key.unwrap()),
         format!("AWS_SECRET_ACCESS_KEY={}", aws_secret.unwrap()),
-        format!("AWS_REGION={}", aws_region.unwrap()),
     ])
 }
 
 pub fn traefik(img: &TraefikImage) -> Config<String> {
     let name = img.name.clone();
     let image = "traefik:v2.2.1";
-    let mut ports = vec!["8080", "443", "8883"];
-    if img.insecure {
-        ports.push("80");
+    let mut ports = vec!["80", "443"];
+    let insecure = match std::env::var("TRAEFIK_INSECURE") {
+        Ok(_) => true,
+        Err(_) => false,
+    };
+    // for the web dashboard
+    if insecure {
+        ports.push("8080");
     }
     let extra_vols = vec![
         "/var/run/docker.sock:/var/run/docker.sock",
-        "/home/ec2-user/letsencrypt:/letsencrypt",
+        "/home/admin/letsencrypt:/letsencrypt",
     ];
     let mut cmd = vec![
         "--providers.docker=true",
@@ -87,16 +90,29 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
         "--entrypoints.websecure.address=:443",
         "--certificatesresolvers.myresolver.acme.email=evanfeenstra@gmail.com",
         "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json",
-        // "--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory",
         "--certificatesresolvers.myresolver.acme.dnschallenge=true",
         "--certificatesresolvers.myresolver.acme.dnschallenge.provider=route53",
     ];
-    if img.insecure {
+    if let Ok(_) = std::env::var("TRAEFIK_STAGING") {
+        // when u turn off testing, delete the certs in /home/admin/letsencrypt
+        // cmd.push("--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory");
+        cmd.push("--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory");
+        log::info!("traefik: testing ca server");
+    } else {
+        log::info!("traefik: prod ca server");
+    }
+    if insecure {
         cmd.push("--log.level=DEBUG");
         cmd.push("--api.insecure=true");
     }
     let add_ulimits = true;
     let add_log_limit = true;
+    let awsenv = aws_env();
+    if let Some(ae) = &awsenv {
+        log::info!("traefik: using AWS env {:?}", ae.get(0));
+    } else {
+        log::error!("traefik: MISSING AWS ENV!");
+    }
     Config {
         image: Some(image.to_string()),
         hostname: Some(domain(&name)),
@@ -106,7 +122,7 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
             add_ulimits,
             add_log_limit,
         ),
-        env: aws_env(),
+        env: awsenv,
         cmd: Some(strarr(cmd)),
         ..Default::default()
     }

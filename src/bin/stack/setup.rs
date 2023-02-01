@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use bollard::Docker;
-use images::lnd::LndImage;
+use images::lnd::{to_lnd_network, LndImage};
 use images::relay::RelayImage;
 use rocket::tokio;
 use sphinx_swarm::config::Clients;
@@ -20,10 +20,8 @@ pub async fn lnd_clients(
     let cert_path = "/home/.lnd/tls.cert";
     let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
     try_unlock_lnd(&cert, proj, lnd_node).await?;
-    let macpath = format!(
-        "/home/.lnd/data/chain/bitcoin/{}/admin.macaroon",
-        lnd_node.network
-    );
+    let netwk = to_lnd_network(lnd_node.network.as_str());
+    let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
     let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
     let mut client = LndRPC::new(lnd_node, &cert, &mac)
         .await
@@ -133,7 +131,7 @@ pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
         log::info!("relay admin exists already");
         return Ok(api);
     }
-    sleep_ms(400).await;
+    sleep_ms(2400).await;
     let root_pubkey = api.initial_admin_pubkey().await?;
     let claim_res = api.claim_user(&root_pubkey, &relay_token).await?;
     secrets::add_to_secrets(proj, &relay.name, &relay_token).await;

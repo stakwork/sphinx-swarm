@@ -93,7 +93,7 @@ const stack: Stack = {
       place: "Internal",
       type: "Traefik",
       version: "v2.2.1",
-      name: "load balancer",
+      name: "load_balancer",
       links: ["lnd", "relay"],
     },
     {
@@ -123,7 +123,7 @@ const defaultPositions = {
   lnd: [360, 200],
   proxy: [660, 140],
   relay: [910, 350],
-  "load balancer": [895, 40],
+  load_balancer: [895, 40],
   cache: [660, 250],
   tribes: [260, 400],
   memes: [560, 500],

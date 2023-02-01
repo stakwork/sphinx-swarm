@@ -1,5 +1,6 @@
 use super::traefik::traefik_labels;
 use super::*;
+use crate::images::lnd::to_lnd_network;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
@@ -101,9 +102,11 @@ pub struct RelayConfig {
     pub tls_location: String,
     pub macaroon_location: String,
     pub node_http_port: String,
-    pub tribes_mqtt_port: String,
     pub db_dialect: String,
     pub db_storage: String,
+    pub tribes_mqtt_port: String,
+    pub tribes_host: String,
+    pub people_host: String,
     pub tribes_insecure: Option<String>,
     pub node_http_protocol: Option<String>,
     pub transport_private_key_location: Option<String>,
@@ -130,7 +133,8 @@ impl RelayConfig {
         self.lnd_ip = domain(&lnd.name);
         self.lnd_port = lnd.rpc_port.to_string();
         self.tls_location = "/lnd/tls.cert".to_string();
-        self.macaroon_location = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", lnd.network);
+        let netwk = to_lnd_network(lnd.network.as_str());
+        self.macaroon_location = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
     }
     pub fn proxy(&mut self, proxy: &proxy::ProxyImage) {
         self.proxy_lnd_ip = Some(domain(&proxy.name));
@@ -169,11 +173,13 @@ impl Default for RelayConfig {
             tls_location: "/relay/.lnd/tls.cert".to_string(),
             macaroon_location: "/relay/.lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string(),
             node_http_port: "3000".to_string(),
-            tribes_mqtt_port: "1883".to_string(),
             db_dialect: "sqlite".to_string(),
             db_storage: "/relay/sphinx.db".to_string(),
             node_http_protocol: None,
             tribes_insecure: None,
+            tribes_mqtt_port: "8883".to_string(),
+            tribes_host: "tribes.sphinx.chat".to_string(),
+            people_host: "people.sphinx.chat".to_string(),
             transport_private_key_location: None,
             transport_public_key_location: None,
             proxy_macaroons_dir: None,

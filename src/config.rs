@@ -154,7 +154,7 @@ impl Default for Stack {
         cache.links(vec!["tribes", "lnd"]);
 
         // internal nodes
-        let mut internal_nodes = vec![
+        let internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
             // Image::Lnd(lnd2),
@@ -164,11 +164,12 @@ impl Default for Stack {
         ];
 
         // prod load balancer and certs
-        if let Some(_h) = &host {
-            let mut traefik = TraefikImage::new("load balancer", true);
-            traefik.links(vec!["lnd", "relay"]);
-            internal_nodes.push(Image::Traefik(traefik));
-        }
+        // try this from docker-compose instead
+        // if let Some(_h) = &host {
+        //     let mut traefik = TraefikImage::new("load_balancer");
+        //     traefik.links(vec!["lnd", "relay"]);
+        //     internal_nodes.push(Image::Traefik(traefik));
+        // }
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()

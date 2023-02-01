@@ -1,4 +1,5 @@
 use super::*;
+use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
 use bollard::container::Config;
@@ -53,9 +54,10 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
     let version = proxy.version.clone();
     // let img = "sphinx-proxy";
     // let version = "latest";
+    let netwk = to_lnd_network(proxy.network.as_str());
     let macpath = format!(
         "--macaroon-location=/lnd/data/chain/bitcoin/{}/admin.macaroon",
-        proxy.network
+        &netwk,
     );
     let root_vol = "/app/proxy";
     let lnd_vol = volume_string(&lnd.name, "/lnd");
@@ -68,7 +70,7 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
         "--store-dir=/app/proxy/badger".to_string(),
         "--bitcoin.active".to_string(),
         "--bitcoin.basefee=0".to_string(),
-        format!("--bitcoin.{}", &proxy.network),
+        format!("--bitcoin.{}", &netwk),
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),
         format!("--lnd-ip={}.sphinx", &lnd.name),

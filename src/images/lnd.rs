@@ -52,13 +52,17 @@ impl DockerHubImage for LndImage {
     }
 }
 
-pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
-    let network = match lnd.network.as_str() {
+pub fn to_lnd_network(n: &str) -> &'static str {
+    match n {
         "bitcoin" => "mainnet",
         "simnet" => "simnet",
         "regtest" => "regtest",
         _ => "regtest",
-    };
+    }
+}
+
+pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
+    let network = to_lnd_network(lnd.network.as_str());
     let repo = lnd.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let mut ports = vec![lnd.peer_port.to_string(), lnd.rpc_port.clone()];
@@ -67,7 +71,6 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     // println!("LND LINKS {:?}", links);
     let btc_domain = domain(&btc.name);
     let mut cmd = vec![
-        format!("--debuglevel=debug"),
         format!("--bitcoin.active"),
         format!("--bitcoin.node=bitcoind"),
         format!("--lnddir={}", root_vol),
@@ -78,7 +81,7 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--alias={}", &lnd.name),
         format!("--bitcoind.rpcuser={}", &btc.user),
         format!("--bitcoind.rpcpass={}", &btc.pass),
-        format!("--bitcoind.rpchost={}", &btc_domain),
+        format!("--bitcoind.rpchost={}:18443", &btc_domain),
         // format!("--bitcoind.rpcpolling"),
         format!("--bitcoind.zmqpubrawblock=tcp://{}:28332", &btc_domain),
         format!("--bitcoind.zmqpubrawtx=tcp://{}:28333", &btc_domain),
@@ -99,11 +102,16 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         hostname: Some(domain(&lnd.name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&lnd.name, ports, root_vol, None),
-        cmd: Some(cmd),
         ..Default::default()
     };
+    if let Ok(_) = std::env::var("DEBUG") {
+        cmd.push(format!("--debuglevel=debug"));
+    }
     if let Some(host) = lnd.host.clone() {
         c.labels = Some(traefik_labels(&lnd.name, &host, &lnd.peer_port));
+        // production tls extra domain
+        cmd.push(format!("--tlsextradomain={}", &host));
     }
+    c.cmd = Some(cmd);
     c
 }
