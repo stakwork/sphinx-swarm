@@ -2,11 +2,10 @@ import { writable, derived } from "svelte/store";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
-import type { Tribe, Person, TribeData } from "./api/tribes";
+import type { Tribe, Person } from "./api/tribes";
 import type { Channel, Peer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
-import * as api from "./api";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -43,6 +42,8 @@ export const nodeBalances = writable<{ [tag: string]: number }>({});
 
 export const activeInvoice = writable<{ [tag: string]: string }>({});
 
+export const activeUser = writable<string>();
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
@@ -62,3 +63,17 @@ export const balances = derived(
     };
   }
 );
+
+export const saveUserToStore = (user: string = "") => {
+  const userKey = "SPHINX_TOKEN";
+  if(user) {
+    localStorage.setItem(userKey, user);
+    return activeUser.set(user);
+  } 
+
+  let storageUser = localStorage.getItem(userKey);
+  
+  if (storageUser) {
+    return activeUser.set(user);
+  }
+}

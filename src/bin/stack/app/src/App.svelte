@@ -1,9 +1,15 @@
 <script lang="ts">
   import Login from "./Login.svelte";
+  import Dashboard from "./Dashboard.svelte";
+  import { activeUser } from "./store";
 </script>
 
 <main>
-  <Login />
+  {#if !$activeUser}
+    <Login />
+  {:else}
+    <Dashboard />
+  {/if}
 </main>
 
 <style>

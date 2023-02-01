@@ -25,9 +25,6 @@ export async function update_node_instance(name, version) {
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",
-    headers: {
-      'Content-Type': 'application/json'
-    },
     body: JSON.stringify({
       username,
       password

@@ -2,6 +2,7 @@
   import { Button, TextInput } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "./api";
+  import { saveUserToStore } from "./store";
 
   $: username = "";
   $: password = "";
@@ -9,7 +10,11 @@
   $: addDisabled = !username || !password;
 
   async function login() {
-    if (await api.swarm.login(username, password)) {
+    const result = await api.swarm.login(username, password);
+    // console.log("Login Result ===", result);
+    if (result) {
+      saveUserToStore(result.token);
+      
       username = "";
       password = "";
     }
