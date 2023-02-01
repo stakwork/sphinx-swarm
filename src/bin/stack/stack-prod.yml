@@ -8,7 +8,7 @@ services:
     networks:
       - sphinx-swarm
     command:
-      - "--log.level=DEBUG"
+      # - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -39,7 +39,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.1.17
+    image: sphinxlightning/sphinx-swarm:0.1.19
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
@@ -61,6 +61,7 @@ services:
     environment: 
       - HOST=$HOST
       - JWT_KEY=$JWT_KEY
+      - ONLY_NODE=$ONLY_NODE
       - DOCKER_RUN=true
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0

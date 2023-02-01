@@ -17,7 +17,10 @@ pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<C
     // then add the containers
     let mut clients: Clients = Default::default();
     let nodes = stack.nodes.clone();
-    let only_node = std::env::var("ONLY_NODE").ok();
+    let mut only_node = std::env::var("ONLY_NODE").ok();
+    if only_node == Some("".to_string()) {
+        only_node = None;
+    }
     for node in nodes.iter() {
         let skip = match &only_node {
             Some(only) => &node.name() != only,
