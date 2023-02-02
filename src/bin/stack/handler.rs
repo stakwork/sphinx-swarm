@@ -117,7 +117,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let secs = secrets::load_secrets(proj).await;
                     let token = secs.get(tag).context("no relay token")?;
                     let mut hm = HashMap::new();
-                    hm.insert("token", token);
+                    hm.insert("token", base64::encode(token));
                     Some(serde_json::to_string(&hm)?)
                 }
             }

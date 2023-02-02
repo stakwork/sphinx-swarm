@@ -30,3 +30,7 @@ export async function add_default_tribe(tag: string, id: number) {
 export async function remove_default_tribe(tag: string, id: number) {
   return await relayCmd("RemoveDefaultTribe", tag, { id });
 }
+
+export async function get_auth_token(tag: string) {
+  return await relayCmd("GetToken", tag);
+}

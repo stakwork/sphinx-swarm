@@ -32,7 +32,8 @@ export type Cmd =
   | "AddDefaultTribe"
   | "RemoveDefaultTribe"
   | "GetChats"
-  | "CreateTribe";
+  | "CreateTribe"
+  | "GetToken";
 
 interface CmdData {
   cmd: Cmd;

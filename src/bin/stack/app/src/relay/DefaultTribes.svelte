@@ -54,20 +54,28 @@
 
   let showQr = false;
 
-  $: console.log("adminUnconnected", adminUnconnected);
-
   let admin_token = "";
+  let qr_toggle_disabled = false;
+  async function toggleQr() {
+    showQr = !showQr;
+    if (showQr && !admin_token) {
+      qr_toggle_disabled = true;
+      const t = await api.relay.get_auth_token(tag);
+      if (t.token) admin_token = t.token;
+      qr_toggle_disabled = false;
+    }
+  }
 </script>
 
 <div class="tribes-wrap">
   {#if adminUnconnected}
     <section class="admin-qr-wrap">
       <h1 class="admin-qr-label">Connection QR</h1>
-      <Button on:click={() => (showQr = !showQr)} size="small" kind="tertiary"
+      <Button on:click={toggleQr} size="small" kind="tertiary"
         >{`${showQr ? "Hide" : "Show QR"}`}</Button
       >
     </section>
-    {#if showQr}
+    {#if showQr && admin_token}
       <div class="qr-wrap">
         <QrCode padding={1.5} value={`claim::${$node_host}::${admin_token}`} />
       </div>
