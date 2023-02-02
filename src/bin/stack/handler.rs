@@ -232,6 +232,6 @@ fn remove_tokens(s: &Stack) -> Stack {
         network: s.network.clone(),
         nodes: nodes.collect(),
         host: s.host.clone(),
-        users: s.users.clone(),
+        users: vec![],
     }
 }
