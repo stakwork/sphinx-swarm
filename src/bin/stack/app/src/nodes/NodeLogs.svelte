@@ -29,6 +29,7 @@
     modalHeading={`${nodeName.toLocaleUpperCase()} Logs`}
     hasForm={true}
     class="get-logs-modal"
+    size="lg"
     passiveModal
     on:click:button--secondary={() => (open = !open)}
   >
