@@ -1,4 +1,5 @@
 use crate::auth;
+use crate::cmd::{ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use crate::rocket_utils::{Error, Result, *};
 use response::stream::{Event, EventStream};
@@ -72,20 +73,23 @@ pub struct LoginResult {
 }
 
 #[rocket::post("/login", data = "<body>")]
-pub async fn login(body: Json<LoginData>) -> Result<Json<LoginResult>> {
-    let default_username = "admin";
-    let default_password = "password";
-    if &body.username != default_username {
+pub async fn login(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    body: Json<LoginData>,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::Login(LoginInfo {
+        username: body.username.clone(),
+        password: body.password.clone(),
+    }));
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    // empty string means unauthorized
+    if reply.len() == 0 {
         return Err(Error::Unauthorized);
     }
-    let pass_hash = bcrypt::hash(default_password, bcrypt::DEFAULT_COST)?;
-    let valid = bcrypt::verify(&body.password, &pass_hash)?;
-    if !valid {
-        return Err(Error::Unauthorized);
-    }
-    Ok(Json(LoginResult {
-        token: auth::make_jwt(1)?,
-    }))
+    Ok(reply)
 }
 
 #[rocket::get("/refresh_jwt")]
@@ -102,11 +106,21 @@ pub struct UpdatePasswordData {
 }
 #[rocket::put("/admin/password", data = "<body>")]
 pub async fn update_password(
+    sender: &State<mpsc::Sender<CmdRequest>>,
     body: Json<UpdatePasswordData>,
-    _claims: auth::AdminJwtClaims,
-) -> Result<Json<bool>> {
-    let _password = body.password.clone();
-    // FIXME
-    // update password - claims.user
-    Ok(Json(true))
+    claims: auth::AdminJwtClaims,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::ChangePassword(ChangePasswordInfo {
+        user_id: claims.user,
+        password: body.password.clone(),
+    }));
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+    Ok(reply)
 }

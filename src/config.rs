@@ -47,16 +47,24 @@ impl Default for Clients {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
     pub nodes: Vec<Node>,
     pub host: Option<String>, // root host for traefik (PRODUCTION)
+    pub users: Vec<User>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct User {
+    pub id: u32,
+    pub username: String,
+    pub pass_hash: String,
 }
 
 // optional node, could be external
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 #[serde(tag = "place")]
 pub enum Node {
     Internal(Image),
@@ -89,6 +97,20 @@ impl Node {
             }
         }
         false
+    }
+}
+
+impl Default for User {
+    fn default() -> Self {
+        let username = "admin";
+        let default_password = "password";
+        let pass_hash =
+            bcrypt::hash(default_password, bcrypt::DEFAULT_COST).expect("failed to bcrypt");
+        Self {
+            id: 1,
+            username: username.to_string(),
+            pass_hash,
+        }
     }
 }
 
@@ -183,6 +205,7 @@ impl Default for Stack {
             network,
             nodes,
             host,
+            users: vec![Default::default()],
         }
     }
 }
@@ -195,7 +218,7 @@ pub enum ExternalNodeType {
     Postgres,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct ExternalNode {
     #[serde(rename = "type")]
     pub kind: ExternalNodeType,

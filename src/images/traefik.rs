@@ -3,7 +3,7 @@ use crate::utils::{domain, manual_host_config};
 use bollard::container::Config;
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TraefikImage {
     pub name: String,
     pub links: Links,

@@ -2,9 +2,9 @@
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.20
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.21
 
-docker push sphinxlightning/sphinx-swarm:0.1.20
+docker push sphinxlightning/sphinx-swarm:0.1.21
 
 ### run sphinx swarm in dev
 

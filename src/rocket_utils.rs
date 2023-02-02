@@ -58,6 +58,8 @@ pub enum Error {
     Hex(#[from] hex::FromHexError),
     #[error("rocket error: {0}")]
     Rocket(#[from] rocket::Error),
+    #[error("json error: {0}")]
+    Json(#[from] serde_json::Error),
     #[error("anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
     #[error("BcryptError error: {0}")]

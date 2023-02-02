@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 // in relay:
 // docker build --no-cache -f Dockerfile.swarm .
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct RelayImage {
     pub name: String,
     pub version: String,

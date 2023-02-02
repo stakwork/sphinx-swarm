@@ -10,7 +10,7 @@ pub mod traefik;
 use crate::config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 #[serde(tag = "type")]
 pub enum Image {
     Btc(btc::BtcImage),

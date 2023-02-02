@@ -4,7 +4,7 @@ use crate::utils::{domain, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BtcImage {
     pub name: String,
     pub version: String,

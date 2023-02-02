@@ -18,12 +18,26 @@ pub struct ImageRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LoginInfo {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangePasswordInfo {
+    pub user_id: u32,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
     AddNode(Image),
     GetContainerLogs(String),
     ListVersions(ImageRequest),
+    Login(LoginInfo),
+    ChangePassword(ChangePasswordInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,6 +61,7 @@ pub enum RelayCmd {
     AddDefaultTribe(DefaultTribe),
     RemoveDefaultTribe(DefaultTribe),
     CreateTribe(CreateTribe),
+    GetToken,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

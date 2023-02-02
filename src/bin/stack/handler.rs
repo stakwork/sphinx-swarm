@@ -1,22 +1,27 @@
+use std::collections::HashMap;
+
 use anyhow::{Context, Result};
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
+use sphinx_swarm::auth;
 use sphinx_swarm::cmd::*;
-use sphinx_swarm::config::{Node, Stack, STATE};
+use sphinx_swarm::config::{put_config_file, Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
 use sphinx_swarm::images::{DockerHubImage, Image};
+use sphinx_swarm::secrets;
 
 // tag is the service name
-pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
+pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
     // conf can be mutated in place
     let mut state = STATE.lock().await;
-    let stack = &state.stack;
     // println!("STACK {:?}", stack);
+
+    let mut must_save_stack = false;
 
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
             SwarmCmd::GetConfig => {
-                let res = remove_tokens(stack);
+                let res = remove_tokens(&state.stack);
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::AddNode(_node) => {
@@ -34,7 +39,8 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                     repo: String,
                     images: String,
                 }
-                let img = stack
+                let img = &state
+                    .stack
                     .nodes
                     .iter()
                     .find(|n| n.name() == req.name)
@@ -47,10 +53,37 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 );
                 let body = reqwest::get(url).await?.text().await?;
                 Some(serde_json::to_string(&ListVersionsResult {
-                    org: img.org,
-                    repo: img.repo,
+                    org: img.org.clone(),
+                    repo: img.repo.clone(),
                     images: body,
                 })?)
+            }
+            SwarmCmd::Login(ld) => {
+                match state.stack.users.iter().find(|u| u.username == ld.username) {
+                    Some(user) => {
+                        if !bcrypt::verify(&ld.password, &user.pass_hash)? {
+                            Some("".to_string())
+                        } else {
+                            let mut hm = HashMap::new();
+                            hm.insert("token", auth::make_jwt(user.id)?);
+                            Some(serde_json::to_string(&hm)?)
+                        }
+                    }
+                    None => Some("".to_string()),
+                }
+            }
+            SwarmCmd::ChangePassword(cp) => {
+                match state.stack.users.iter().position(|u| u.id == cp.user_id) {
+                    Some(ui) => {
+                        state.stack.users[ui].pass_hash =
+                            bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
+                        must_save_stack = true;
+                        let mut hm = HashMap::new();
+                        hm.insert("success", true);
+                        Some(serde_json::to_string(&hm)?)
+                    }
+                    None => Some("".to_string()),
+                }
             }
         },
         Cmd::Relay(c) => {
@@ -79,6 +112,13 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
                 RelayCmd::CreateTribe(t) => {
                     let res = client.create_tribe(&t.name).await?;
                     Some(serde_json::to_string(&res.response)?)
+                }
+                RelayCmd::GetToken => {
+                    let secs = secrets::load_secrets(proj).await;
+                    let token = secs.get(tag).context("no relay token")?;
+                    let mut hm = HashMap::new();
+                    hm.insert("token", token);
+                    Some(serde_json::to_string(&hm)?)
                 }
             }
         }
@@ -158,6 +198,10 @@ pub async fn handle(cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
             }
         }
     };
+
+    if must_save_stack {
+        put_config_file(proj, &state.stack).await;
+    }
     Ok(ret.context("internal error")?)
 }
 
@@ -188,5 +232,6 @@ fn remove_tokens(s: &Stack) -> Stack {
         network: s.network.clone(),
         nodes: nodes.collect(),
         host: s.host.clone(),
+        users: s.users.clone(),
     }
 }

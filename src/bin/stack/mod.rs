@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                match handler::handle(cmd, &msg.tag, &docker2).await {
+                match handler::handle(proj, cmd, &msg.tag, &docker2).await {
                     Ok(res) => {
                         let _ = msg.reply_tx.send(res);
                     }
