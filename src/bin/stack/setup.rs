@@ -127,7 +127,7 @@ pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
     };
     let api = RelayAPI::new(&relay, &relay_token, false).await?;
     let has_admin = api.try_has_admin().await?.response;
-    if has_admin {
+    if has_admin.unwrap_or(false) {
         log::info!("relay admin exists already");
         return Ok(api);
     }
@@ -135,7 +135,10 @@ pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
     let root_pubkey = api.initial_admin_pubkey().await?;
     let claim_res = api.claim_user(&root_pubkey, &relay_token).await?;
     secrets::add_to_secrets(proj, &relay.name, &relay_token).await;
-    println!("Relay Root User claimed! {}", claim_res.response.id);
+    println!(
+        "Relay Root User claimed! {}",
+        claim_res.response.unwrap().id
+    );
     Ok(api)
 }
 

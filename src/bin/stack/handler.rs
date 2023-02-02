@@ -89,30 +89,16 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;
             match c {
-                RelayCmd::AddUser(u) => {
-                    let res = client.add_user(u.initial_sats).await?;
-                    Some(serde_json::to_string(&res.response)?)
-                }
-                RelayCmd::ListUsers => {
-                    let res = client.list_users().await?;
-                    Some(serde_json::to_string(&res.response)?)
-                }
-                RelayCmd::GetChats => {
-                    let res = client.get_chats().await?;
-                    Some(serde_json::to_string(&res.response)?)
-                }
+                RelayCmd::AddUser(u) => Some(client.add_user(u.initial_sats).await?.to_string()?),
+                RelayCmd::ListUsers => Some(client.list_users().await?.to_string()?),
+                RelayCmd::GetChats => Some(client.get_chats().await?.to_string()?),
                 RelayCmd::AddDefaultTribe(t) => {
-                    let res = client.add_default_tribe(t.id).await?;
-                    Some(serde_json::to_string(&res.response)?)
+                    Some(client.add_default_tribe(t.id).await?.to_string()?)
                 }
                 RelayCmd::RemoveDefaultTribe(t) => {
-                    let res = client.remove_default_tribe(t.id).await?;
-                    Some(serde_json::to_string(&res.response)?)
+                    Some(client.remove_default_tribe(t.id).await?.to_string()?)
                 }
-                RelayCmd::CreateTribe(t) => {
-                    let res = client.create_tribe(&t.name).await?;
-                    Some(serde_json::to_string(&res.response)?)
-                }
+                RelayCmd::CreateTribe(t) => Some(client.create_tribe(&t.name).await?.to_string()?),
                 RelayCmd::GetToken => {
                     let secs = secrets::load_secrets(proj).await;
                     let token = secs.get(tag).context("no relay token")?;

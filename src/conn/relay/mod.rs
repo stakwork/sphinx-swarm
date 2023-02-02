@@ -14,7 +14,20 @@ pub struct RelayAPI {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelayRes<T> {
     pub success: bool,
-    pub response: T,
+    pub response: Option<T>,
+    pub error: Option<String>,
+}
+
+impl<T: Serialize> RelayRes<T> {
+    pub fn to_string(&self) -> Result<String> {
+        if let Some(r) = &self.response {
+            Ok(serde_json::to_string::<T>(r)?)
+        } else if let Some(e) = &self.error {
+            Ok(serde_json::to_string(e)?)
+        } else {
+            Ok(serde_json::to_string(&false)?)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -143,7 +156,7 @@ impl RelayAPI {
         let route = format!("http://{}/initial_admin_pubkey", self.url);
         let res = self.client.get(route.as_str()).send().await?;
         let ipr: RelayRes<InitialPubkeyResult> = res.json().await?;
-        Ok(ipr.response.pubkey)
+        Ok(ipr.response.unwrap().pubkey)
     }
 
     pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {
