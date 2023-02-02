@@ -2,11 +2,13 @@ import { writable, derived } from "svelte/store";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
-import type { Tribe, Person, TribeData } from "./api/tribes";
+import type { Tribe, Person } from "./api/tribes";
 import type { Channel, Peer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
-import * as api from "./api";
+import type { TokenData } from "./api/swarm";
+import { userKey } from "./api/swarm";
+import { decode } from "js-base64";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -43,6 +45,8 @@ export const nodeBalances = writable<{ [tag: string]: number }>({});
 
 export const activeInvoice = writable<{ [tag: string]: string }>({});
 
+export const activeUser = writable<string>();
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
@@ -62,3 +66,33 @@ export const balances = derived(
     };
   }
 );
+
+export const saveUserToStore = (user: string = "") => {
+  if (user) {
+    localStorage.setItem(userKey, user);
+    return activeUser.set(user);
+  }
+
+  let storageUser = localStorage.getItem(userKey);
+
+  if (storageUser) {
+    const jwts = storageUser.split(".");
+
+    const decodedData: TokenData = JSON.parse(decode(jwts[1]));
+
+    if (decodedData.exp * 1000 > Date.now()) {
+      return activeUser.set(storageUser);
+    }
+  }
+};
+
+export const logoutUser = () => {
+  localStorage.setItem(userKey, "");
+  return activeUser.set("");
+}
+
+/*
+ * Call to get user token from localstorage
+ * and save to store
+ */
+saveUserToStore();
