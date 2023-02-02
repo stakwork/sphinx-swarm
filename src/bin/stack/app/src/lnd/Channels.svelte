@@ -129,15 +129,15 @@
 
   <section class="liquidity-wrap">
     <aside>
-      <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
-      <h3 class="value">
-        {formatSatsNumbers($balances.inbound)} <span>SAT</span>
-      </h3>
-    </aside>
-    <aside>
       <h6 class="title">TOTAL OUTBOUND LIQUIDITY</h6>
       <h3 class="value">
         {formatSatsNumbers($balances.outbound)} <span>SAT</span>
+      </h3>
+    </aside>
+    <aside>
+      <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
+      <h3 class="value">
+        {formatSatsNumbers($balances.inbound)} <span>SAT</span>
       </h3>
     </aside>
   </section>

@@ -11,15 +11,17 @@
   export let tag = "";
 
   let selectedPubkey = "";
-  $: filteredUsers = $users;
-  $: selectedUser = $users.find((u) => u.public_key === selectedPubkey);
+  $: filteredUsers = normalUsers($users);
+  $: selectedUser = normalUsers($users).find(
+    (u) => u.public_key === selectedPubkey
+  );
 
   let searchTerm = "";
 
   async function getUsers() {
     const userList = await api.relay.list_users(tag);
     console.log("users:", userList);
-    users.set(normalUsers(userList.users));
+    users.set(userList.users);
   }
   onMount(async () => {
     getUsers();
@@ -30,8 +32,8 @@
   }
 
   afterUpdate(() => {
-    if (!searchTerm) return (filteredUsers = $users);
-    filteredUsers = $users.filter(
+    if (!searchTerm) return (filteredUsers = normalUsers($users));
+    filteredUsers = normalUsers($users).filter(
       (u) =>
         u.public_key.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.alias && u.alias.toLowerCase().includes(searchTerm.toLowerCase()))

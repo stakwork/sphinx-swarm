@@ -2,13 +2,6 @@ import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 import { root } from "./cmd";
 
-export interface TokenData {
-  exp: number;
-  user: number;
-}
-
-export const userKey = "SPHINX_TOKEN";
-
 async function swarmCmd(cmd: Cmd, content?: any) {
   return await send_cmd("Swarm", { cmd, content });
 }
@@ -22,11 +15,11 @@ export async function get_logs(name) {
 }
 
 export async function get_node_images(name, page) {
-  return await swarmCmd("ListVersions", {name, page});
+  return await swarmCmd("ListVersions", { name, page });
 }
 
 export async function update_node_instance(name, version) {
-  return await swarmCmd("UpdateInstance", {name, version});
+  return await swarmCmd("UpdateInstance", { name, version });
 }
 
 export async function login(username, password) {
@@ -34,10 +27,10 @@ export async function login(username, password) {
     method: "POST",
     body: JSON.stringify({
       username,
-      password
-    })
+      password,
+    }),
   });
-  
+
   const result = await r.json();
   return result;
 }

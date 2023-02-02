@@ -3,8 +3,7 @@ use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::{
-    btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage,
-    traefik::TraefikImage, Image,
+    btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
 };
 use crate::utils;
 use anyhow::Result;
@@ -162,14 +161,6 @@ impl Default for Stack {
             Image::Relay(relay),
             // Image::Cache(cache),
         ];
-
-        // prod load balancer and certs
-        // try this from docker-compose instead
-        // if let Some(_h) = &host {
-        //     let mut traefik = TraefikImage::new("load_balancer");
-        //     traefik.links(vec!["lnd", "relay"]);
-        //     internal_nodes.push(Image::Traefik(traefik));
-        // }
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()

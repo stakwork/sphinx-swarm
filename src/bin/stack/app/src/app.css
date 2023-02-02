@@ -287,3 +287,8 @@ html {
 	margin-left: auto;
 	font-weight: 600;
 }
+
+.qr-btns button {
+	max-height: 2.1rem;
+    min-height: inherit;
+}

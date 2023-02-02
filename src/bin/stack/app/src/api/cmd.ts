@@ -39,10 +39,21 @@ interface CmdData {
   content?: any;
 }
 
+export interface TokenData {
+  exp: number;
+  user: number;
+}
+
+export const userKey = "SPHINX_TOKEN";
+
 export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
   const txt = JSON.stringify({ type, data });
   try {
-    const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`);
+    const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`, {
+      headers: {
+        "x-jwt": localStorage.getItem(userKey),
+      },
+    });
     return await r.json();
   } catch (e) {
     console.error(e);

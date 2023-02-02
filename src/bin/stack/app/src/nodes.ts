@@ -1,6 +1,7 @@
 export interface Stack {
   network: Network;
   nodes: Node[];
+  host?: string;
 }
 
 export interface Node {

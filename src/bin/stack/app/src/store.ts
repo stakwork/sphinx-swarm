@@ -6,8 +6,7 @@ import type { Tribe, Person } from "./api/tribes";
 import type { Channel, Peer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
-import type { TokenData } from "./api/swarm";
-import { userKey } from "./api/swarm";
+import { userKey, type TokenData } from "./api/cmd";
 import { decode } from "js-base64";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
@@ -67,6 +66,15 @@ export const balances = derived(
   }
 );
 
+export const node_host = derived(
+  [stack, selectedNode],
+  ([$stack, $selectedNode]) => {
+    return $selectedNode && $stack.host
+      ? `${$selectedNode.name}.${$stack.host}`
+      : "localhost";
+  }
+);
+
 export const saveUserToStore = (user: string = "") => {
   if (user) {
     localStorage.setItem(userKey, user);
@@ -89,7 +97,7 @@ export const saveUserToStore = (user: string = "") => {
 export const logoutUser = () => {
   localStorage.setItem(userKey, "");
   return activeUser.set("");
-}
+};
 
 /*
  * Call to get user token from localstorage

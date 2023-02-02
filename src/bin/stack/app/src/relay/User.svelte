@@ -2,10 +2,13 @@
   import Login from "carbon-icons-svelte/lib/Login.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
+  import Save from "carbon-icons-svelte/lib/Save.svelte";
   import QrCode from "svelte-qrcode";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
   import type { User } from "./users";
+  import { node_host } from "../store";
+  import { Button } from "carbon-components-svelte";
 
   export let select = (pubkey: string) => {};
   export let user: User;
@@ -22,6 +25,25 @@
   }
   function copyToClipboard(value) {
     navigator.clipboard.writeText(value);
+  }
+
+  $: qrString = `connect::${$node_host}::${user.public_key}`;
+
+  function saveQr() {
+    console.log("save qr");
+    let wrap = document.getElementsByClassName("qr-wrap")[0];
+    let img = wrap.firstChild;
+    let b64 = img && (img as any).getAttribute("src");
+    if (b64) downloadURI(b64, "sphinx_invite.png");
+  }
+  function downloadURI(uri, name) {
+    var link = document.createElement("a");
+    link.download = name;
+    link.href = uri;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    // delete link;
   }
 </script>
 
@@ -72,7 +94,20 @@
         </section>
       {/if}
       <p class="user-values-title">Invite QR code</p>
-      <QrCode padding={1.5} value={`connect::${user.public_key}`} />
+      <div class="qr-wrap">
+        <QrCode padding={1.5} value={qrString} size={230} />
+      </div>
+      <div class="qr-btns">
+        <Button
+          kind="tertiary"
+          size="field"
+          icon={CopyIcon}
+          on:click={() => copyToClipboard(qrString)}>Copy</Button
+        >
+        <Button kind="tertiary" size="field" icon={Save} on:click={saveQr}
+          >Save</Button
+        >
+      </div>
     </div>
   {:else}
     <div class="pubkey collapsed">

@@ -3,6 +3,10 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
+  import { stack, users, node_host } from "../store";
+  import QrCode from "svelte-qrcode";
+
+  $: adminUnconnected = $users.find((u) => u.is_admin);
 
   export let tag = "";
 
@@ -47,9 +51,30 @@
     refreshTribes();
     selectedTribe = "";
   }
+
+  let showQr = false;
+
+  $: console.log("adminUnconnected", adminUnconnected);
+
+  let admin_token = "";
 </script>
 
 <div class="tribes-wrap">
+  {#if adminUnconnected}
+    <section class="admin-qr-wrap">
+      <h1 class="admin-qr-label">Connection QR</h1>
+      <Button on:click={() => (showQr = !showQr)} size="small" kind="tertiary"
+        >{`${showQr ? "Hide" : "Show QR"}`}</Button
+      >
+    </section>
+    {#if showQr}
+      <div class="qr-wrap">
+        <QrCode padding={1.5} value={`claim::${$node_host}::${admin_token}`} />
+      </div>
+    {/if}
+    <div class="divider" />
+  {/if}
+
   <section class="header-wrap">
     <h1 class="default-header">Default Tribes</h1>
     <!-- <small>(A maximum of 5 default tribes)</small> -->
@@ -158,5 +183,21 @@
   }
   .add-tribe-wrap .form {
     text-align: center;
+  }
+  .admin-qr-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .admin-qr-label {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .qr-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 1rem;
   }
 </style>
