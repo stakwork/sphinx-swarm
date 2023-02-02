@@ -15,6 +15,7 @@
   import * as api from "./api";
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
+  import ChangePassword from "./auth/ChangePassword.svelte";
 
   async function getConfig() {
     const stackRemote: Stack = await api.swarm.get_config();
@@ -26,6 +27,16 @@
   onMount(() => {
     getConfig();
   });
+
+  type DashboardPage = "main" | "change_password";
+  let page: DashboardPage = "main";
+
+  async function backToMain() {
+    page = "main";
+  }
+  function toChangePassword() {
+    page = "change_password";
+  }
 </script>
 
 <main>
@@ -48,20 +59,24 @@
     <AddNode />
     <section class="menu-btn">
       <OverflowMenu icon={User} flipped>
-        <OverflowMenuItem on:click={() => {}} text="Change Password" />
+        <OverflowMenuItem on:click={toChangePassword} text="Change Password" />
         <OverflowMenuItem on:click={logoutUser} danger text="Logout" />
       </OverflowMenu>
     </section>
   </header>
   <div class="body">
-    {#if $stack.nodes.length}
-      <Flow />
-    {:else}
-      <div class="loader">
-        <Loading />
-      </div>
+    {#if page === "change_password"}
+      <ChangePassword back={backToMain} />
+    {:else if page === "main"}
+      {#if $stack.nodes.length}
+        <Flow />
+      {:else}
+        <div class="loader">
+          <Loading />
+        </div>
+      {/if}
+      <Controller />
     {/if}
-    <Controller />
   </div>
 </main>
 

@@ -1,26 +1,21 @@
 <script>
   import { Button, TextInput, Loading } from "carbon-components-svelte";
-  import Icon from "carbon-icons-svelte/lib/Login.svelte";
-  import * as api from "./api";
-  import { saveUserToStore } from "./store";
+  import Icon from "carbon-icons-svelte/lib/Password.svelte";
+  import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
 
-  $: username = "";
+  export let back = () => {};
+
   $: password = "";
+  $: confirm_password = "";
 
-  $: addDisabled = !username || !password;
+  $: addDisabled = !password || !confirm_password  || password !== confirm_password;
 
   let loading = false;
 
-  async function login() {
+  async function change() {
     try {
       loading = true;
-      const result = await api.swarm.login(username, password);
 
-      if (result) {
-        saveUserToStore(result.token);
-        username = "";
-        password = "";
-      }
       loading = false;
     } catch (_) {
       loading = false;
@@ -29,36 +24,36 @@
 </script>
 
 <main>
-  <div class="logo-wrap">
-    <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
-    <span class="stack-title">Sphinx</span>
+  <div class="back" on:click={back} on:keypress={() => {}}>
+    <ArrowLeft size={32} />
   </div>
   <div class="container">
     {#if loading}
       <Loading />
     {:else}
       <section class="login-wrap">
-        <h3 class="header-text">Login to Sphinx Swarm</h3>
-        <TextInput
-          labelText={"Username"}
-          placeholder={"Enter username"}
-          bind:value={username}
-        />
-        <div class="spacer" />
+        <h3 class="header-text">Change your password</h3>
         <TextInput
           labelText={"Password"}
           placeholder={"Enter password"}
-          type={"password"}
+          type="password"
           bind:value={password}
+        />
+        <div class="spacer" />
+        <TextInput
+          labelText={"Confirm Password"}
+          placeholder={"Enter password"}
+          type="password"
+          bind:value={confirm_password}
         />
         <div class="spacer" />
         <center
           ><Button
             disabled={addDisabled}
             class="peer-btn"
-            on:click={login}
+            on:click={change}
             size="field"
-            icon={Icon}>Login</Button
+            icon={Icon}>Change Password</Button
           ></center
         >
       </section>
@@ -68,8 +63,8 @@
 
 <style>
   main {
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    width: 100%;
     background: #1a242e;
   }
   .container {
@@ -77,21 +72,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 85vh;
+    min-height: 85%;
   }
   .logo-wrap {
     padding: 22px;
     margin-left: 35px;
     display: flex;
     align-items: center;
-  }
-  .logo-wrap .logo {
-    border-radius: 50%;
-    width: 55px;
-    height: 55px;
-  }
-  .logo-wrap .stack-title {
-    margin-left: 12px;
   }
   .login-wrap {
     width: 35vw;
@@ -101,5 +88,10 @@
     font-size: 1.25rem;
     font-size: 900;
     margin-bottom: 35px;
+  }
+  .back {
+    margin-top: 25px;
+    margin-left: 2.5rem;
+    cursor: pointer;
   }
 </style>
