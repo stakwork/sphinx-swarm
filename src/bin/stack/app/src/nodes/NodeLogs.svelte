@@ -29,6 +29,7 @@
     modalHeading={`${nodeName.toLocaleUpperCase()} Logs`}
     hasForm={true}
     class="get-logs-modal"
+    size="lg"
     passiveModal
     on:click:button--secondary={() => (open = !open)}
   >
@@ -38,7 +39,6 @@
           <div class="log">{log}</div>
         {/each}
       </div>
-      <!-- <TextArea rows={15} value={String(logs)} /> -->
     </section>
   </Modal>
 </section>
