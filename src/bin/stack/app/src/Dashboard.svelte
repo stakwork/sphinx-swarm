@@ -60,7 +60,7 @@
     <section class="menu-btn">
       <OverflowMenu icon={User} flipped>
         <OverflowMenuItem on:click={toChangePassword} text="Change Password" />
-        <OverflowMenuItem on:click={logoutUser} danger text="Logout" />
+        <OverflowMenuItem on:click={logoutUser} text="Logout" />
       </OverflowMenu>
     </section>
   </header>

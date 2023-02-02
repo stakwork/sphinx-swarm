@@ -39,7 +39,6 @@
           <div class="log">{log}</div>
         {/each}
       </div>
-      <!-- <TextArea rows={15} value={String(logs)} /> -->
     </section>
   </Modal>
 </section>
