@@ -160,7 +160,7 @@ impl Default for Stack {
         proxy.links(vec!["lnd"]);
 
         // relay
-        v = "v0.1.8";
+        v = "v0.1.9";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -180,7 +180,7 @@ impl Default for Stack {
             Image::Lnd(lnd),
             // Image::Lnd(lnd2),
             Image::Proxy(proxy),
-            // Image::Relay(relay),
+            Image::Relay(relay),
             // Image::Cache(cache),
         ];
 

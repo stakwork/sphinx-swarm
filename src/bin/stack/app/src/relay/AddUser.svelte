@@ -9,9 +9,21 @@
 
   $: initialSats = 0;
 
+  let errorMsg = "";
+  let calling = false;
   async function addUser() {
-    await api.relay.add_user(tag, initialSats || null);
-    back();
+    calling = true;
+    const u = await api.relay.add_user(tag, initialSats || null);
+    if (u) back();
+    else {
+      initialSats = 0;
+      errorMsg = "Failed to add user";
+      setTimeout(() => {
+        errorMsg = "";
+      }, 1234);
+    }
+    calling = false;
+    // back();
   }
 </script>
 
@@ -28,11 +40,22 @@
       bind:value={initialSats}
     />
     <div class="spacer" />
-    <center
-      ><Button class="peer-btn" on:click={addUser} size="field" icon={Add}
-        >Add User</Button
-      ></center
-    >
+    <center>
+      <Button
+        class="peer-btn"
+        on:click={addUser}
+        size="field"
+        icon={Add}
+        disabled={errorMsg || calling ? true : false}
+      >
+        Add User
+      </Button>
+    </center>
+    {#if errorMsg}
+      <center class="error">
+        {errorMsg}
+      </center>
+    {/if}
   </section>
 </section>
 
@@ -45,5 +68,9 @@
     cursor: pointer;
     height: 2rem;
     width: 2rem;
+  }
+  .error {
+    font-size: 0.8rem;
+    margin-top: 1.5rem;
   }
 </style>

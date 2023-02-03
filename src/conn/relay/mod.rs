@@ -23,9 +23,13 @@ impl<T: Serialize> RelayRes<T> {
         if let Some(r) = &self.response {
             Ok(serde_json::to_string::<T>(r)?)
         } else if let Some(e) = &self.error {
-            Ok(serde_json::to_string(e)?)
+            Err(anyhow!("{:?}", e))
         } else {
-            Ok(serde_json::to_string(&false)?)
+            if self.success {
+                Ok(serde_json::to_string(&true)?)
+            } else {
+                Err(anyhow!("failed"))
+            }
         }
     }
 }
