@@ -102,6 +102,7 @@ pub async fn refresh_jwt(claims: auth::AdminJwtClaims) -> Result<Json<LoginResul
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct UpdatePasswordData {
+    pub old_pass: String,
     pub password: String,
 }
 #[rocket::put("/admin/password", data = "<body>")]
@@ -112,6 +113,7 @@ pub async fn update_password(
 ) -> Result<String> {
     let cmd: Cmd = Cmd::Swarm(SwarmCmd::ChangePassword(ChangePasswordInfo {
         user_id: claims.user,
+        old_pass: body.old_pass.clone(),
         password: body.password.clone(),
     }));
     let txt = serde_json::to_string(&cmd)?;
