@@ -34,3 +34,15 @@ export async function login(username, password) {
   const result = await r.json();
   return result;
 }
+
+export async function update_password(password) {
+  const r = await fetch(`${root}/admin/password`, {
+    method: "PUT",
+    body: JSON.stringify({
+      password,
+    }),
+  });
+
+  const result = await r.json();
+  return result;
+}

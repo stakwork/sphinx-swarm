@@ -2,13 +2,15 @@
   import { Button, TextInput, Loading } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Password.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import * as api from "../api";
 
   export let back = () => {};
 
   $: password = "";
   $: confirm_password = "";
 
-  $: addDisabled = !password || !confirm_password  || password !== confirm_password;
+  $: addDisabled =
+    !password || !confirm_password || password !== confirm_password;
 
   let loading = false;
 
@@ -16,6 +18,14 @@
     try {
       loading = true;
 
+      const result = await api.swarm.update_password(password);
+
+      console.log("Result ====", result);
+
+      if (result) {
+        password = "";
+        confirm_password = "";
+      }
       loading = false;
     } catch (_) {
       loading = false;
