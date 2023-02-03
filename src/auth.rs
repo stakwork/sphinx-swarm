@@ -7,7 +7,6 @@ use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
 use sha2::Sha256;
 use std::collections::BTreeMap;
-
 type Claims = BTreeMap<String, u32>;
 
 #[derive(Clone)]
