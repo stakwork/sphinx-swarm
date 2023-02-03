@@ -49,3 +49,14 @@ export async function update_password(password, token) {
   const result = await r.json();
   return result;
 }
+
+export async function refresh_token(token) {
+  const r = await fetch(`${root}/refresh_jwt`, {
+    headers: {
+      "x-jwt": token
+    }
+  });
+
+  const result = await r.json();
+  return result;
+}

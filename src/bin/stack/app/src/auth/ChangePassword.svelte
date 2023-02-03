@@ -21,8 +21,6 @@
 
       const result = await api.swarm.update_password(password, $activeUser);
 
-      console.log("Result ====", result);
-
       if (result) {
         password = "";
         confirm_password = "";
