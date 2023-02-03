@@ -35,10 +35,11 @@ export async function login(username, password) {
   return result;
 }
 
-export async function update_password(password, token) {
+export async function update_password(password, old_pass, token) {
   const r = await fetch(`${root}/admin/password`, {
     method: "PUT",
     body: JSON.stringify({
+      old_pass,
       password,
     }),
     headers: {

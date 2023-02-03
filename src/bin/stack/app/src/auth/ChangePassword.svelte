@@ -7,11 +7,15 @@
 
   export let back = () => {};
 
+  $: old_pass = "";
   $: password = "";
-  $: confirm_password = "";
+  $: confirm_pass = "";
 
   $: addDisabled =
-    !password || !confirm_password || password !== confirm_password;
+    !old_pass ||
+    !password ||
+    !confirm_pass ||
+    password !== confirm_pass;
 
   let loading = false;
 
@@ -19,11 +23,12 @@
     try {
       loading = true;
 
-      const result = await api.swarm.update_password(password, $activeUser);
+      const result = await api.swarm.update_password(password, old_pass, $activeUser);
 
       if (result) {
+        old_pass = "";
         password = "";
-        confirm_password = "";
+        confirm_pass = "";
       }
       loading = false;
     } catch (_) {
@@ -44,17 +49,24 @@
         <h3 class="header-text">Change your password</h3>
         <Form on:submit>
           <TextInput
-            labelText={"Password"}
-            placeholder={"Enter password"}
+            labelText={"Old Password"}
+            placeholder={"Enter your old password"}
+            type="password"
+            bind:value={old_pass}
+          />
+          <div class="spacer" />
+          <TextInput
+            labelText={"New Password"}
+            placeholder={"Enter your new password"}
             type="password"
             bind:value={password}
           />
           <div class="spacer" />
           <TextInput
             labelText={"Confirm Password"}
-            placeholder={"Enter password"}
+            placeholder={"Confirm your password"}
             type="password"
-            bind:value={confirm_password}
+            bind:value={confirm_pass}
           />
           <div class="spacer" />
           <center
