@@ -8,6 +8,7 @@ import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
 import { userKey, type TokenData } from "./api/cmd";
 import { decode } from "js-base64";
+import * as api from "./api";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -75,7 +76,7 @@ export const node_host = derived(
   }
 );
 
-export const saveUserToStore = (user: string = "") => {
+export const saveUserToStore = async (user: string = "") => {
   if (user) {
     localStorage.setItem(userKey, user);
     return activeUser.set(user);
@@ -89,8 +90,12 @@ export const saveUserToStore = (user: string = "") => {
     const decodedData: TokenData = JSON.parse(decode(jwts[1]));
 
     if (decodedData.exp * 1000 > Date.now()) {
-      return activeUser.set(storageUser);
-    }
+      const refresh = await api.swarm.refresh_token(storageUser);
+     
+      // save the new token to localstorage
+      localStorage.setItem(userKey, refresh.token);
+      return activeUser.set(refresh.token);
+    } 
   }
 };
 

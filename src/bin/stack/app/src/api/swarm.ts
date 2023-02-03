@@ -34,3 +34,30 @@ export async function login(username, password) {
   const result = await r.json();
   return result;
 }
+
+export async function update_password(password, old_pass, token) {
+  const r = await fetch(`${root}/admin/password`, {
+    method: "PUT",
+    body: JSON.stringify({
+      old_pass,
+      password,
+    }),
+    headers: {
+      "x-jwt": token
+    }
+  });
+
+  const result = await r.json();
+  return result;
+}
+
+export async function refresh_token(token) {
+  const r = await fetch(`${root}/refresh_jwt`, {
+    headers: {
+      "x-jwt": token
+    }
+  });
+
+  const result = await r.json();
+  return result;
+}

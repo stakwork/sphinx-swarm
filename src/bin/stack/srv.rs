@@ -2,7 +2,7 @@ use fs::{relative, FileServer};
 use rocket::*;
 use sphinx_swarm::logs::LogChans;
 use sphinx_swarm::rocket_utils::{CmdRequest, Result, CORS};
-use sphinx_swarm::routes::{all_options, cmd, login, logs, logstream, refresh_jwt};
+use sphinx_swarm::routes::{all_options, cmd, login, logs, logstream, refresh_jwt, update_password};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -14,7 +14,7 @@ pub async fn launch_rocket(
         .mount("/", FileServer::from(relative!("src/bin/stack/app/dist")))
         .mount(
             "/api/",
-            routes![cmd, logs, logstream, login, refresh_jwt, all_options],
+            routes![cmd, logs, logstream, login, refresh_jwt, all_options, update_password],
         )
         .attach(CORS)
         .manage(tx)

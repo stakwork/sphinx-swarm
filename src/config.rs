@@ -180,7 +180,7 @@ impl Default for Stack {
             Image::Lnd(lnd),
             // Image::Lnd(lnd2),
             Image::Proxy(proxy),
-            Image::Relay(relay),
+            // Image::Relay(relay),
             // Image::Cache(cache),
         ];
 

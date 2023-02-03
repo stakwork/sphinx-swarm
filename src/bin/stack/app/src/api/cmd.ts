@@ -6,7 +6,6 @@ export let root = "/api";
 if (IS_DEV) {
   root = "http://localhost:8000/api";
 }
-console.log("=> root api url:", root);
 
 type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd" | "Proxy";
 

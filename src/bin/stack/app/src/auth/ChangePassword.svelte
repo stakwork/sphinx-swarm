@@ -1,14 +1,21 @@
 <script>
-  import { Button, TextInput, Loading } from "carbon-components-svelte";
+  import { Button, TextInput, Loading, Form } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Password.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+  import * as api from "../api";
+  import { activeUser } from "../store";
 
   export let back = () => {};
 
+  $: old_pass = "";
   $: password = "";
-  $: confirm_password = "";
+  $: confirm_pass = "";
 
-  $: addDisabled = !password || !confirm_password  || password !== confirm_password;
+  $: addDisabled =
+    !old_pass ||
+    !password ||
+    !confirm_pass ||
+    password !== confirm_pass;
 
   let loading = false;
 
@@ -16,6 +23,13 @@
     try {
       loading = true;
 
+      const result = await api.swarm.update_password(password, old_pass, $activeUser);
+
+      if (result) {
+        old_pass = "";
+        password = "";
+        confirm_pass = "";
+      }
       loading = false;
     } catch (_) {
       loading = false;
@@ -33,29 +47,39 @@
     {:else}
       <section class="login-wrap">
         <h3 class="header-text">Change your password</h3>
-        <TextInput
-          labelText={"Password"}
-          placeholder={"Enter password"}
-          type="password"
-          bind:value={password}
-        />
-        <div class="spacer" />
-        <TextInput
-          labelText={"Confirm Password"}
-          placeholder={"Enter password"}
-          type="password"
-          bind:value={confirm_password}
-        />
-        <div class="spacer" />
-        <center
-          ><Button
-            disabled={addDisabled}
-            class="peer-btn"
-            on:click={change}
-            size="field"
-            icon={Icon}>Change Password</Button
-          ></center
-        >
+        <Form on:submit>
+          <TextInput
+            labelText={"Old Password"}
+            placeholder={"Enter your old password"}
+            type="password"
+            bind:value={old_pass}
+          />
+          <div class="spacer" />
+          <TextInput
+            labelText={"New Password"}
+            placeholder={"Enter your new password"}
+            type="password"
+            bind:value={password}
+          />
+          <div class="spacer" />
+          <TextInput
+            labelText={"Confirm Password"}
+            placeholder={"Confirm your password"}
+            type="password"
+            bind:value={confirm_pass}
+          />
+          <div class="spacer" />
+          <center
+            ><Button
+              disabled={addDisabled}
+              class="peer-btn"
+              on:click={change}
+              size="field"
+              type="submit"
+              icon={Icon}>Change Password</Button
+            ></center
+          >
+        </Form>
       </section>
     {/if}
   </div>
@@ -73,12 +97,6 @@
     align-items: center;
     justify-content: center;
     min-height: 85%;
-  }
-  .logo-wrap {
-    padding: 22px;
-    margin-left: 35px;
-    display: flex;
-    align-items: center;
   }
   .login-wrap {
     width: 35vw;
