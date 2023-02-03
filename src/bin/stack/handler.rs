@@ -75,12 +75,17 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::ChangePassword(cp) => {
                 match state.stack.users.iter().position(|u| u.id == cp.user_id) {
                     Some(ui) => {
-                        state.stack.users[ui].pass_hash =
-                            bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
-                        must_save_stack = true;
-                        let mut hm = HashMap::new();
-                        hm.insert("success", true);
-                        Some(serde_json::to_string(&hm)?)
+                        let old_pass_hash = &state.stack.users[ui].pass_hash;
+                        if bcrypt::verify(&cp.old_pass, old_pass_hash)? {
+                            state.stack.users[ui].pass_hash =
+                                bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
+                            must_save_stack = true;
+                            let mut hm = HashMap::new();
+                            hm.insert("success", true);
+                            Some(serde_json::to_string(&hm)?)
+                        } else {
+                            Some("".to_string())
+                        }
                     }
                     None => Some("".to_string()),
                 }
