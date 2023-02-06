@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Button, Modal } from "carbon-components-svelte";
+  import { Button } from "carbon-components-svelte";
   import Logs from "carbon-icons-svelte/lib/CloudLogging.svelte";
+  import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
 
@@ -24,15 +25,13 @@
     >Get Logs</Button
   >
 
-  <Modal
-    bind:open
-    modalHeading={`${nodeName.toLocaleUpperCase()} Logs`}
-    hasForm={true}
-    class="get-logs-modal"
-    size="lg"
-    passiveModal
-    on:click:button--secondary={() => (open = !open)}
-  >
+  <div class="modal" style={`display: ${open ? 'block': 'none'}`}>
+    <section class="modal-head">
+      <button on:click={() => (open = !open)}>
+        <ArrowLeft size={32}/>
+      </button>
+      <h4 class="modal-title">{nodeName.toLocaleUpperCase()} Logs</h4>
+    </section>
     <section class="modal-content">
       <div class="logs">
         {#each logs as log}
@@ -40,21 +39,54 @@
         {/each}
       </div>
     </section>
-  </Modal>
+  </div>
 </section>
 
 <style>
   .get-logs-btn {
     margin-left: 20px;
   }
+  .modal {
+    height: 91.4vh;
+    z-index: 100;
+    width: 100vw;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #1a242e;
+    border: 0.8px solid white;
+  }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    padding-top: 1rem;
+    padding-left: 2.5rem;
+  }
+  .modal-head button {
+    padding: 0;
+    background: 0;
+    border: 0;
+    cursor: pointer;
+    color: #FFF;
+    font-weight: 900;
+  }
+  .modal-head .modal-title {
+    padding: 0;
+    margin: 0;
+    margin-left: 20px;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
   .modal-content {
-    padding: 0px 1.5rem;
+    padding: 2rem 2.5rem;
+    padding-top: 1.2rem;
   }
   .logs {
     background: #393939;
     width: 100%;
     height: 100%;
-    max-height: 400px;
+    max-height: 80vh;
     overflow: auto;
     padding: 0.3rem 0.5rem;
     display: flex;
