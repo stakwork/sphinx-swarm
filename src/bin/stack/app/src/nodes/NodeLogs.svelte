@@ -47,13 +47,13 @@
     margin-left: 20px;
   }
   .modal {
-    height: 91.4vh;
+    height: 88vh;
     z-index: 100;
-    width: 100vw;
+    width: 98vw;
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 1%;
+    right: 1%;
+    bottom: 2%;
     background: #1a242e;
     border: 0.8px solid white;
   }
@@ -86,7 +86,7 @@
     background: #393939;
     width: 100%;
     height: 100%;
-    max-height: 80vh;
+    max-height: 76vh;
     overflow: auto;
     padding: 0.3rem 0.5rem;
     display: flex;
