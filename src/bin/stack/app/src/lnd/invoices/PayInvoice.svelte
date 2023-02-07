@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Button, TextArea } from "carbon-components-svelte";
+  import {
+    Button,
+    TextArea,
+    InlineNotification,
+  } from "carbon-components-svelte";
   import Pay from "carbon-icons-svelte/lib/Money.svelte";
   import * as LND from "../../api/lnd";
   import { channels } from "../../store";
@@ -10,9 +14,12 @@
 
   $: invDisabled = !pay_req;
 
+  let show_notification = false;
+
   async function payInvoice() {
     const payRes = await LND.pay_invoice(tag, pay_req);
     if (payRes) {
+      show_notification = true;
       pay_req = "";
 
       /**
@@ -29,6 +36,19 @@
 
 <main>
   <section class="invoice-wrap">
+    {#if show_notification}
+      <InlineNotification
+        kind="success"
+        title="Success:"
+        subtitle="Inovice payment has been made."
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+        }}
+      />
+    {/if}
+
     <TextArea
       labelText={"Invoice Payment Request"}
       placeholder={"Enter the payment request of the invoice"}
