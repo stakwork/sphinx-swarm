@@ -56,7 +56,7 @@ pub fn relay(
     let repo = relay.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let version = relay.version.clone();
-    let root_vol = "/relay";
+    let root_vol = "/relay/data";
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     conf.lnd(lnd);
     // add the LND volumes
@@ -174,7 +174,7 @@ impl Default for RelayConfig {
             macaroon_location: "/relay/.lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string(),
             node_http_port: "3000".to_string(),
             db_dialect: "sqlite".to_string(),
-            db_storage: "/relay/sphinx.db".to_string(),
+            db_storage: "/relay/data/sphinx.db".to_string(),
             node_http_protocol: None,
             tribes_insecure: None,
             tribes_mqtt_port: "8883".to_string(),
