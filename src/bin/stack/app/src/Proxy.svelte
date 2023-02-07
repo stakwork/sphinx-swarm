@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { formatSatsNumbers } from "./helpers";
+  import { formatMillisatsToSats } from "./helpers";
   import { get_proxy_balances } from "./api/proxy";
   import { proxy } from "./store";
 
@@ -26,7 +26,7 @@
     </section>
     <section class="value-wrap">
       <h3 class="title">TOTAL SATS BALANCE</h3>
-      <h3 class="value">{formatSatsNumbers($proxy.total)}</h3>
+      <h3 class="value">{formatMillisatsToSats($proxy.total)}</h3>
     </section>
   {/if}
 </div>
