@@ -92,6 +92,14 @@ pub struct CreateTribe {
     is_tribe: bool,
     unlisted: bool,
 }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetBalance {
+    reserve: u128,
+    full_balance: u128,
+    balance: u128,
+    pending_open_balance: u128
+}
+
 impl Default for CreateTribe {
     fn default() -> Self {
         Self {
@@ -257,6 +265,18 @@ impl RelayAPI {
         // let hm = res.text().await?;
         // println!("CREATED CHAT {:?}", &hm);
         // Ok(serde_json::from_str(&hm)?)
+        Ok(res.json().await?)
+    }
+
+    pub async fn get_balance(&self) -> Result<RelayRes<GetBalance>> {
+        let route = format!("http://{}/balance", self.url);
+        let res = self
+            .client
+            .get(route.as_str())
+            .header("x-admin-token", self.token.clone())
+            .send()
+            .await?;
+
         Ok(res.json().await?)
     }
 }

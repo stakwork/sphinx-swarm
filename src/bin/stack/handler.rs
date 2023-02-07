@@ -111,6 +111,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     hm.insert("token", base64::encode(token));
                     Some(serde_json::to_string(&hm)?)
                 }
+                RelayCmd::GetBalance => Some(client.get_balance().await?.to_string()?),
             }
         }
         Cmd::Bitcoind(c) => {

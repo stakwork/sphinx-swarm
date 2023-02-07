@@ -63,6 +63,7 @@ pub enum RelayCmd {
     RemoveDefaultTribe(DefaultTribe),
     CreateTribe(CreateTribe),
     GetToken,
+    GetBalance,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
