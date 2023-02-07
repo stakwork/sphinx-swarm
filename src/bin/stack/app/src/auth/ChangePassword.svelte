@@ -4,7 +4,6 @@
     TextInput,
     Loading,
     Form,
-    InlineNotification,
   } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Password.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
@@ -57,19 +56,6 @@
     {:else}
       <section class="login-wrap">
         <h3 class="header-text">Change your password</h3>
-
-        {#if show_notification}
-          <InlineNotification
-            kind="success"
-            title="Success:"
-            subtitle="Your password has been changed."
-            timeout={3000}
-            on:close={(e) => {
-              e.preventDefault();
-              show_notification = false;
-            }}
-          />
-        {/if}
 
         <Form on:submit>
           <TextInput
