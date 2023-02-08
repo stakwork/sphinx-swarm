@@ -60,6 +60,7 @@
 
         {#if show_notification}
           <InlineNotification
+            lowContrast
             kind="success"
             title="Success:"
             subtitle="Your password has been changed."

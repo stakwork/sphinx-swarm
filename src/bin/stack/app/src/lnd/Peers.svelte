@@ -61,6 +61,7 @@
   <div class="label new-peer-label">New Peer</div>
   {#if show_notification}
     <InlineNotification
+      lowContrast
       kind="success"
       title="Success:"
       subtitle="Pair has been added."

@@ -38,6 +38,7 @@
   <section class="invoice-wrap">
     {#if show_notification}
       <InlineNotification
+        lowContrast
         kind="success"
         title="Success:"
         subtitle="Inovice payment has been made."

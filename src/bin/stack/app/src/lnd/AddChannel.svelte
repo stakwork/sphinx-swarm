@@ -81,6 +81,7 @@
   <section class="channel-content">
     {#if show_notification}
       <InlineNotification
+        lowContrast
         kind="success"
         title="Success:"
         subtitle="A new channel has been added."
@@ -91,7 +92,7 @@
         }}
       />
     {/if}
-    
+
     <div class="spacer" />
     <Dropdown
       titleText="Peer Pubkey"

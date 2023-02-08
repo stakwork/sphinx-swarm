@@ -16,10 +16,6 @@
     if (!tag) return;
     const chats = await refreshTribes();
     console.log("chats", chats);
-    if (chats.length === 0) {
-      const created = await api.relay.create_tribe(tag, "TestTribeee");
-      console.log(created);
-    }
   });
 
   $: items = myChats

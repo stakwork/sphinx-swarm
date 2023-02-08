@@ -40,6 +40,7 @@
   <section class="invoice-wrap">
     {#if show_notification}
       <InlineNotification
+        lowContrast
         kind="success"
         title="Success:"
         subtitle="Keysend payment has been made."
@@ -50,7 +51,7 @@
         }}
       />
     {/if}
-    
+
     <TextInput
       labelText={"Pubkey"}
       placeholder={"Destintaion Public Key"}
