@@ -2,6 +2,7 @@
   import {
     Button,
     TextInput,
+    InlineNotification,
   } from "carbon-components-svelte";
   import Pay from "carbon-icons-svelte/lib/Money.svelte";
   import * as LND from "../../api/lnd";
@@ -15,9 +16,12 @@
 
   $: invDisabled = !dest || !amount || (dest && dest.length !== 66);
 
+  let show_notification = false;
+
   async function payKeysend() {
     const payRes = await LND.keysend(tag, dest, amount);
     if (payRes) {
+      show_notification = true;
       dest = "";
       amount = 0;
       /**
@@ -34,6 +38,20 @@
 
 <main>
   <section class="invoice-wrap">
+    {#if show_notification}
+      <InlineNotification
+        lowContrast
+        kind="success"
+        title="Success:"
+        subtitle="Keysend payment has been made."
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+        }}
+      />
+    {/if}
+
     <TextInput
       labelText={"Pubkey"}
       placeholder={"Destintaion Public Key"}

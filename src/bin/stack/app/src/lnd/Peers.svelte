@@ -2,6 +2,7 @@
   import {
     Button,
     TextInput,
+    InlineNotification,
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
@@ -17,8 +18,11 @@
 
   $: peers = $peersStore && $peersStore[tag];
 
+  let show_notification = false;
+
   async function addPeer() {
     if (await add_peer(tag, pubkey, host)) {
+      show_notification = true;
       pubkey = "";
       host = "";
 
@@ -56,6 +60,19 @@
   {/if}
 
   <div class="label new-peer-label">New Peer</div>
+  {#if show_notification}
+    <InlineNotification
+      lowContrast
+      kind="success"
+      title="Success:"
+      subtitle="Pair has been added."
+      timeout={3000}
+      on:close={(e) => {
+        e.preventDefault();
+        show_notification = false;
+      }}
+    />
+  {/if}
   <section class="new-peer-form">
     <div class="spacer" />
     <TextInput
