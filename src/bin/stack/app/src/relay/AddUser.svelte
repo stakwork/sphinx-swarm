@@ -12,7 +12,9 @@
 
   $: initialSats = 0;
 
-  $: balance = $relayBalances.hasOwnProperty(tag) ? $relayBalances[tag]['full_balance'] : 0;
+  $: balance = $relayBalances.hasOwnProperty(tag)
+    ? $relayBalances[tag]["full_balance"]
+    : 0;
 
   $: addDisabled = initialSats > balance;
 
@@ -54,7 +56,7 @@
   </div>
   <div class="balance-wrap">
     <section class="value-wrap">
-      <h3 class="title">TOTAL BALANCE</h3>
+      <h3 class="title">CHANNELS BALANCE</h3>
       <h3 class="value">{formatSatsNumbers(balance)}</h3>
     </section>
   </div>
@@ -99,5 +101,8 @@
   .error {
     font-size: 0.8rem;
     margin-top: 1.5rem;
+  }
+  .balance-wrap {
+    margin: 0.35rem 0;
   }
 </style>
