@@ -1,5 +1,11 @@
 <script>
-  import { Button, TextInput, Loading, Form } from "carbon-components-svelte";
+  import {
+    Button,
+    TextInput,
+    Loading,
+    Form,
+    InlineNotification,
+  } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Password.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import * as api from "../api";
@@ -10,12 +16,10 @@
   $: old_pass = "";
   $: password = "";
   $: confirm_pass = "";
+  let show_notification = false;
 
   $: addDisabled =
-    !old_pass ||
-    !password ||
-    !confirm_pass ||
-    password !== confirm_pass;
+    !old_pass || !password || !confirm_pass || password !== confirm_pass;
 
   let loading = false;
 
@@ -23,9 +27,15 @@
     try {
       loading = true;
 
-      const result = await api.swarm.update_password(password, old_pass, $activeUser);
+      const result = await api.swarm.update_password(
+        password,
+        old_pass,
+        $activeUser
+      );
 
       if (result) {
+        show_notification = true;
+
         old_pass = "";
         password = "";
         confirm_pass = "";
@@ -47,6 +57,21 @@
     {:else}
       <section class="login-wrap">
         <h3 class="header-text">Change your password</h3>
+
+        {#if show_notification}
+          <InlineNotification
+            lowContrast
+            kind="success"
+            title="Success:"
+            subtitle="Your password has been changed."
+            timeout={3000}
+            on:close={(e) => {
+              e.preventDefault();
+              show_notification = false;
+            }}
+          />
+        {/if}
+
         <Form on:submit>
           <TextInput
             labelText={"Old Password"}

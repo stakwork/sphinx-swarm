@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { Button, TextInput, Dropdown } from "carbon-components-svelte";
+  import {
+    Button,
+    TextInput,
+    Dropdown,
+    InlineNotification,
+  } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { create_channel, get_balance } from "../api/lnd";
@@ -21,6 +26,8 @@
 
   $: peers = $peersStore && $peersStore[tag];
 
+  let show_notification = false;
+
   // Check for length to avoid map error
   $: peerData = peers.length
     ? peers.map((p) => ({
@@ -37,6 +44,7 @@
 
   async function addChannel() {
     if (await create_channel(tag, pubkey, amount, sats)) {
+      show_notification = true;
       pubkey = "";
       amount = 0;
       sats = 0;
@@ -71,6 +79,20 @@
     </section>
   </div>
   <section class="channel-content">
+    {#if show_notification}
+      <InlineNotification
+        lowContrast
+        kind="success"
+        title="Success:"
+        subtitle="A new channel has been added."
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+        }}
+      />
+    {/if}
+
     <div class="spacer" />
     <Dropdown
       titleText="Peer Pubkey"
