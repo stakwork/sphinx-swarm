@@ -70,6 +70,7 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
         "--store-dir=/app/proxy/badger".to_string(),
         "--bitcoin.active".to_string(),
         "--bitcoin.basefee=0".to_string(),
+        "--use-hd-keys".to_string(), // HD key derivation
         format!("--bitcoin.{}", &netwk),
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),

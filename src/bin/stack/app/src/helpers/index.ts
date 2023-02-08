@@ -4,6 +4,11 @@ export function formatSatsNumbers(num) {
   return numFormat;
 }
 
+export function formatMillisatsToSats(num) {
+  const n = typeof num === "number" ? Math.floor(num / 1000) : 0;
+  formatSatsNumbers(n);
+}
+
 export function convertBtcToSats(num) {
   return Number(num) * 1000000000;
 }
