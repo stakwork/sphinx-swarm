@@ -14,7 +14,7 @@
 
   $: invDisabled = !pay_req;
 
-  let show_notification = false;
+  let show_notification = false
 
   async function payInvoice() {
     const payRes = await LND.pay_invoice(tag, pay_req);
@@ -36,6 +36,8 @@
 
 <main>
   <section class="invoice-wrap">
+<<<<<<< HEAD
+=======
     {#if show_notification}
       <InlineNotification
         lowContrast
@@ -50,6 +52,7 @@
       />
     {/if}
 
+>>>>>>> master
     <TextArea
       labelText={"Invoice Payment Request"}
       placeholder={"Enter the payment request of the invoice"}

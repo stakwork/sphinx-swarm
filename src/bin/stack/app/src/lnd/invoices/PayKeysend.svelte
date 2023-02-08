@@ -1,8 +1,8 @@
 <script lang="ts">
   import {
     Button,
-    InlineNotification,
     TextInput,
+    InlineNotification,
   } from "carbon-components-svelte";
   import Pay from "carbon-icons-svelte/lib/Money.svelte";
   import * as LND from "../../api/lnd";

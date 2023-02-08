@@ -9,6 +9,7 @@ import type { ProxyBalance } from "./api/proxy";
 import { userKey, type TokenData } from "./api/cmd";
 import { decode } from "js-base64";
 import * as api from "./api";
+import type { RelayBalance } from "./api/relay";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -42,6 +43,8 @@ export const btcinfo = writable<BtcInfo>();
 export const peers = writable<{ [tag: string]: Peer[] }>({});
 
 export const nodeBalances = writable<{ [tag: string]: number }>({});
+
+export const relayBalances = writable<{ [tag: string]:  RelayBalance }>({});
 
 export const activeInvoice = writable<{ [tag: string]: string }>({});
 

@@ -11,13 +11,14 @@
 
   $: pubkey = "";
   $: host = "";
-  let show_notification = false;
 
   export let back = () => {};
   export let tag = "";
   export let newChannel = (p: Peer) => {};
 
   $: peers = $peersStore && $peersStore[tag];
+
+  let show_notification = false;
 
   async function addPeer() {
     if (await add_peer(tag, pubkey, host)) {

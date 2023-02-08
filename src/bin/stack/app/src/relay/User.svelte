@@ -12,7 +12,6 @@
 
   export let select = (pubkey: string) => {};
   export let user: User;
-  export let balance = 0;
   export let selected = false;
 
   const signedUp = user.alias ? true : false;
@@ -112,9 +111,6 @@
   {:else}
     <div class="pubkey collapsed">
       {user.public_key}
-    </div>
-    <div class="balance collapsed">
-      {`${balance} sats`}
     </div>
   {/if}
 </div>

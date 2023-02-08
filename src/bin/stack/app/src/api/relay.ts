@@ -1,6 +1,13 @@
 import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 
+export interface RelayBalance {
+  reserve: number,
+  full_balance: number,
+  balance: number,
+  pending_open_balance: number
+}
+
 async function relayCmd(cmd: Cmd, tag: string, content?: any) {
   return await send_cmd("Relay", { cmd, content }, tag);
 }
@@ -33,4 +40,8 @@ export async function remove_default_tribe(tag: string, id: number) {
 
 export async function get_auth_token(tag: string) {
   return await relayCmd("GetToken", tag);
+}
+
+export async function get_balance(tag: string) {
+  return await relayCmd("GetBalance", tag);
 }
