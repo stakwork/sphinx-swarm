@@ -44,8 +44,10 @@ pub async fn create_and_start(
         log::info!("=> {} already exists", &hostname);
         return Ok(Some(id));
     }
+    let img_tag = c.image.clone().context("expected image")?;
     // if it contains a "/" its from the registry
-    if c.image.clone().context("expected image")?.contains("/") {
+    let local_sphinx_image = img_tag.contains("sphinx-") && !img_tag.contains("/");
+    if !local_sphinx_image {
         create_image(&docker, &c).await?;
     }
     let id = create_container(&docker, c.clone()).await?;
