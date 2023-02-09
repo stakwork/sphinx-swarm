@@ -51,7 +51,7 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, Some(extra_vols)),
+        host_config: host_config(&name, ports, root_vol, None),
         env: Some(vec![
             format!("NEO4J_AUTH=neo4j/test"),
             format!("NEO4J_apoc_export_file_enabled=true"),

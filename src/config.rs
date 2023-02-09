@@ -179,12 +179,10 @@ impl Default for Stack {
         // neo4j
         v = "latest";
         let mut neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
-        neo4j.links(vec![]);
 
          // navfiber
          v = "latest";
          let mut nav = NavFiberImage::new("nav", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
-         nav.links(vec![]);
 
         // internal nodes
         let internal_nodes = vec![
