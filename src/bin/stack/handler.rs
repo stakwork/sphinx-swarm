@@ -218,6 +218,7 @@ fn remove_tokens(s: &Stack) -> Stack {
             Image::Relay(r) => Node::Internal(Image::Relay(r)),
             Image::Cache(c) => Node::Internal(Image::Cache(c)),
             Image::Traefik(t) => Node::Internal(Image::Traefik(t)),
+            Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
         },
     });
     Stack {

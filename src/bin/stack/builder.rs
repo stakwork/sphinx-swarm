@@ -129,6 +129,10 @@ pub async fn add_node(
             let t1 = images::traefik::traefik(&traefik);
             create_and_start(&docker, t1, skip).await?;
         }
+        Image::Neo4j(neo4j) => {
+            let n1 = images::neo4j::neo4j(&neo4j);
+            create_and_start(&docker, n1, skip).await?;
+        }
     })
 }
 

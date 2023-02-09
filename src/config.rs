@@ -2,6 +2,7 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
+use crate::images::neo4j::Neo4jImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
 };
@@ -174,6 +175,11 @@ impl Default for Stack {
         let mut cache = CacheImage::new("cache", v, "9000", true);
         cache.links(vec!["tribes", "lnd"]);
 
+        // neo4j
+        v = "4.4.9";
+        let mut neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
+        neo4j.links(vec![]);
+
         // internal nodes
         let internal_nodes = vec![
             Image::Btc(bitcoind),
@@ -182,6 +188,7 @@ impl Default for Stack {
             Image::Proxy(proxy),
             Image::Relay(relay),
             // Image::Cache(cache),
+            Image::Neo4j(neo4j)
         ];
 
         let mut nodes: Vec<Node> = internal_nodes

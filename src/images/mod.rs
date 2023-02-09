@@ -6,6 +6,7 @@ pub mod postgres;
 pub mod proxy;
 pub mod relay;
 pub mod traefik;
+pub mod neo4j;
 
 use crate::config;
 use serde::{Deserialize, Serialize};
@@ -19,6 +20,7 @@ pub enum Image {
     Proxy(proxy::ProxyImage),
     Cache(cache::CacheImage),
     Traefik(traefik::TraefikImage),
+    Neo4j(neo4j::Neo4jImage)
 }
 
 pub struct Repository {
@@ -41,6 +43,7 @@ impl Image {
             Image::Proxy(n) => n.name.clone(),
             Image::Cache(n) => n.name.clone(),
             Image::Traefik(n) => n.name.clone(),
+            Image::Neo4j(n) => n.name.clone()
         }
     }
     pub fn typ(&self) -> String {
@@ -51,6 +54,7 @@ impl Image {
             Image::Proxy(_n) => "Proxy",
             Image::Cache(_n) => "Cache",
             Image::Traefik(_n) => "Traefik",
+            Image::Neo4j(n) => "Neo4j",
         }
         .to_string()
     }
@@ -76,6 +80,7 @@ impl DockerHubImage for Image {
             Image::Proxy(n) => n.repo(),
             Image::Cache(n) => n.repo(),
             Image::Traefik(n) => n.repo(),
+            Image::Neo4j(n) => n.repo(),
         }
     }
 }
