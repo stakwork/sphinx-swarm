@@ -1,6 +1,4 @@
 use super::*;
-use crate::rsa;
-use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
@@ -32,7 +30,7 @@ impl Neo4jImage {
 impl DockerHubImage for Neo4jImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "_".to_string(),
+            org: "bitnami".to_string(),
             repo: "neo4j".to_string(),
         }
     }

@@ -176,7 +176,7 @@ impl Default for Stack {
         cache.links(vec!["tribes", "lnd"]);
 
         // neo4j
-        v = "4.4.9";
+        v = "latest";
         let mut neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
         neo4j.links(vec![]);
 
@@ -188,7 +188,8 @@ impl Default for Stack {
             Image::Proxy(proxy),
             Image::Relay(relay),
             // Image::Cache(cache),
-            Image::Neo4j(neo4j)
+            Image::Neo4j(neo4j),
+            
         ];
 
         let mut nodes: Vec<Node> = internal_nodes
