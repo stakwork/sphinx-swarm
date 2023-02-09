@@ -2,6 +2,7 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
+use crate::images::navfiber::{self, NavFiberImage};
 use crate::images::neo4j::Neo4jImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
@@ -180,6 +181,11 @@ impl Default for Stack {
         let mut neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
         neo4j.links(vec![]);
 
+         // navfiber
+         v = "latest";
+         let mut nav = NavFiberImage::new("nav", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
+         nav.links(vec![]);
+
         // internal nodes
         let internal_nodes = vec![
             Image::Btc(bitcoind),
@@ -189,7 +195,7 @@ impl Default for Stack {
             Image::Relay(relay),
             // Image::Cache(cache),
             Image::Neo4j(neo4j),
-            
+            Image::NavFiber(nav),
         ];
 
         let mut nodes: Vec<Node> = internal_nodes

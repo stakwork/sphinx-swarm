@@ -130,9 +130,14 @@ pub async fn add_node(
             create_and_start(&docker, t1, skip).await?;
         }
         Image::Neo4j(neo4j) => {
-            let n1 = images::neo4j::neo4j(&neo4j);
-            create_and_start(&docker, n1, skip).await?;
+            let neo = images::neo4j::neo4j(&neo4j);
+            create_and_start(&docker, neo, skip).await?;
         }
+        Image::NavFiber(navfiber) => {
+            sleep(1).await;
+            let nf = images::navfiber::navfiber(&navfiber);
+            create_and_start(&docker, nf, skip).await?;
+        },
     })
 }
 

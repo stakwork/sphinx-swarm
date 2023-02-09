@@ -30,7 +30,7 @@ impl Neo4jImage {
 impl DockerHubImage for Neo4jImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "bitnami".to_string(),
+            org: "".to_string(),
             repo: "neo4j".to_string(),
         }
     }
@@ -39,12 +39,12 @@ impl DockerHubImage for Neo4jImage {
 pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/neo4j/data:/data";
+    let img = format!("{}", repo.repo);
+    let root_vol = "/data";
     let extra_vols = vec![
-        "/neo4j/logs:/logs".to_string(),
-        "/neo4j/plugins:/plugins".to_string(),
-        "/neo4j/tmp/import:/var/lib/neo4j/import".to_string(),
+        "/logs".to_string(),
+        "/plugins".to_string(),
+        "/tmp/import:/var/lib/neo4j/import".to_string(),
     ];
     let ports = vec![node.port.clone(), node.port2.clone()];
     Config {
