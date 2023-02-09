@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.29
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.30
 
-docker push sphinxlightning/sphinx-swarm:0.1.29
+docker push sphinxlightning/sphinx-swarm:0.1.30
 
 ### run sphinx swarm in dev
 
@@ -46,4 +46,4 @@ docker volume rm proxy.sphinx
 
 docker stop proxy.sphinx && docker rm proxy.sphinx
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . rm sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up sphinx-swarm && docker logs sphinx-swarm --follow
+docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . down sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach --force-recreate sphinx-swarm && docker logs sphinx-swarm --follow
