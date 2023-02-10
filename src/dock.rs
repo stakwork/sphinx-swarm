@@ -1,5 +1,5 @@
 // use crate::utils::user;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use bollard::container::Config;
 use bollard::container::{
     CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
@@ -14,6 +14,8 @@ use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
 use std::env;
+
+use crate::utils::{domain, sleep_ms};
 
 pub fn dockr() -> Docker {
     Docker::connect_with_unix_defaults().unwrap()
@@ -310,4 +312,17 @@ pub async fn remove_network(docker: &Docker, name: Option<&str>) -> Result<Strin
     }
     docker.remove_network(name).await?;
     Ok(name.to_string())
+}
+
+pub async fn try_dl(docker: &Docker, name: &str, path: &str) -> Result<Vec<u8>> {
+    for _ in 0..60 {
+        if let Ok(bytes) = download_from_container(docker, &domain(name), path).await {
+            return Ok(bytes);
+        }
+        sleep_ms(500).await;
+    }
+    Err(anyhow!(format!(
+        "try_dl failed to find {} in {}",
+        path, name
+    )))
 }

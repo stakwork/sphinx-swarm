@@ -2,6 +2,8 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
+use crate::images::boltwall::BoltwallImage;
+use crate::images::jarvis::JarvisBackendImage;
 use crate::images::navfiber::{self, NavFiberImage};
 use crate::images::neo4j::Neo4jImage;
 use crate::images::{
@@ -168,7 +170,7 @@ impl Default for Stack {
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
-        relay.links(vec!["proxy", "lnd", "tribes", "memes"]);
+        relay.links(vec!["proxy", "lnd", "tribes", "memes", "jarvis_boltwall"]);
         relay.host(host.clone());
 
         // cache
@@ -180,9 +182,19 @@ impl Default for Stack {
         v = "4.4.9";
         let neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
 
-         // navfiber
-         v = "latest";
-         let nav = NavFiberImage::new("nav", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
+        // navfiber
+        v = "latest";
+        let nav = NavFiberImage::new("navfiber", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
+
+        // boltwall
+        v = "latest";
+        let mut bolt = BoltwallImage::new("jarvis_boltwall", v, "8002", "boltwall-sphinx-devs.sphinx.chat");
+        bolt.links(vec!["jarvis_backend"]);
+
+        // jarvis
+        v = "latest";
+        let mut jarvis = JarvisBackendImage::new("jarvis_backend", v, "5000");
+        jarvis.links(vec!["neo4j"]);
 
         // internal nodes
         let internal_nodes = vec![
@@ -194,6 +206,8 @@ impl Default for Stack {
             // Image::Cache(cache),
             Image::NavFiber(nav),
             Image::Neo4j(neo4j),
+            Image::BoltWall(bolt),
+            Image::Jarvis(jarvis),
         ];
 
         let mut nodes: Vec<Node> = internal_nodes

@@ -243,3 +243,7 @@ pub fn setup_logs() {
         .init()
         .unwrap();
 }
+
+pub async fn sleep_ms(n: u64) {
+    tokio::time::sleep(std::time::Duration::from_millis(n)).await;
+}

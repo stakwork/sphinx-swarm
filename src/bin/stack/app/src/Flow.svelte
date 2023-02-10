@@ -1,6 +1,6 @@
 <script lang="ts">
   import Svelvet from "svelvet";
-  import { defaultPositions, type Stack } from "./nodes";
+  import { defaultPositions } from "./nodes";
   import type { Node, NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
@@ -35,7 +35,11 @@
             });
         });
       }
+
+      console.log("Node Name", n.name);
+      
       const pos = defaultPositions[n.name] || [150, 150];
+
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },

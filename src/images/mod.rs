@@ -8,6 +8,8 @@ pub mod relay;
 pub mod traefik;
 pub mod neo4j;
 pub mod navfiber;
+pub mod jarvis;
+pub mod boltwall;
 
 use crate::config;
 use serde::{Deserialize, Serialize};
@@ -23,6 +25,8 @@ pub enum Image {
     Traefik(traefik::TraefikImage),
     Neo4j(neo4j::Neo4jImage),
     NavFiber(navfiber::NavFiberImage),
+    BoltWall(boltwall::BoltwallImage),
+    Jarvis(jarvis::JarvisBackendImage)
 }
 
 pub struct Repository {
@@ -47,6 +51,8 @@ impl Image {
             Image::Traefik(n) => n.name.clone(),
             Image::Neo4j(n) => n.name.clone(),
             Image::NavFiber(n) => n.name.clone(),
+            Image::Jarvis(n) => n.name.clone(),
+            Image::BoltWall(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -57,8 +63,10 @@ impl Image {
             Image::Proxy(_n) => "Proxy",
             Image::Cache(_n) => "Cache",
             Image::Traefik(_n) => "Traefik",
-            Image::Neo4j(n) => "Neo4j",
-            Image::NavFiber(n) => "NavFiber",
+            Image::Neo4j(_n) => "Neo4j",
+            Image::NavFiber(_n) => "NavFiber",
+            Image::Jarvis(_n) => "JarvisBackend",
+            Image::BoltWall(_n) => "BoltWall",
         }
         .to_string()
     }
@@ -86,6 +94,8 @@ impl DockerHubImage for Image {
             Image::Traefik(n) => n.repo(),
             Image::Neo4j(n) => n.repo(),
             Image::NavFiber(n) => n.repo(),
+            Image::Jarvis(n) => n.repo(),
+            Image::BoltWall(n) => n.repo(),
         }
     }
 }

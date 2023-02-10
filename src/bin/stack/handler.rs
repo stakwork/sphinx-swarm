@@ -220,6 +220,8 @@ fn remove_tokens(s: &Stack) -> Stack {
             Image::Traefik(t) => Node::Internal(Image::Traefik(t)),
             Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
             Image::NavFiber(nf) => Node::Internal(Image::NavFiber(nf)),
+            Image::Jarvis(j) => Node::Internal(Image::Jarvis(j)),
+            Image::BoltWall(b) =>  Node::Internal(Image::BoltWall(b)),
         },
     });
     Stack {

@@ -5,7 +5,9 @@ use rocket::tokio;
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
+use sphinx_swarm::conn::lnd::utils::{dl_macaroon, dl_cert};
 use sphinx_swarm::conn::proxy::ProxyAPI;
+use sphinx_swarm::images::lnd::to_lnd_network;
 use sphinx_swarm::images::{Image, LinkedImages};
 use sphinx_swarm::{dock::*, images};
 use url::{Host, Url};
@@ -137,7 +139,38 @@ pub async fn add_node(
             sleep(1).await;
             let nf = images::navfiber::navfiber(&navfiber);
             create_and_start(&docker, nf, skip).await?;
-        },
+        }
+        Image::BoltWall(boltwall) => {
+            let lnd_node = nodes
+                .iter()
+                .find(|n| n.name() == "lnd")
+                .context("No LND")?
+                .as_internal()?
+                .as_lnd()?;
+
+            let cert_path = "/home/.lnd/tls.cert";
+            let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
+        
+            let netwk = to_lnd_network(lnd_node.network.as_str());
+            
+            let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
+            let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
+
+            let mut http_port = "";
+
+            if let Some(port) = &lnd_node.http_port {
+                http_port = &port;
+            }
+
+            let lnd_host = format!("{}:{}", lnd_node.name, http_port);
+
+            let b = images::boltwall::boltwall(&boltwall, &mac, &cert, &lnd_host);
+            create_and_start(&docker, b, skip).await?;
+        }
+        Image::Jarvis(jarvis) => {
+            let j = images::jarvis::jarvis(&jarvis);
+            create_and_start(&docker, j, skip).await?;
+        }
     })
 }
 

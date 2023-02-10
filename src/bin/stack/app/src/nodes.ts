@@ -27,7 +27,11 @@ export type NodeType =
   | "Auth"
   | "Postgres"
   | "Traefik"
-  | "Cache";
+  | "Cache"
+  | "Jarvis"
+  | "BoltWall"
+  | "Neo4j"
+  | "NavFiber";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",
@@ -41,6 +45,10 @@ export const allNodeTypes: NodeType[] = [
   "Postgres",
   "Traefik",
   "Cache",
+  "BoltWall",
+  "Neo4j",
+  "NavFiber",
+  "Jarvis"
 ];
 
 type Place = "Internal" | "External";
@@ -128,6 +136,10 @@ const defaultPositions = {
   cache: [660, 250],
   tribes: [260, 400],
   memes: [560, 500],
+  jarvis_backend: [1200, 400],
+  jarvis_boltwall: [950, 190],
+  neo4j: [900, 500],
+  navfiber: [600, 300],
 };
 
 export { stack, defaultPositions };

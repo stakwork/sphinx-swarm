@@ -2,14 +2,14 @@ use anyhow::{anyhow, Result};
 use bollard::Docker;
 use images::lnd::{to_lnd_network, LndImage};
 use images::relay::RelayImage;
-use rocket::tokio;
 use sphinx_swarm::config::Clients;
-use sphinx_swarm::conn::lnd::{lndrpc::LndRPC, unlocker::LndUnlocker};
+use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon};
+use sphinx_swarm::conn::lnd::{lndrpc::LndRPC};
 use sphinx_swarm::conn::relay::RelayAPI;
-use sphinx_swarm::dock::download_from_container;
 use sphinx_swarm::images;
 use sphinx_swarm::secrets;
-use sphinx_swarm::utils::domain;
+use sphinx_swarm::utils::sleep_ms;
+use sphinx_swarm::conn::lnd::utils::try_unlock_lnd;
 
 // returns LndRPC client and address if test mine needed
 pub async fn lnd_clients(
@@ -49,75 +49,6 @@ pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clien
         }
     }
 }
-async fn try_dl(docker: &Docker, name: &str, path: &str) -> Result<Vec<u8>> {
-    for _ in 0..60 {
-        if let Ok(bytes) = download_from_container(docker, &domain(name), path).await {
-            return Ok(bytes);
-        }
-        sleep_ms(500).await;
-    }
-    Err(anyhow!(format!(
-        "try_dl failed to find {} in {}",
-        path, name
-    )))
-}
-
-// PEM encoded
-pub async fn dl_cert(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
-    let cert_bytes = try_dl(docker, lnd_name, path).await?;
-    Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
-}
-
-// hex encoded
-pub async fn dl_macaroon(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
-    let mac_bytes = try_dl(docker, lnd_name, path).await?;
-    Ok(hex::encode(mac_bytes))
-}
-
-async fn try_unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<()> {
-    let mut err = anyhow!("try_unlock_lnd never started");
-    for _ in 0..60 {
-        match unlock_lnd(cert, proj, lnd_node).await {
-            Ok(_) => return Ok(()),
-            Err(e) => err = e,
-        }
-        sleep_ms(500).await;
-    }
-    Err(anyhow!(format!("try_unlock_lnd failed: {:?}", err)))
-}
-pub async fn unlock_lnd(cert: &str, proj: &str, lnd_node: &LndImage) -> Result<()> {
-    let secs = secrets::load_secrets(proj).await;
-    // UNLOCK LND
-    let unlocker = LndUnlocker::new(lnd_node, cert)
-        .await
-        .map_err(|e| anyhow!(format!("LndUnlocker::new failed: {}", e)))?;
-    if let Some(_) = secs.get(&lnd_node.name) {
-        let ur = unlocker.unlock_wallet(&lnd_node.unlock_password).await?;
-        if let Some(err_msg) = ur.message {
-            if !err_msg.contains("wallet already unlocked") {
-                log::error!("FAILED TO UNLOCK LND {:?}", err_msg);
-            }
-        } else {
-            log::info!("LND WALLET UNLOCKED!");
-        }
-    } else {
-        let seed = unlocker.gen_seed().await?;
-        if let Some(msg) = seed.message {
-            log::error!("gen seed error: {}", msg);
-        }
-        let mnemonic = seed.cipher_seed_mnemonic.expect("no mnemonic");
-        let ir = unlocker
-            .init_wallet(&lnd_node.unlock_password, mnemonic.clone())
-            .await?;
-        if let Some(err_msg) = ir.message {
-            log::error!("FAILED TO INIT LND {:?}", err_msg);
-        } else {
-            log::info!("LND WALLET INITIALIZED!");
-        }
-        secrets::add_to_secrets(proj, &lnd_node.name, &mnemonic.clone().join(" ")).await;
-    };
-    Ok(())
-}
 
 pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
     let secs = secrets::load_secrets(proj).await;
@@ -140,8 +71,4 @@ pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
         claim_res.response.unwrap().id
     );
     Ok(api)
-}
-
-pub async fn sleep_ms(n: u64) {
-    tokio::time::sleep(std::time::Duration::from_millis(n)).await;
 }
