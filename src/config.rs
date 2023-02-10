@@ -184,7 +184,8 @@ impl Default for Stack {
 
         // navfiber
         v = "latest";
-        let nav = NavFiberImage::new("navfiber", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
+        let mut nav = NavFiberImage::new("navfiber", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
+        nav.links(vec!["jarvis_backend"]);
 
         // boltwall
         v = "latest";

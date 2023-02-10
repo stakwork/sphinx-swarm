@@ -136,7 +136,7 @@ const defaultPositions = {
   cache: [660, 250],
   tribes: [260, 400],
   memes: [560, 500],
-  jarvis_backend: [1200, 400],
+  jarvis_backend: [1250, 400],
   jarvis_boltwall: [950, 190],
   neo4j: [900, 500],
   navfiber: [600, 300],
