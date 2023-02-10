@@ -41,12 +41,8 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     let repo = node.repo();
     let img = format!("{}", repo.repo);
     let root_vol = "/data";
-    let extra_vols = vec![
-        "/logs".to_string(),
-        "/plugins".to_string(),
-        "/tmp/import:/var/lib/neo4j/import".to_string(),
-    ];
     let ports = vec![node.port.clone(), node.port2.clone()];
+
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
@@ -62,8 +58,7 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_apoc_uuid_enabled=true"),
             format!("NEO4J_dbms_default__listen__address=0.0.0.0"),
             format!(
-                "NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:{}",
-                node.port2.clone()
+                "NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:7687"
             ),
             format!("NEO4J_dbms_allow__upgrade=true"),
             format!("NEO4J_dbms_default__database=neo4j"),

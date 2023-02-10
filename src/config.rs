@@ -177,12 +177,12 @@ impl Default for Stack {
         cache.links(vec!["tribes", "lnd"]);
 
         // neo4j
-        v = "latest";
-        let mut neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
+        v = "4.4.9";
+        let neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
 
          // navfiber
          v = "latest";
-         let mut nav = NavFiberImage::new("nav", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
+         let nav = NavFiberImage::new("nav", v, "8001", "second-brain-sphinx-devs.sphinx.chat");
 
         // internal nodes
         let internal_nodes = vec![
@@ -192,8 +192,8 @@ impl Default for Stack {
             Image::Proxy(proxy),
             Image::Relay(relay),
             // Image::Cache(cache),
-            Image::Neo4j(neo4j),
             Image::NavFiber(nav),
+            Image::Neo4j(neo4j),
         ];
 
         let mut nodes: Vec<Node> = internal_nodes
