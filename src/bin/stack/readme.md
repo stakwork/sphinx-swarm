@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.30
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.31
 
-docker push sphinxlightning/sphinx-swarm:0.1.30
+docker push sphinxlightning/sphinx-swarm:0.1.31
 
 ### run sphinx swarm in dev
 

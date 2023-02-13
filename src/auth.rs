@@ -3,11 +3,23 @@ use anyhow::Result;
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use jwt::VerifyWithKey;
+use once_cell::sync::Lazy;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
 use sha2::Sha256;
 use std::collections::BTreeMap;
+use std::sync::Mutex;
+
 type Claims = BTreeMap<String, u32>;
+
+pub static JWT_KEY: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(Default::default()));
+pub fn set_jwt_key(b: &str) {
+    *JWT_KEY.lock().unwrap() = Some(b.to_string());
+}
+fn get_jwt_key() -> String {
+    let jk = &*JWT_KEY.lock().unwrap();
+    jk.clone().unwrap_or("some-secret".to_string()).to_owned()
+}
 
 #[derive(Clone)]
 pub struct AdminJwtClaims {
@@ -36,8 +48,8 @@ impl AdminJwtClaims {
 }
 
 fn jwt_key() -> Hmac<Sha256> {
-    let env_sec = std::env::var("JWT_KEY").unwrap_or("some-secret".to_string());
-    let key: Hmac<Sha256> = Hmac::new_from_slice(env_sec.as_bytes()).expect("failed");
+    let jk = get_jwt_key();
+    let key: Hmac<Sha256> = Hmac::new_from_slice(jk.as_bytes()).expect("failed");
     key
 }
 

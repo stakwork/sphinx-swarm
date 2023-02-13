@@ -225,5 +225,6 @@ fn remove_tokens(s: &Stack) -> Stack {
         nodes: nodes.collect(),
         host: s.host.clone(),
         users: vec![],
+        jwt_key: "".to_string(),
     }
 }
