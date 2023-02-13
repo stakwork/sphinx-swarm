@@ -194,7 +194,7 @@ impl Default for Stack {
 
         // jarvis
         v = "latest";
-        let mut jarvis = JarvisBackendImage::new("jarvis_backend", v, "5000");
+        let mut jarvis = JarvisBackendImage::new("jarvis_backend", v, "6000");
         jarvis.links(vec!["neo4j"]);
 
         // internal nodes

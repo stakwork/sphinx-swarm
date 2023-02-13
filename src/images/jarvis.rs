@@ -38,7 +38,7 @@ pub fn jarvis(node: &JarvisBackendImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/jarvis";
+    let root_vol = "/data/jarvis";
     let ports = vec![node.port.clone()];
     Config {
         image: Some(format!("{}:{}", img, node.version)),
