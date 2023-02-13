@@ -131,7 +131,7 @@ const defaultPositions = {
   bitcoind: [90, 100],
   lnd: [400, 200],
   proxy: [750, 140],
-  relay: [1200, 375],
+  relay: [1150, 375],
   load_balancer: [895, 40],
   cache: [660, 250],
   tribes: [680, 650],
@@ -139,7 +139,7 @@ const defaultPositions = {
   jarvis_backend: [750, 475],
   jarvis_boltwall: [750, 375],
   neo4j: [470, 425],
-  navfiber: [1200, 475],
+  navfiber: [1150, 475],
 };
 
 export { stack, defaultPositions };
