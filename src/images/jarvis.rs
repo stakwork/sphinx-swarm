@@ -11,7 +11,7 @@ pub struct JarvisBackendImage {
     pub links: Links,
 }
 
-impl  JarvisBackendImage {
+impl JarvisBackendImage {
     pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -25,7 +25,7 @@ impl  JarvisBackendImage {
     }
 }
 
-impl DockerHubImage for  JarvisBackendImage {
+impl DockerHubImage for JarvisBackendImage {
     fn repo(&self) -> Repository {
         Repository {
             org: "sphinxlightning".to_string(),
@@ -48,7 +48,7 @@ pub fn jarvis(node: &JarvisBackendImage) -> Config<String> {
         env: Some(vec![
             format!("NEO4J_URI=neo4j://neo4j.sphinx:7687"),
             format!("NEO4J_USER=neo4j"),
-            format!("NEO4J_PASS=test")
+            format!("NEO4J_PASS=test"),
         ]),
         ..Default::default()
     }

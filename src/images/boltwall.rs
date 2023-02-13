@@ -2,28 +2,34 @@ use super::*;
 use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
+use super::traefik::traefik_labels;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BoltwallImage {
     pub name: String,
     pub version: String,
     pub port: String,
-    pub host: String,
+    pub host: Option<String>,
     pub links: Links,
 }
 
 impl BoltwallImage {
-    pub fn new(name: &str, version: &str, port: &str, host: &str) -> Self {
+    pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
-            host: host.to_string(),
+            host: None,
             links: vec![],
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("boltwall.{}", h));
+        }
     }
 }
 
@@ -36,20 +42,23 @@ impl DockerHubImage for BoltwallImage {
     }
 }
 
-pub fn boltwall(node: &BoltwallImage,  macaroon: &str, cert: &str, lnd_host: &str) -> Config<String> {
+pub fn boltwall(
+    node: &BoltwallImage,
+    macaroon: &str,
+    cert: &str,
+    lnd_host: &str,
+) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let ports = vec![node.port.clone()];
-    let labels = traefik::traefik_labels(&node.name, &node.host, &node.port);
     let root_vol = "/boltwall";
-  
-    Config {
+
+    let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&name, ports, root_vol, None),
-        labels: Some(labels),
         env: Some(vec![
             format!("PORT={}", node.port.clone()),
             format!("LND_TLS_CERT={}", cert.clone()),
@@ -59,5 +68,11 @@ pub fn boltwall(node: &BoltwallImage,  macaroon: &str, cert: &str, lnd_host: &st
             format!("LIQUID_SERVER=https://liquid.sphinx.chat/"),
         ]),
         ..Default::default()
+    };
+
+    if let Some(host) = node.host.clone() {
+        // production tls extra domain
+        c.labels = Some(traefik_labels(&node.name, &host, &node.port));
     }
+    c
 }
