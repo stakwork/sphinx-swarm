@@ -46,4 +46,4 @@ docker volume rm proxy.sphinx
 
 docker stop proxy.sphinx && docker rm proxy.sphinx
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . down sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach --force-recreate sphinx-swarm && docker logs sphinx-swarm --follow
+docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach --force-recreate sphinx-swarm && docker logs sphinx-swarm --follow
