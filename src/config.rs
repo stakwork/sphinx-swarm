@@ -200,18 +200,29 @@ impl Default for Stack {
         nav.host(host.clone());
 
         // internal nodes
-        let internal_nodes = vec![
+        let mut internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
             // Image::Lnd(lnd2),
             Image::Proxy(proxy),
             Image::Relay(relay),
             // Image::Cache(cache),
-            Image::NavFiber(nav),
-            Image::Neo4j(neo4j),
-            Image::BoltWall(bolt),
-            Image::Jarvis(jarvis),
         ];
+
+        // NO_SECOND_BRAIN=true will skip these nodes
+        let skip_second_brain = match std::env::var("NO_SECOND_BRAIN").ok() {
+            Some(nsb) => nsb == "true",
+            None => false,
+        };
+        if !skip_second_brain {
+            let second_brain_nodes = vec![
+                Image::NavFiber(nav),
+                Image::Neo4j(neo4j),
+                Image::BoltWall(bolt),
+                Image::Jarvis(jarvis),
+            ];
+            internal_nodes.extend(second_brain_nodes);
+        }
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()
