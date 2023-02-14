@@ -126,11 +126,6 @@ pub async fn add_node(
             let cache1 = images::cache::cache(&cache, &memes_host, &tribe_host);
             create_and_start(&docker, cache1, skip).await?;
         }
-        Image::Traefik(traefik) => {
-            sleep(1).await;
-            let t1 = images::traefik::traefik(&traefik);
-            create_and_start(&docker, t1, skip).await?;
-        }
         Image::Neo4j(neo4j) => {
             let neo = images::neo4j::neo4j(&neo4j);
             create_and_start(&docker, neo, skip).await?;
