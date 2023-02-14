@@ -183,7 +183,7 @@ impl Default for Stack {
         let neo4j = Neo4jImage::new("neo4j", v);
 
         // jarvis
-        v = "latest";
+        v = "0.1";
         let mut jarvis = JarvisImage::new("jarvis", v, "6000");
         jarvis.links(vec!["neo4j"]);
 
