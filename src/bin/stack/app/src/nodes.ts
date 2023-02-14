@@ -12,6 +12,7 @@ export interface Node {
   links?: string[];
   network?: Network;
   url?: string;
+  host?: string;
   // any other optional field
   [key: string]: string | string[];
 }
@@ -27,7 +28,11 @@ export type NodeType =
   | "Auth"
   | "Postgres"
   | "Traefik"
-  | "Cache";
+  | "Cache"
+  | "Jarvis"
+  | "BoltWall"
+  | "Neo4j"
+  | "NavFiber";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",
@@ -41,6 +46,10 @@ export const allNodeTypes: NodeType[] = [
   "Postgres",
   "Traefik",
   "Cache",
+  "BoltWall",
+  "Neo4j",
+  "NavFiber",
+  "Jarvis"
 ];
 
 type Place = "Internal" | "External";
@@ -121,13 +130,17 @@ const stack: Stack = {
 
 const defaultPositions = {
   bitcoind: [90, 100],
-  lnd: [360, 200],
-  proxy: [660, 140],
-  relay: [910, 350],
+  lnd: [400, 200],
+  proxy: [750, 140],
+  relay: [1150, 375],
   load_balancer: [895, 40],
   cache: [660, 250],
-  tribes: [260, 400],
-  memes: [560, 500],
+  tribes: [680, 650],
+  memes: [900, 700],
+  jarvis_backend: [750, 475],
+  jarvis_boltwall: [750, 375],
+  neo4j: [470, 425],
+  navfiber: [1150, 475],
 };
 
 export { stack, defaultPositions };

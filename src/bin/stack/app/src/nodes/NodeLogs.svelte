@@ -85,7 +85,7 @@
   .logs {
     background: #393939;
     width: 100%;
-    min-height: 50vh;
+    min-height: 30vh;
     max-height: 76vh;
     overflow: auto;
     padding: 0.3rem 0.5rem;

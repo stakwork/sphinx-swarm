@@ -2,6 +2,10 @@ use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
+use crate::images::boltwall::BoltwallImage;
+use crate::images::jarvis::JarvisImage;
+use crate::images::navfiber::NavFiberImage;
+use crate::images::neo4j::Neo4jImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
 };
@@ -168,7 +172,7 @@ impl Default for Stack {
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
-        relay.links(vec!["proxy", "lnd", "tribes", "memes"]);
+        relay.links(vec!["proxy", "lnd", "tribes", "memes", "jarvis_boltwall"]);
         relay.host(host.clone());
 
         // cache
@@ -176,8 +180,29 @@ impl Default for Stack {
         let mut cache = CacheImage::new("cache", v, "9000", true);
         cache.links(vec!["tribes", "lnd"]);
 
+        // neo4j
+        v = "4.4.9";
+        let neo4j = Neo4jImage::new("neo4j", v);
+
+        // jarvis
+        v = "0.1";
+        let mut jarvis = JarvisImage::new("jarvis", v, "6000");
+        jarvis.links(vec!["neo4j"]);
+
+        // boltwall
+        v = "latest";
+        let mut bolt = BoltwallImage::new("boltwall", v, "8444");
+        bolt.links(vec!["jarvis"]);
+        bolt.host(host.clone());
+
+        // navfiber
+        v = "latest";
+        let mut nav = NavFiberImage::new("navfiber", v, "8001");
+        nav.links(vec!["jarvis"]);
+        nav.host(host.clone());
+
         // internal nodes
-        let internal_nodes = vec![
+        let mut internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
             // Image::Lnd(lnd2),
@@ -185,6 +210,21 @@ impl Default for Stack {
             Image::Relay(relay),
             // Image::Cache(cache),
         ];
+
+        // NO_SECOND_BRAIN=true will skip these nodes
+        let skip_second_brain = match std::env::var("NO_SECOND_BRAIN").ok() {
+            Some(nsb) => nsb == "true",
+            None => false,
+        };
+        if !skip_second_brain {
+            let second_brain_nodes = vec![
+                Image::NavFiber(nav),
+                Image::Neo4j(neo4j),
+                Image::BoltWall(bolt),
+                Image::Jarvis(jarvis),
+            ];
+            internal_nodes.extend(second_brain_nodes);
+        }
 
         let mut nodes: Vec<Node> = internal_nodes
             .iter()

@@ -39,7 +39,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.1.31
+    image: sphinxlightning/sphinx-swarm:0.1.32
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
@@ -61,10 +61,15 @@ services:
     environment: 
       - HOST=$HOST
       - ONLY_NODE=$ONLY_NODE
+      - BTC_PASS=$BTC_PASS
       - DOCKER_RUN=true
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - AWS_REGION=$AWS_REGION
+      - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
 
 networks:
   sphinx-swarm:

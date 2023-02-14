@@ -1,7 +1,11 @@
+pub mod boltwall;
 pub mod btc;
 pub mod cache;
 pub mod cln_vls;
+pub mod jarvis;
 pub mod lnd;
+pub mod navfiber;
+pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
 pub mod relay;
@@ -18,7 +22,10 @@ pub enum Image {
     Relay(relay::RelayImage),
     Proxy(proxy::ProxyImage),
     Cache(cache::CacheImage),
-    Traefik(traefik::TraefikImage),
+    Neo4j(neo4j::Neo4jImage),
+    NavFiber(navfiber::NavFiberImage),
+    BoltWall(boltwall::BoltwallImage),
+    Jarvis(jarvis::JarvisImage),
 }
 
 pub struct Repository {
@@ -40,7 +47,10 @@ impl Image {
             Image::Relay(n) => n.name.clone(),
             Image::Proxy(n) => n.name.clone(),
             Image::Cache(n) => n.name.clone(),
-            Image::Traefik(n) => n.name.clone(),
+            Image::Neo4j(n) => n.name.clone(),
+            Image::NavFiber(n) => n.name.clone(),
+            Image::Jarvis(n) => n.name.clone(),
+            Image::BoltWall(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -50,7 +60,10 @@ impl Image {
             Image::Relay(_n) => "Relay",
             Image::Proxy(_n) => "Proxy",
             Image::Cache(_n) => "Cache",
-            Image::Traefik(_n) => "Traefik",
+            Image::Neo4j(_n) => "Neo4j",
+            Image::NavFiber(_n) => "NavFiber",
+            Image::Jarvis(_n) => "JarvisBackend",
+            Image::BoltWall(_n) => "BoltWall",
         }
         .to_string()
     }
@@ -75,7 +88,10 @@ impl DockerHubImage for Image {
             Image::Relay(n) => n.repo(),
             Image::Proxy(n) => n.repo(),
             Image::Cache(n) => n.repo(),
-            Image::Traefik(n) => n.repo(),
+            Image::Neo4j(n) => n.repo(),
+            Image::NavFiber(n) => n.repo(),
+            Image::Jarvis(n) => n.repo(),
+            Image::BoltWall(n) => n.repo(),
         }
     }
 }
@@ -137,6 +153,18 @@ impl Image {
         match self {
             Image::Proxy(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Proxy".to_string())),
+        }
+    }
+    pub fn as_neo4j(&self) -> anyhow::Result<neo4j::Neo4jImage> {
+        match self {
+            Image::Neo4j(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not NEO4J".to_string())),
+        }
+    }
+    pub fn as_jarvis(&self) -> anyhow::Result<jarvis::JarvisImage> {
+        match self {
+            Image::Jarvis(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Jarvis".to_string())),
         }
     }
 }

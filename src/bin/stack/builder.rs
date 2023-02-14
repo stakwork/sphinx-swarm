@@ -5,7 +5,9 @@ use rocket::tokio;
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
+use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon};
 use sphinx_swarm::conn::proxy::ProxyAPI;
+use sphinx_swarm::images::lnd::to_lnd_network;
 use sphinx_swarm::images::{Image, LinkedImages};
 use sphinx_swarm::{dock::*, images};
 use url::{Host, Url};
@@ -124,10 +126,48 @@ pub async fn add_node(
             let cache1 = images::cache::cache(&cache, &memes_host, &tribe_host);
             create_and_start(&docker, cache1, skip).await?;
         }
-        Image::Traefik(traefik) => {
+        Image::Neo4j(neo4j) => {
+            let neo = images::neo4j::neo4j(&neo4j);
+            create_and_start(&docker, neo, skip).await?;
+        }
+        Image::Jarvis(jarvis) => {
+            let neo4j_node = nodes
+                .iter()
+                .find(|n| n.name() == "neo4j")
+                .context("No Neo4j")?
+                .as_internal()?
+                .as_neo4j()?;
+            let j = images::jarvis::jarvis(&jarvis, &neo4j_node);
+            create_and_start(&docker, j, skip).await?;
+        }
+        Image::BoltWall(boltwall) => {
+            let lnd_node = nodes
+                .iter()
+                .find(|n| n.name() == "lnd")
+                .context("No LND")?
+                .as_internal()?
+                .as_lnd()?;
+
+            let cert_path = "/home/.lnd/tls.cert";
+            let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
+            let netwk = to_lnd_network(lnd_node.network.as_str());
+            let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
+            let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
+
+            let jarvis_node = nodes
+                .iter()
+                .find(|n| n.name() == "jarvis")
+                .context("No Jarvis")?
+                .as_internal()?
+                .as_jarvis()?;
+
+            let b = images::boltwall::boltwall(&boltwall, &mac, &cert, &lnd_node, &jarvis_node);
+            create_and_start(&docker, b, skip).await?;
+        }
+        Image::NavFiber(navfiber) => {
             sleep(1).await;
-            let t1 = images::traefik::traefik(&traefik);
-            create_and_start(&docker, t1, skip).await?;
+            let nf = images::navfiber::navfiber(&navfiber);
+            create_and_start(&docker, nf, skip).await?;
         }
     })
 }
