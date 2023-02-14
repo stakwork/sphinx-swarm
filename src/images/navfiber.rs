@@ -47,7 +47,7 @@ pub fn navfiber(node: &NavFiberImage) -> Config<String> {
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/usr/src/app/";
-    let ports = vec![node.port.clone(), "80".to_string()];
+    let ports = vec![node.port.clone()];
 
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
