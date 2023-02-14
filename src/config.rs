@@ -3,7 +3,7 @@ use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::boltwall::BoltwallImage;
-use crate::images::jarvis::JarvisBackendImage;
+use crate::images::jarvis::JarvisImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::{
@@ -180,24 +180,24 @@ impl Default for Stack {
 
         // neo4j
         v = "4.4.9";
-        let neo4j = Neo4jImage::new("neo4j", v, "7474", "7687");
-
-        // navfiber
-        v = "latest";
-        let mut nav = NavFiberImage::new("navfiber", v, "8001");
-        nav.links(vec!["jarvis_backend"]);
-        nav.host(host.clone());
+        let neo4j = Neo4jImage::new("neo4j", v);
 
         // jarvis
         v = "latest";
-        let mut jarvis = JarvisBackendImage::new("jarvis_backend", v, "6000");
+        let mut jarvis = JarvisImage::new("jarvis", v, "6000");
         jarvis.links(vec!["neo4j"]);
 
         // boltwall
         v = "latest";
-        let mut bolt = BoltwallImage::new("jarvis_boltwall", v, "8444");
-        bolt.links(vec!["jarvis_backend"]);
+        let mut bolt = BoltwallImage::new("boltwall", v, "8444");
+        bolt.links(vec!["jarvis"]);
         bolt.host(host.clone());
+
+        // navfiber
+        v = "latest";
+        let mut nav = NavFiberImage::new("navfiber", v, "8001");
+        nav.links(vec!["jarvis"]);
+        nav.host(host.clone());
 
         // internal nodes
         let internal_nodes = vec![

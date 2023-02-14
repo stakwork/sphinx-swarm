@@ -5,7 +5,7 @@ use rocket::tokio;
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
 use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use sphinx_swarm::conn::lnd::utils::{dl_macaroon, dl_cert};
+use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon};
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::images::lnd::to_lnd_network;
 use sphinx_swarm::images::{Image, LinkedImages};
@@ -135,10 +135,15 @@ pub async fn add_node(
             let neo = images::neo4j::neo4j(&neo4j);
             create_and_start(&docker, neo, skip).await?;
         }
-        Image::NavFiber(navfiber) => {
-            sleep(1).await;
-            let nf = images::navfiber::navfiber(&navfiber);
-            create_and_start(&docker, nf, skip).await?;
+        Image::Jarvis(jarvis) => {
+            let neo4j_node = nodes
+                .iter()
+                .find(|n| n.name() == "neo4j")
+                .context("No Neo4j")?
+                .as_internal()?
+                .as_neo4j()?;
+            let j = images::jarvis::jarvis(&jarvis, &neo4j_node);
+            create_and_start(&docker, j, skip).await?;
         }
         Image::BoltWall(boltwall) => {
             let lnd_node = nodes
@@ -150,26 +155,24 @@ pub async fn add_node(
 
             let cert_path = "/home/.lnd/tls.cert";
             let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
-        
             let netwk = to_lnd_network(lnd_node.network.as_str());
-            
             let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
             let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
 
-            let mut http_port = "";
+            let jarvis_node = nodes
+                .iter()
+                .find(|n| n.name() == "jarvis")
+                .context("No Jarvis")?
+                .as_internal()?
+                .as_jarvis()?;
 
-            if let Some(port) = &lnd_node.http_port {
-                http_port = &port;
-            }
-
-            let lnd_host = format!("{}:{}", lnd_node.name, http_port);
-
-            let b = images::boltwall::boltwall(&boltwall, &mac, &cert, &lnd_host);
+            let b = images::boltwall::boltwall(&boltwall, &mac, &cert, &lnd_node, &jarvis_node);
             create_and_start(&docker, b, skip).await?;
         }
-        Image::Jarvis(jarvis) => {
-            let j = images::jarvis::jarvis(&jarvis);
-            create_and_start(&docker, j, skip).await?;
+        Image::NavFiber(navfiber) => {
+            sleep(1).await;
+            let nf = images::navfiber::navfiber(&navfiber);
+            create_and_start(&docker, nf, skip).await?;
         }
     })
 }

@@ -1,17 +1,17 @@
-use super::*;
+use super::{neo4j::Neo4jImage, *};
 use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
-pub struct JarvisBackendImage {
+pub struct JarvisImage {
     pub name: String,
     pub version: String,
     pub port: String,
     pub links: Links,
 }
 
-impl JarvisBackendImage {
+impl JarvisImage {
     pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -25,7 +25,7 @@ impl JarvisBackendImage {
     }
 }
 
-impl DockerHubImage for JarvisBackendImage {
+impl DockerHubImage for JarvisImage {
     fn repo(&self) -> Repository {
         Repository {
             org: "sphinxlightning".to_string(),
@@ -34,7 +34,7 @@ impl DockerHubImage for JarvisBackendImage {
     }
 }
 
-pub fn jarvis(node: &JarvisBackendImage) -> Config<String> {
+pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
@@ -46,7 +46,10 @@ pub fn jarvis(node: &JarvisBackendImage) -> Config<String> {
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&name, ports, root_vol, None),
         env: Some(vec![
-            format!("NEO4J_URI=neo4j://neo4j.sphinx:7687"),
+            format!(
+                "NEO4J_URI=neo4j://{}.sphinx:{}",
+                neo4j.name, neo4j.bolt_port
+            ),
             format!("NEO4J_USER=neo4j"),
             format!("NEO4J_PASS=test"),
         ]),

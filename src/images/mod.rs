@@ -1,15 +1,15 @@
+pub mod boltwall;
 pub mod btc;
 pub mod cache;
 pub mod cln_vls;
+pub mod jarvis;
 pub mod lnd;
+pub mod navfiber;
+pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
 pub mod relay;
 pub mod traefik;
-pub mod neo4j;
-pub mod navfiber;
-pub mod jarvis;
-pub mod boltwall;
 
 use crate::config;
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ pub enum Image {
     Neo4j(neo4j::Neo4jImage),
     NavFiber(navfiber::NavFiberImage),
     BoltWall(boltwall::BoltwallImage),
-    Jarvis(jarvis::JarvisBackendImage)
+    Jarvis(jarvis::JarvisImage),
 }
 
 pub struct Repository {
@@ -157,6 +157,18 @@ impl Image {
         match self {
             Image::Proxy(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Proxy".to_string())),
+        }
+    }
+    pub fn as_neo4j(&self) -> anyhow::Result<neo4j::Neo4jImage> {
+        match self {
+            Image::Neo4j(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not NEO4J".to_string())),
+        }
+    }
+    pub fn as_jarvis(&self) -> anyhow::Result<jarvis::JarvisImage> {
+        match self {
+            Image::Jarvis(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Jarvis".to_string())),
         }
     }
 }

@@ -49,7 +49,8 @@ pub fn boltwall(
     node: &BoltwallImage,
     macaroon: &str,
     cert: &str,
-    lnd_host: &str,
+    lnd_node: &lnd::LndImage,
+    jarvis: &jarvis::JarvisImage,
 ) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
@@ -57,13 +58,18 @@ pub fn boltwall(
     let ports = vec![node.port.clone()];
     let root_vol = "/boltwall";
 
+    let lnd_socket = format!("{}:{}", lnd_node.name, lnd_node.rpc_port);
     let mut env = vec![
-        format!("PORT={}", node.port.clone()),
-        format!("LND_TLS_CERT={}", cert.clone()),
-        format!("LND_MACAROON={}", macaroon.clone()),
-        format!("LND_SOCKET={}", lnd_host.clone()),
+        format!("PORT={}", node.port),
+        format!("LND_TLS_CERT={}", cert),
+        format!("LND_MACAROON={}", macaroon),
+        format!("LND_SOCKET={}", lnd_socket),
         format!("BOLTWALL_MIN_AMOUNT=2"),
         format!("LIQUID_SERVER=https://liquid.sphinx.chat/"),
+        format!(
+            "JARVIS_BACKEND=http://{}.sphinx:{}",
+            jarvis.name, jarvis.port
+        ),
     ];
     if let Some(h) = &node.host {
         env.push(format!("HOST_URL=https://{}", h));
