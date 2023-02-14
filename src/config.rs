@@ -9,6 +9,7 @@ use crate::images::neo4j::Neo4jImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
 };
+use crate::secrets;
 use crate::utils;
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -58,6 +59,7 @@ pub struct Stack {
     pub nodes: Vec<Node>,
     pub host: Option<String>, // root host for traefik (PRODUCTION)
     pub users: Vec<User>,
+    pub jwt_key: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -164,7 +166,7 @@ impl Default for Stack {
         proxy.links(vec!["lnd"]);
 
         // relay
-        v = "v0.1.10";
+        v = "v0.1.11";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -246,6 +248,7 @@ impl Default for Stack {
             nodes,
             host,
             users: vec![Default::default()],
+            jwt_key: secrets::random_word(16),
         }
     }
 }

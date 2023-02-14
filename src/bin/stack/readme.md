@@ -40,10 +40,10 @@ docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . down
 
 ### remove one volume to reset data
 
-docker volume rm relay.sphinx
+docker volume rm proxy.sphinx
 
 ### update one instance
 
-docker stop relay.sphinx && docker rm relay.sphinx
+docker stop proxy.sphinx && docker rm proxy.sphinx
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . start sphinx-swarm && docker logs sphinx-swarm --follow
+docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach --force-recreate sphinx-swarm && docker logs sphinx-swarm --follow

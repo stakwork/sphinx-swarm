@@ -22,7 +22,8 @@ async fn main() -> Result<()> {
     let stack: Stack = load_config_file(proj).await;
     let clients = builder::build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
-
+    // put the jwt key into a var
+    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
     // set into the main state mutex
     let mut state = STATE.lock().await;
     *state = State { stack, clients };
