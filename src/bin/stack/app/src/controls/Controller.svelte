@@ -8,6 +8,7 @@
   import Lnd from "../lnd/Lnd.svelte";
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
+  import NavFiber from "../NavFiber.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -46,6 +47,8 @@
       <Bitcoin {tag} />
     {:else if type === "Proxy"}
       <Proxy {tag} />
+    {:else if type === "NavFiber"}
+      <NavFiber {tag} host={$selectedNode.host} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}

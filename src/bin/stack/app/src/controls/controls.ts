@@ -74,10 +74,13 @@ const proxyControls: Control[] = [
 
 const tribesControls: Control[] = [];
 
+const navfiberControls: Control[] = [];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
   Lnd: lndControls,
   Btc: btcControls,
   Tribes: tribesControls,
+  NavFiber: navfiberControls,
 };

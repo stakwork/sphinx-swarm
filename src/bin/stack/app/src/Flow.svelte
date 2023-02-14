@@ -36,8 +36,6 @@
         });
       }
 
-      console.log("Node Name", n.name);
-      
       const pos = defaultPositions[n.name] || [150, 150];
 
       return <SvelvetNode>{

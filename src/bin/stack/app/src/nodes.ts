@@ -12,6 +12,7 @@ export interface Node {
   links?: string[];
   network?: Network;
   url?: string;
+  host?: string;
   // any other optional field
   [key: string]: string | string[];
 }
