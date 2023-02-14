@@ -65,7 +65,7 @@ pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage) -> Config<String> {
     if let Ok(aws_secret) = std::env::var("AWS_SECRET_ACCESS_KEY") {
         env.push(format!("AWS_SECRET_ACCESS_KEY={}", aws_secret));
     }
-    if let Ok(aws_region) = std::env::var("AWS_REGION") {
+    if let Ok(aws_region) = std::env::var("AWS_S3_REGION_NAME") {
         env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
     }
     Config {

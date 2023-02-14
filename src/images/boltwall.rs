@@ -70,7 +70,9 @@ pub fn boltwall(
             "JARVIS_BACKEND=http://{}.sphinx:{}",
             jarvis.name, jarvis.port
         ),
+        format!("SESSION_SECRET={}", node.session_secret),
     ];
+    // the webhook url "callback"
     if let Some(h) = &node.host {
         env.push(format!("HOST_URL=https://{}", h));
     }
@@ -82,7 +84,6 @@ pub fn boltwall(
         env: Some(env),
         ..Default::default()
     };
-
     if let Some(host) = node.host.clone() {
         // production tls extra domain
         c.labels = Some(traefik_labels(&node.name, &host, &node.port));
