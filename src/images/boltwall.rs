@@ -22,7 +22,7 @@ impl BoltwallImage {
             version: version.to_string(),
             port: port.to_string(),
             host: None,
-            session_secret: secrets::random_word(16),
+            session_secret: secrets::random_word(32),
             links: vec![],
         }
     }

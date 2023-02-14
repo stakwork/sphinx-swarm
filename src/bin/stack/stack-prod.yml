@@ -60,12 +60,15 @@ services:
     restart: on-failure
     environment: 
       - HOST=$HOST
-      - JWT_KEY=$JWT_KEY
       - ONLY_NODE=$ONLY_NODE
       - DOCKER_RUN=true
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - AWS_REGION=$AWS_REGION
+      - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
 
 networks:
   sphinx-swarm:

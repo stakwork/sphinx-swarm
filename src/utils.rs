@@ -159,6 +159,20 @@ pub fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
     Some(ports)
 }
 
+// from port 80 inside the container (like nginix)
+pub fn single_host_port_from_eighty(port: &str) -> Option<PortMap> {
+    let mut ports = PortMap::new();
+    ports.insert(
+        tcp_port(&"80"),
+        Some(vec![PortBinding {
+            host_port: Some(port.to_string()),
+            // host_ip: Some("0.0.0.0".to_string()),
+            host_ip: None,
+        }]),
+    );
+    Some(ports)
+}
+
 pub fn _custom_network() -> CreateNetworkOptions<String> {
     CreateNetworkOptions {
         name: _NET.to_string(),

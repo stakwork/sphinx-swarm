@@ -1,8 +1,8 @@
+use super::traefik::traefik_labels;
 use super::*;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{domain, exposed_ports, host_config, single_host_port_from_eighty};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
-use super::traefik::traefik_labels;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct NavFiberImage {
@@ -57,6 +57,8 @@ pub fn navfiber(node: &NavFiberImage) -> Config<String> {
         env: None,
         ..Default::default()
     };
+    // override the nginix port 80 -> 8001:80
+    c.host_config.as_mut().unwrap().port_bindings = single_host_port_from_eighty(&node.port);
 
     if let Some(host) = node.host.clone() {
         // production tls extra domain
