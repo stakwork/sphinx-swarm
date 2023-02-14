@@ -4,7 +4,7 @@ use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::jarvis::JarvisBackendImage;
-use crate::images::navfiber::{self, NavFiberImage};
+use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
@@ -188,16 +188,16 @@ impl Default for Stack {
         nav.links(vec!["jarvis_backend"]);
         nav.host(host.clone());
 
+        // jarvis
+        v = "latest";
+        let mut jarvis = JarvisBackendImage::new("jarvis_backend", v, "6000");
+        jarvis.links(vec!["neo4j"]);
+
         // boltwall
         v = "latest";
         let mut bolt = BoltwallImage::new("jarvis_boltwall", v, "8444");
         bolt.links(vec!["jarvis_backend"]);
         bolt.host(host.clone());
-
-        // jarvis
-        v = "latest";
-        let mut jarvis = JarvisBackendImage::new("jarvis_backend", v, "6000");
-        jarvis.links(vec!["neo4j"]);
 
         // internal nodes
         let internal_nodes = vec![

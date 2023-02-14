@@ -1,8 +1,9 @@
+use super::traefik::traefik_labels;
 use super::*;
+use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
-use super::traefik::traefik_labels;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BoltwallImage {
@@ -10,6 +11,7 @@ pub struct BoltwallImage {
     pub version: String,
     pub port: String,
     pub host: Option<String>,
+    pub session_secret: String,
     pub links: Links,
 }
 
@@ -20,6 +22,7 @@ impl BoltwallImage {
             version: version.to_string(),
             port: port.to_string(),
             host: None,
+            session_secret: secrets::random_word(16),
             links: vec![],
         }
     }
@@ -54,19 +57,23 @@ pub fn boltwall(
     let ports = vec![node.port.clone()];
     let root_vol = "/boltwall";
 
+    let mut env = vec![
+        format!("PORT={}", node.port.clone()),
+        format!("LND_TLS_CERT={}", cert.clone()),
+        format!("LND_MACAROON={}", macaroon.clone()),
+        format!("LND_SOCKET={}", lnd_host.clone()),
+        format!("BOLTWALL_MIN_AMOUNT=2"),
+        format!("LIQUID_SERVER=https://liquid.sphinx.chat/"),
+    ];
+    if let Some(h) = &node.host {
+        env.push(format!("HOST_URL=https://{}", h));
+    }
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&name, ports, root_vol, None),
-        env: Some(vec![
-            format!("PORT={}", node.port.clone()),
-            format!("LND_TLS_CERT={}", cert.clone()),
-            format!("LND_MACAROON={}", macaroon.clone()),
-            format!("LND_SOCKET={}", lnd_host.clone()),
-            format!("BOLTWALL_MIN_AMOUNT=2"),
-            format!("LIQUID_SERVER=https://liquid.sphinx.chat/"),
-        ]),
+        env: Some(env),
         ..Default::default()
     };
 
