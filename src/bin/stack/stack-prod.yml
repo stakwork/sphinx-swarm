@@ -61,6 +61,7 @@ services:
     environment: 
       - HOST=$HOST
       - ONLY_NODE=$ONLY_NODE
+      - BTC_PASS=$BTC_PASS
       - DOCKER_RUN=true
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
