@@ -36,7 +36,7 @@
         });
       }
 
-      const pos = defaultPositions[n.name] || [150, 150];
+      const pos = defaultPositions()[n.name] || [150, 150];
 
       return <SvelvetNode>{
         id: i + 1,

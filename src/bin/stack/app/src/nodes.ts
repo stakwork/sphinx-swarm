@@ -49,7 +49,7 @@ export const allNodeTypes: NodeType[] = [
   "BoltWall",
   "Neo4j",
   "NavFiber",
-  "Jarvis"
+  "Jarvis",
 ];
 
 type Place = "Internal" | "External";
@@ -128,18 +128,29 @@ const stack: Stack = {
   ],
 };
 
-const defaultPositions = {
-  bitcoind: [90, 100],
-  lnd: [400, 200],
-  proxy: [750, 140],
+const xOffset = -220;
+const yOffset = -70;
+function offset(xy) {
+  return [xy[0] + xOffset, xy[1] + yOffset];
+}
+function defaultPositions() {
+  return Object.fromEntries(
+    Object.entries(defpos).map(([k, v], i) => [k, offset(v)])
+  );
+}
+
+const defpos = {
+  bitcoind: [320, 140],
+  lnd: [580, 200],
+  proxy: [850, 140],
   relay: [1150, 375],
   load_balancer: [895, 40],
   cache: [660, 250],
-  tribes: [680, 650],
+  tribes: [680, 630],
   memes: [900, 700],
-  jarvis_backend: [750, 475],
-  jarvis_boltwall: [750, 375],
-  neo4j: [470, 425],
+  jarvis: [750, 475],
+  boltwall: [750, 375],
+  neo4j: [480, 425],
   navfiber: [1150, 475],
 };
 

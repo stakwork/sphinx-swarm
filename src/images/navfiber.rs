@@ -61,8 +61,10 @@ pub fn navfiber(node: &NavFiberImage) -> Config<String> {
     c.host_config.as_mut().unwrap().port_bindings = single_host_port_from_eighty(&node.port);
 
     if let Some(host) = node.host.clone() {
+        // navfiber image uses nginx (port 80)
+        let port_for_traefik = "80";
         // production tls extra domain
-        c.labels = Some(traefik_labels(&node.name, &host, &node.port));
+        c.labels = Some(traefik_labels(&node.name, &host, &port_for_traefik));
     }
     c
 }

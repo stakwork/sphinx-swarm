@@ -5,6 +5,7 @@ export function formatSatsNumbers(num) {
 }
 
 export function formatMillisatsToSats(num) {
+  if (!num) return 0;
   const n = typeof num === "number" ? Math.floor(num / 1000) : 0;
   formatSatsNumbers(n);
 }
