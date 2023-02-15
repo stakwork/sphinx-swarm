@@ -44,6 +44,16 @@ docker volume rm proxy.sphinx
 
 ### update one instance
 
-docker stop proxy.sphinx && docker rm proxy.sphinx
+docker pull
+
+docker stop navfiber.sphinx && docker rm navfiber.sphinx
 
 docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach --force-recreate sphinx-swarm && docker logs sphinx-swarm --follow
+
+### update sphinx-swarm itself
+
+docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up sphinx-swarm -d && docker logs sphinx-swarm --follow
+
+### ps
+
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.RunningFor}}"
