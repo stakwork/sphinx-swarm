@@ -94,7 +94,6 @@ create an A record like `*.swarmx.sphinx.chat` to the IP of the instance
 
 ### setup first time (only bitcoin):
 
-export ONLY_NODE=bitcoind
 export HOST=swarm5.sphinx.chat
 
 copy the envs from .env.md

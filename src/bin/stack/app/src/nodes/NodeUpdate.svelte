@@ -108,7 +108,9 @@
     <div class="title">{name}</div>
     {#if version}
       <div class="version">({version})</div>
-      <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
+      <Button disabled={true} on:click={openModal} size="field" icon={Upgrade}
+        >Update</Button
+      >
     {/if}
   </section>
 
@@ -146,9 +148,9 @@
           </StructuredList>
           {#if scrollLoading && hasMore}
             <p class="scroll-msg">Loading more ...</p>
-            {:else}
+          {:else}
             <p class="scroll-msg">No more data</p>
-          {/if }
+          {/if}
         </div>
       {/if}
     </section>
@@ -170,10 +172,14 @@
     flex-direction: row;
     align-items: center;
   }
+  .title {
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
   .version {
     color: white;
     margin: 0 1rem;
-    font-weight: bold;
     font-size: 0.8rem;
   }
   .modal-content {
