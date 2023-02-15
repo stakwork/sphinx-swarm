@@ -9,6 +9,7 @@ use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon};
 use sphinx_swarm::conn::proxy::ProxyAPI;
 use sphinx_swarm::images::lnd::to_lnd_network;
 use sphinx_swarm::images::{Image, LinkedImages};
+use sphinx_swarm::utils::docker_domain_127;
 use sphinx_swarm::{dock::*, images};
 use url::{Host, Url};
 
@@ -52,7 +53,8 @@ pub async fn add_node(
         Image::Btc(btc) => {
             let btc1 = images::btc::btc(&btc);
             if let Some(_) = create_and_start(&docker, btc1, skip).await? {
-                match BitcoinRPC::new_and_create_wallet(&btc, "http://127.0.0.1", "18443").await {
+                let btc_rpc_url = format!("http://{}", docker_domain_127(&btc.name));
+                match BitcoinRPC::new_and_create_wallet(&btc, &btc_rpc_url, "18443").await {
                     Ok(client) => {
                         clients.bitcoind.insert(btc.name, client);
                     }

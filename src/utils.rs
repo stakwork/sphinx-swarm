@@ -106,6 +106,14 @@ pub fn docker_domain(name: &str) -> String {
     }
 }
 
+pub fn docker_domain_127(name: &str) -> String {
+    if let Ok(_) = std::env::var("DOCKER_RUN") {
+        domain(name)
+    } else {
+        "127.0.0.1".to_string()
+    }
+}
+
 pub fn exposed_ports(ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
     let mut ps = HashMap::new();
     for port in ports {
