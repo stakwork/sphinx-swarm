@@ -5,14 +5,14 @@
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
 
+  $: flow = toSvelvet($stack.nodes, nodeCallback);
+
   const nodeCallback = (node) => {
     const n = $stack.nodes.find((n) => n.name === node.data.name);
     if (n) {
       selectedNode.update((node) => (node && node.name === n.name ? null : n));
     }
   };
-
-  $: flow = toSvelvet($stack.nodes, nodeCallback);
 
   function toSvelvet(
     ns: Node[],
@@ -50,7 +50,10 @@
         data: { html: content(n.type), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
-        className: n.place === "Internal" ? "node-internal" : "node-external",
+        className:
+          n.place === "Internal"
+            ? `node-internal node-${n.name}`
+            : `node-external node-${n.name}`,
       };
     });
     return { nodes, edges };

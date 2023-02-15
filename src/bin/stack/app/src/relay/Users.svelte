@@ -20,7 +20,6 @@
 
   async function getUsers() {
     const userList = await api.relay.list_users(tag);
-    console.log("users:", userList);
     users.set(userList.users);
   }
   onMount(async () => {

@@ -151,7 +151,7 @@ html {
 }
 
 .invoice-tabs-wrap button {
-	margin:0 0.4rem;
+	margin: 0 0.4rem;
 }
 
 .copy-icon {
@@ -290,5 +290,36 @@ html {
 
 .qr-btns button {
 	max-height: 2.1rem;
-    min-height: inherit;
+	min-height: inherit;
+}
+
+.selected-relay .node-relay {
+	border: 3px solid #BA55D3 !important;
+}
+
+.selected-lnd .node-lnd {
+	border: 3px solid #AA6C11 !important;
+}
+
+.selected-bitcoind .node-bitcoind {
+	border: 3px solid #F2BC52 !important;
+}
+
+.selected-proxy .node-proxy {
+	border: 3px solid #52B550 !important;
+}
+
+.selected-neo4j .node-neo4j, 
+.selected-navfiber .node-navfiber, 
+.selected-boltwall .node-boltwall,
+.selected-memes .node-memes {
+	border: 3px solid #FFF !important;
+}
+
+.selected-jarvis .node-jarvis {
+	border: 3px solid #CCCCCC !important;
+}
+
+.selected-tribes .node-tribes {
+	border: 3px solid #3944BC !important;
 }
