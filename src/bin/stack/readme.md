@@ -94,6 +94,7 @@ create an A record like `*.swarmx.sphinx.chat` to the IP of the instance
 
 ### setup first time (only bitcoin):
 
+export ONLY_NODE=bitcoind
 export HOST=swarm5.sphinx.chat
 
 copy the envs from .env.md
@@ -101,3 +102,11 @@ copy the envs from .env.md
 docker network create sphinx-swarm
 
 docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up -d
+
+### once bitcoind is synced
+
+export HOST=swarm5.sphinx.chat
+
+copy the envs from .env.md
+
+docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up sphinx-swarm -d && docker logs sphinx-swarm --follow
