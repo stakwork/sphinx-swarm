@@ -15,7 +15,6 @@
   onMount(async () => {
     if (!tag) return;
     const chats = await refreshTribes();
-    console.log("chats", chats);
   });
 
   $: items = myChats

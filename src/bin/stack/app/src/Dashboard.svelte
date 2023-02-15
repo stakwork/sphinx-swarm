@@ -17,6 +17,8 @@
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
 
+  let name = "";
+
   async function getConfig() {
     const stackRemote: Stack = await api.swarm.get_config();
     if (stackRemote.nodes !== $stack.nodes) {
@@ -36,6 +38,22 @@
   }
   function toChangePassword() {
     page = "change_password";
+  }
+
+  let body;
+
+  $: {
+    if (body) {
+      if ($selectedNode) {
+        // Remove the previous name saved in state
+        body.classList.remove(`selected-${name}`);
+
+        body.classList.add(`selected-${$selectedNode.name}`);
+
+        // save name to state
+        name = $selectedNode.name;
+      }
+    }
   }
 </script>
 
@@ -64,7 +82,7 @@
       </OverflowMenu>
     </section>
   </header>
-  <div class="body">
+  <div class="body" bind:this={body}>
     {#if page === "change_password"}
       <ChangePassword back={backToMain} />
     {:else if page === "main"}
