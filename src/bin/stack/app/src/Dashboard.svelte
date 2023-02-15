@@ -43,16 +43,14 @@
   let body;
 
   $: {
-    if (body) {
-      if ($selectedNode) {
-        // Remove the previous name saved in state
-        body.classList.remove(`selected-${name}`);
+    if (body && $selectedNode) {
+      // Remove the previous name saved in state
+      body.classList.remove(`selected-${name}`);
 
-        body.classList.add(`selected-${$selectedNode.name}`);
+      body.classList.add(`selected-${$selectedNode.name}`);
 
-        // save name to state
-        name = $selectedNode.name;
-      }
+      // save name to state
+      name = $selectedNode.name;
     }
   }
 </script>
