@@ -323,3 +323,8 @@ html {
 .selected-tribes .node-tribes {
 	border: 3px solid #3944BC !important;
 }
+
+.relay-admin-qr-btns button {
+	width:108px;
+	padding-right: 0px;
+}
