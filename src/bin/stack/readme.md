@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.35
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.36
 
-docker push sphinxlightning/sphinx-swarm:0.1.35
+docker push sphinxlightning/sphinx-swarm:0.1.36
 
 ### run sphinx swarm in dev
 
@@ -44,11 +44,15 @@ docker volume rm proxy.sphinx
 
 ### update one instance
 
-docker pull
+sudo vi $HOME/vol/stack/config.json
 
-docker stop navfiber.sphinx && docker rm navfiber.sphinx
+update the version
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach --force-recreate sphinx-swarm && docker logs sphinx-swarm --follow
+docker pull image:version
+
+docker stop jarvis.sphinx && docker rm jarvis.sphinx
+
+docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach sphinx-swarm && docker logs sphinx-swarm --follow
 
 ### update sphinx-swarm itself
 

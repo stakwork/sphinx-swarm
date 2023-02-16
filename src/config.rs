@@ -175,7 +175,7 @@ impl Default for Stack {
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
-        relay.links(vec!["proxy", "lnd", "tribes", "memes", "jarvis_boltwall"]);
+        relay.links(vec!["proxy", "lnd", "tribes", "memes", "boltwall"]);
         relay.host(host.clone());
 
         // cache

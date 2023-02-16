@@ -39,7 +39,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.1.35
+    image: sphinxlightning/sphinx-swarm:0.1.36
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
@@ -59,16 +59,17 @@ services:
       - "traefik.http.routers.elements.entrypoints=websecure"
     restart: on-failure
     environment: 
-      - HOST=$HOST
-      - ONLY_NODE=$ONLY_NODE
-      - BTC_PASS=$BTC_PASS
-      - DOCKER_RUN=true
+      - HOST=$HOST # needed first time
+      - ONLY_NODE=$ONLY_NODE # only start this node
+      - BTC_PASS=$BTC_PASS # for starting after bitcoind sync
+      - DOCKER_RUN=true # client use sphinx-swarm network
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
+      - AWS_S3_REGION_NAME=$AWS_S3_REGION_NAME
       - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
 
 networks:
