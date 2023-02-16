@@ -16,6 +16,7 @@
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
+  import type { Container } from "./api/swarm";
 
   let name = "";
 
@@ -26,7 +27,13 @@
     }
   }
 
+  async function listContainers() {
+    const containers: Container[] = await api.swarm.list_containers();
+    // console.log("List Containers", containers);
+  }
+
   onMount(() => {
+    listContainers();
     getConfig();
   });
 
@@ -69,6 +76,10 @@
 
       {#if $selectedNode && $selectedNode.place === "Internal"}
         <NodeLogs nodeName={$selectedNode.name} />
+
+        <aside class="node-action-wrap">
+          <button class="btn btn-stop">Stop</button>
+        </aside>
       {/if}
     </section>
 
@@ -160,5 +171,24 @@
     font-size: 0.88rem;
     font-weight: 500;
     cursor: pointer;
+  }
+  .node-action-wrap {
+    margin-left: 20px;
+  }
+  .node-action-wrap .btn {
+    padding: 6px 8px;
+    border: 0px;
+    outline: 0px;
+    border-radius: 2px;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .node-action-wrap .btn-stop {
+    background-color: red;
+  }
+  .node-action-wrap .btn-start {
+    background-color: green;
   }
 </style>
