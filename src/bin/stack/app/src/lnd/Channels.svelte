@@ -2,7 +2,7 @@
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import View from "carbon-icons-svelte/lib/List.svelte";
-  import { channels, peers as peersStore, balances } from "../store";
+  import { channels, peers as peersStore, channelBalances } from "../store";
   import Peers from "./Peers.svelte";
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
@@ -129,13 +129,13 @@
     <aside>
       <h6 class="title">TOTAL OUTBOUND LIQUIDITY</h6>
       <h3 class="value">
-        {formatSatsNumbers($balances.outbound)} <span>SAT</span>
+        {formatSatsNumbers($channelBalances.outbound)} <span>SAT</span>
       </h3>
     </aside>
     <aside>
       <h6 class="title">TOTAL INBOUND LIQUIDITY</h6>
       <h3 class="value">
-        {formatSatsNumbers($balances.inbound)} <span>SAT</span>
+        {formatSatsNumbers($channelBalances.inbound)} <span>SAT</span>
       </h3>
     </aside>
   </section>

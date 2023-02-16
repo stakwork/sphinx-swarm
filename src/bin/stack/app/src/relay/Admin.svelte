@@ -3,10 +3,11 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
-  import { stack, users, node_host } from "../store";
+  import { users, node_host } from "../store";
   import QrCode from "svelte-qrcode";
+  import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
 
-  $: adminUnconnected = $users.find((u) => u.is_admin);
+  $: adminUnconnected = $users.find((u) => u.is_admin && !u.alias);
 
   export let tag = "";
 
@@ -60,19 +61,36 @@
       qr_toggle_disabled = false;
     }
   }
+
+  function copyToClipboard(value) {
+    navigator.clipboard.writeText(value);
+  }
+
+  $: qrString = `claim::${$node_host}::${admin_token}`;
 </script>
 
 <div class="tribes-wrap">
   {#if adminUnconnected}
     <section class="admin-qr-wrap">
       <h1 class="admin-qr-label">Connection QR</h1>
-      <Button on:click={toggleQr} size="small" kind="tertiary"
-        >{`${showQr ? "Hide" : "Show QR"}`}</Button
-      >
+      <div class="relay-admin-qr-btns">
+        {#if showQr}
+          <Button
+            kind="tertiary"
+            size="small"
+            icon={CopyIcon}
+            on:click={() => copyToClipboard(qrString)}>Copy</Button
+          >
+        {/if}
+        <div class="btn-spacer" />
+        <Button on:click={toggleQr} size="small" kind="tertiary"
+          >{`${showQr ? "Hide QR" : "Show QR"}`}</Button
+        >
+      </div>
     </section>
     {#if showQr && admin_token}
       <div class="qr-wrap">
-        <QrCode padding={1.5} value={`claim::${$node_host}::${admin_token}`} />
+        <QrCode padding={1.5} value={qrString} />
       </div>
     {/if}
     <div class="divider" />
@@ -202,5 +220,12 @@
     flex-direction: column;
     align-items: center;
     margin-top: 1rem;
+  }
+  .btn-spacer {
+    width: 0.2rem;
+  }
+  .relay-admin-qr-btns {
+    display: flex;
+    align-items: center;
   }
 </style>

@@ -43,7 +43,7 @@ export const btcinfo = writable<BtcInfo>();
 
 export const peers = writable<{ [tag: string]: Peer[] }>({});
 
-export const nodeBalances = writable<{ [tag: string]: number }>({});
+export const lndBalances = writable<{ [tag: string]: number }>({});
 
 export const relayBalances = writable<{ [tag: string]: RelayBalance }>({});
 
@@ -71,6 +71,36 @@ export const balances = derived(
           : 0,
     };
   }
+);
+
+export interface ChannelBalances {
+  inbound: number;
+  outbound: number;
+}
+export function makeChannelBalances(
+  channels: { [tag: string]: Channel[] },
+  selectedNode: Node
+): ChannelBalances {
+  if (!(selectedNode && selectedNode.name)) {
+    return { inbound: 0, outbound: 0 };
+  }
+  const tag = selectedNode.name;
+  if (!channels[tag]) return { inbound: 0, outbound: 0 };
+  return {
+    inbound:
+      channels[tag] && channels[tag].length
+        ? channels[tag].reduce((acc, chan) => acc + chan.remote_balance, 0)
+        : 0,
+    outbound:
+      channels[tag] && channels[tag].length
+        ? channels[tag].reduce((acc, chan) => acc + chan.local_balance, 0)
+        : 0,
+  };
+}
+
+export const channelBalances = derived(
+  [channels, selectedNode],
+  ([$channels, $selectedNode]) => makeChannelBalances($channels, $selectedNode)
 );
 
 export const node_host = derived(

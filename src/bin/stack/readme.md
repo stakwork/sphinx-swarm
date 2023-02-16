@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.36
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.40
 
-docker push sphinxlightning/sphinx-swarm:0.1.36
+docker push sphinxlightning/sphinx-swarm:0.1.40
 
 ### run sphinx swarm in dev
 
@@ -25,18 +25,20 @@ docker run --name=sphinx-swarm \
 
 ### run prod stack
 
-copy the .env.md
+in the root of sphinx-swarm directory, create a .env
+
+copy the AWS creds into it, and HOST=xxx
 
 to only start one node:
 add --env ONLY_NODE=lnd
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up -d
+docker-compose up -d
 
 docker logs sphinx-swarm --follow
 
 docker logs load_balancer --follow
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . down
+docker-compose down
 
 ### remove one volume to reset data
 
@@ -50,13 +52,13 @@ update the version
 
 docker pull image:version
 
-docker stop jarvis.sphinx && docker rm jarvis.sphinx
+docker stop proxy.sphinx && docker rm proxy.sphinx
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . stop sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up --detach sphinx-swarm && docker logs sphinx-swarm --follow
+docker-compose stop sphinx-swarm && docker-compose up --detach sphinx-swarm && docker logs sphinx-swarm --follow
 
 ### update sphinx-swarm itself
 
-docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up sphinx-swarm -d && docker logs sphinx-swarm --follow
+docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose up sphinx-swarm -d && docker logs sphinx-swarm --follow
 
 ### ps
 
@@ -98,19 +100,20 @@ create an A record like `*.swarmx.sphinx.chat` to the IP of the instance
 
 ### setup first time (only bitcoin):
 
-export ONLY_NODE=bitcoind
-export HOST=swarm5.sphinx.chat
+in the root of sphinx-swarm directory, create a .env
 
-copy the envs from .env.md
+copy the AWS creds into it, and HOST=xxx
+
+export ONLY_NODE=bitcoind
 
 docker network create sphinx-swarm
 
-docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up -d
+docker-compose up -d
 
 ### once bitcoind is synced
 
-export HOST=swarm5.sphinx.chat
+in the root of sphinx-swarm directory, create a .env
 
-copy the envs from .env.md
+copy the AWS creds into it, and HOST=xxx
 
-docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose -f ./src/bin/stack/stack-prod.yml --project-directory . up sphinx-swarm -d && docker logs sphinx-swarm --follow
+docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose up sphinx-swarm -d && docker logs sphinx-swarm --follow

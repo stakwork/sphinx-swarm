@@ -331,3 +331,8 @@ html {
 .node-action-wrap .btn-start.bx--btn--primary {
 	background-color: green !important;
 }
+
+.relay-admin-qr-btns button {
+	width:108px;
+	padding-right: 0px;
+}

@@ -9,7 +9,7 @@
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { create_channel, get_balance } from "../api/lnd";
   import { onMount } from "svelte";
-  import { nodeBalances, peers as peersStore } from "../store";
+  import { lndBalances, peers as peersStore } from "../store";
   import { formatSatsNumbers } from "../helpers";
 
   export let activeKey: string = null;
@@ -20,7 +20,7 @@
 
   export let tag = "";
 
-  $: balance = $nodeBalances.hasOwnProperty(tag) ? $nodeBalances[tag] : 0;
+  $: balance = $lndBalances.hasOwnProperty(tag) ? $lndBalances[tag] : 0;
 
   $: addDisabled = !pubkey || !amount || amount > balance;
 
@@ -53,10 +53,9 @@
 
   async function getBalance() {
     const balance = await get_balance(tag);
-    if (nodeBalances.hasOwnProperty(tag) && nodeBalances[tag] === balance)
-      return;
+    if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
-    nodeBalances.update((n) => {
+    lndBalances.update((n) => {
       return { ...n, [tag]: balance };
     });
   }

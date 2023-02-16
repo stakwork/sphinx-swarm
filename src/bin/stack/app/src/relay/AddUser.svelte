@@ -3,7 +3,12 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import * as api from "../api";
-  import { relayBalances } from "../store";
+  import {
+    relayBalances,
+    makeChannelBalances,
+    stack,
+    channels,
+  } from "../store";
   import { formatSatsNumbers } from "../helpers";
   import { onMount } from "svelte";
 
@@ -12,8 +17,9 @@
 
   $: initialSats = 0;
 
+  // $: console.log("relayBalances", $relayBalances);
   $: balance = $relayBalances.hasOwnProperty(tag)
-    ? $relayBalances[tag]["full_balance"]
+    ? $relayBalances[tag].balance
     : 0;
 
   $: addDisabled = initialSats > balance;
