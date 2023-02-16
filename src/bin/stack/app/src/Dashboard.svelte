@@ -11,7 +11,7 @@
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
-  import { stack, logoutUser } from "./store";
+  import { stack, logoutUser, containers } from "./store";
   import { onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
@@ -29,8 +29,8 @@
   }
 
   async function listContainers() {
-    const containers: Container[] = await api.swarm.list_containers();
-    // console.log("List Containers", containers);
+    const res: Container[] = await api.swarm.list_containers();
+    containers.set(res);
   }
 
   onMount(() => {

@@ -9,6 +9,7 @@ export interface Container {
   ImageID: string;
   State: string;
   Status: string;
+  Names: string[],
   [key: string]: any;
 }
 

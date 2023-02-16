@@ -10,6 +10,7 @@ import { userKey, type TokenData } from "./api/cmd";
 import { decode } from "js-base64";
 import * as api from "./api";
 import type { RelayBalance } from "./api/relay";
+import type { Container } from "./api/swarm";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -44,11 +45,13 @@ export const peers = writable<{ [tag: string]: Peer[] }>({});
 
 export const nodeBalances = writable<{ [tag: string]: number }>({});
 
-export const relayBalances = writable<{ [tag: string]:  RelayBalance }>({});
+export const relayBalances = writable<{ [tag: string]: RelayBalance }>({});
 
 export const activeInvoice = writable<{ [tag: string]: string }>({});
 
 export const activeUser = writable<string>();
+
+export const containers = writable<Container[]>([]);
 
 export const balances = derived(
   [channels, selectedNode],
@@ -79,6 +82,15 @@ export const node_host = derived(
   }
 );
 
+export const node_state = derived(
+  [selectedNode, containers],
+  ([$selectedNode, $containers]) => {
+    return $containers.find((n) =>
+      n.Names.includes(`/${$selectedNode.name}.sphinx`)
+    ).State;
+  }
+);
+
 export const saveUserToStore = async (user: string = "") => {
   if (user) {
     localStorage.setItem(userKey, user);
@@ -94,11 +106,11 @@ export const saveUserToStore = async (user: string = "") => {
 
     if (decodedData.exp * 1000 > Date.now()) {
       const refresh = await api.swarm.refresh_token(storageUser);
-     
+
       // save the new token to localstorage
       localStorage.setItem(userKey, refresh.token);
       return activeUser.set(refresh.token);
-    } 
+    }
   }
 };
 
