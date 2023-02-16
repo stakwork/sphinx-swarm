@@ -7,6 +7,9 @@ use sphinx_swarm::auth;
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{put_config_file, Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
+use sphinx_swarm::dock::list_containers;
+use sphinx_swarm::dock::start_container;
+use sphinx_swarm::dock::stop_container;
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
@@ -90,9 +93,18 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     None => Some("".to_string()),
                 }
             }
-            SwarmCmd::ListContainer => todo!(),
-            SwarmCmd::StartContainer(_) => todo!(),
-            SwarmCmd::StopContainer(_) => todo!(),
+            SwarmCmd::ListContainers => {
+                let containers = list_containers(docker).await?;
+                Some(serde_json::to_string(&containers)?)
+            },
+            SwarmCmd::StartContainer(id) => {
+                let res = start_container(docker, &id).await?;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::StopContainer(id) => {
+                let res = stop_container(docker, &id).await?;
+                Some(serde_json::to_string(&res)?)
+            },
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

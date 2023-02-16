@@ -39,7 +39,7 @@ pub enum SwarmCmd {
     ListVersions(ImageRequest),
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
-    ListContainer,
+    ListContainers,
     StartContainer(String),
     StopContainer(String)
 }
