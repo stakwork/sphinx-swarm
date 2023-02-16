@@ -39,6 +39,9 @@ pub enum SwarmCmd {
     ListVersions(ImageRequest),
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
+    ListContainer,
+    StartContainer(String),
+    StopContainer(String)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

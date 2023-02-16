@@ -90,6 +90,9 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     None => Some("".to_string()),
                 }
             }
+            SwarmCmd::ListContainer => todo!(),
+            SwarmCmd::StartContainer(_) => todo!(),
+            SwarmCmd::StopContainer(_) => todo!(),
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;
