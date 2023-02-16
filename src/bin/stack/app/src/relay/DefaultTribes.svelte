@@ -3,10 +3,10 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
-  import { stack, users, node_host } from "../store";
+  import { users, node_host } from "../store";
   import QrCode from "svelte-qrcode";
 
-  $: adminUnconnected = $users.find((u) => u.is_admin);
+  $: adminUnconnected = $users.find((u) => u.is_admin && !u.alias);
 
   export let tag = "";
 
