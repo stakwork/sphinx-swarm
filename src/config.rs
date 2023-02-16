@@ -123,6 +123,7 @@ impl Default for User {
 // NETWORK = "bitcoin", "regtest"
 // HOST = hostname for this server (swarmx.sphinx.chat)
 // BTC_PASS = already created BTC password
+// ONLY_NODE = start up just one node
 impl Default for Stack {
     fn default() -> Self {
         // network

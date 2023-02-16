@@ -1,10 +1,21 @@
-use crate::{dock, images::lnd::LndImage, utils::sleep_ms, secrets};
-use anyhow::{Result, anyhow};
+use crate::{dock, images::lnd::LndImage, secrets, utils::sleep_ms};
+use anyhow::{anyhow, Result};
 use bollard::Docker;
 
 use super::unlocker::LndUnlocker;
 
-// PEM encoded
+pub fn strip_pem_prefix_suffix(s: &str) -> String {
+    let mut ret = s.to_string();
+    if let Some(no_prefix) = ret.strip_prefix("-----BEGIN CERTIFICATE-----") {
+        ret = no_prefix.to_string();
+    }
+    if let Some(no_suffix) = ret.strip_suffix("-----END CERTIFICATE-----") {
+        ret = no_suffix.to_string();
+    }
+    ret
+}
+
+// PEM encoded (with -----BEGIN CERTIFICATE----- and -----END CERTIFICATE-----)
 pub async fn dl_cert(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
     let cert_bytes = dock::try_dl(docker, lnd_name, path).await?;
     Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
