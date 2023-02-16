@@ -9,6 +9,7 @@
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
+  import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { stack, logoutUser } from "./store";
   import { onMount } from "svelte";
@@ -77,9 +78,7 @@
       {#if $selectedNode && $selectedNode.place === "Internal"}
         <NodeLogs nodeName={$selectedNode.name} />
 
-        <aside class="node-action-wrap">
-          <button class="btn btn-stop">Stop</button>
-        </aside>
+        <NodeAction />
       {/if}
     </section>
 
@@ -171,24 +170,5 @@
     font-size: 0.88rem;
     font-weight: 500;
     cursor: pointer;
-  }
-  .node-action-wrap {
-    margin-left: 20px;
-  }
-  .node-action-wrap .btn {
-    padding: 6px 8px;
-    border: 0px;
-    outline: 0px;
-    border-radius: 2px;
-    color: #fff;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .node-action-wrap .btn-stop {
-    background-color: red;
-  }
-  .node-action-wrap .btn-start {
-    background-color: green;
   }
 </style>
