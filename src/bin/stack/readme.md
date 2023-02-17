@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.40
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.41
 
-docker push sphinxlightning/sphinx-swarm:0.1.40
+docker push sphinxlightning/sphinx-swarm:0.1.41
 
 ### run sphinx swarm in dev
 
@@ -52,7 +52,7 @@ update the version
 
 docker pull image:version
 
-docker stop proxy.sphinx && docker rm proxy.sphinx
+docker stop boltwall.sphinx && docker rm boltwall.sphinx
 
 docker-compose stop sphinx-swarm && docker-compose up --detach sphinx-swarm && docker logs sphinx-swarm --follow
 

@@ -86,7 +86,7 @@ pub fn boltwall(
     };
     if let Some(host) = node.host.clone() {
         // production tls extra domain
-        c.labels = Some(traefik_labels(&node.name, &host, &node.port));
+        c.labels = Some(traefik_labels(&node.name, &host, &node.port, false));
     }
     c
 }
