@@ -12,3 +12,4 @@ notes-new.md
 notes-*.md
 .env.*
 .labels.*
+reset.sh
