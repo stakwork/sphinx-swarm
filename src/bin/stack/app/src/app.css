@@ -324,13 +324,13 @@ html {
 	border: 3px solid #3944BC !important;
 }
 
-.node-action-wrap .btn-stop.bx--btn--primary {
+/* .node-action-wrap .btn-stop.bx--btn--primary {
 	background-color: red !important;
 }
 
 .node-action-wrap .btn-start.bx--btn--primary {
 	background-color: green !important;
-}
+} */
 
 .relay-admin-qr-btns button {
 	width:108px;

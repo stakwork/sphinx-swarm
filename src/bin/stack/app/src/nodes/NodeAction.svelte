@@ -36,29 +36,31 @@
 <aside class="node-action-wrap">
   {#if $node_state === "running"}
     <Button
+      kind="secondary"
       disabled={btnDis}
       class="btn-stop"
       on:click={() => stopContainer(`${$selectedNode.name}.sphinx`)}
       iconDescription={`Stop ${$selectedNode.name}`}
       icon={Stop}
-      size="small"
+      size="field"
     />
   {:else if $node_state === "restarting"}
     <InlineLoading description={`Restarting ${$selectedNode.name}...`} />
   {:else}
     <Button
+      kind="primary"
       disabled={btnDis}
       class="btn-start"
       on:click={() => startContainer(`${$selectedNode.name}.sphinx`)}
       iconDescription={`Start ${$selectedNode.name}`}
       icon={Play}
-      size="small"
+      size="field"
     />
   {/if}
 </aside>
 
 <style>
   .node-action-wrap {
-    margin-left: 20px;
+    margin-left: 1rem;
   }
 </style>
