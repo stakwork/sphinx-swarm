@@ -9,13 +9,15 @@
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
+  import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
-  import { stack, logoutUser } from "./store";
+  import { stack, logoutUser, containers } from "./store";
   import { onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
+  import type { Container } from "./api/swarm";
 
   let name = "";
 
@@ -26,7 +28,13 @@
     }
   }
 
+  async function listContainers() {
+    const res: Container[] = await api.swarm.list_containers();
+    containers.set(res);
+  }
+
   onMount(() => {
+    listContainers();
     getConfig();
   });
 
@@ -69,6 +77,8 @@
 
       {#if $selectedNode && $selectedNode.place === "Internal"}
         <NodeLogs nodeName={$selectedNode.name} />
+
+        <NodeAction />
       {/if}
     </section>
 

@@ -10,6 +10,7 @@ import { userKey, type TokenData } from "./api/cmd";
 import { decode } from "js-base64";
 import * as api from "./api";
 import type { RelayBalance } from "./api/relay";
+import type { Container } from "./api/swarm";
 
 export const emptyStack: Stack = { network: "regtest", nodes: [] };
 
@@ -50,6 +51,28 @@ export const activeInvoice = writable<{ [tag: string]: string }>({});
 
 export const activeUser = writable<string>();
 
+export const containers = writable<Container[]>([]);
+
+export const balances = derived(
+  [channels, selectedNode],
+  ([$channels, $selectedNode]) => {
+    if (!($selectedNode && $selectedNode.name)) {
+      return { inbound: 0, outbound: 0 };
+    }
+    const tag = $selectedNode.name;
+    return {
+      inbound:
+        $channels[tag] && $channels[tag].length
+          ? $channels[tag].reduce((acc, chan) => acc + chan.remote_balance, 0)
+          : 0,
+      outbound:
+        $channels[tag] && $channels[tag].length
+          ? $channels[tag].reduce((acc, chan) => acc + chan.local_balance, 0)
+          : 0,
+    };
+  }
+);
+
 export interface ChannelBalances {
   inbound: number;
   outbound: number;
@@ -86,6 +109,15 @@ export const node_host = derived(
     return $selectedNode && $stack.host
       ? `${$selectedNode.name}.${$stack.host}`
       : "localhost";
+  }
+);
+
+export const node_state = derived(
+  [selectedNode, containers],
+  ([$selectedNode, $containers]) => {
+    return $containers.find((n) =>
+      n.Names.includes(`/${$selectedNode.name}.sphinx`)
+    ).State;
   }
 );
 
