@@ -297,6 +297,14 @@ html {
 	border: 3px solid #BA55D3 !important;
 }
 
+.selected-relay.relay-stopped .node-relay {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-relay.relay-stopped .node-relay .node-html .node-text {
+	color:  #6A6C6D;
+}
+
 .selected-lnd .node-lnd {
 	border: 3px solid #AA6C11 !important;
 }
