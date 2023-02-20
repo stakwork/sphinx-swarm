@@ -12,7 +12,7 @@
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { stack, logoutUser, containers } from "./store";
-  import { onMount } from "svelte";
+  import { afterUpdate, onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
@@ -51,14 +51,17 @@
   let body;
 
   $: {
-    if (body && $selectedNode) {
-      // Remove the previous name saved in state
-      body.classList.remove(`selected-${name}`);
+    if (body) {
+      if ($selectedNode) {
+        // Remove the previous name saved in state
+        body.classList.remove(`selected-${name}`);
 
-      body.classList.add(`selected-${$selectedNode.name}`);
+        body.classList.add(`selected-${$selectedNode.name}`);
 
-      // save name to state
-      name = $selectedNode.name;
+        // save name to state
+        name = $selectedNode.name;
+      }
+      addExitedNodes();
     }
   }
 
@@ -70,6 +73,17 @@
     if (body.classList.contains(`${event.detail.text}-stopped`)) {
       body.classList.remove(`${event.detail.text}-stopped`);
     }
+  }
+
+  function addExitedNodes() {
+    $containers.forEach((con) => {
+      if (con.State === "exited") {
+        let nameArray = con.Names[0].split("/");
+        let name = nameArray[1].replace(".sphinx", "");
+
+        body.classList.add(`${name}-stopped`);
+      }
+    });
   }
 </script>
 
@@ -88,7 +102,10 @@
       {#if $selectedNode && $selectedNode.place === "Internal"}
         <NodeLogs nodeName={$selectedNode.name} />
 
-        <NodeAction on:stop_message={addStopClass} on:start_message={removeStopClass} />
+        <NodeAction
+          on:stop_message={addStopClass}
+          on:start_message={removeStopClass}
+        />
       {/if}
     </section>
 
