@@ -7,9 +7,13 @@ use sphinx_swarm::auth;
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{put_config_file, Node, Stack, STATE};
 use sphinx_swarm::dock::container_logs;
+use sphinx_swarm::dock::create_and_start;
 use sphinx_swarm::dock::list_containers;
 use sphinx_swarm::dock::start_container;
 use sphinx_swarm::dock::stop_container;
+use sphinx_swarm::images;
+use sphinx_swarm::images::neo4j::Neo4jImage;
+use sphinx_swarm::images::proxy::ProxyImage;
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
@@ -96,7 +100,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::ListContainers => {
                 let containers = list_containers(docker).await?;
                 Some(serde_json::to_string(&containers)?)
-            },
+            }
             SwarmCmd::StartContainer(id) => {
                 let res = start_container(docker, &id).await?;
                 Some(serde_json::to_string(&res)?)
@@ -104,7 +108,24 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::StopContainer(id) => {
                 let res = stop_container(docker, &id).await?;
                 Some(serde_json::to_string(&res)?)
-            },
+            }
+            SwarmCmd::UpdateNode(node) => {
+                // let mut network = "regtest".to_string();
+                // if let Ok(env_net) = std::env::var("NETWORK") {
+                //     if env_net == "bitcoin" || env_net == "regtest" {
+                //         network = env_net;
+                //     }
+                // }
+                stop_container(docker, &node.id.clone()).await?;
+
+                let neo4j = Neo4jImage::new("neo4j", &node.version);
+
+                let new_node = images::neo4j::neo4j(&neo4j);
+
+                let res = create_and_start(docker, new_node, false).await?;
+
+                Some(serde_json::to_string(&res)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

@@ -31,6 +31,12 @@ pub struct ChangePasswordInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateNode {
+    pub id: String,
+    pub version: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -41,7 +47,8 @@ pub enum SwarmCmd {
     ChangePassword(ChangePasswordInfo),
     ListContainers,
     StartContainer(String),
-    StopContainer(String)
+    StopContainer(String),
+    UpdateNode(UpdateNode)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

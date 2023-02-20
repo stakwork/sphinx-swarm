@@ -26,7 +26,7 @@
 
   $: versionItems = [];
 
-  let selected = "";
+  $: selected = "";
 
   function openModal() {
     open = true;
@@ -76,7 +76,7 @@
   }
 
   async function upgradeVersion() {
-    console.log("UPDATE IMAGE");
+    console.log(await api.swarm.update_node("neo4j.sphinx", "4.4.9"));
   }
 
   onDestroy(() => {
@@ -108,9 +108,7 @@
     <div class="title">{name}</div>
     {#if version}
       <div class="version">({version})</div>
-      <Button on:click={openModal} size="field" icon={Upgrade}
-        >Update</Button
-      >
+      <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
     {/if}
   </section>
 
@@ -131,7 +129,7 @@
         </div>
       {:else}
         <div class="list" on:scroll={scrolled}>
-          <StructuredList selection {selected}>
+          <StructuredList selection flush {selected}>
             <StructuredListHead>
               <StructuredListRow head>
                 <StructuredListCell head>Version</StructuredListCell>

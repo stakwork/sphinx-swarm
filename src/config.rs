@@ -185,7 +185,7 @@ impl Default for Stack {
         cache.links(vec!["tribes", "lnd"]);
 
         // neo4j
-        v = "4.4.9";
+        v = "latest";
         let neo4j = Neo4jImage::new("neo4j", v);
 
         // jarvis
