@@ -302,7 +302,7 @@ html {
 }
 
 .selected-relay.relay-stopped .node-relay .node-html .node-text {
-	color:  #6A6C6D;
+	color: #6A6C6D;
 }
 
 .selected-lnd .node-lnd {
@@ -314,7 +314,7 @@ html {
 }
 
 .selected-lnd.lnd-stopped .node-lnd .node-html .node-text {
-	color:  #6A6C6D;
+	color: #6A6C6D;
 }
 
 .selected-bitcoind .node-bitcoind {
@@ -326,7 +326,7 @@ html {
 }
 
 .selected-bitcoind.bitcoind-stopped .node-bitcoind .node-html .node-text {
-	color:  #6A6C6D;
+	color: #6A6C6D;
 }
 
 .selected-proxy .node-proxy {
@@ -338,7 +338,7 @@ html {
 }
 
 .selected-proxy.proxy-stopped .node-proxy .node-html .node-text {
-	color:  #6A6C6D;
+	color: #6A6C6D;
 }
 
 .selected-neo4j .node-neo4j,
@@ -346,6 +346,30 @@ html {
 .selected-boltwall .node-boltwall,
 .selected-memes .node-memes {
 	border: 3px solid #FFF !important;
+}
+
+.selected-neo4j.neo4j-stopped .node-neo4j {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-neo4j.neo4j-stopped .node-neo4j .node-html .node-text {
+	color: #6A6C6D;
+}
+
+.selected-navfiber.navfiber-stopped .node-navfiber {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-navfiber.navfiber-stopped .node-navfiber.node-html .node-text {
+	color: #6A6C6D;
+}
+
+.selected-boltwall.boltwall-stopped .node-boltwall.node-html .node-text {
+	color: #6A6C6D;
+}
+
+.selected-boltwall.boltwall-stopped .node-boltwall {
+	border: 3px solid #6A6C6D !important;
 }
 
 .selected-jarvis .node-jarvis {
@@ -357,7 +381,7 @@ html {
 }
 
 .selected-jarvis.jarvis-stopped .node-jarvis .node-html .node-text {
-	color:  #6A6C6D;
+	color: #6A6C6D;
 }
 
 .selected-tribes .node-tribes {
@@ -373,6 +397,6 @@ html {
 } */
 
 .relay-admin-qr-btns button {
-	width:108px;
+	width: 108px;
 	padding-right: 0px;
 }
