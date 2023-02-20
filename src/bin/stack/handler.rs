@@ -10,10 +10,10 @@ use sphinx_swarm::dock::container_logs;
 use sphinx_swarm::dock::create_and_start;
 use sphinx_swarm::dock::list_containers;
 use sphinx_swarm::dock::start_container;
+use sphinx_swarm::dock::stop_and_remove;
 use sphinx_swarm::dock::stop_container;
 use sphinx_swarm::images;
 use sphinx_swarm::images::neo4j::Neo4jImage;
-use sphinx_swarm::images::proxy::ProxyImage;
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
@@ -110,21 +110,49 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateNode(node) => {
-                // let mut network = "regtest".to_string();
-                // if let Ok(env_net) = std::env::var("NETWORK") {
-                //     if env_net == "bitcoin" || env_net == "regtest" {
-                //         network = env_net;
-                //     }
-                // }
-                stop_container(docker, &node.id.clone()).await?;
+                let mut network = "regtest".to_string();
 
-                let neo4j = Neo4jImage::new("neo4j", &node.version);
+                if let Ok(env_net) = std::env::var("NETWORK") {
+                    if env_net == "bitcoin" || env_net == "regtest" {
+                        network = env_net;
+                    }
+                }
 
-                let new_node = images::neo4j::neo4j(&neo4j);
+                // Check if the npde is a running node
+                let action_node = state
+                    .stack
+                    .nodes
+                    .iter()
+                    .find(|n| n.name() == node.id.clone())
+                    .context("Node not found")?
+                    .as_internal()?;
 
-                let res = create_and_start(docker, new_node, false).await?;
+                match action_node.typ().as_str() {
+                    "Btc" => {}
+                    "Lnd" => {}
+                    "Relay" => {}
+                    "Proxy" => {}
+                    "Cache" => {}
+                    "Neo4j" => {
+                        stop_and_remove(docker, &node.id.clone()).await?;
 
-                Some(serde_json::to_string(&res)?)
+                        let neo4j = Neo4jImage::new("neo4j", &node.version);
+
+                        let new_node = images::neo4j::neo4j(&neo4j);
+
+                        create_and_start(docker, new_node, false).await?;
+                    }
+                    "NavFiber" => {}
+                    "JarvisBackend" => {}
+                    "Boltwall" => {}
+                    _ => println!("Not a swarm node"),
+                }
+
+                must_save_stack = true;
+
+                let msg = format!("Updated {} node successfully", action_node.name());
+                
+                Some(serde_json::to_string(&msg)?)
             }
         },
         Cmd::Relay(c) => {
