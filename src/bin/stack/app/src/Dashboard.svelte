@@ -61,6 +61,16 @@
       name = $selectedNode.name;
     }
   }
+
+  function addStopClass(event) {
+    body.classList.add(`${event.detail.text}-stopped`);
+  }
+
+  function removeStopClass(event) {
+    if (body.classList.contains(`${event.detail.text}-stopped`)) {
+      body.classList.remove(`${event.detail.text}-stopped`);
+    }
+  }
 </script>
 
 <main>
@@ -78,7 +88,7 @@
       {#if $selectedNode && $selectedNode.place === "Internal"}
         <NodeLogs nodeName={$selectedNode.name} />
 
-        <NodeAction />
+        <NodeAction on:stop_message={addStopClass} on:start_message={removeStopClass} />
       {/if}
     </section>
 

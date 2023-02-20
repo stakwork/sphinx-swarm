@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button, InlineLoading } from "carbon-components-svelte";
+  import { createEventDispatcher } from "svelte";
   import Play from "carbon-icons-svelte/lib/Play.svelte";
   import Stop from "carbon-icons-svelte/lib/Power.svelte";
   import * as api from "../api";
@@ -7,6 +8,20 @@
   import type { Container } from "../api/swarm";
 
   let btnDis = false;
+
+  const dispatch = createEventDispatcher();
+
+  function sendStopEvent() {
+    dispatch("stop_message", {
+      text: $selectedNode.name,
+    });
+  }
+
+  function sendStartEvent() {
+    dispatch("start_message", {
+      text: $selectedNode.name,
+    });
+  }
 
   async function listContainers() {
     const res: Container[] = await api.swarm.list_containers();
@@ -20,6 +35,9 @@
 
     // Get new container state
     listContainers();
+
+    // Send node started event to dashboard
+    sendStartEvent();
     btnDis = false;
   }
 
@@ -29,6 +47,9 @@
 
     // Get new container state
     listContainers();
+
+    // Send node stopped event to dashboard
+    sendStopEvent();
     btnDis = false;
   }
 </script>
