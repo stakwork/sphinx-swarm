@@ -105,7 +105,7 @@
     <div class="title">{name}</div>
     {#if version}
       <div class="version">({version})</div>
-      <Button disabled={true} on:click={openModal} size="field" icon={Upgrade}
+      <Button on:click={openModal} size="field" icon={Upgrade}
         >Update</Button
       >
     {/if}
