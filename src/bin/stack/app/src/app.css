@@ -309,12 +309,36 @@ html {
 	border: 3px solid #AA6C11 !important;
 }
 
+.selected-lnd.lnd-stopped .node-lnd {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-lnd.lnd-stopped .node-lnd .node-html .node-text {
+	color:  #6A6C6D;
+}
+
 .selected-bitcoind .node-bitcoind {
 	border: 3px solid #F2BC52 !important;
 }
 
+.selected-bitcoind.bitcoind-stopped .node-bitcoind {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-bitcoind.bitcoind-stopped .node-bitcoind .node-html .node-text {
+	color:  #6A6C6D;
+}
+
 .selected-proxy .node-proxy {
 	border: 3px solid #52B550 !important;
+}
+
+.selected-proxy.proxy-stopped .node-proxy {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-proxy.proxy-stopped .node-proxy .node-html .node-text {
+	color:  #6A6C6D;
 }
 
 .selected-neo4j .node-neo4j,
@@ -326,6 +350,14 @@ html {
 
 .selected-jarvis .node-jarvis {
 	border: 3px solid #CCCCCC !important;
+}
+
+.selected-jarvis.jarvis-stopped .node-jarvis {
+	border: 3px solid #6A6C6D !important;
+}
+
+.selected-jarvis.jarvis-stopped .node-jarvis .node-html .node-text {
+	color:  #6A6C6D;
 }
 
 .selected-tribes .node-tribes {
