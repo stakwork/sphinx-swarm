@@ -53,6 +53,8 @@ export const activeUser = writable<string>();
 
 export const containers = writable<Container[]>([]);
 
+export const exitedNodes = writable<string[]>([]);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
@@ -120,6 +122,21 @@ export const node_state = derived(
     ).State;
   }
 );
+
+export const nodes_exited = derived([containers], ([$containers]) => {
+  let exitedArray = [];
+
+  for (let con of $containers) {
+    if (con.State === "exited") {
+      let nameArray = con.Names[0].split("/");
+      let name = nameArray[1].replace(".sphinx", "");
+
+      exitedArray = [...exitedArray, name];
+    }
+  }
+
+  return exitedArray;
+});
 
 export const saveUserToStore = async (user: string = "") => {
   if (user) {

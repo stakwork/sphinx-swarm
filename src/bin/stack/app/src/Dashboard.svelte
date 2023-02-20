@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode } from "./store";
+  import { selectedNode, exitedNodes, nodes_exited } from "./store";
   import {
     Loading,
     OverflowMenu,
@@ -61,7 +61,13 @@
         // save name to state
         name = $selectedNode.name;
       }
-      addExitedNodes();
+
+      if ($nodes_exited) {
+        $nodes_exited.forEach((node) => {
+          body.classList.add(`selected-${node}`);
+          body.classList.add(`${node}-stopped`);
+        });
+      }
     }
   }
 
@@ -73,17 +79,6 @@
     if (body.classList.contains(`${event.detail.text}-stopped`)) {
       body.classList.remove(`${event.detail.text}-stopped`);
     }
-  }
-
-  function addExitedNodes() {
-    $containers.forEach((con) => {
-      if (con.State === "exited") {
-        let nameArray = con.Names[0].split("/");
-        let name = nameArray[1].replace(".sphinx", "");
-
-        body.classList.add(`${name}-stopped`);
-      }
-    });
   }
 </script>
 
@@ -122,7 +117,9 @@
       <ChangePassword back={backToMain} />
     {:else if page === "main"}
       {#if $stack.nodes.length}
-        <Flow />
+        {#key body}
+          <Flow />
+        {/key}
       {:else}
         <div class="loader">
           <Loading />
