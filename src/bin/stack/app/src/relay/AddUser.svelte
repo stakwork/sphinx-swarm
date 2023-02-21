@@ -43,6 +43,7 @@
 
   async function getBalance() {
     const balance = await api.relay.get_balance(tag);
+    if (!balance) return;
     if (relayBalances.hasOwnProperty(tag) && relayBalances[tag] === balance)
       return;
 

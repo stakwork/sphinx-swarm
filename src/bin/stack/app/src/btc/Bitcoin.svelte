@@ -14,7 +14,8 @@
       loading = false;
       return;
     }
-    btcinfo.set(await api.btc.get_info(tag));
+    const info = await api.btc.get_info(tag);
+    if (info) btcinfo.set(info);
     loading = false;
   }
 

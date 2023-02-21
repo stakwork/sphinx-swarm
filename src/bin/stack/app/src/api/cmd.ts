@@ -59,7 +59,11 @@ export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
       },
     });
     ret = await r.text();
-    return JSON.parse(ret);
+    const jj = JSON.parse(ret);
+    if (jj["stack_error"]) {
+      return console.warn("=> cmd error:", jj["stack_error"]);
+    }
+    return jj;
   } catch (e) {
     console.warn("=> cmd error:", ret);
   }

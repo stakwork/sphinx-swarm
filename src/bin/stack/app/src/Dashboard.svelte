@@ -30,7 +30,7 @@
 
   async function listContainers() {
     const res: Container[] = await api.swarm.list_containers();
-    containers.set(res);
+    if (res) containers.set(res);
   }
 
   onMount(() => {

@@ -12,7 +12,7 @@
   async function getNodeLogs() {
     open = true;
     const theLogs = await api.swarm.get_logs(`${nodeName}.sphinx`);
-    logs = theLogs.reverse();
+    if (theLogs) logs = theLogs.reverse();
   }
 
   onDestroy(() => {
@@ -25,10 +25,10 @@
     >Get Logs</Button
   >
 
-  <div class="modal" style={`display: ${open ? 'block': 'none'}`}>
+  <div class="modal" style={`display: ${open ? "block" : "none"}`}>
     <section class="modal-head">
       <button on:click={() => (open = !open)}>
-        <ArrowLeft size={32}/>
+        <ArrowLeft size={32} />
       </button>
       <h4 class="modal-title">{nodeName.toLocaleUpperCase()} Logs</h4>
     </section>
@@ -68,7 +68,7 @@
     background: 0;
     border: 0;
     cursor: pointer;
-    color: #FFF;
+    color: #fff;
     font-weight: 900;
   }
   .modal-head .modal-title {

@@ -17,7 +17,7 @@
   $: tag = $selectedNode && $selectedNode.name;
 
   function closeSidebar() {
-    ctrls = false;
+    selectedNode.set(null);
   }
 </script>
 
@@ -48,7 +48,7 @@
     {:else if type === "Proxy"}
       <Proxy {tag} />
     {:else if type === "NavFiber"}
-      <NavFiber {tag} host={$selectedNode.host} />
+      <NavFiber host={$selectedNode.host} />
     {:else}
       <Controls {ctrls} {tag} />
     {/if}

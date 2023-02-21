@@ -8,7 +8,8 @@
 
   async function getBalances() {
     if ($proxy.total && $proxy.user_count) return;
-    proxy.set(await get_proxy_balances(tag));
+    const b = await get_proxy_balances(tag);
+    if (b) proxy.set(b);
   }
 
   onMount(() => {

@@ -31,7 +31,7 @@
 
   async function refreshTribes() {
     const chats = await api.relay.get_chats(tag);
-    if (chats.length) {
+    if (chats?.length) {
       myChats = chats;
     }
     return chats;
@@ -57,7 +57,7 @@
     if (showQr && !admin_token) {
       qr_toggle_disabled = true;
       const t = await api.relay.get_auth_token(tag);
-      if (t.token) admin_token = t.token;
+      if (t?.token) admin_token = t.token;
       qr_toggle_disabled = false;
     }
   }

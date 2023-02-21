@@ -43,18 +43,22 @@ export async function get_tribes(
   page: number = 1,
   limit: number = 75
 ): Promise<TribeData[]> {
-  let r;
+  try {
+    let r;
 
-  if (search) {
-    r = await fetch(`${formatUrl(url)}/tribes?search=${search}`);
-  } else if (uuid) {
-    r = await fetch(`${formatUrl(url)}/tribes/${uuid}`);
-  } else {
-    r = await fetch(`${formatUrl(url)}/tribes?page=${page}&limit=${limit}`);
+    if (search) {
+      r = await fetch(`${formatUrl(url)}/tribes?search=${search}`);
+    } else if (uuid) {
+      r = await fetch(`${formatUrl(url)}/tribes/${uuid}`);
+    } else {
+      r = await fetch(`${formatUrl(url)}/tribes?page=${page}&limit=${limit}`);
+    }
+
+    const result = await r.json();
+    return result;
+  } catch (e) {
+    console.warn("couldn't fetch tribes");
   }
-
-  const result = await r.json();
-  return result;
 }
 
 export async function get_people(url: string): Promise<Person[]> {
