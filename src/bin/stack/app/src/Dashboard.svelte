@@ -91,7 +91,7 @@
 
     <section class="header-btn-wrap">
       {#if $selectedNode}
-        <NodeUpdate name={$selectedNode.name} version={$selectedNode.version} />
+        <NodeUpdate />
       {/if}
 
       {#if $selectedNode && $selectedNode.place === "Internal"}
