@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode } from "../store";
+  import { selectedNode, node_state } from "../store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
@@ -17,7 +17,7 @@
   $: tag = $selectedNode && $selectedNode.name;
 
   function closeSidebar() {
-    ctrls = false;
+    selectedNode.set(null);
   }
 </script>
 
@@ -37,20 +37,25 @@
       />
       {$selectedNode.name}
     </header>
-    {#if type === "Relay"}
-      <RelayControls {tag} />
-    {:else if type === "Tribes"}
-      <TribeControls url={$selectedNode.url} />
-    {:else if type === "Lnd"}
-      <Lnd {tag} />
-    {:else if type === "Btc"}
-      <Bitcoin {tag} />
-    {:else if type === "Proxy"}
-      <Proxy {tag} />
-    {:else if type === "NavFiber"}
-      <NavFiber {tag} host={$selectedNode.host} />
-    {:else}
-      <Controls {ctrls} {tag} />
+    <div class="ctrls">
+      {#if type === "Relay"}
+        <RelayControls {tag} />
+      {:else if type === "Tribes"}
+        <TribeControls url={$selectedNode.url} />
+      {:else if type === "Lnd"}
+        <Lnd {tag} />
+      {:else if type === "Btc"}
+        <Bitcoin {tag} />
+      {:else if type === "Proxy"}
+        <Proxy {tag} />
+      {:else if type === "NavFiber"}
+        <NavFiber host={$selectedNode.host} />
+      {:else}
+        <Controls {ctrls} {tag} />
+      {/if}
+    </div>
+    {#if $node_state === "exited"}
+      <div class="overlay" />
     {/if}
   </div>
 {/if}
@@ -75,9 +80,23 @@
     right: 0rem;
     top: 4.14rem;
     background: #1a242e;
-    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.35);
     animation-name: sidebar;
     animation-duration: 40ms;
+  }
+  .ctrls {
+    position: absolute;
+    z-index: 50;
+    width: 100%;
+    height: 100px;
+  }
+  .overlay {
+    position: absolute;
+    z-index: 51;
+    background: rgba(0, 0, 0, 0.25);
+    width: 100%;
+    top: 0;
+    bottom: 0;
   }
   header {
     font-size: 1rem;

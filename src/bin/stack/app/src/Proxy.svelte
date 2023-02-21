@@ -8,7 +8,8 @@
 
   async function getBalances() {
     if ($proxy.total && $proxy.user_count) return;
-    proxy.set(await get_proxy_balances(tag));
+    const b = await get_proxy_balances(tag);
+    if (b) proxy.set(b);
   }
 
   onMount(() => {
@@ -22,7 +23,10 @@
   {#if $proxy}
     <section class="value-wrap">
       <h3 class="title">TOTAL USERS</h3>
-      <h3 class="value">{$proxy.user_count}</h3>
+      <!--
+        ?? Added to prevent undefined when proxy node is stopped
+      -->
+      <h3 class="value">{$proxy.user_count ?? 0}</h3>
     </section>
     <section class="value-wrap">
       <h3 class="title">TOTAL SATS BALANCE</h3>

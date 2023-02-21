@@ -29,7 +29,7 @@
     if ($people && $people.length) return;
     loading = true;
     const usersData = await api.tribes.get_people(url);
-    people.set(usersData);
+    if (usersData) people.set(usersData);
     loading = false;
   }
 

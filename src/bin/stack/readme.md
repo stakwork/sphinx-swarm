@@ -50,9 +50,9 @@ sudo vi $HOME/vol/stack/config.json
 
 update the version
 
-docker pull image:version
+docker pull sphinxlightning/sphinx-relay-swarm:v0.1.12
 
-docker stop boltwall.sphinx && docker rm boltwall.sphinx
+docker stop relay.sphinx && docker rm relay.sphinx
 
 docker-compose stop sphinx-swarm && docker-compose up --detach sphinx-swarm && docker logs sphinx-swarm --follow
 

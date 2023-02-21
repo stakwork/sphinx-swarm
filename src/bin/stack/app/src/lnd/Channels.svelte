@@ -42,6 +42,7 @@
   async function listPeers() {
     if (peers && peers.length) return;
     const peersData = await LND.list_peers(tag);
+    if (!peersData) return;
     peersStore.update((peer) => {
       return { ...peer, [tag]: peersData.peers };
     });
@@ -149,7 +150,7 @@
       {tag}
     />
     <div />
-  {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
+  {:else if $channels?.hasOwnProperty(tag) && $channels[tag]?.length}
     <ChannelRows {tag} />
   {:else}
     <section class="no-data-wrap">
