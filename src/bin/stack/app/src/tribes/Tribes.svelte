@@ -36,11 +36,12 @@
     const debounced = _.debounce(
       async () => {
         if (!searchTerm) return (filterTribes = $tribes.data);
-        filterTribes = await api.tribes.get_tribes(
+        const ft = await api.tribes.get_tribes(
           url,
           "",
           searchTerm.toLocaleLowerCase()
         );
+        if (ft) filterTribes;
       },
       0,
       {}
@@ -109,7 +110,7 @@
 
   async function infiniteHandler({ detail: { loaded, complete } }) {
     const tribesData = await api.tribes.get_tribes(url, "", "", page, limit);
-    if (tribesData.length) {
+    if (tribesData?.length) {
       page += 1;
       filterTribes = [...filterTribes, ...tribesData];
 

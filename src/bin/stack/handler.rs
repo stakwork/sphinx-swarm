@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::setup::starter;
 use anyhow::{Context, Result};
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
@@ -31,7 +32,22 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let res = remove_tokens(&state.stack);
                 Some(serde_json::to_string(&res)?)
             }
-            SwarmCmd::AddNode(_node) => {
+            SwarmCmd::StartContainer(id) => {
+                log::info!("StartContainer -> {}", id);
+                let res = start_container(docker, &id).await?;
+                // extra startup steps such as LND unlock
+                if let Err(e) = starter(proj, &id, &state.stack.nodes, docker).await {
+                    log::warn!("{:?}", e);
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::StopContainer(id) => {
+                log::info!("StopContainer -> {}", id);
+                let res = stop_container(docker, &id).await?;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::AddNode(node) => {
+                log::info!("AddNode -> {:?}", node);
                 // add a node via docker
                 None
             }
@@ -100,14 +116,6 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::ListContainers => {
                 let containers = list_containers(docker).await?;
                 Some(serde_json::to_string(&containers)?)
-            }
-            SwarmCmd::StartContainer(id) => {
-                let res = start_container(docker, &id).await?;
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::StopContainer(id) => {
-                let res = stop_container(docker, &id).await?;
-                Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateNode(node) => {
                 let mut msg: String;

@@ -1,4 +1,4 @@
-import { writable, derived } from "svelte/store";
+import { writable, derived, type Readable } from "svelte/store";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
@@ -52,6 +52,8 @@ export const activeInvoice = writable<{ [tag: string]: string }>({});
 export const activeUser = writable<string>();
 
 export const containers = writable<Container[]>([]);
+
+export const exitedNodes = writable<string[]>([]);
 
 export const balances = derived(
   [channels, selectedNode],
@@ -112,14 +114,32 @@ export const node_host = derived(
   }
 );
 
-export const node_state = derived(
+export type NodeState = "restarting" | "running" | "exited" | undefined;
+
+export const node_state: Readable<NodeState> = derived(
   [selectedNode, containers],
   ([$selectedNode, $containers]) => {
-    return $containers.find((n) =>
+    if (!$selectedNode) return;
+    return $containers?.find((n) =>
       n.Names.includes(`/${$selectedNode.name}.sphinx`)
-    ).State;
+    ).State as NodeState;
   }
 );
+
+export const nodes_exited = derived([containers], ([$containers]) => {
+  let exitedArray = [];
+
+  for (let con of $containers) {
+    if (con.State === "exited") {
+      let nameArray = con.Names[0].split("/");
+      let name = nameArray[1].replace(".sphinx", "");
+
+      exitedArray = [...exitedArray, name];
+    }
+  }
+
+  return exitedArray;
+});
 
 export const saveUserToStore = async (user: string = "") => {
   if (user) {

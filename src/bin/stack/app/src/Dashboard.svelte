@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode } from "./store";
+  import { selectedNode, exitedNodes, nodes_exited } from "./store";
   import {
     Loading,
     OverflowMenu,
@@ -12,7 +12,7 @@
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { stack, logoutUser, containers } from "./store";
-  import { onMount } from "svelte";
+  import { afterUpdate, onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
@@ -30,7 +30,7 @@
 
   async function listContainers() {
     const res: Container[] = await api.swarm.list_containers();
-    containers.set(res);
+    if (res) containers.set(res);
   }
 
   onMount(() => {
@@ -51,14 +51,33 @@
   let body;
 
   $: {
-    if (body && $selectedNode) {
-      // Remove the previous name saved in state
-      body.classList.remove(`selected-${name}`);
+    if (body) {
+      if ($selectedNode) {
+        // Remove the previous name saved in state
+        body.classList.remove(`selected-${name}`);
 
-      body.classList.add(`selected-${$selectedNode.name}`);
+        body.classList.add(`selected-${$selectedNode.name}`);
 
-      // save name to state
-      name = $selectedNode.name;
+        // save name to state
+        name = $selectedNode.name;
+      }
+
+      if ($nodes_exited) {
+        $nodes_exited.forEach((node) => {
+          body.classList.add(`selected-${node}`);
+          body.classList.add(`${node}-stopped`);
+        });
+      }
+    }
+  }
+
+  function addStopClass(event) {
+    body.classList.add(`${event.detail.text}-stopped`);
+  }
+
+  function removeStopClass(event) {
+    if (body.classList.contains(`${event.detail.text}-stopped`)) {
+      body.classList.remove(`${event.detail.text}-stopped`);
     }
   }
 </script>
@@ -78,7 +97,10 @@
       {#if $selectedNode && $selectedNode.place === "Internal"}
         <NodeLogs nodeName={$selectedNode.name} />
 
-        <NodeAction />
+        <NodeAction
+          on:stop_message={addStopClass}
+          on:start_message={removeStopClass}
+        />
       {/if}
     </section>
 
@@ -95,7 +117,9 @@
       <ChangePassword back={backToMain} />
     {:else if page === "main"}
       {#if $stack.nodes.length}
-        <Flow />
+        {#key body}
+          <Flow />
+        {/key}
       {:else}
         <div class="loader">
           <Loading />

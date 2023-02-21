@@ -70,5 +70,5 @@ async fn main() -> Result<()> {
 }
 
 fn fmt_err(err: &str) -> String {
-    format!("{{\"error\":\"{}\"}}", err.to_string())
+    format!("{{\"stack_error\":\"{}\"}}", err.to_string())
 }

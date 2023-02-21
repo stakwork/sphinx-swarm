@@ -8,6 +8,7 @@
 
   async function newAddress() {
     let new_addy = await api.lnd.new_address(tag);
+    if (!new_addy) return;
     lightningAddresses.update((addys) => {
       return { ...addys, [tag]: new_addy };
     });

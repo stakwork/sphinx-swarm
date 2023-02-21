@@ -62,17 +62,14 @@
   async function getInitials() {
     loading = true;
     const nodeVersions = await api.swarm.get_node_images(name, page);
+    if (!nodeVersions) return;
     const versions = parseVersionData(nodeVersions);
 
     org = nodeVersions.org;
     repo = nodeVersions.repo;
 
-    const items = formatVersionData(versions);
-
     selected = `row-${version}-value`;
-
-    versionItems = items;
-
+    versionItems = formatVersionData(versions);
     loading = false;
   }
 
