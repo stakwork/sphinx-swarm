@@ -17,6 +17,7 @@
 
   export let name = "";
   export let version = "";
+
   let org = "";
   let repo = "";
   let loading = false;
@@ -76,7 +77,8 @@
   }
 
   async function upgradeVersion() {
-    console.log(await api.swarm.update_node("neo4j", "4.4.9"));
+    let version = selected.split("-")[1];
+    console.log(await api.swarm.update_node(name, version));
   }
 
   onDestroy(() => {
