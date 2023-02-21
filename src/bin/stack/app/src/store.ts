@@ -1,4 +1,4 @@
-import { writable, derived } from "svelte/store";
+import { writable, derived, type Readable } from "svelte/store";
 import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
@@ -114,13 +114,15 @@ export const node_host = derived(
   }
 );
 
-export const node_state = derived(
+export type NodeState = "restarting" | "running" | "exited" | undefined;
+
+export const node_state: Readable<NodeState> = derived(
   [selectedNode, containers],
   ([$selectedNode, $containers]) => {
     if (!$selectedNode) return;
     return $containers?.find((n) =>
       n.Names.includes(`/${$selectedNode.name}.sphinx`)
-    ).State;
+    ).State as NodeState;
   }
 );
 

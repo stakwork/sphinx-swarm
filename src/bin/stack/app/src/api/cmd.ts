@@ -60,11 +60,11 @@ export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
     });
     ret = await r.text();
     const jj = JSON.parse(ret);
-    if (jj["stack_error"]) {
-      return console.warn("=> cmd error:", jj["stack_error"]);
+    if (jj && jj["stack_error"]) {
+      return console.warn("=> cmd err:", jj["stack_error"]);
     }
     return jj;
   } catch (e) {
-    console.warn("=> cmd error:", ret);
+    console.warn("=> cmd error:", ret, e);
   }
 }

@@ -3,12 +3,7 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import * as api from "../api";
-  import {
-    relayBalances,
-    makeChannelBalances,
-    stack,
-    channels,
-  } from "../store";
+  import { relayBalances } from "../store";
   import { formatSatsNumbers } from "../helpers";
   import { onMount } from "svelte";
 
