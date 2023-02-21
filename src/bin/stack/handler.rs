@@ -15,7 +15,7 @@ use sphinx_swarm::dock::stop_container;
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
-use crate::update::update_node;
+use crate::update::{update_node, UpdateNodeData};
 
 // tag is the service name
 pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -110,19 +110,28 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateNode(node) => {
-                // Start the node
-                let mut msg = "".to_string();
-                if let Some(new_node) = update_node(&docker, &node, &state).await? {
-                    create_and_start(docker, new_node, false).await?;
-                    must_save_stack = true;
-                    println!("Node stopped and restarted");
+                let mut msg: String;
 
-                    msg = format!("Updated {} node successfully", node.id.clone());
+                let UpdateNodeData {
+                    node_index,
+                    new_node,
+                    node_update,
+                } = update_node(&docker, &node, &state).await?;
+
+                if let Some(n_node) = new_node {
+                    if let Some(index) = node_index {
+                        if let Some(n_update) = node_update {
+                            // Start the node
+                            create_and_start(docker, n_node, false).await?;
+                            msg = format!("Updated {} node successfully", node.id.clone());
+
+                            state.stack.nodes[index] = n_update;
+                            must_save_stack = true;
+                        }
+                    }
                 }
-                
 
                 msg = format!("Could not update {} node", node.id.clone());
-
                 Some(serde_json::to_string(&msg)?)
             }
         },

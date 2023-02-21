@@ -78,7 +78,7 @@
 
   async function upgradeVersion() {
     let version = selected.split("-")[1];
-    console.log(await api.swarm.update_node(name, version));
+    console.log(await api.swarm.update_node(name, "4.4.9"));
   }
 
   onDestroy(() => {

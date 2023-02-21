@@ -1,10 +1,10 @@
 use anyhow::Context;
 use bollard::container::Config;
 use bollard::Docker;
-use rocket::tokio::sync::MutexGuard;
 use reqwest::Url;
+use rocket::tokio::sync::MutexGuard;
 use sphinx_swarm::cmd::UpdateNode;
-use sphinx_swarm::config::{ExternalNodeType, State};
+use sphinx_swarm::config::{ExternalNodeType, Node, State};
 use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
 use sphinx_swarm::dock::stop_and_remove;
 use sphinx_swarm::images::boltwall::BoltwallImage;
@@ -16,14 +16,23 @@ use sphinx_swarm::images::navfiber::NavFiberImage;
 use sphinx_swarm::images::neo4j::Neo4jImage;
 use sphinx_swarm::images::proxy::ProxyImage;
 use sphinx_swarm::images::relay::RelayImage;
+use sphinx_swarm::images::Image::{
+    BoltWall, Btc, Cache, Jarvis, Lnd, NavFiber, Neo4j, Proxy, Relay,
+};
 use sphinx_swarm::images::{self, LinkedImages};
 use url::Host;
+
+pub struct UpdateNodeData {
+    pub node_index: Option<usize>,
+    pub new_node: Option<Config<String>>,
+    pub node_update: Option<Node>,
+}
 
 pub async fn update_node(
     docker: &Docker,
     node: &UpdateNode,
-    state: &MutexGuard<'_, State>
-) -> Result<Option<Config<String>>, anyhow::Error> {
+    state: &MutexGuard<'_, State>,
+) -> Result<UpdateNodeData, anyhow::Error> {
     let nodes = &state.stack.nodes;
 
     /* Check if the npde is a running node
@@ -42,6 +51,8 @@ pub async fn update_node(
     stop_and_remove(docker, &node_id).await?;
 
     let mut new_node: Option<Config<String>> = None;
+    let mut node_index: Option<usize> = None;
+    let mut node_update: Option<Node> = None;
 
     match action_node.typ().as_str() {
         "Btc" => {
@@ -53,6 +64,9 @@ pub async fn update_node(
                 &old_btc.user,
             );
             btc.set_password(&old_btc.pass);
+
+            node_update = Some(Node::Internal(Btc(btc.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::btc::btc(&btc));
         }
         "Lnd" => {
@@ -74,6 +88,8 @@ pub async fn update_node(
             let li = LinkedImages::from_nodes(lnd.links.clone(), &nodes);
             let btc = li.find_btc().context("BTC required for LND")?;
 
+            node_update = Some(Node::Internal(Lnd(lnd.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::lnd::lnd(&lnd, &btc));
         }
         "Relay" => {
@@ -93,6 +109,8 @@ pub async fn update_node(
             let lnd = li.find_lnd().context("LND required for Relay")?;
             let proxy = li.find_proxy();
 
+            node_update = Some(Node::Internal(Relay(relay.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::relay::relay(&relay, &lnd, proxy));
         }
         "Proxy" => {
@@ -112,6 +130,8 @@ pub async fn update_node(
             let li = LinkedImages::from_nodes(proxy.links.clone(), &nodes);
             let lnd = li.find_lnd().context("LND required for Proxy")?;
 
+            node_update = Some(Node::Internal(Proxy(proxy.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::proxy::proxy(&proxy, &lnd));
         }
         "Cache" => {
@@ -138,12 +158,16 @@ pub async fn update_node(
             let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
             let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
 
+            node_update = Some(Node::Internal(Cache(cache.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::cache::cache(&cache, &memes_host, &tribe_host));
         }
         "Neo4j" => {
-            println!("In Neo4j");
             let old_neo4j = action_node.as_neo4j()?;
             let neo4j = Neo4jImage::new(&old_neo4j.name, &node.version);
+
+            node_update = Some(Node::Internal(Neo4j(neo4j.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::neo4j::neo4j(&neo4j));
         }
         "NavFiber" => {
@@ -152,6 +176,9 @@ pub async fn update_node(
             let links: Vec<&str> = to_vec_str(&old_nav.links);
             nav.links(links);
             nav.host(old_nav.host.clone());
+
+            node_update = Some(Node::Internal(NavFiber(nav.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::navfiber::navfiber(&nav));
         }
         "JarvisBackend" => {
@@ -160,13 +187,10 @@ pub async fn update_node(
             let links: Vec<&str> = to_vec_str(&old_jarvis.links);
             jarvis.links(links);
 
-            let neo4j = nodes
-                .iter()
-                .find(|n| n.name() == "neo4j")
-                .context("No Neo4j")?
-                .as_internal()?
-                .as_neo4j()?;
+            let neo4j = get_iternal_node(nodes, "neo4j")?.as_neo4j()?;
 
+            node_update = Some(Node::Internal(Jarvis(jarvis.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::jarvis::jarvis(&jarvis, &neo4j));
         }
         "Boltwall" => {
@@ -176,19 +200,8 @@ pub async fn update_node(
             bolt.links(links);
             bolt.host(old_bolt.host.clone());
 
-            let lnd = nodes
-                .iter()
-                .find(|n| n.name() == "lnd")
-                .context("No LND")?
-                .as_internal()?
-                .as_lnd()?;
-
-            let jarvis = nodes
-                .iter()
-                .find(|n| n.name() == "jarvis")
-                .context("No Jarvis")?
-                .as_internal()?
-                .as_jarvis()?;
+            let lnd = get_iternal_node(nodes, "lnd")?.as_lnd()?;
+            let jarvis = get_iternal_node(nodes, "jarvis")?.as_jarvis()?;
 
             let cert_path = "/home/.lnd/tls.cert";
             let cert_full = dl_cert(docker, &lnd.name, cert_path).await?;
@@ -197,6 +210,8 @@ pub async fn update_node(
             let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
             let mac = dl_macaroon(docker, &lnd.name, &macpath).await?;
 
+            node_update = Some(Node::Internal(BoltWall(bolt.clone())));
+            node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::boltwall::boltwall(
                 &bolt, &mac, &cert64, &lnd, &jarvis,
             ));
@@ -207,9 +222,31 @@ pub async fn update_node(
         }
     }
 
-    Ok(new_node)
+    Ok(UpdateNodeData {
+        node_index,
+        new_node,
+        node_update,
+    })
 }
 
 fn to_vec_str(links: &Vec<String>) -> Vec<&str> {
     links.iter().map(|s| s as &str).collect()
+}
+
+fn get_iternal_node(nodes: &Vec<Node>, name: &str) -> Result<images::Image, anyhow::Error> {
+    let err_msg = format!("No {}", name);
+    Ok(nodes
+        .iter()
+        .find(|n| n.name() == name)
+        .context(err_msg)?
+        .as_internal()?)
+}
+
+fn get_node_position(nodes: &Vec<Node>, name: &str) -> Option<usize> {
+    let mut index: Option<usize> = None;
+    let node_index = nodes.iter().position(|n| n.name() == name);
+    if let Some(i) = node_index {
+        index = Some(i)
+    }
+    index
 }
