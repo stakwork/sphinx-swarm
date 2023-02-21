@@ -67,17 +67,6 @@ impl Image {
         }
         .to_string()
     }
-
-    // pub fn repo(&self) -> Repository {
-    //     match self {
-    //         Image::Btc(n) => n.repo(),
-    //         Image::Lnd(n) => n.repo(),
-    //         Image::Relay(n) => n.repo(),
-    //         Image::Proxy(n) => n.repo(),
-    //         Image::Cache(n) => n.repo(),
-    //         Image::Traefik(n) => n.repo(),
-    //     }
-    // }
 }
 
 impl DockerHubImage for Image {
@@ -161,10 +150,34 @@ impl Image {
             _ => Err(anyhow::anyhow!("Not NEO4J".to_string())),
         }
     }
+    pub fn as_navfiber(&self) -> anyhow::Result<navfiber::NavFiberImage> {
+        match self {
+            Image::NavFiber(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not NavFiber".to_string())),
+        }
+    }
+    pub fn as_boltwall(&self) -> anyhow::Result<boltwall::BoltwallImage> {
+        match self {
+            Image::BoltWall(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Boltwall".to_string())),
+        }
+    }
     pub fn as_jarvis(&self) -> anyhow::Result<jarvis::JarvisImage> {
         match self {
             Image::Jarvis(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Jarvis".to_string())),
+        }
+    }
+    pub fn as_relay(&self) -> anyhow::Result<relay::RelayImage> {
+        match self {
+            Image::Relay(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Relay".to_string())),
+        }
+    }
+    pub fn as_cache(&self) -> anyhow::Result<cache::CacheImage> {
+        match self {
+            Image::Cache(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Cache".to_string())),
         }
     }
 }

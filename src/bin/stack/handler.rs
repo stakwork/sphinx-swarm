@@ -13,7 +13,15 @@ use sphinx_swarm::dock::start_container;
 use sphinx_swarm::dock::stop_and_remove;
 use sphinx_swarm::dock::stop_container;
 use sphinx_swarm::images;
+use sphinx_swarm::images::boltwall::BoltwallImage;
+use sphinx_swarm::images::btc::BtcImage;
+use sphinx_swarm::images::cache::CacheImage;
+use sphinx_swarm::images::jarvis::JarvisImage;
+use sphinx_swarm::images::lnd::LndImage;
+use sphinx_swarm::images::navfiber::NavFiberImage;
 use sphinx_swarm::images::neo4j::Neo4jImage;
+use sphinx_swarm::images::proxy::ProxyImage;
+use sphinx_swarm::images::relay::RelayImage;
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
@@ -110,15 +118,9 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateNode(node) => {
-                let mut network = "regtest".to_string();
-
-                if let Ok(env_net) = std::env::var("NETWORK") {
-                    if env_net == "bitcoin" || env_net == "regtest" {
-                        network = env_net;
-                    }
-                }
-
-                // Check if the npde is a running node
+                /* Check if the npde is a running node
+                 * if it does not return error
+                 */
                 let action_node = state
                     .stack
                     .nodes
@@ -127,31 +129,116 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     .context("Node not found")?
                     .as_internal()?;
 
+                stop_and_remove(docker, &node.id.clone()).await?;
+
+                let mut new_node;
+
                 match action_node.typ().as_str() {
-                    "Btc" => {}
-                    "Lnd" => {}
-                    "Relay" => {}
-                    "Proxy" => {}
-                    "Cache" => {}
-                    "Neo4j" => {
-                        stop_and_remove(docker, &node.id.clone()).await?;
-
-                        let neo4j = Neo4jImage::new("neo4j", &node.version);
-
-                        let new_node = images::neo4j::neo4j(&neo4j);
-
-                        create_and_start(docker, new_node, false).await?;
+                    "Btc" => {
+                        let old_btc = action_node.as_btc()?;
+                        let mut btc = BtcImage::new(
+                            &old_btc.name,
+                            &node.version,
+                            &old_btc.network,
+                            &old_btc.user,
+                        );
+                        btc.set_password(&old_btc.pass);
+                        new_node = images::btc::btc(&btc);
                     }
-                    "NavFiber" => {}
-                    "JarvisBackend" => {}
-                    "Boltwall" => {}
+                    "Lnd" => {
+                        let old_lnd = action_node.as_lnd()?;
+                        let mut lnd = LndImage::new(
+                            &old_lnd.name,
+                            &node.version,
+                            &old_lnd.network,
+                            &old_lnd.rpc_port,
+                            &old_lnd.peer_port,
+                        );
+                        if let Some(http_port) = old_lnd.http_port {
+                            lnd.http_port = Some(http_port);
+                        }
+                        let links: Vec<&str> = toVecStr(&old_lnd.links);
+                        lnd.links(links);
+                        lnd.host(old_lnd.host);
+                    }
+                    "Relay" => {
+                        let old_relay = action_node.as_relay()?;
+
+                        let mut relay = RelayImage::new(
+                            &old_relay.name,
+                            &node.version,
+                            &old_relay.node_env,
+                            &old_relay.port,
+                        );
+                        let links: Vec<&str> = toVecStr(&old_relay.links);
+                        relay.links(links);
+                        relay.host(old_relay.host.clone());
+                        new_node = images::relay::relay(&relay);
+                    }
+                    "Proxy" => {
+                        let old_proxy = action_node.as_proxy()?;
+                        let mut proxy = ProxyImage::new(
+                            &old_proxy.name,
+                            &node.version,
+                            &old_proxy.network,
+                            &old_proxy.port,
+                            &old_proxy.admin_port,
+                        );
+
+                        let links: Vec<&str> = toVecStr(&old_proxy.links);
+                        proxy.new_nodes(Some("0".to_string()));
+                        proxy.links(links);
+                        new_node = images::proxy::proxy(proxy, lnd);
+                    }
+                    "Cache" => {
+                        let old_cache = action_node.as_cache()?;
+                        let mut cache =
+                            CacheImage::new(&old_cache.name, &node.version, &old_cache.port, true);
+                        let links: Vec<&str> = toVecStr(&old_cache.links);
+                        cache.links(links);
+                        new_node = images::cache::cache(cache, meme_host, mqtt_host)
+                    }
+                    "Neo4j" => {
+                        let old_neo4j = action_node.as_neo4j()?;
+                        let neo4j = Neo4jImage::new(&old_neo4j.name, &node.version);
+                        new_node = images::neo4j::neo4j(&neo4j);
+                    }
+                    "NavFiber" => {
+                        let old_nav = action_node.as_navfiber()?;
+                        let mut nav =
+                            NavFiberImage::new(&old_nav.name, &node.version, &old_nav.port);
+                        let links: Vec<&str> = toVecStr(&old_nav.links);
+                        nav.links(links);
+                        nav.host(old_nav.host.clone());
+                        new_node = images::navfiber::navfiber(nav);
+                    }
+                    "JarvisBackend" => {
+                        let old_jarvis = action_node.as_jarvis()?;
+                        let mut jarvis =
+                            JarvisImage::new(&old_jarvis.name, &node.version, &old_jarvis.port);
+                        let links: Vec<&str> = toVecStr(&old_jarvis.links);
+                        jarvis.links(links);
+                        new_node = images::jarvis::jarvis(jarvis, neo4j);
+                    }
+                    "Boltwall" => {
+                        let old_bolt = action_node.as_boltwall()?;
+                        let mut bolt =
+                            BoltwallImage::new(&old_bolt.name, &node.version, &old_bolt.port);
+                        let links: Vec<&str> = toVecStr(&old_bolt.links);
+                        bolt.links(links);
+                        bolt.host(old_bolt.host.clone());
+                        new_node =
+                            images::boltwall::boltwall(&bolt, macaroon, cert, lnd_node, jarvis);
+                    }
                     _ => println!("Not a swarm node"),
                 }
 
+                // Start the node
+                create_and_start(docker, new_node, false).await?;
                 must_save_stack = true;
 
                 let msg = format!("Updated {} node successfully", action_node.name());
-                
+
                 Some(serde_json::to_string(&msg)?)
             }
         },
@@ -297,4 +384,8 @@ fn remove_tokens(s: &Stack) -> Stack {
         users: vec![],
         jwt_key: "".to_string(),
     }
+}
+
+fn toVecStr(links: &Vec<String>) -> Vec<&str> {
+    links.iter().map(|s| s as &str).collect()
 }
