@@ -108,7 +108,7 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         cmd.push(format!("--debuglevel=debug"));
     }
     if let Some(host) = lnd.host.clone() {
-        c.labels = Some(traefik_labels(&lnd.name, &host, &lnd.peer_port));
+        c.labels = Some(traefik_labels(&lnd.name, &host, &lnd.peer_port, false));
         // production tls extra domain
         cmd.push(format!("--tlsextradomain={}", &host));
     }

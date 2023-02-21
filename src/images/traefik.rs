@@ -128,10 +128,15 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
     }
 }
 
-pub fn traefik_labels(name: &str, host: &str, port: &str) -> HashMap<String, String> {
+pub fn traefik_labels(
+    name: &str,
+    host: &str,
+    port: &str,
+    websockets: bool,
+) -> HashMap<String, String> {
     let mut labels = HashMap::new();
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
-    let def = vec![
+    let mut def = vec![
         "traefik.enable=true".to_string(),
         format!("{}={}", lb, port),
         format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
@@ -139,6 +144,9 @@ pub fn traefik_labels(name: &str, host: &str, port: &str) -> HashMap<String, Str
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
+    if websockets {
+        def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string())
+    }
     def.iter().for_each(|l| {
         let parts = l.split("=").collect::<Vec<&str>>();
         if parts.len() > 1 {

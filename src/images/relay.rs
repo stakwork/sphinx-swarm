@@ -85,7 +85,7 @@ pub fn relay(
         ..Default::default()
     };
     if let Some(host) = relay.host.clone() {
-        c.labels = Some(traefik_labels(&relay.name, &host, &relay.port));
+        c.labels = Some(traefik_labels(&relay.name, &host, &relay.port, true));
     }
     c
 }

@@ -39,7 +39,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.1.40
+    image: sphinxlightning/sphinx-swarm:0.1.41
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
@@ -59,7 +59,7 @@ services:
       - "traefik.http.routers.elements.entrypoints=websecure"
     restart: on-failure
     environment: 
-      - HOST=$HOST # needed first time
+      - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
       - ONLY_NODE=$ONLY_NODE # only start this node
       - BTC_PASS=$BTC_PASS # for starting after bitcoind sync
       - DOCKER_RUN=true # client use sphinx-swarm network
