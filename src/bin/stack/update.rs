@@ -7,15 +7,7 @@ use sphinx_swarm::cmd::UpdateNode;
 use sphinx_swarm::config::{ExternalNodeType, Node, State};
 use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
 use sphinx_swarm::dock::stop_and_remove;
-use sphinx_swarm::images::boltwall::BoltwallImage;
-use sphinx_swarm::images::btc::BtcImage;
-use sphinx_swarm::images::cache::CacheImage;
-use sphinx_swarm::images::jarvis::JarvisImage;
-use sphinx_swarm::images::lnd::{to_lnd_network, LndImage};
-use sphinx_swarm::images::navfiber::NavFiberImage;
-use sphinx_swarm::images::neo4j::Neo4jImage;
-use sphinx_swarm::images::proxy::ProxyImage;
-use sphinx_swarm::images::relay::RelayImage;
+use sphinx_swarm::images::lnd::{to_lnd_network};
 use sphinx_swarm::images::Image::{
     BoltWall, Btc, Cache, Jarvis, Lnd, NavFiber, Neo4j, Proxy, Relay,
 };
@@ -56,34 +48,16 @@ pub async fn update_node(
 
     match action_node.typ().as_str() {
         "Btc" => {
-            let old_btc = action_node.as_btc()?;
-            let mut btc = BtcImage::new(
-                &old_btc.name,
-                &node.version,
-                &old_btc.network,
-                &old_btc.user,
-            );
-            btc.set_password(&old_btc.pass);
+            let mut btc = action_node.as_btc()?;
+            btc.version = node.version.clone();
 
             node_update = Some(Node::Internal(Btc(btc.clone())));
             node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::btc::btc(&btc));
         }
         "Lnd" => {
-            let old_lnd = action_node.as_lnd()?;
-            let mut lnd = LndImage::new(
-                &old_lnd.name,
-                &node.version,
-                &old_lnd.network,
-                &old_lnd.rpc_port,
-                &old_lnd.peer_port,
-            );
-            if let Some(http_port) = old_lnd.http_port {
-                lnd.http_port = Some(http_port);
-            }
-            let links: Vec<&str> = to_vec_str(&old_lnd.links);
-            lnd.links(links);
-            lnd.host(old_lnd.host);
+            let mut lnd = action_node.as_lnd()?;
+            lnd.version = node.version.clone();
 
             let li = LinkedImages::from_nodes(lnd.links.clone(), &nodes);
             let btc = li.find_btc().context("BTC required for LND")?;
@@ -93,17 +67,9 @@ pub async fn update_node(
             new_node = Some(images::lnd::lnd(&lnd, &btc));
         }
         "Relay" => {
-            let old_relay = action_node.as_relay()?;
+            let mut relay = action_node.as_relay()?;
 
-            let mut relay = RelayImage::new(
-                &old_relay.name,
-                &node.version,
-                &old_relay.node_env,
-                &old_relay.port,
-            );
-            let links: Vec<&str> = to_vec_str(&old_relay.links);
-            relay.links(links);
-            relay.host(old_relay.host.clone());
+            relay.version = node.version.clone();
 
             let li = LinkedImages::from_nodes(relay.links.clone(), &nodes);
             let lnd = li.find_lnd().context("LND required for Relay")?;
@@ -114,18 +80,8 @@ pub async fn update_node(
             new_node = Some(images::relay::relay(&relay, &lnd, proxy));
         }
         "Proxy" => {
-            let old_proxy = action_node.as_proxy()?;
-            let mut proxy = ProxyImage::new(
-                &old_proxy.name,
-                &node.version,
-                &old_proxy.network,
-                &old_proxy.port,
-                &old_proxy.admin_port,
-            );
-
-            let links: Vec<&str> = to_vec_str(&old_proxy.links);
-            proxy.new_nodes(Some("0".to_string()));
-            proxy.links(links);
+            let mut proxy = action_node.as_proxy()?;
+            proxy.version = node.version.clone();
 
             let li = LinkedImages::from_nodes(proxy.links.clone(), &nodes);
             let lnd = li.find_lnd().context("LND required for Proxy")?;
@@ -135,10 +91,8 @@ pub async fn update_node(
             new_node = Some(images::proxy::proxy(&proxy, &lnd));
         }
         "Cache" => {
-            let old_cache = action_node.as_cache()?;
-            let mut cache = CacheImage::new(&old_cache.name, &node.version, &old_cache.port, true);
-            let links: Vec<&str> = to_vec_str(&old_cache.links);
-            cache.links(links);
+            let mut cache = action_node.as_cache()?;
+            cache.version = node.version.clone();
 
             let memes = nodes
                 .iter()
@@ -163,29 +117,24 @@ pub async fn update_node(
             new_node = Some(images::cache::cache(&cache, &memes_host, &tribe_host));
         }
         "Neo4j" => {
-            let old_neo4j = action_node.as_neo4j()?;
-            let neo4j = Neo4jImage::new(&old_neo4j.name, &node.version);
+            let mut neo4j = action_node.as_neo4j()?;
+            neo4j.version = node.version.clone();
 
             node_update = Some(Node::Internal(Neo4j(neo4j.clone())));
             node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::neo4j::neo4j(&neo4j));
         }
         "NavFiber" => {
-            let old_nav = action_node.as_navfiber()?;
-            let mut nav = NavFiberImage::new(&old_nav.name, &node.version, &old_nav.port);
-            let links: Vec<&str> = to_vec_str(&old_nav.links);
-            nav.links(links);
-            nav.host(old_nav.host.clone());
+            let mut nav = action_node.as_navfiber()?;
+            nav.version = node.version.clone();
 
             node_update = Some(Node::Internal(NavFiber(nav.clone())));
             node_index = get_node_position(&nodes, &node.id);
             new_node = Some(images::navfiber::navfiber(&nav));
         }
         "JarvisBackend" => {
-            let old_jarvis = action_node.as_jarvis()?;
-            let mut jarvis = JarvisImage::new(&old_jarvis.name, &node.version, &old_jarvis.port);
-            let links: Vec<&str> = to_vec_str(&old_jarvis.links);
-            jarvis.links(links);
+            let mut jarvis = action_node.as_jarvis()?;
+            jarvis.version = node.version.clone();
 
             let neo4j = get_iternal_node(nodes, "neo4j")?.as_neo4j()?;
 
@@ -194,11 +143,8 @@ pub async fn update_node(
             new_node = Some(images::jarvis::jarvis(&jarvis, &neo4j));
         }
         "Boltwall" => {
-            let old_bolt = action_node.as_boltwall()?;
-            let mut bolt = BoltwallImage::new(&old_bolt.name, &node.version, &old_bolt.port);
-            let links: Vec<&str> = to_vec_str(&old_bolt.links);
-            bolt.links(links);
-            bolt.host(old_bolt.host.clone());
+            let mut bolt = action_node.as_boltwall()?;
+            bolt.version = node.version.clone();
 
             let lnd = get_iternal_node(nodes, "lnd")?.as_lnd()?;
             let jarvis = get_iternal_node(nodes, "jarvis")?.as_jarvis()?;
@@ -227,10 +173,6 @@ pub async fn update_node(
         new_node,
         node_update,
     })
-}
-
-fn to_vec_str(links: &Vec<String>) -> Vec<&str> {
-    links.iter().map(|s| s as &str).collect()
 }
 
 fn get_iternal_node(nodes: &Vec<Node>, name: &str) -> Result<images::Image, anyhow::Error> {

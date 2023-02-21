@@ -27,7 +27,7 @@
 
   $: versionItems = [];
 
-  $: selected = "";
+  let selected = "";
 
   function openModal() {
     open = true;
@@ -78,7 +78,9 @@
 
   async function upgradeVersion() {
     let version = selected.split("-")[1];
-    console.log(await api.swarm.update_node(name, "4.4.9"));
+    if (name && version) {
+      await api.swarm.update_node(name, version);
+    }
   }
 
   onDestroy(() => {
@@ -131,7 +133,7 @@
         </div>
       {:else}
         <div class="list" on:scroll={scrolled}>
-          <StructuredList selection flush {selected}>
+          <StructuredList selection {selected}>
             <StructuredListHead>
               <StructuredListRow head>
                 <StructuredListCell head>Version</StructuredListCell>

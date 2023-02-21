@@ -118,17 +118,15 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     node_update,
                 } = update_node(&docker, &node, &state).await?;
 
-                if let Some(n_node) = new_node {
-                    if let Some(index) = node_index {
-                        if let Some(n_update) = node_update {
-                            // Start the node
-                            create_and_start(docker, n_node, false).await?;
-                            msg = format!("Updated {} node successfully", node.id.clone());
+                if let (Some(n_node), Some(index), Some(n_update)) =
+                    (new_node, node_index, node_update)
+                {
+                    // Start the node
+                    create_and_start(docker, n_node, false).await?;
+                    msg = format!("Updated {} node successfully", node.id.clone());
 
-                            state.stack.nodes[index] = n_update;
-                            must_save_stack = true;
-                        }
-                    }
+                    state.stack.nodes[index] = n_update;
+                    must_save_stack = true;
                 }
 
                 msg = format!("Could not update {} node", node.id.clone());
