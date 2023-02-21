@@ -12,12 +12,14 @@
   const dispatch = createEventDispatcher();
 
   function sendStopEvent() {
+    if (!$selectedNode.name) return;
     dispatch("stop_message", {
       text: $selectedNode.name,
     });
   }
 
   function sendStartEvent() {
+    if (!$selectedNode.name) return;
     dispatch("start_message", {
       text: $selectedNode.name,
     });

@@ -149,7 +149,7 @@
       {tag}
     />
     <div />
-  {:else if $channels.hasOwnProperty(tag) && $channels[tag].length}
+  {:else if $channels?.hasOwnProperty(tag) && $channels[tag]?.length}
     <ChannelRows {tag} />
   {:else}
     <section class="no-data-wrap">

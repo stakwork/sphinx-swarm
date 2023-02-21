@@ -51,14 +51,16 @@ export const userKey = "SPHINX_TOKEN";
 
 export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
   const txt = JSON.stringify({ type, data });
+  let ret = "";
   try {
     const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`, {
       headers: {
         "x-jwt": localStorage.getItem(userKey),
       },
     });
-    return await r.json();
+    ret = await r.text();
+    return JSON.parse(ret);
   } catch (e) {
-    console.error(e);
+    console.warn("=> cmd error:", ret);
   }
 }

@@ -40,6 +40,10 @@ html {
 	border: 2px dotted #5e717a !important;
 }
 
+.bx--assistive-text {
+	font-size: 0.75rem !important;
+}
+
 .lefty .bx--assistive-text {
 	display: none !important;
 }

@@ -7,7 +7,7 @@
   import QrCode from "svelte-qrcode";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
 
-  $: adminUnconnected = $users.find((u) => u.is_admin && !u.alias);
+  $: adminUnconnected = $users?.find((u) => u.is_admin && !u.alias);
 
   export let tag = "";
 

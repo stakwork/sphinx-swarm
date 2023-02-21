@@ -27,7 +27,7 @@
   });
 
   export function normalUsers(us) {
-    return us.filter((u) => !u.is_admin && !u.deleted);
+    return us?.filter((u) => !u.is_admin && !u.deleted) || [];
   }
 
   afterUpdate(() => {

@@ -117,7 +117,8 @@ export const node_host = derived(
 export const node_state = derived(
   [selectedNode, containers],
   ([$selectedNode, $containers]) => {
-    return $containers.find((n) =>
+    if (!$selectedNode) return;
+    return $containers?.find((n) =>
       n.Names.includes(`/${$selectedNode.name}.sphinx`)
     ).State;
   }

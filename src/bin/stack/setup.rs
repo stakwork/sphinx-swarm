@@ -1,15 +1,40 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
 use images::lnd::{to_lnd_network, LndImage};
 use images::relay::RelayImage;
-use sphinx_swarm::config::Clients;
+use sphinx_swarm::config::{Clients, Node};
+use sphinx_swarm::conn::lnd::lndrpc::LndRPC;
+use sphinx_swarm::conn::lnd::utils::try_unlock_lnd;
 use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon};
-use sphinx_swarm::conn::lnd::{lndrpc::LndRPC};
 use sphinx_swarm::conn::relay::RelayAPI;
 use sphinx_swarm::images;
 use sphinx_swarm::secrets;
 use sphinx_swarm::utils::sleep_ms;
-use sphinx_swarm::conn::lnd::utils::try_unlock_lnd;
+
+fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<images::Image> {
+    let name = hostname
+        .strip_suffix(".sphinx")
+        .context(format!("no {:?}", hostname))?;
+    Ok(nodes
+        .iter()
+        .find(|n| n.name() == name)
+        .context(format!("No {}", name))?
+        .as_internal()?)
+}
+
+// runs when node started again (after stopped)
+pub async fn starter(proj: &str, name: &str, nodes: &Vec<Node>, docker: &Docker) -> Result<()> {
+    let img = find_image_by_hostname(nodes, name)?;
+    match img {
+        images::Image::Lnd(lnd_node) => {
+            let cert_path = "/home/.lnd/tls.cert";
+            let cert = dl_cert(docker, &lnd_node.name, cert_path).await?;
+            try_unlock_lnd(&cert, proj, &lnd_node).await?;
+        }
+        _ => (),
+    };
+    Ok(())
+}
 
 // returns LndRPC client and address if test mine needed
 pub async fn lnd_clients(
