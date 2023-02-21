@@ -1,9 +1,10 @@
 use anyhow::Context;
 use bollard::container::Config;
 use bollard::Docker;
+use rocket::tokio::sync::MutexGuard;
 use reqwest::Url;
 use sphinx_swarm::cmd::UpdateNode;
-use sphinx_swarm::config::{ExternalNodeType, STATE};
+use sphinx_swarm::config::{ExternalNodeType, State};
 use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
 use sphinx_swarm::dock::stop_and_remove;
 use sphinx_swarm::images::boltwall::BoltwallImage;
@@ -21,8 +22,8 @@ use url::Host;
 pub async fn update_node(
     docker: &Docker,
     node: &UpdateNode,
+    state: &MutexGuard<'_, State>
 ) -> Result<Option<Config<String>>, anyhow::Error> {
-    let state = STATE.lock().await;
     let nodes = &state.stack.nodes;
 
     /* Check if the npde is a running node
@@ -36,7 +37,9 @@ pub async fn update_node(
         .context("Node not found")?
         .as_internal()?;
 
-    stop_and_remove(docker, &node.id.clone()).await?;
+    let node_id = format!("{}.sphinx", &node.id);
+
+    stop_and_remove(docker, &node_id).await?;
 
     let mut new_node: Option<Config<String>> = None;
 
@@ -138,6 +141,7 @@ pub async fn update_node(
             new_node = Some(images::cache::cache(&cache, &memes_host, &tribe_host));
         }
         "Neo4j" => {
+            println!("In Neo4j");
             let old_neo4j = action_node.as_neo4j()?;
             let neo4j = Neo4jImage::new(&old_neo4j.name, &node.version);
             new_node = Some(images::neo4j::neo4j(&neo4j));

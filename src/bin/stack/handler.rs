@@ -112,12 +112,14 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::UpdateNode(node) => {
                 // Start the node
                 let mut msg = "".to_string();
-                if let Some(new_node) = update_node(&docker, &node).await? {
+                if let Some(new_node) = update_node(&docker, &node, &state).await? {
                     create_and_start(docker, new_node, false).await?;
                     must_save_stack = true;
+                    println!("Node stopped and restarted");
 
                     msg = format!("Updated {} node successfully", node.id.clone());
                 }
+                
 
                 msg = format!("Could not update {} node", node.id.clone());
 

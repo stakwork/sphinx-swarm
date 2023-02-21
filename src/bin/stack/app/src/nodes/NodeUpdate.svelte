@@ -76,7 +76,7 @@
   }
 
   async function upgradeVersion() {
-    console.log(await api.swarm.update_node("neo4j.sphinx", "4.4.9"));
+    console.log(await api.swarm.update_node("neo4j", "4.4.9"));
   }
 
   onDestroy(() => {
