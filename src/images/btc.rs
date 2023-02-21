@@ -1,7 +1,11 @@
-use super::{DockerHubImage, Repository};
+use super::{DockerConfig, DockerHubImage, Repository};
+use crate::config::Node;
 use crate::secrets;
 use crate::utils::{domain, host_config};
+use anyhow::Result;
+use async_trait::async_trait;
 use bollard::container::Config;
+use bollard::Docker;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -27,6 +31,14 @@ impl BtcImage {
         self.pass = password.to_string();
     }
 }
+
+#[async_trait]
+impl DockerConfig for BtcImage {
+    async fn make_config(&self, _nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        Ok(btc(self))
+    }
+}
+
 impl DockerHubImage for BtcImage {
     fn repo(&self) -> Repository {
         Repository {

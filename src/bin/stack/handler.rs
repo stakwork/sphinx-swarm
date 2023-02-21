@@ -7,16 +7,12 @@ use serde::{Deserialize, Serialize};
 use sphinx_swarm::auth;
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{put_config_file, Node, Stack, STATE};
-use sphinx_swarm::dock::container_logs;
-use sphinx_swarm::dock::create_and_start;
-use sphinx_swarm::dock::list_containers;
-use sphinx_swarm::dock::start_container;
-use sphinx_swarm::dock::stop_container;
+use sphinx_swarm::dock::*;
 
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
-use crate::update::{update_node, UpdateNodeData};
+use crate::update::update_node;
 
 // tag is the service name
 pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -50,6 +46,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 log::info!("AddNode -> {:?}", node);
                 // add a node via docker
                 None
+            }
+            SwarmCmd::UpdateNode(un) => {
+                log::info!("UpdateNode -> {}", un.id);
+                update_node(&docker, &un, &mut state.stack.nodes).await?;
+                must_save_stack = true;
+                Some(serde_json::to_string("")?)
             }
             SwarmCmd::GetContainerLogs(container_name) => {
                 let logs = container_logs(docker, &container_name).await;
@@ -116,29 +118,6 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::ListContainers => {
                 let containers = list_containers(docker).await?;
                 Some(serde_json::to_string(&containers)?)
-            }
-            SwarmCmd::UpdateNode(node) => {
-                let mut msg: String;
-
-                let UpdateNodeData {
-                    node_index,
-                    new_node,
-                    node_update,
-                } = update_node(&docker, &node, &state).await?;
-
-                if let (Some(n_node), Some(index), Some(n_update)) =
-                    (new_node, node_index, node_update)
-                {
-                    // Start the node
-                    create_and_start(docker, n_node, false).await?;
-                    msg = format!("Updated {} node successfully", node.id.clone());
-
-                    state.stack.nodes[index] = n_update;
-                    must_save_stack = true;
-                }
-
-                msg = format!("Could not update {} node", node.id.clone());
-                Some(serde_json::to_string(&msg)?)
             }
         },
         Cmd::Relay(c) => {

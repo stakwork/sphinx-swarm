@@ -1,6 +1,9 @@
 use super::traefik::traefik_labels;
 use super::*;
+use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config, single_host_port_from_eighty};
+use anyhow::Result;
+use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +33,13 @@ impl NavFiberImage {
         if let Some(h) = eh {
             self.host = Some(format!("nav.{}", h));
         }
+    }
+}
+
+#[async_trait]
+impl DockerConfig for NavFiberImage {
+    async fn make_config(&self, _nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        Ok(navfiber(self))
     }
 }
 

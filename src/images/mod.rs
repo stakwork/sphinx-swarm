@@ -12,6 +12,9 @@ pub mod relay;
 pub mod traefik;
 
 use crate::config;
+use async_trait::async_trait;
+use bollard::container::Config;
+use bollard::Docker;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -35,6 +38,15 @@ pub struct Repository {
 
 pub trait DockerHubImage {
     fn repo(&self) -> Repository;
+}
+
+#[async_trait]
+pub trait DockerConfig {
+    async fn make_config(
+        &self,
+        nodes: &Vec<config::Node>,
+        docker: &Docker,
+    ) -> anyhow::Result<Config<String>>;
 }
 
 pub type Links = Vec<String>;
@@ -66,6 +78,40 @@ impl Image {
             Image::BoltWall(_n) => "BoltWall",
         }
         .to_string()
+    }
+    pub fn set_version(&mut self, version: &str) {
+        match self {
+            Image::Btc(n) => n.version = version.to_string(),
+            Image::Lnd(n) => n.version = version.to_string(),
+            Image::Relay(n) => n.version = version.to_string(),
+            Image::Proxy(n) => n.version = version.to_string(),
+            Image::Cache(n) => n.version = version.to_string(),
+            Image::Neo4j(n) => n.version = version.to_string(),
+            Image::NavFiber(n) => n.version = version.to_string(),
+            Image::Jarvis(n) => n.version = version.to_string(),
+            Image::BoltWall(n) => n.version = version.to_string(),
+        };
+    }
+}
+
+#[async_trait]
+impl DockerConfig for Image {
+    async fn make_config(
+        &self,
+        nodes: &Vec<config::Node>,
+        docker: &Docker,
+    ) -> anyhow::Result<Config<String>> {
+        match self {
+            Image::Btc(n) => n.make_config(nodes, docker).await,
+            Image::Lnd(n) => n.make_config(nodes, docker).await,
+            Image::Relay(n) => n.make_config(nodes, docker).await,
+            Image::Proxy(n) => n.make_config(nodes, docker).await,
+            Image::Cache(n) => n.make_config(nodes, docker).await,
+            Image::Neo4j(n) => n.make_config(nodes, docker).await,
+            Image::NavFiber(n) => n.make_config(nodes, docker).await,
+            Image::Jarvis(n) => n.make_config(nodes, docker).await,
+            Image::BoltWall(n) => n.make_config(nodes, docker).await,
+        }
     }
 }
 

@@ -38,6 +38,7 @@ jwt = "0.16.0"
 bcrypt = "0.13"
 sha2 = "0.10"
 hmac = "0.12"
+async-trait = "0.1.64"
 
 [lib]
 name = "sphinx_swarm"

@@ -104,6 +104,15 @@ impl Node {
         }
         false
     }
+    pub fn set_version(&mut self, version: &str) -> Result<()> {
+        match self {
+            Node::Internal(img) => {
+                img.set_version(version);
+                Ok(())
+            }
+            Node::External(_n) => Err(anyhow::anyhow!("not an internal node".to_string())),
+        }
+    }
 }
 
 impl Default for User {

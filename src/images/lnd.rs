@@ -1,7 +1,10 @@
 use super::traefik::traefik_labels;
 use super::*;
+use crate::config::Node;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +46,16 @@ impl LndImage {
         }
     }
 }
+
+#[async_trait]
+impl DockerConfig for LndImage {
+    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let btc = li.find_btc().context("BTC required for LND")?;
+        Ok(lnd(&self, &btc))
+    }
+}
+
 impl DockerHubImage for LndImage {
     fn repo(&self) -> Repository {
         Repository {

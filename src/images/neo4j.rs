@@ -1,6 +1,9 @@
 use super::*;
+use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
-use bollard::container::Config;
+use anyhow::Result;
+use async_trait::async_trait;
+use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -25,6 +28,13 @@ impl Neo4jImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+}
+
+#[async_trait]
+impl DockerConfig for Neo4jImage {
+    async fn make_config(&self, _nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        Ok(neo4j(self))
     }
 }
 

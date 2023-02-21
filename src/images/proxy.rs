@@ -1,8 +1,11 @@
 use super::*;
+use crate::config::Node;
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
-use bollard::container::Config;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -39,6 +42,16 @@ impl ProxyImage {
         self.links = strarr(links)
     }
 }
+
+#[async_trait]
+impl DockerConfig for ProxyImage {
+    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let lnd = li.find_lnd().context("LND required for Proxy")?;
+        Ok(proxy(&self, &lnd))
+    }
+}
+
 impl DockerHubImage for ProxyImage {
     fn repo(&self) -> Repository {
         Repository {

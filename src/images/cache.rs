@@ -1,9 +1,13 @@
 use super::*;
+use crate::config::{ExternalNodeType, Node};
 use crate::rsa;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
+use url::{Host, Url};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct CacheImage {
@@ -30,6 +34,31 @@ impl CacheImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+}
+
+#[async_trait]
+impl DockerConfig for CacheImage {
+    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        let memes = nodes
+            .iter()
+            .find(|n| n.is_ext_of_type(ExternalNodeType::Meme))
+            .context("No Memes")?
+            .as_external()?;
+
+        let memes_url = Url::parse(format!("https://{}", memes.url).as_str())?;
+        let memes_host = memes_url.host().unwrap_or(Host::Domain("")).to_string();
+
+        let tribes = nodes
+            .iter()
+            .find(|n| n.is_ext_of_type(ExternalNodeType::Tribes))
+            .context("No Tribes")?
+            .as_external()?;
+
+        let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
+        let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
+
+        Ok(cache(&self, &memes_host, &tribe_host))
     }
 }
 
