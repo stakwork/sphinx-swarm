@@ -1,5 +1,5 @@
 // use crate::utils::user;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use bollard::container::Config;
 use bollard::container::{
     CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
@@ -40,12 +40,14 @@ pub async fn create_and_start(
     }
 
     // first create volume with the same name, if needed
-    create_volume(&docker, &hostname).await?;
 
     if let Some(id) = current_id {
         log::info!("=> {} already exists", &hostname);
         return Ok(Some(id));
     }
+
+    create_volume(&docker, &hostname).await?;
+
     let img_tag = c.image.clone().context("expected image")?;
     // if it contains a "/" its from the registry
     let local_sphinx_image = img_tag.contains("sphinx-") && !img_tag.contains("/");

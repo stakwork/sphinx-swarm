@@ -1,5 +1,8 @@
 use super::{neo4j::Neo4jImage, *};
+use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +25,19 @@ impl JarvisImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+}
+
+#[async_trait]
+impl DockerConfig for JarvisImage {
+    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        let neo4j_node = nodes
+            .iter()
+            .find(|n| n.name() == "neo4j")
+            .context("No Neo4j")?
+            .as_internal()?
+            .as_neo4j()?;
+        Ok(jarvis(&self, &neo4j_node))
     }
 }
 

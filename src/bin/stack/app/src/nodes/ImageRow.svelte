@@ -12,7 +12,7 @@
 
 </script>
 
-<StructuredListRow label for="row-{item.id}">
+<StructuredListRow label for="row-{item.name}">
     <StructuredListCell>{repo}@{item.name}</StructuredListCell>
     <StructuredListCell
       >{moment(item.last_updated).fromNow()}</StructuredListCell

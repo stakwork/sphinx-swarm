@@ -1,6 +1,5 @@
 mod builder;
 mod handler;
-mod setup;
 mod srv;
 
 use anyhow::Result;

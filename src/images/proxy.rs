@@ -1,8 +1,12 @@
 use super::*;
+use crate::config::{Clients, Node};
+use crate::conn::proxy::ProxyAPI;
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
-use bollard::container::Config;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -38,7 +42,27 @@ impl ProxyImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
+    pub async fn connect_client(&self, clients: &mut Clients) -> Result<()> {
+        match ProxyAPI::new(self).await {
+            Ok(client) => {
+                clients.proxy.insert(self.name.clone(), client);
+            }
+            Err(e) => log::warn!("ProxyAPI error: {:?}", e),
+        };
+        sleep(1).await;
+        Ok(())
+    }
 }
+
+#[async_trait]
+impl DockerConfig for ProxyImage {
+    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let lnd = li.find_lnd().context("LND required for Proxy")?;
+        Ok(proxy(&self, &lnd))
+    }
+}
+
 impl DockerHubImage for ProxyImage {
     fn repo(&self) -> Repository {
         Repository {
@@ -99,4 +123,8 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
         cmd: Some(cmd),
         ..Default::default()
     }
+}
+
+async fn sleep(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }

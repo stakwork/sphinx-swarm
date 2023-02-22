@@ -1,7 +1,12 @@
 use super::traefik::traefik_labels;
 use super::*;
+use crate::config::Node;
+use crate::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
+use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
@@ -33,6 +38,34 @@ impl BoltwallImage {
         if let Some(h) = eh {
             self.host = Some(format!("boltwall.{}", h));
         }
+    }
+}
+
+#[async_trait]
+impl DockerConfig for BoltwallImage {
+    async fn make_config(&self, nodes: &Vec<Node>, docker: &Docker) -> Result<Config<String>> {
+        let lnd_node = nodes
+            .iter()
+            .find(|n| n.name() == "lnd")
+            .context("No LND")?
+            .as_internal()?
+            .as_lnd()?;
+
+        let cert_path = "/home/.lnd/tls.cert";
+        let cert_full = dl_cert(docker, &lnd_node.name, cert_path).await?;
+        let cert64 = strip_pem_prefix_suffix(&cert_full);
+        let netwk = to_lnd_network(lnd_node.network.as_str());
+        let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
+        let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
+
+        let jarvis_node = nodes
+            .iter()
+            .find(|n| n.name() == "jarvis")
+            .context("No Jarvis")?
+            .as_internal()?
+            .as_jarvis()?;
+
+        Ok(boltwall(&self, &mac, &cert64, &lnd_node, &jarvis_node))
     }
 }
 

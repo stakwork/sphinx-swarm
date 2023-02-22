@@ -1,17 +1,10 @@
-use super::setup;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
-use rocket::tokio;
-use sphinx_swarm::config::Stack;
-use sphinx_swarm::config::{Clients, ExternalNodeType, Node};
-use sphinx_swarm::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use sphinx_swarm::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
-use sphinx_swarm::conn::proxy::ProxyAPI;
-use sphinx_swarm::images::lnd::to_lnd_network;
-use sphinx_swarm::images::{Image, LinkedImages};
-use sphinx_swarm::utils::docker_domain_127;
-use sphinx_swarm::{dock::*, images};
-use url::{Host, Url};
+use sphinx_swarm::cmd::UpdateNode;
+use sphinx_swarm::config::{Clients, Node, Stack};
+use sphinx_swarm::dock::*;
+use sphinx_swarm::dock::{create_and_start, stop_and_remove};
+use sphinx_swarm::images::{DockerConfig, Image};
 
 // return a map of name:docker_id
 pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<Clients> {
@@ -48,133 +41,46 @@ pub async fn add_node(
         log::info!("external url {}", n.url);
         return Ok(());
     }
-    let node = node.as_internal().unwrap();
-    Ok(match node {
-        Image::Btc(btc) => {
-            let btc1 = images::btc::btc(&btc);
-            if let Some(_) = create_and_start(&docker, btc1, skip).await? {
-                let btc_rpc_url = format!("http://{}", docker_domain_127(&btc.name));
-                match BitcoinRPC::new_and_create_wallet(&btc, &btc_rpc_url, "18443").await {
-                    Ok(client) => {
-                        clients.bitcoind.insert(btc.name, client);
-                    }
-                    Err(e) => log::warn!("BitcoinRPC error: {:?}", e),
-                };
-            }
-        }
-        Image::Lnd(lnd) => {
-            sleep(1).await;
-            let li = LinkedImages::from_nodes(lnd.links.clone(), nodes);
-            let btc = li.find_btc().context("BTC required for LND")?;
-            let lnd1 = images::lnd::lnd(&lnd, &btc);
-            if let Some(_) = create_and_start(&docker, lnd1, skip).await? {
-                sleep(1).await;
-                match setup::lnd_clients(docker, proj, &lnd).await {
-                    Ok((client, test_mine_addy)) => {
-                        setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
-                        clients.lnd.insert(lnd.name, client);
-                    }
-                    Err(e) => log::warn!("lnd_clients error: {:?}", e),
-                }
-            }
-        }
-        Image::Proxy(proxy) => {
-            let li = LinkedImages::from_nodes(proxy.links.clone(), nodes);
-            let lnd = li.find_lnd().context("LND required for Proxy")?;
-            let proxy1 = images::proxy::proxy(&proxy, &lnd);
-            if let Some(_) = create_and_start(&docker, proxy1, skip).await? {
-                match ProxyAPI::new(&proxy).await {
-                    Ok(client) => {
-                        clients.proxy.insert(proxy.name, client);
-                    }
-                    Err(e) => log::warn!("ProxyAPI error: {:?}", e),
-                }
-            }
-        }
-        Image::Relay(relay) => {
-            sleep(1).await;
-            let li = LinkedImages::from_nodes(relay.links.clone(), nodes);
-            let lnd = li.find_lnd().context("LND required for Relay")?;
-            let proxy = li.find_proxy();
-            let relay1 = images::relay::relay(&relay, &lnd, proxy);
-            if let Some(_) = create_and_start(&docker, relay1, skip).await? {
-                match setup::relay_client(proj, &relay).await {
-                    Ok(client) => {
-                        clients.relay.insert(relay.name, client);
-                    }
-                    Err(e) => log::warn!("relay_client error: {:?}", e),
-                }
-            }
-        }
-        Image::Cache(cache) => {
-            let memes = nodes
-                .iter()
-                .find(|n| n.is_ext_of_type(ExternalNodeType::Meme))
-                .context("No Memes")?
-                .as_external()?;
-
-            let memes_url = Url::parse(format!("https://{}", memes.url).as_str())?;
-            let memes_host = memes_url.host().unwrap_or(Host::Domain("")).to_string();
-
-            let tribes = nodes
-                .iter()
-                .find(|n| n.is_ext_of_type(ExternalNodeType::Tribes))
-                .context("No Tribes")?
-                .as_external()?;
-
-            let tribes_url = Url::parse(format!("https://{}", tribes.url).as_str())?;
-            let tribe_host = tribes_url.host().unwrap_or(Host::Domain("")).to_string();
-
-            let cache1 = images::cache::cache(&cache, &memes_host, &tribe_host);
-            create_and_start(&docker, cache1, skip).await?;
-        }
-        Image::Neo4j(neo4j) => {
-            let neo = images::neo4j::neo4j(&neo4j);
-            create_and_start(&docker, neo, skip).await?;
-        }
-        Image::Jarvis(jarvis) => {
-            let neo4j_node = nodes
-                .iter()
-                .find(|n| n.name() == "neo4j")
-                .context("No Neo4j")?
-                .as_internal()?
-                .as_neo4j()?;
-            let j = images::jarvis::jarvis(&jarvis, &neo4j_node);
-            create_and_start(&docker, j, skip).await?;
-        }
-        Image::BoltWall(boltwall) => {
-            let lnd_node = nodes
-                .iter()
-                .find(|n| n.name() == "lnd")
-                .context("No LND")?
-                .as_internal()?
-                .as_lnd()?;
-
-            let cert_path = "/home/.lnd/tls.cert";
-            let cert_full = dl_cert(docker, &lnd_node.name, cert_path).await?;
-            let cert64 = strip_pem_prefix_suffix(&cert_full);
-            let netwk = to_lnd_network(lnd_node.network.as_str());
-            let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
-            let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
-
-            let jarvis_node = nodes
-                .iter()
-                .find(|n| n.name() == "jarvis")
-                .context("No Jarvis")?
-                .as_internal()?
-                .as_jarvis()?;
-
-            let b = images::boltwall::boltwall(&boltwall, &mac, &cert64, &lnd_node, &jarvis_node);
-            create_and_start(&docker, b, skip).await?;
-        }
-        Image::NavFiber(navfiber) => {
-            sleep(1).await;
-            let nf = images::navfiber::navfiber(&navfiber);
-            create_and_start(&docker, nf, skip).await?;
-        }
-    })
+    let img = node.as_internal().unwrap();
+    // create config
+    let node_config = img.make_config(nodes, docker).await?;
+    // start container
+    create_and_start(docker, node_config, skip).await?;
+    // post-starup steps (LND unlock)
+    img.post_startup(proj, docker).await?;
+    // create a connect client
+    img.connect_client(proj, clients, docker, nodes).await?;
+    Ok(())
 }
 
-async fn sleep(n: u64) {
-    tokio::time::sleep(std::time::Duration::from_secs(n)).await;
+pub fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<Image> {
+    let name = hostname
+        .strip_suffix(".sphinx")
+        .context(format!("no {:?}", hostname))?;
+    Ok(nodes
+        .iter()
+        .find(|n| n.name() == name)
+        .context(format!("No {}", name))?
+        .as_internal()?)
+}
+
+pub async fn update_node(docker: &Docker, un: &UpdateNode, nodes: &mut Vec<Node>) -> Result<()> {
+    let pos = nodes.iter().position(|n| n.name() == un.id);
+    let hostname = format!("{}.sphinx", &un.id);
+    if let None = pos {
+        return Err(anyhow!("cannot find node in stack"));
+    }
+    let pos = pos.unwrap();
+
+    // stop the node
+    stop_and_remove(docker, &hostname).await?;
+
+    nodes[pos].set_version(&un.version)?;
+
+    let theimg = nodes[pos].as_internal()?;
+    let theconfig = theimg.make_config(nodes, docker).await?;
+
+    create_and_start(docker, theconfig, false).await?;
+
+    Ok(())
 }

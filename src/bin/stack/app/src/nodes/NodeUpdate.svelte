@@ -12,11 +12,13 @@
   import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
+  import { selectedNode } from "../store";
 
   let open = false;
 
-  export let name = "";
-  export let version = "";
+  let name = $selectedNode.name;
+  let selectedVersion = $selectedNode.version;
+
   let org = "";
   let repo = "";
   let loading = false;
@@ -25,8 +27,6 @@
   let page = 1;
 
   $: versionItems = [];
-
-  let selected = "";
 
   function openModal() {
     open = true;
@@ -43,11 +43,15 @@
   }
 
   function parseVersionData(nodeVersions) {
-    return JSON.parse(nodeVersions.images).results;
+    try {
+      return JSON.parse(nodeVersions.images).results;
+    } catch (e) {
+      return [];
+    }
   }
 
   function formatVersionData(versions) {
-    return versions.map((v, i) => {
+    return versions?.map((v, i) => {
       return {
         id: i,
         name: v.name,
@@ -67,13 +71,15 @@
     org = nodeVersions.org;
     repo = nodeVersions.repo;
 
-    selected = `row-${version}-value`;
     versionItems = formatVersionData(versions);
     loading = false;
   }
 
   async function upgradeVersion() {
-    console.log("UPDATE IMAGE");
+    if (name && selectedVersion) {
+      console.log("update =>", name, selectedVersion);
+      await api.swarm.update_node(name, selectedVersion);
+    }
   }
 
   onDestroy(() => {
@@ -98,16 +104,19 @@
       }
     }
   }
+
+  function listChange(e) {
+    const details = e.detail.split("-");
+    if (details.length > 1) selectedVersion = details[1];
+  }
 </script>
 
 <section class="update-wrap">
   <section class="update-node-btn">
     <div class="title">{name}</div>
-    {#if version}
-      <div class="version">({version})</div>
-      <Button disabled={true} on:click={openModal} size="field" icon={Upgrade}
-        >Update</Button
-      >
+    {#if $selectedNode.version}
+      <div class="version">{`(${$selectedNode.version})`}</div>
+      <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
     {/if}
   </section>
 
@@ -128,7 +137,11 @@
         </div>
       {:else}
         <div class="list" on:scroll={scrolled}>
-          <StructuredList selection {selected}>
+          <StructuredList
+            on:change={listChange}
+            selection
+            selected={`row-${selectedVersion}-value`}
+          >
             <StructuredListHead>
               <StructuredListRow head>
                 <StructuredListCell head>Version</StructuredListCell>

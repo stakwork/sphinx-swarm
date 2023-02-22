@@ -1,8 +1,12 @@
 use super::traefik::traefik_labels;
 use super::*;
+use crate::config::{Clients, Node};
+use crate::conn::relay::setup::relay_client;
 use crate::images::lnd::to_lnd_network;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
-use bollard::container::Config;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
+use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
 
 // in relay:
@@ -36,7 +40,27 @@ impl RelayImage {
             self.host = Some(format!("{}.{}", self.name, h));
         }
     }
+    pub async fn connect_client(&self, proj: &str, clients: &mut Clients) -> Result<()> {
+        match relay_client(proj, self).await {
+            Ok(client) => {
+                clients.relay.insert(self.name.clone(), client);
+            }
+            Err(e) => log::warn!("relay_client error: {:?}", e),
+        };
+        Ok(())
+    }
 }
+
+#[async_trait]
+impl DockerConfig for RelayImage {
+    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let lnd = li.find_lnd().context("LND required for Relay")?;
+        let proxy = li.find_proxy();
+        Ok(relay(&self, &lnd, proxy))
+    }
+}
+
 impl DockerHubImage for RelayImage {
     fn repo(&self) -> Repository {
         Repository {

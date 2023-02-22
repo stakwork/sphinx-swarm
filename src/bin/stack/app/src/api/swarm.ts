@@ -45,6 +45,10 @@ export async function start_container(id: string) {
   return await swarmCmd("StartContainer", id);
 }
 
+export async function update_node(id: string, version: string) {
+  return await swarmCmd("UpdateNode", {id, version});
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

@@ -35,7 +35,8 @@ export type Cmd =
   | "GetToken"
   | "ListContainers"
   | "StartContainer"
-  | "StopContainer";
+  | "StopContainer"
+  | "UpdateNode";
 
 interface CmdData {
   cmd: Cmd;

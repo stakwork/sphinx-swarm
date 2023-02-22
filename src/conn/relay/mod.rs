@@ -1,3 +1,5 @@
+pub mod setup;
+
 use crate::images::relay::RelayImage;
 use crate::utils::docker_domain;
 use anyhow::{anyhow, Result};
@@ -97,7 +99,7 @@ pub struct GetBalance {
     reserve: u128,
     full_balance: u128,
     balance: u128,
-    pending_open_balance: u128
+    pending_open_balance: u128,
 }
 
 impl Default for CreateTribe {

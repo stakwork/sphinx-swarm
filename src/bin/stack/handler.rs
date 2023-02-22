@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 
-use crate::setup::starter;
+use crate::builder::{find_image_by_hostname, update_node};
 use anyhow::{Context, Result};
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::auth;
 use sphinx_swarm::cmd::*;
 use sphinx_swarm::config::{put_config_file, Node, Stack, STATE};
-use sphinx_swarm::dock::container_logs;
-use sphinx_swarm::dock::list_containers;
-use sphinx_swarm::dock::start_container;
-use sphinx_swarm::dock::stop_container;
+use sphinx_swarm::dock::*;
+
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
 
@@ -32,7 +30,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 log::info!("StartContainer -> {}", id);
                 let res = start_container(docker, &id).await?;
                 // extra startup steps such as LND unlock
-                if let Err(e) = starter(proj, &id, &state.stack.nodes, docker).await {
+                let img = find_image_by_hostname(&state.stack.nodes, &id)?;
+                if let Err(e) = img.post_startup(proj, docker).await {
                     log::warn!("{:?}", e);
                 }
                 Some(serde_json::to_string(&res)?)
@@ -46,6 +45,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 log::info!("AddNode -> {:?}", node);
                 // add a node via docker
                 None
+            }
+            SwarmCmd::UpdateNode(un) => {
+                log::info!("UpdateNode -> {}", un.id);
+                update_node(&docker, &un, &mut state.stack.nodes).await?;
+                must_save_stack = true;
+                Some(serde_json::to_string("")?)
             }
             SwarmCmd::GetContainerLogs(container_name) => {
                 let logs = container_logs(docker, &container_name).await;
