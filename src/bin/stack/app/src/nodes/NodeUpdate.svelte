@@ -7,17 +7,19 @@
     StructuredListRow,
     StructuredListCell,
     StructuredListBody,
+    Loading,
   } from "carbon-components-svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
-  import { selectedNode } from "../store";
+  import { selectedNode, containers } from "../store";
 
   let open = false;
 
-  let name = $selectedNode.name;
+  $: name = $selectedNode.name;
   let selectedVersion = $selectedNode.version;
+  $: btnDis = false;
 
   let org = "";
   let repo = "";
@@ -77,8 +79,17 @@
 
   async function upgradeVersion() {
     if (name && selectedVersion) {
-      console.log("update =>", name, selectedVersion);
+      btnDis = true;
+      // console.log("update =>", name, selectedVersion);
       await api.swarm.update_node(name, selectedVersion);
+      btnDis = false;
+
+      /**
+       * Load containers state to know the state of all containers
+       * incase the node gets stuck in a restarting state
+       * */
+      const res: Container[] = await api.swarm.list_containers();
+      if (res) containers.set(res);
     }
   }
 
@@ -127,9 +138,16 @@
     class="get-logs-modal"
     primaryButtonText="Update instance"
     secondaryButtonText="Cancel"
+    disabled={btnDis}
+    primaryButtonDisabled={btnDis}
     on:submit={upgradeVersion}
     on:click:button--secondary={() => (open = !open)}
   >
+    {#if btnDis}
+      <div class="overlay">
+        <Loading />
+      </div>
+    {/if}
     <section class="modal-content">
       {#if loading}
         <div class="loading-wrap">
@@ -207,5 +225,11 @@
     padding: 0;
     margin: 0;
     margin-top: -50px;
+  }
+  .overlay {
+    min-width: 100%;
+    min-height: 100%;
+    z-index: 100;
+    background-color: rgb(211, 211, 211, 0.1);
   }
 </style>
