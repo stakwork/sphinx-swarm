@@ -7,6 +7,7 @@
     StructuredListRow,
     StructuredListCell,
     StructuredListBody,
+    Loading,
   } from "carbon-components-svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
@@ -135,6 +136,11 @@
     on:submit={upgradeVersion}
     on:click:button--secondary={() => (open = !open)}
   >
+    {#if btnDis}
+      <div class="overlay">
+        <Loading />
+      </div>
+    {/if}
     <section class="modal-content">
       {#if loading}
         <div class="loading-wrap">
@@ -212,5 +218,11 @@
     padding: 0;
     margin: 0;
     margin-top: -50px;
+  }
+  .overlay {
+    min-width: 100%;
+    min-height: 100%;
+    z-index: 100;
+    background-color: rgb(211, 211, 211, 0.1);
   }
 </style>
