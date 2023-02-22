@@ -13,7 +13,7 @@
   import { onDestroy } from "svelte";
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
-  import { selectedNode } from "../store";
+  import { selectedNode, containers } from "../store";
 
   let open = false;
 
@@ -83,6 +83,13 @@
       // console.log("update =>", name, selectedVersion);
       await api.swarm.update_node(name, selectedVersion);
       btnDis = false;
+
+      /**
+       * Load containers state to know the state of all containers
+       * incase the node gets stuck in a restarting state
+       * */
+      const res: Container[] = await api.swarm.list_containers();
+      if (res) containers.set(res);
     }
   }
 
