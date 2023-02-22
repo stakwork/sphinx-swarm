@@ -13,3 +13,4 @@ notes-*.md
 .env.*
 .labels.*
 reset.sh
+src/bin/stack/notes

@@ -53,6 +53,8 @@
     sendStopEvent();
     btnDis = false;
   }
+
+  $: console.log($node_state);
 </script>
 
 <aside class="node-action-wrap">
