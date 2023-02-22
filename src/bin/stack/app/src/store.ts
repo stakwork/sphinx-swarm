@@ -119,7 +119,7 @@ export type NodeState = "restarting" | "running" | "exited" | undefined;
 export const node_state: Readable<NodeState> = derived(
   [selectedNode, containers],
   ([$selectedNode, $containers]) => {
-    if (!$selectedNode) return;
+    if (!$selectedNode || $selectedNode.place === "External") return;
     return $containers?.find((n) =>
       n.Names.includes(`/${$selectedNode.name}.sphinx`)
     ).State as NodeState;
