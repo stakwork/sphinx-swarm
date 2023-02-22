@@ -31,7 +31,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let res = start_container(docker, &id).await?;
                 // extra startup steps such as LND unlock
                 let img = find_image_by_hostname(&state.stack.nodes, &id)?;
-                if let Err(e) = img.post_startup(proj, docker).await {
+                if let Err(e) = img.post_startup(proj, docker, &state.clients).await {
                     log::warn!("{:?}", e);
                 }
                 Some(serde_json::to_string(&res)?)
