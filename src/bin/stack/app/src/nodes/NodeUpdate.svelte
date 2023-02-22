@@ -88,7 +88,7 @@
        * Load containers state to know the state of all containers
        * incase the node gets stuck in a restarting state
        * */
-      const res: Container[] = await api.swarm.list_containers();
+      const res: api.swarm.Container[] = await api.swarm.list_containers();
       if (res) containers.set(res);
     }
   }
