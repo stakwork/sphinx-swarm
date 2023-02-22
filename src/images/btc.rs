@@ -3,7 +3,7 @@ use crate::config::{Clients, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::secrets;
 use crate::utils::{docker_domain_127, domain, host_config};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::Docker;
@@ -30,6 +30,14 @@ impl BtcImage {
     }
     pub fn set_password(&mut self, password: &str) {
         self.pass = password.to_string();
+    }
+    pub async fn post_startup(&self, clients: &Clients) -> Result<()> {
+        let client = clients
+            .bitcoind
+            .get(&self.name)
+            .context("no bitcoind client")?;
+        client.load_wallet()?;
+        Ok(())
     }
     pub async fn connect_client(&self, clients: &mut Clients) {
         let btc_rpc_url = format!("http://{}", docker_domain_127(&self.name));

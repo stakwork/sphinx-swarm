@@ -47,7 +47,7 @@ pub async fn add_node(
     // start container
     create_and_start(docker, node_config, skip).await?;
     // post-starup steps (LND unlock)
-    img.post_startup(proj, docker).await?;
+    img.post_startup(proj, docker, clients).await?;
     // create a connect client
     img.connect_client(proj, clients, docker, nodes).await?;
     Ok(())

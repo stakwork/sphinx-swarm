@@ -41,6 +41,12 @@ impl BitcoinRPC {
         }
     }
 
+    pub fn load_wallet(&self) -> Result<()> {
+        let wallet = "wallet";
+        let _ = self.0.load_wallet(wallet);
+        Ok(())
+    }
+
     pub fn get_wallet_balance(&self) -> Result<f64> {
         Ok(self.0.get_balance(Some(6), None)?.as_btc())
     }

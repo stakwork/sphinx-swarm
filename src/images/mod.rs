@@ -93,8 +93,15 @@ impl Image {
             Image::BoltWall(n) => n.version = version.to_string(),
         };
     }
-    pub async fn post_startup(&self, proj: &str, docker: &Docker) -> Result<()> {
+    pub async fn post_startup(
+        &self,
+        proj: &str,
+        docker: &Docker,
+        clients: &config::Clients,
+    ) -> Result<()> {
         Ok(match self {
+            // load btc wallet
+            Image::Btc(n) => n.post_startup(clients).await?,
             // unlock LND
             Image::Lnd(n) => n.post_startup(proj, docker).await?,
             _ => (),
