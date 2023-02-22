@@ -16,8 +16,9 @@
 
   let open = false;
 
-  let name = $selectedNode.name;
+  $: name = $selectedNode.name;
   let selectedVersion = $selectedNode.version;
+  $: btnDis = false;
 
   let org = "";
   let repo = "";
@@ -77,8 +78,10 @@
 
   async function upgradeVersion() {
     if (name && selectedVersion) {
-      console.log("update =>", name, selectedVersion);
+      btnDis = true;
+      // console.log("update =>", name, selectedVersion);
       await api.swarm.update_node(name, selectedVersion);
+      btnDis = false;
     }
   }
 
@@ -127,6 +130,8 @@
     class="get-logs-modal"
     primaryButtonText="Update instance"
     secondaryButtonText="Cancel"
+    disabled={btnDis}
+    primaryButtonDisabled={btnDis}
     on:submit={upgradeVersion}
     on:click:button--secondary={() => (open = !open)}
   >
