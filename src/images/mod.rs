@@ -12,6 +12,7 @@ pub mod relay;
 pub mod traefik;
 
 use crate::config;
+use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::Docker;
@@ -46,7 +47,7 @@ pub trait DockerConfig {
         &self,
         nodes: &Vec<config::Node>,
         docker: &Docker,
-    ) -> anyhow::Result<Config<String>>;
+    ) -> Result<Config<String>>;
 }
 
 pub type Links = Vec<String>;
@@ -91,6 +92,28 @@ impl Image {
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
         };
+    }
+    pub async fn post_startup(&self, proj: &str, docker: &Docker) -> Result<()> {
+        Ok(match self {
+            // unlock LND
+            Image::Lnd(n) => n.post_startup(proj, docker).await?,
+            _ => (),
+        })
+    }
+    pub async fn connect_client(
+        &self,
+        proj: &str,
+        clients: &mut config::Clients,
+        docker: &Docker,
+        nodes: &Vec<config::Node>,
+    ) -> Result<()> {
+        Ok(match self {
+            Image::Btc(n) => n.connect_client(clients).await,
+            Image::Lnd(n) => n.connect_client(clients, docker, nodes).await?,
+            Image::Proxy(n) => n.connect_client(clients).await?,
+            Image::Relay(n) => n.connect_client(proj, clients).await?,
+            _ => (),
+        })
     }
 }
 

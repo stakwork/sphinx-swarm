@@ -1,7 +1,8 @@
 use super::{DockerConfig, DockerHubImage, Repository};
-use crate::config::Node;
+use crate::config::{Clients, Node};
+use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::secrets;
-use crate::utils::{domain, host_config};
+use crate::utils::{docker_domain_127, domain, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -29,6 +30,16 @@ impl BtcImage {
     }
     pub fn set_password(&mut self, password: &str) {
         self.pass = password.to_string();
+    }
+    pub async fn connect_client(&self, clients: &mut Clients) {
+        let btc_rpc_url = format!("http://{}", docker_domain_127(&self.name));
+        match BitcoinRPC::new_and_create_wallet(&self, &btc_rpc_url, "18443").await {
+            Ok(client) => {
+                clients.bitcoind.insert(self.name.clone(), client);
+            }
+            Err(e) => log::warn!("BitcoinRPC error: {:?}", e),
+        };
+        sleep(1).await;
     }
 }
 
@@ -88,4 +99,8 @@ pub fn btc(node: &BtcImage) -> Config<String> {
         host_config: host_config(&node.name, ports, root_vol, None),
         ..Default::default()
     }
+}
+
+async fn sleep(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }

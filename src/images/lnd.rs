@@ -1,6 +1,8 @@
 use super::traefik::traefik_labels;
 use super::*;
-use crate::config::Node;
+use crate::config::{Clients, Node};
+use crate::conn::lnd::setup;
+use crate::conn::lnd::utils::{dl_cert, try_unlock_lnd};
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
@@ -44,6 +46,30 @@ impl LndImage {
         if let Some(h) = eh {
             self.host = Some(format!("{}.{}", self.name, h));
         }
+    }
+    pub async fn post_startup(&self, proj: &str, docker: &Docker) -> Result<()> {
+        let cert_path = "/home/.lnd/tls.cert";
+        let cert = dl_cert(docker, &self.name, cert_path).await?;
+        try_unlock_lnd(&cert, proj, &self).await?;
+        Ok(())
+    }
+    pub async fn connect_client(
+        &self,
+        clients: &mut Clients,
+        docker: &Docker,
+        nodes: &Vec<Node>,
+    ) -> Result<()> {
+        sleep(1).await;
+        match setup::lnd_clients(docker, self).await {
+            Ok((client, test_mine_addy)) => {
+                let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+                let btc = li.find_btc().context("BTC required for LND")?;
+                setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
+                clients.lnd.insert(self.name.clone(), client);
+            }
+            Err(e) => log::warn!("lnd_clients error: {:?}", e),
+        };
+        Ok(())
     }
 }
 
@@ -127,4 +153,8 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     }
     c.cmd = Some(cmd);
     c
+}
+
+async fn sleep(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }

@@ -1,8 +1,6 @@
 mod builder;
 mod handler;
-mod setup;
 mod srv;
-mod update;
 
 use anyhow::Result;
 use rocket::tokio;

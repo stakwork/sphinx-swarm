@@ -1,5 +1,6 @@
 use super::*;
-use crate::config::Node;
+use crate::config::{Clients, Node};
+use crate::conn::proxy::ProxyAPI;
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
@@ -40,6 +41,16 @@ impl ProxyImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub async fn connect_client(&self, clients: &mut Clients) -> Result<()> {
+        match ProxyAPI::new(self).await {
+            Ok(client) => {
+                clients.proxy.insert(self.name.clone(), client);
+            }
+            Err(e) => log::warn!("ProxyAPI error: {:?}", e),
+        };
+        sleep(1).await;
+        Ok(())
     }
 }
 
@@ -112,4 +123,8 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
         cmd: Some(cmd),
         ..Default::default()
     }
+}
+
+async fn sleep(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }

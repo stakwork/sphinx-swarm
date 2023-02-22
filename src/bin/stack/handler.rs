@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::setup::starter;
+use crate::builder::{find_image_by_hostname, update_node};
 use anyhow::{Context, Result};
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
@@ -11,8 +11,6 @@ use sphinx_swarm::dock::*;
 
 use sphinx_swarm::images::{DockerHubImage, Image};
 use sphinx_swarm::secrets;
-
-use crate::update::update_node;
 
 // tag is the service name
 pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -32,7 +30,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 log::info!("StartContainer -> {}", id);
                 let res = start_container(docker, &id).await?;
                 // extra startup steps such as LND unlock
-                if let Err(e) = starter(proj, &id, &state.stack.nodes, docker).await {
+                let img = find_image_by_hostname(&state.stack.nodes, &id)?;
+                if let Err(e) = img.post_startup(proj, docker).await {
                     log::warn!("{:?}", e);
                 }
                 Some(serde_json::to_string(&res)?)
