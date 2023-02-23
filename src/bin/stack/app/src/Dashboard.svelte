@@ -19,7 +19,7 @@
   import ChangePassword from "./auth/ChangePassword.svelte";
   import type { Container } from "./api/swarm";
 
-  let name = "";
+  let selectedName = "";
 
   async function getConfig() {
     const stackRemote: Stack = await api.swarm.get_config();
@@ -54,20 +54,22 @@
     if (body) {
       if ($selectedNode) {
         // Remove the previous name saved in state
-        body.classList.remove(`selected-${name}`);
-
+        body.classList.remove(`selected-${selectedName}`);
+        // add the new classname
         body.classList.add(`selected-${$selectedNode.name}`);
-
         // save name to state
-        name = $selectedNode.name;
+        selectedName = $selectedNode.name;
+      } else {
+        body.classList.remove(`selected-${selectedName}`);
       }
-
-      if ($nodes_exited) {
-        $nodes_exited.forEach((node) => {
-          body.classList.add(`selected-${node}`);
-          body.classList.add(`${node}-stopped`);
-        });
-      }
+    }
+  }
+  $: {
+    if ($nodes_exited) {
+      $nodes_exited.forEach((node) => {
+        body.classList.add(`selected-${node}`);
+        body.classList.add(`${node}-stopped`);
+      });
     }
   }
 
