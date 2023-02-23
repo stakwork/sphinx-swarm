@@ -148,6 +148,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 .bitcoind
                 .get(tag)
                 .context("no bitcoind client")?;
+            println!("Client === {:#?}", client.get_info());
+
             match c {
                 BitcoindCmd::GetInfo => {
                     let info = client.get_info()?;

@@ -99,7 +99,10 @@
 
   async function scrolled(el) {
     let obj = el.target;
-    if (Math.ceil(obj.scrollTop) === obj.scrollHeight - obj.offsetHeight) {
+    if (
+      Math.ceil(obj.scrollTop) + obj.clientHeight >= obj.scrollHeight &&
+      hasMore
+    ) {
       page += 1;
       scrollLoading = true;
 
