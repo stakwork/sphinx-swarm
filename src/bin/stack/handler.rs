@@ -31,9 +31,11 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let res = start_container(docker, &id).await?;
                 // extra startup steps such as LND unlock
                 let img = find_image_by_hostname(&state.stack.nodes, &id)?;
-                if let Err(e) = img.post_startup(proj, docker, &state.clients).await {
+                if let Err(e) = img.post_startup(proj, docker).await {
                     log::warn!("{:?}", e);
                 }
+                // need to recreate client here?
+                img.post_client(&state.clients).await?;
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::StopContainer(id) => {

@@ -31,7 +31,7 @@ impl BtcImage {
     pub fn set_password(&mut self, password: &str) {
         self.pass = password.to_string();
     }
-    pub async fn post_startup(&self, clients: &Clients) -> Result<()> {
+    pub async fn post_client(&self, clients: &Clients) -> Result<()> {
         let client = clients
             .bitcoind
             .get(&self.name)

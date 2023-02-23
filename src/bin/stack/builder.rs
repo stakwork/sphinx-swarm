@@ -46,10 +46,12 @@ pub async fn add_node(
     let node_config = img.make_config(nodes, docker).await?;
     // start container
     create_and_start(docker, node_config, skip).await?;
-    // post-starup steps (LND unlock)
-    img.post_startup(proj, docker, clients).await?;
-    // create a connect client
+    // post-startup steps (LND unlock)
+    img.post_startup(proj, docker).await?;
+    // create and connect client
     img.connect_client(proj, clients, docker, nodes).await?;
+    // post-client connection steps (BTC load wallet)
+    img.post_client(clients).await?;
     Ok(())
 }
 
