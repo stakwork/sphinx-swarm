@@ -338,3 +338,44 @@ impl FromStr for Mode {
         }
     }
 }
+
+impl Stack {
+    // remove sensitive data from Stack when sending over wire
+    pub fn remove_tokens(&self) -> Stack {
+        let nodes = self.nodes.iter().map(|n| match n {
+            Node::External(e) => Node::External(e.clone()),
+            Node::Internal(i) => match i.clone() {
+                Image::Btc(mut b) => {
+                    b.pass = "".to_string();
+                    Node::Internal(Image::Btc(b))
+                }
+                Image::Lnd(mut l) => {
+                    l.unlock_password = "".to_string();
+                    Node::Internal(Image::Lnd(l))
+                }
+                Image::Proxy(mut p) => {
+                    p.store_key = None;
+                    p.admin_token = None;
+                    Node::Internal(Image::Proxy(p))
+                }
+                Image::Cln(c) => Node::Internal(Image::Cln(c)),
+                Image::Relay(r) => Node::Internal(Image::Relay(r)),
+                Image::Cache(c) => Node::Internal(Image::Cache(c)),
+                Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
+                Image::NavFiber(nf) => Node::Internal(Image::NavFiber(nf)),
+                Image::Jarvis(j) => Node::Internal(Image::Jarvis(j)),
+                Image::BoltWall(mut b) => {
+                    b.session_secret = "".to_string();
+                    Node::Internal(Image::BoltWall(b))
+                }
+            },
+        });
+        Stack {
+            network: self.network.clone(),
+            nodes: nodes.collect(),
+            host: self.host.clone(),
+            users: vec![],
+            jwt_key: "".to_string(),
+        }
+    }
+}

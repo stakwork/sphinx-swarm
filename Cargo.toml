@@ -53,6 +53,10 @@ name = "stack"
 path = "src/bin/stack/mod.rs"
 
 [[bin]]
+name = "cln"
+path = "src/bin/cln/mod.rs"
+
+[[bin]]
 name = "down"
 path = "src/bin/down.rs"
 

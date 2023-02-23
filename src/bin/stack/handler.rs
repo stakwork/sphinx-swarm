@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
-use crate::builder::{find_image_by_hostname, update_node};
 use anyhow::{Context, Result};
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::auth;
+use sphinx_swarm::builder;
 use sphinx_swarm::cmd::*;
-use sphinx_swarm::config::{put_config_file, Node, Stack, STATE};
+use sphinx_swarm::config;
 use sphinx_swarm::dock::*;
 
-use sphinx_swarm::images::{DockerHubImage, Image};
+use sphinx_swarm::images::DockerHubImage;
 use sphinx_swarm::secrets;
 
 // tag is the service name
 pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
     // conf can be mutated in place
-    let mut state = STATE.lock().await;
+    let mut state = config::STATE.lock().await;
     // println!("STACK {:?}", stack);
 
     let mut must_save_stack = false;
@@ -23,14 +23,14 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
             SwarmCmd::GetConfig => {
-                let res = remove_tokens(&state.stack);
+                let res = &state.stack.remove_tokens();
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::StartContainer(id) => {
                 log::info!("StartContainer -> {}", id);
                 let res = start_container(docker, &id).await?;
                 // extra startup steps such as LND unlock
-                let img = find_image_by_hostname(&state.stack.nodes, &id)?;
+                let img = builder::find_image_by_hostname(&state.stack.nodes, &id)?;
                 if let Err(e) = img.post_startup(proj, docker).await {
                     log::warn!("{:?}", e);
                 }
@@ -50,7 +50,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
             SwarmCmd::UpdateNode(un) => {
                 log::info!("UpdateNode -> {}", un.id);
-                update_node(&docker, &un, &mut state.stack.nodes).await?;
+                builder::update_node(&docker, &un, &mut state.stack.nodes).await?;
                 must_save_stack = true;
                 Some(serde_json::to_string("")?)
             }
@@ -222,45 +222,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
     };
 
     if must_save_stack {
-        put_config_file(proj, &state.stack).await;
+        config::put_config_file(proj, &state.stack).await;
     }
     Ok(ret.context("internal error")?)
-}
-
-// remove sensitive data from Stack when sending over wire
-fn remove_tokens(s: &Stack) -> Stack {
-    let nodes = s.nodes.iter().map(|n| match n {
-        Node::External(e) => Node::External(e.clone()),
-        Node::Internal(i) => match i.clone() {
-            Image::Btc(mut b) => {
-                b.pass = "".to_string();
-                Node::Internal(Image::Btc(b))
-            }
-            Image::Lnd(mut l) => {
-                l.unlock_password = "".to_string();
-                Node::Internal(Image::Lnd(l))
-            }
-            Image::Proxy(mut p) => {
-                p.store_key = None;
-                p.admin_token = None;
-                Node::Internal(Image::Proxy(p))
-            }
-            Image::Relay(r) => Node::Internal(Image::Relay(r)),
-            Image::Cache(c) => Node::Internal(Image::Cache(c)),
-            Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
-            Image::NavFiber(nf) => Node::Internal(Image::NavFiber(nf)),
-            Image::Jarvis(j) => Node::Internal(Image::Jarvis(j)),
-            Image::BoltWall(mut b) => {
-                b.session_secret = "".to_string();
-                Node::Internal(Image::BoltWall(b))
-            }
-        },
-    });
-    Stack {
-        network: s.network.clone(),
-        nodes: nodes.collect(),
-        host: s.host.clone(),
-        users: vec![],
-        jwt_key: "".to_string(),
-    }
 }

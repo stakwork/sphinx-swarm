@@ -1,9 +1,9 @@
-mod builder;
 mod handler;
 mod srv;
 
 use anyhow::Result;
 use rocket::tokio;
+use sphinx_swarm::builder;
 use sphinx_swarm::cmd::Cmd;
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack, State, STATE};
 use sphinx_swarm::{dock::*, logs, rocket_utils::CmdRequest};

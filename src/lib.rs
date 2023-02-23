@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod builder;
 pub mod cmd;
 pub mod config;
 pub mod conn;

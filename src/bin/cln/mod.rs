@@ -1,7 +1,9 @@
 use anyhow::Result;
+use rocket::tokio::signal;
+use sphinx_swarm::builder;
 use sphinx_swarm::config::{Node, Stack};
 use sphinx_swarm::dock::*;
-use sphinx_swarm::images::{btc::BtcImage, Image};
+use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, Image};
 
 // docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
 
@@ -12,19 +14,28 @@ pub async fn main() -> Result<()> {
     let docker = dockr();
     sphinx_swarm::utils::setup_logs();
 
-    let conf = make_config();
+    let stack = make_stack();
+    let _clients = builder::build_stack("cln", &docker, &stack).await?;
+
+    log::info!("stack created!");
+    signal::ctrl_c().await?;
 
     Ok(())
 }
 
-fn make_config() -> Stack {
+fn make_stack() -> Stack {
     let network = "regtest".to_string();
 
     // bitcoind
     let v = "v23.0";
-    let bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+    let mut bitcoind = BtcImage::new("btc_1", v, &network, "sphinx");
+    bitcoind.set_password("password");
 
-    let internal_nodes = vec![Image::Btc(bitcoind)];
+    let v = "v22.11.1";
+    let mut cln = ClnImage::new("cln_1", v, &network, "9735", "10009");
+    cln.links(vec!["btc_1"]);
+
+    let internal_nodes = vec![Image::Btc(bitcoind), Image::Cln(cln)];
     let nodes: Vec<Node> = internal_nodes
         .iter()
         .map(|n| Node::Internal(n.to_owned()))

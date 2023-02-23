@@ -1,6 +1,7 @@
 pub mod boltwall;
 pub mod btc;
 pub mod cache;
+pub mod cln;
 pub mod cln_vls;
 pub mod jarvis;
 pub mod lnd;
@@ -22,6 +23,7 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type")]
 pub enum Image {
     Btc(btc::BtcImage),
+    Cln(cln::ClnImage),
     Lnd(lnd::LndImage),
     Relay(relay::RelayImage),
     Proxy(proxy::ProxyImage),
@@ -56,6 +58,7 @@ impl Image {
     pub fn name(&self) -> String {
         match self {
             Image::Btc(n) => n.name.clone(),
+            Image::Cln(n) => n.name.clone(),
             Image::Lnd(n) => n.name.clone(),
             Image::Relay(n) => n.name.clone(),
             Image::Proxy(n) => n.name.clone(),
@@ -69,6 +72,7 @@ impl Image {
     pub fn typ(&self) -> String {
         match self {
             Image::Btc(_n) => "Btc",
+            Image::Cln(_n) => "Cln",
             Image::Lnd(_n) => "Lnd",
             Image::Relay(_n) => "Relay",
             Image::Proxy(_n) => "Proxy",
@@ -83,6 +87,7 @@ impl Image {
     pub fn set_version(&mut self, version: &str) {
         match self {
             Image::Btc(n) => n.version = version.to_string(),
+            Image::Cln(n) => n.version = version.to_string(),
             Image::Lnd(n) => n.version = version.to_string(),
             Image::Relay(n) => n.version = version.to_string(),
             Image::Proxy(n) => n.version = version.to_string(),
@@ -133,6 +138,7 @@ impl DockerConfig for Image {
     ) -> anyhow::Result<Config<String>> {
         match self {
             Image::Btc(n) => n.make_config(nodes, docker).await,
+            Image::Cln(n) => n.make_config(nodes, docker).await,
             Image::Lnd(n) => n.make_config(nodes, docker).await,
             Image::Relay(n) => n.make_config(nodes, docker).await,
             Image::Proxy(n) => n.make_config(nodes, docker).await,
@@ -149,6 +155,7 @@ impl DockerHubImage for Image {
     fn repo(&self) -> Repository {
         match self {
             Image::Btc(n) => n.repo(),
+            Image::Cln(n) => n.repo(),
             Image::Lnd(n) => n.repo(),
             Image::Relay(n) => n.repo(),
             Image::Proxy(n) => n.repo(),
