@@ -41,7 +41,7 @@ impl DockerConfig for Neo4jImage {
 impl DockerHubImage for Neo4jImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "".to_string(),
+            org: "library".to_string(),
             repo: "neo4j".to_string(),
         }
     }
