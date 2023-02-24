@@ -14,3 +14,4 @@ notes-*.md
 .labels.*
 reset.sh
 src/bin/stack/notes
+src/bin/cln/creds

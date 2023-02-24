@@ -35,7 +35,10 @@ fn make_stack() -> Stack {
     let mut cln = ClnImage::new("cln_1", v, &network, "9735", "10009");
     cln.links(vec!["btc_1"]);
 
-    let internal_nodes = vec![Image::Btc(bitcoind), Image::Cln(cln)];
+    let mut cln2 = ClnImage::new("cln_2", v, &network, "9736", "10010");
+    cln2.links(vec!["btc_1"]);
+
+    let internal_nodes = vec![Image::Btc(bitcoind), Image::Cln(cln), Image::Cln(cln2)];
     let nodes: Vec<Node> = internal_nodes
         .iter()
         .map(|n| Node::Internal(n.to_owned()))

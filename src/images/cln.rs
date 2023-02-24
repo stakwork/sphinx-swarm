@@ -35,7 +35,7 @@ impl ClnImage {
 impl DockerConfig for ClnImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let btc = li.find_btc().context("BTC required for LND")?;
+        let btc = li.find_btc().context("BTC required for CLN")?;
         Ok(cln(self, &btc))
     }
 }
