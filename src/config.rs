@@ -173,7 +173,7 @@ impl Default for Stack {
         // lnd2.links(vec!["bitcoind", "lnd"]);
 
         // proxy
-        v = "0.1.17";
+        v = "0.1.18";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec!["lnd"]);
