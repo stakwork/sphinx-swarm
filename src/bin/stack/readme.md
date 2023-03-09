@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.41
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.42
 
-docker push sphinxlightning/sphinx-swarm:0.1.41
+docker push sphinxlightning/sphinx-swarm:0.1.42
 
 ### run sphinx swarm in dev
 
@@ -50,7 +50,7 @@ sudo vi $HOME/vol/stack/config.json
 
 update the version
 
-docker pull sphinxlightning/sphinx-proxy:0.1.17
+docker pull sphinxlightning/sphinx-proxy:0.1.18
 
 docker stop relay.sphinx && docker rm relay.sphinx
 
