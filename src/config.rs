@@ -173,13 +173,13 @@ impl Default for Stack {
         // lnd2.links(vec!["bitcoind", "lnd"]);
 
         // proxy
-        v = "0.1.12";
+        v = "0.1.17";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec!["lnd"]);
 
         // relay
-        v = "v0.1.12";
+        v = "v0.1.13";
         let node_env = match host {
             Some(_) => "production",
             None => "development",

@@ -50,13 +50,27 @@ impl DockerHubImage for ClnImage {
 }
 
 pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
-    let version = "v22.11.1"; // docker tag
-    let ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
+    let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    // let version = "v22.11.1";
+    // let repo = img.repo();
+    // let image = format!("{}/{}", repo.org, repo.repo);
+    let mut environ = vec![
+        "EXPOSE_TCP=true".to_string(),
+        format!("LIGHTNINGD_PORT={}", &img.peer_port),
+        format!("LIGHTNINGD_NETWORK={}", &img.network),
+    ];
+    if let Ok(rp) = img.grpc_port.parse::<u16>() {
+        let plugin_port = rp + 200;
+        environ.push(format!(
+            "FM_CLN_EXTENSION_LISTEN_ADDRESS=0.0.0.0:{}",
+            plugin_port.to_string()
+        ));
+        ports.push(plugin_port.to_string());
+    }
     Config {
-        image: Some(format!("{}:{}", image, version)),
+        // image: Some(format!("{}:{}", image, version)),
+        image: Some("cln-htlc-interceptor:latest".to_string()),
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),
         cmd: Some(vec![
@@ -70,13 +84,10 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
             format!("--bitcoin-rpcpassword={}", btc.pass),
             "--log-level=debug".to_string(),
             "--accept-htlc-tlv-types=133773310".to_string(),
+            format!("--plugin=/usr/local/libexec/c-lightning/plugins/gateway-cln-extension"),
         ]),
         exposed_ports: exposed_ports(ports.clone()),
-        env: Some(vec![
-            "EXPOSE_TCP=true".to_string(),
-            format!("LIGHTNINGD_PORT={}", &img.peer_port),
-            format!("LIGHTNINGD_NETWORK={}", &img.network),
-        ]),
+        env: Some(environ),
         host_config: host_config(&img.name, ports, root_vol, None),
         ..Default::default()
     }
