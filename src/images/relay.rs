@@ -143,6 +143,7 @@ pub struct RelayConfig {
     pub proxy_admin_url: Option<String>,
     pub proxy_new_nodes: Option<String>,
     pub proxy_initial_sats: Option<String>,
+    pub proxy_hd_keys: Option<bool>,
 }
 
 impl RelayConfig {
@@ -172,6 +173,7 @@ impl RelayConfig {
             proxy.admin_port
         ));
         self.proxy_new_nodes = proxy.new_nodes.clone();
+        self.proxy_hd_keys = Some(true);
     }
 }
 
@@ -214,6 +216,7 @@ impl Default for RelayConfig {
             proxy_admin_url: None,
             proxy_new_nodes: None,
             proxy_initial_sats: None,
+            proxy_hd_keys: None,
         }
     }
 }

@@ -50,7 +50,7 @@ sudo vi $HOME/vol/stack/config.json
 
 update the version
 
-docker pull sphinxlightning/sphinx-relay-swarm:v0.1.12
+docker pull sphinxlightning/sphinx-proxy:0.1.17
 
 docker stop relay.sphinx && docker rm relay.sphinx
 
