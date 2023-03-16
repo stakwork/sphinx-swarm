@@ -3,6 +3,7 @@ use rocket::tokio::signal;
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{Node, Stack};
 use sphinx_swarm::dock::*;
+use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, Image};
 
 // docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
@@ -31,8 +32,10 @@ fn make_stack() -> Stack {
     let mut bitcoind = BtcImage::new("btc_1", v, &network, "sphinx");
     bitcoind.set_password("password");
 
-    let v = "v22.11.1";
+    let v = "v23.02";
     let mut cln = ClnImage::new("cln_1", v, &network, "9735", "10009");
+    let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
+    cln.plugins(plugins);
     cln.links(vec!["btc_1"]);
 
     let mut cln2 = ClnImage::new("cln_2", v, &network, "9736", "10010");

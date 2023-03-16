@@ -22,10 +22,12 @@ pub fn dockr() -> Docker {
 }
 
 fn is_sphinx_image(img_tag: &str) -> bool {
-    img_tag.contains("sphinx-") || img_tag.contains("cln-htlc-interceptor")
+    img_tag.contains("sphinx-")
+        || img_tag.contains("-sphinx")
+        || img_tag.contains("cln-htlc-interceptor")
 }
 
-// retuns container id
+// returns container id
 pub async fn create_and_start(
     docker: &Docker,
     c: Config<String>,
