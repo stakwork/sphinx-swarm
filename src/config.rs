@@ -185,13 +185,13 @@ impl Default for Stack {
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
-        relay.links(vec!["proxy", "lnd", "tribes", "memes", "boltwall"]);
+        relay.links(vec!["proxy", "lnd", "tribes", "memes", "boltwall", "cache"]);
         relay.host(host.clone());
 
         // cache
-        v = "0.1.14";
+        v = "0.1.17";
         let mut cache = CacheImage::new("cache", v, "9000", true);
-        cache.links(vec!["tribes", "lnd"]);
+        cache.links(vec!["tribes"]);
 
         // neo4j
         v = "4.4.9";
@@ -218,10 +218,9 @@ impl Default for Stack {
         let mut internal_nodes = vec![
             Image::Btc(bitcoind),
             Image::Lnd(lnd),
-            // Image::Lnd(lnd2),
             Image::Proxy(proxy),
             Image::Relay(relay),
-            // Image::Cache(cache),
+            Image::Cache(cache),
         ];
 
         // NO_SECOND_BRAIN=true will skip these nodes
