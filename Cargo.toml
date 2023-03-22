@@ -39,6 +39,8 @@ bcrypt = "0.13"
 sha2 = "0.10"
 hmac = "0.12"
 async-trait = "0.1.64"
+cln-grpc = "0.1.2"
+tonic = { version = "0.8", features = ["tls", "transport"] }
 
 [lib]
 name = "sphinx_swarm"

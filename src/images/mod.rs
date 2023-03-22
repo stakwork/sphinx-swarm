@@ -115,6 +115,7 @@ impl Image {
         Ok(match self {
             Image::Btc(n) => n.connect_client(clients).await,
             Image::Lnd(n) => n.connect_client(clients, docker, nodes).await?,
+            Image::Cln(n) => n.connect_client(clients, docker, nodes).await?,
             Image::Proxy(n) => n.connect_client(clients).await?,
             Image::Relay(n) => n.connect_client(proj, clients).await?,
             _ => (),

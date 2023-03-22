@@ -1,5 +1,6 @@
 use super::*;
-use crate::config::Node;
+use crate::config::{Clients, Node};
+use crate::conn::cln::{collect_creds, ClnRPC};
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -39,6 +40,20 @@ impl ClnImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub async fn connect_client(
+        &self,
+        clients: &mut Clients,
+        docker: &Docker,
+        _nodes: &Vec<Node>,
+    ) -> Result<()> {
+        sleep(1).await;
+        let creds = collect_creds(docker, &self.name, &self.network).await?;
+        let mut client = ClnRPC::new(creds).await?;
+        let info = client.get_info().await;
+        println!("INFO CLND {:?}", info);
+        clients.cln.insert(self.name.clone(), client);
+        Ok(())
     }
 }
 
@@ -90,7 +105,7 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         ));
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
-        let git_version = "280b49a-modded";
+        let git_version = "2f1a063-modded";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
         if let Ok(pp) = img.peer_port.parse::<u16>() {
             if pp > 8876 {
@@ -128,4 +143,8 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         host_config: host_config(&img.name, ports, root_vol, None),
         ..Default::default()
     }
+}
+
+async fn sleep(n: u64) {
+    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }
