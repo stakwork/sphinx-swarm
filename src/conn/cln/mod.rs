@@ -23,7 +23,7 @@ impl ClnRPC {
             .identity(ident)
             .ca_certificate(ca);
 
-        let channel = Channel::from_static("https://[::1]:10009")
+        let channel = Channel::from_static("http://[::1]:10009")
             .tls_config(tls)?
             .connect()
             .await?;
