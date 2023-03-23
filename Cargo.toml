@@ -41,7 +41,6 @@ hmac = "0.12"
 async-trait = "0.1.64"
 cln-grpc = "0.1.2"
 tonic = { version = "0.8", features = ["tls", "transport"] }
-x509-parser = "0.15.0"
 
 [lib]
 name = "sphinx_swarm"
