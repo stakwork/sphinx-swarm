@@ -3,9 +3,9 @@ use anyhow::Result;
 use bollard::Docker;
 
 pub struct Creds {
-    pub ca_pem: String,
-    pub client_pem: String,
-    pub client_key: String,
+    pub ca_pem: Vec<u8>,
+    pub client_pem: Vec<u8>,
+    pub client_key: Vec<u8>,
 }
 pub async fn collect_creds(docker: &Docker, cln_name: &str, network: &str) -> Result<Creds> {
     let root = format!("/root/.lightning/{}/", network);
@@ -20,7 +20,6 @@ pub async fn collect_creds(docker: &Docker, cln_name: &str, network: &str) -> Re
 }
 
 // PEM encoded (with -----BEGIN CERTIFICATE----- and -----END CERTIFICATE-----)
-pub async fn dl_cert(docker: &Docker, cln_name: &str, path: &str) -> Result<String> {
-    let cert_bytes = dock::try_dl(docker, cln_name, path).await?;
-    Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
+pub async fn dl_cert(docker: &Docker, cln_name: &str, path: &str) -> Result<Vec<u8>> {
+    Ok(dock::try_dl(docker, cln_name, path).await?)
 }

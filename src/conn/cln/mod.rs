@@ -11,9 +11,9 @@ pub struct ClnRPC {
 
 impl ClnRPC {
     pub async fn new(creds: Creds) -> Result<Self> {
-        // println!("CA PEM {}", &creds.ca_pem);
-        // println!("CLEINT PEM {}", &creds.client_pem);
-        // println!("CLIENT KEY {}", &creds.client_key);
+        // println!("CA PEM {:?}", &creds.ca_pem);
+        // println!("CLEINT PEM {:?}", &creds.client_pem);
+        // println!("CLIENT KEY {:?}", &creds.client_key);
 
         let ca = Certificate::from_pem(creds.ca_pem);
         let ident = Identity::from_pem(creds.client_pem, creds.client_key);
