@@ -12,6 +12,7 @@ pub async fn collect_creds(docker: &Docker, cln_name: &str, network: &str) -> Re
     let ca_pem = dl_cert(docker, cln_name, &format!("{}ca.pem", &root)).await?;
     let client_pem = dl_cert(docker, cln_name, &format!("{}client.pem", &root)).await?;
     let client_key = dl_cert(docker, cln_name, &format!("{}client-key.pem", &root)).await?;
+
     Ok(Creds {
         ca_pem,
         client_pem,

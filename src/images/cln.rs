@@ -49,7 +49,7 @@ impl ClnImage {
     ) -> Result<()> {
         sleep(1).await;
         let creds = collect_creds(docker, &self.name, &self.network).await?;
-        let mut client = ClnRPC::new(creds).await?;
+        let mut client = ClnRPC::new(&self.grpc_port, creds).await?;
         let info = client.get_info().await;
         println!("INFO CLND {:?}", info);
         clients.cln.insert(self.name.clone(), client);
