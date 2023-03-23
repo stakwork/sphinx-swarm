@@ -29,7 +29,7 @@ pub async fn lnd_clients(docker: &Docker, lnd_node: &LndImage) -> Result<(LndRPC
 
 pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut Clients) {
     if let Some(addy) = test_mine_addy {
-        log::info!("mining 101 blocks to LND address {}", addy);
+        log::info!("mining 101 blocks to onchain address {}", addy);
         if let Some(btcrpc) = clients.bitcoind.get(btc_name) {
             if let Err(e) = btcrpc.test_mine(101, Some(addy)) {
                 log::error!("failed to test mine {}", e);

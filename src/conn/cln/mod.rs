@@ -1,6 +1,6 @@
 pub mod util;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use cln_grpc::pb;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 pub use util::*;
@@ -10,7 +10,18 @@ pub struct ClnRPC {
 }
 
 impl ClnRPC {
-    pub async fn new(grpc_port: &str, creds: Creds) -> Result<Self> {
+    // try new a few times
+    pub async fn try_new(grpc_port: &str, creds: &Creds, i: usize) -> Result<Self> {
+        for iteration in 0..i {
+            if let Ok(c) = Self::new(grpc_port, creds).await {
+                return Ok(c);
+            }
+            sleep_ms(1000).await;
+            log::info!("retry CLN connect {}", iteration);
+        }
+        Err(anyhow!("could not connect to CLN"))
+    }
+    pub async fn new(grpc_port: &str, creds: &Creds) -> Result<Self> {
         // println!("CA PEM {:?}", &creds.ca_pem);
         // println!("CLEINT PEM {:?}", &creds.client_pem);
         // println!("CLIENT KEY {:?}", &creds.client_key);
@@ -37,4 +48,102 @@ impl ClnRPC {
         let response = self.client.getinfo(pb::GetinfoRequest {}).await?;
         Ok(response.into_inner())
     }
+
+    pub async fn list_funds(&mut self) -> Result<pb::ListfundsResponse> {
+        let response = self
+            .client
+            .list_funds(pb::ListfundsRequest {
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn new_addr(&mut self) -> Result<pb::NewaddrResponse> {
+        let response = self
+            .client
+            .new_addr(pb::NewaddrRequest {
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn connect_peer(
+        &mut self,
+        id: &str,
+        host: &str,
+        port: &str,
+    ) -> Result<pb::ConnectResponse> {
+        let p = str::parse::<u32>(port)?;
+        let response = self
+            .client
+            .connect_peer(pb::ConnectRequest {
+                id: id.to_string(),
+                host: Some(host.to_string()),
+                port: Some(p),
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn list_peers(&mut self) -> Result<pb::ListpeersResponse> {
+        let response = self
+            .client
+            .list_peers(pb::ListpeersRequest {
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn try_fund_channel(
+        &mut self,
+        id: &str,
+        amt: u64,
+    ) -> Result<pb::FundchannelResponse> {
+        for iteration in 0..100 {
+            if let Ok(c) = self.fund_channel(id, amt).await {
+                return Ok(c);
+            }
+            sleep_ms(5000).await;
+            log::info!("retry fund channel {}", iteration);
+        }
+        Err(anyhow!("could not fund channel - probably not synced"))
+    }
+
+    pub async fn fund_channel(&mut self, id: &str, amt: u64) -> Result<pb::FundchannelResponse> {
+        let id = hex::decode(id)?;
+        let response = self
+            .client
+            .fund_channel(pb::FundchannelRequest {
+                id: id,
+                amount: amount_or_all(amt),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn keysend(&mut self, id: &str, amt: u64) -> Result<pb::KeysendResponse> {
+        let id = hex::decode(id)?;
+        let response = self
+            .client
+            .key_send(pb::KeysendRequest {
+                destination: id,
+                amount_msat: Some(amount(amt)),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+}
+
+fn amount_or_all(msat: u64) -> Option<pb::AmountOrAll> {
+    Some(pb::AmountOrAll {
+        value: Some(pb::amount_or_all::Value::Amount(amount(msat))),
+    })
+}
+fn amount(msat: u64) -> pb::Amount {
+    pb::Amount { msat }
 }

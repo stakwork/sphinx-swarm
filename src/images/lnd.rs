@@ -60,15 +60,11 @@ impl LndImage {
         nodes: &Vec<Node>,
     ) -> Result<()> {
         sleep(1).await;
-        match setup::lnd_clients(docker, self).await {
-            Ok((client, test_mine_addy)) => {
-                let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-                let btc = li.find_btc().context("BTC required for LND")?;
-                setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
-                clients.lnd.insert(self.name.clone(), client);
-            }
-            Err(e) => log::warn!("lnd_clients error: {:?}", e),
-        };
+        let (client, test_mine_addy) = setup::lnd_clients(docker, self).await?;
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let btc = li.find_btc().context("BTC required for LND")?;
+        setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
+        clients.lnd.insert(self.name.clone(), client);
         Ok(())
     }
 }

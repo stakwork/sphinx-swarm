@@ -1,6 +1,6 @@
 use super::*;
 use crate::config::{Clients, Node};
-use crate::conn::cln::{collect_creds, ClnRPC};
+use crate::conn::cln::setup as setup_cln;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -45,13 +45,13 @@ impl ClnImage {
         &self,
         clients: &mut Clients,
         docker: &Docker,
-        _nodes: &Vec<Node>,
+        nodes: &Vec<Node>,
     ) -> Result<()> {
         sleep(1).await;
-        let creds = collect_creds(docker, &self.name, &self.network).await?;
-        let mut client = ClnRPC::new(&self.grpc_port, creds).await?;
-        let info = client.get_info().await;
-        println!("INFO CLND {:?}", info);
+        let (client, test_mine_addy) = setup_cln(self, docker).await?;
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let btc = li.find_btc().context("BTC required for CLN")?;
+        crate::conn::lnd::setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
         clients.cln.insert(self.name.clone(), client);
         Ok(())
     }
