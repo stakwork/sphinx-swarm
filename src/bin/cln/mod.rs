@@ -58,6 +58,9 @@ pub async fn main() -> Result<()> {
         sleep(1000).await;
     }
 
+    let sent_keysend = cln1.keysend(&cln2_pubkey, 1_000_000).await?;
+    println!("=> sent_keysend {:?}", sent_keysend.status);
+
     log::info!("stack created!");
     signal::ctrl_c().await?;
 
