@@ -8,21 +8,6 @@ docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.46
 
 docker push sphinxlightning/sphinx-swarm:0.1.46
 
-### run sphinx swarm in dev
-
-docker network create sphinx-swarm
-
-docker run --name=sphinx-swarm \
- --name swarm \
- --network=sphinx-swarm \
- --restart=on-failure \
- --volume=/var/run/docker.sock:/var/run/docker.sock \
- --volume=/Users/evanfeenstra/vol:/vol \
- --env DOCKER_RUN=true \
- --publish 8000:8000 \
- --detach \
- sphinx-swarm
-
 ### run prod stack
 
 in the root of sphinx-swarm directory, create a .env
@@ -36,9 +21,13 @@ docker-compose up -d
 
 docker logs sphinx-swarm --follow
 
-docker logs load_balancer --follow
-
 docker-compose down
+
+### update sphinx-swarm itself
+
+docker-compose up sphinx-swarm -d
+
+docker logs sphinx-swarm --follow
 
 ### remove one volume to reset data
 
@@ -55,10 +44,6 @@ docker pull sphinxlightning/sphinx-proxy:0.1.18
 docker stop relay.sphinx && docker rm relay.sphinx
 
 docker-compose stop sphinx-swarm && docker-compose up --detach sphinx-swarm && docker logs sphinx-swarm --follow
-
-### update sphinx-swarm itself
-
-docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose up sphinx-swarm -d && docker logs sphinx-swarm --follow
 
 ### ps
 
