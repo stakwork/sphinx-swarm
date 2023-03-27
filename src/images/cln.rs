@@ -112,7 +112,7 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
                 let mqtt_port = pp - 7852; // 1883
                 environ.push(format!("BROKER_MQTT_PORT={}", mqtt_port));
                 ports.push(mqtt_port.to_string());
-                let http_port = pp - 1735; // 8000
+                let http_port = pp - 1735 + 10; // 8010
                 environ.push(format!("BROKER_HTTP_PORT={}", http_port));
                 ports.push(http_port.to_string());
             }

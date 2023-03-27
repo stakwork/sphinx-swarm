@@ -4,7 +4,7 @@ import type { Cmd } from "./cmd";
 export interface LndInfo {
   identity_pubkey: string;
 }
-export interface Channel {
+export interface LndChannel {
   active: boolean;
   remote_pubkey: string;
   channel_point: string;
@@ -35,7 +35,7 @@ export interface Channel {
   thaw_height: number;
 }
 
-export interface Peer {
+export interface LndPeer {
   pub_key: string;
   address: string;
   bytes_sent: number;
@@ -93,5 +93,5 @@ export async function pay_invoice(tag: string, payment_request) {
 }
 
 export async function keysend(tag: string, dest: string, amt: number) {
-  return await lndCmd("PayKeysend", tag, {dest, amt});
+  return await lndCmd("PayKeysend", tag, { dest, amt });
 }

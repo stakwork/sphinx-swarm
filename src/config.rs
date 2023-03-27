@@ -17,7 +17,6 @@ use once_cell::sync::Lazy;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::str::FromStr;
 
 pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
 
@@ -311,34 +310,6 @@ pub async fn get_config_file(project: &str) -> Stack {
 pub async fn put_config_file(project: &str, rs: &Stack) {
     let path = format!("vol/{}/config.json", project);
     utils::put_json(&path, rs).await
-}
-
-#[derive(Eq, PartialEq)]
-pub enum Mode {
-    Dev,
-    Prod,
-}
-
-impl Mode {
-    pub fn from_env() -> Self {
-        let mode = std::env::var("MODE").unwrap_or("dev".to_string());
-        Mode::from_str(&mode).unwrap_or(Mode::Dev)
-    }
-    pub fn is_prod() -> bool {
-        Mode::from_env() == Mode::Prod
-    }
-}
-impl FromStr for Mode {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "dev" => Ok(Mode::Dev),
-            "development" => Ok(Mode::Dev),
-            "prod" => Ok(Mode::Prod),
-            "production" => Ok(Mode::Prod),
-            _ => Err(()),
-        }
-    }
 }
 
 impl Stack {

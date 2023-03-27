@@ -5,6 +5,7 @@ pub mod config;
 pub mod conn;
 pub mod dock;
 pub mod env;
+pub mod handler;
 pub mod images;
 pub mod logs;
 pub mod rocket_utils;

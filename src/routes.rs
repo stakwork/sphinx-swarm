@@ -1,7 +1,8 @@
 use crate::auth;
 use crate::cmd::{ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
 use crate::logs::{get_log_tx, LogChans, LOGS};
-use crate::rocket_utils::{Error, Result, *};
+use crate::rocket_utils::{CmdRequest, Error, Result, CORS};
+use fs::{relative, FileServer};
 use response::stream::{Event, EventStream};
 use rocket::serde::{
     json::{json, Json},
@@ -10,6 +11,31 @@ use rocket::serde::{
 use rocket::*;
 use std::sync::Arc;
 use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
+
+pub async fn launch_rocket(
+    tx: mpsc::Sender<CmdRequest>,
+    log_txs: Arc<Mutex<LogChans>>,
+) -> Result<Rocket<Ignite>> {
+    Ok(rocket::build()
+        .mount("/", FileServer::from(relative!("app/dist")))
+        .mount(
+            "/api/",
+            routes![
+                cmd,
+                logs,
+                logstream,
+                login,
+                refresh_jwt,
+                all_options,
+                update_password
+            ],
+        )
+        .attach(CORS)
+        .manage(tx)
+        .manage(log_txs)
+        .launch()
+        .await?)
+}
 
 #[options("/<_..>")]
 pub fn all_options() {

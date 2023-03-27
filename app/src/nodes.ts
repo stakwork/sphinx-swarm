@@ -142,6 +142,8 @@ function defaultPositions() {
 const defpos = {
   bitcoind: [320, 140],
   lnd: [580, 200],
+  cln_1: [680, 140],
+  cln_2: [680, 280],
   proxy: [850, 140],
   relay: [1150, 375],
   load_balancer: [895, 40],

@@ -3,7 +3,7 @@ import type { Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
 import type { Tribe, Person } from "./api/tribes";
-import type { Channel, Peer } from "./api/lnd";
+import type { LndChannel, LndPeer } from "./api/lnd";
 import type { BtcInfo } from "./api/btc";
 import type { ProxyBalance } from "./api/proxy";
 import { userKey, type TokenData } from "./api/cmd";
@@ -28,7 +28,7 @@ export const tribes = writable<Tribe>({
 
 export const people = writable<Person[]>([]);
 
-export const channels = writable<{ [tag: string]: Channel[] }>({});
+export const channels = writable<{ [tag: string]: LndChannel[] }>({});
 
 export const proxy = writable<ProxyBalance>({
   total: 0,
@@ -41,7 +41,7 @@ export const lightningAddresses = writable<{ [tag: string]: string }>({});
 
 export const btcinfo = writable<BtcInfo>();
 
-export const peers = writable<{ [tag: string]: Peer[] }>({});
+export const peers = writable<{ [tag: string]: LndPeer[] }>({});
 
 export const lndBalances = writable<{ [tag: string]: number }>({});
 
@@ -80,7 +80,7 @@ export interface ChannelBalances {
   outbound: number;
 }
 export function makeChannelBalances(
-  channels: { [tag: string]: Channel[] },
+  channels: { [tag: string]: LndChannel[] },
   selectedNode: Node
 ): ChannelBalances {
   if (!(selectedNode && selectedNode.name)) {

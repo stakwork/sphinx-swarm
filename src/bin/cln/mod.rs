@@ -1,10 +1,12 @@
 use anyhow::Result;
-use rocket::tokio::signal;
-use sphinx_swarm::builder;
-use sphinx_swarm::config::{Node, Stack};
+use rocket::tokio::sync::{mpsc, Mutex};
+use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, Image};
+use sphinx_swarm::rocket_utils::CmdRequest;
+use sphinx_swarm::{builder, handler, logs, routes};
+use std::sync::Arc;
 
 // docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
 
@@ -22,6 +24,26 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 
+    setup_chan(&mut clients).await?;
+
+    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
+
+    handler::hydrate(stack, clients).await;
+
+    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
+    let log_txs = logs::new_log_chans();
+
+    println!("=> spawn handler");
+    handler::spawn_handler("cln_test", rx, docker.clone());
+
+    println!("=> launch rocket");
+    let log_txs = Arc::new(Mutex::new(log_txs));
+    let _r = routes::launch_rocket(tx.clone(), log_txs).await?;
+
+    Ok(())
+}
+
+async fn setup_chan(clients: &mut Clients) -> Result<()> {
     let cln2 = clients.cln.get_mut(CLN2).unwrap();
     let cln2_info = cln2.get_info().await?;
     let cln2_pubkey = hex::encode(cln2_info.id);
@@ -49,9 +71,11 @@ pub async fn main() -> Result<()> {
         for p in peers.peers {
             for c in p.channels {
                 // println!("{:?}", c.status);
-                if c.status.get(0).unwrap().starts_with("CHANNELD_NORMAL") {
-                    log::info!("channel confirmed!!!");
-                    ok = true;
+                if let Some(status) = c.status.get(0) {
+                    if status.starts_with("CHANNELD_NORMAL") {
+                        log::info!("channel confirmed!!!");
+                        ok = true;
+                    }
                 }
             }
         }
@@ -60,10 +84,6 @@ pub async fn main() -> Result<()> {
 
     let sent_keysend = cln1.keysend(&cln2_pubkey, 1_000_000).await?;
     println!("=> sent_keysend {:?}", sent_keysend.status);
-
-    log::info!("stack created!");
-    signal::ctrl_c().await?;
-
     Ok(())
 }
 

@@ -1,16 +1,19 @@
 use std::collections::HashMap;
 
+use crate::auth;
+use crate::builder;
+use crate::cmd::*;
+use crate::config;
+use crate::config::{Clients, Stack, State, STATE};
+use crate::dock::*;
+use crate::images::DockerHubImage;
+use crate::rocket_utils::CmdRequest;
+use crate::secrets;
 use anyhow::{Context, Result};
 use bollard::Docker;
+use rocket::tokio;
 use serde::{Deserialize, Serialize};
-use sphinx_swarm::auth;
-use sphinx_swarm::builder;
-use sphinx_swarm::cmd::*;
-use sphinx_swarm::config;
-use sphinx_swarm::dock::*;
-
-use sphinx_swarm::images::DockerHubImage;
-use sphinx_swarm::secrets;
+use tokio::sync::mpsc;
 
 // tag is the service name
 pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
@@ -227,4 +230,38 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
         config::put_config_file(proj, &state.stack).await;
     }
     Ok(ret.context("internal error")?)
+}
+
+pub async fn hydrate(stack: Stack, clients: Clients) {
+    // set into the main state mutex
+    let mut state = STATE.lock().await;
+    *state = State { stack, clients };
+}
+
+pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Docker) {
+    let project = proj.to_string();
+    tokio::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
+                match handle(&project, cmd, &msg.tag, &docker).await {
+                    Ok(res) => {
+                        let _ = msg.reply_tx.send(res);
+                    }
+                    Err(err) => {
+                        msg.reply_tx
+                            .send(fmt_err(&err.to_string()))
+                            .expect("couldnt send cmd reply");
+                    }
+                }
+            } else {
+                msg.reply_tx
+                    .send(fmt_err("Invalid Command"))
+                    .expect("couldnt send cmd reply");
+            }
+        }
+    });
+}
+
+fn fmt_err(err: &str) -> String {
+    format!("{{\"stack_error\":\"{}\"}}", err.to_string())
 }

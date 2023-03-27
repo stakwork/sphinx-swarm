@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=build /sphinx-swarm/target/release/stack /usr/src/stack
 
 # frontend assets
-COPY src/bin/stack/app/dist /sphinx-swarm/src/bin/stack/app/dist
+COPY app/dist /sphinx-swarm/app/dist
 
 # rocket
 ENV ROCKET_ADDRESS=0.0.0.0
