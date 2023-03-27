@@ -8,3 +8,7 @@ async function clnCmd(cmd: Cmd, tag: string, content?: any) {
 export async function get_info(tag: string) {
   return await clnCmd("GetInfo", tag);
 }
+
+export async function list_peers(tag: string) {
+  return await clnCmd("ListPeers", tag);
+}

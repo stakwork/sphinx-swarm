@@ -136,6 +136,7 @@ pub enum LndCmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum ClnCmd {
     GetInfo,
+    ListPeers,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

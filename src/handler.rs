@@ -221,6 +221,10 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let info = client.get_info().await?;
                     Some(serde_json::to_string(&info)?)
                 }
+                ClnCmd::ListPeers => {
+                    let info = client.list_peers().await?;
+                    Some(serde_json::to_string(&info)?)
+                }
             }
         }
         Cmd::Proxy(c) => {
