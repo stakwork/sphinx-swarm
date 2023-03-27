@@ -36,7 +36,8 @@ export type Cmd =
   | "ListContainers"
   | "StartContainer"
   | "StopContainer"
-  | "UpdateNode";
+  | "UpdateNode"
+  | "ListFunds";
 
 interface CmdData {
   cmd: Cmd;

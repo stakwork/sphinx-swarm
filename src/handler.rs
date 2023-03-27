@@ -225,6 +225,16 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let info = client.list_peers().await?;
                     Some(serde_json::to_string(&info)?)
                 }
+                ClnCmd::ListFunds => {
+                    let funds = client.list_funds().await?;
+                    Some(serde_json::to_string(&funds)?)
+                }
+                ClnCmd::NewAddress => {
+                    let address = client.new_addr().await?;
+                    Some(serde_json::to_string(
+                        &address.bech32.unwrap_or("".to_string()),
+                    )?)
+                }
                 ClnCmd::AddInvoice(i) => {
                     let inv = client.create_invoice(i.amt_paid_sat as u64).await?;
                     Some(serde_json::to_string(&inv)?)

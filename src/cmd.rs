@@ -137,6 +137,8 @@ pub enum LndCmd {
 pub enum ClnCmd {
     GetInfo,
     ListPeers,
+    ListFunds,
+    NewAddress,
     AddInvoice(AddInvoice),
     PayInvoice(PayInvoice),
     PayKeysend(PayKeysend),
