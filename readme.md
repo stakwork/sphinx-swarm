@@ -8,4 +8,4 @@
 
 ### pull nodes down
 
-`cargo run --bin down`
+`./clear.sh`
