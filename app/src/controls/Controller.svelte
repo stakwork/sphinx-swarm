@@ -9,6 +9,7 @@
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
   import NavFiber from "../NavFiber.svelte";
+  import Boltwall from "../Boltwall.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -50,6 +51,8 @@
         <Proxy {tag} />
       {:else if type === "NavFiber"}
         <NavFiber host={$selectedNode.host} />
+      {:else if type === "BoltWall"}
+        <Boltwall host={$selectedNode.host} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}

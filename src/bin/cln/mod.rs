@@ -24,7 +24,7 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 
-    setup_chan(&mut clients).await?;
+    setup_chans(&mut clients).await?;
 
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
 
@@ -43,15 +43,19 @@ pub async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn setup_chan(clients: &mut Clients) -> Result<()> {
+async fn setup_chans(clients: &mut Clients) -> Result<()> {
     let cln2 = clients.cln.get_mut(CLN2).unwrap();
     let cln2_info = cln2.get_info().await?;
     let cln2_pubkey = hex::encode(cln2_info.id);
     log::info!("CLN2 pubkey {}", &cln2_pubkey);
+    make_new_chan(clients, &cln2_pubkey).await?;
+    Ok(())
+}
 
+async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
     let cln1 = clients.cln.get_mut(CLN1).unwrap();
     let connected = cln1
-        .connect_peer(&cln2_pubkey, &format!("{}.sphinx", CLN2), "9736")
+        .connect_peer(peer_pubkey, &format!("{}.sphinx", CLN2), "9736")
         .await?;
     let channel = hex::encode(connected.id);
     log::info!("CLN1 connected to CLN2: {}", channel);
@@ -82,8 +86,11 @@ async fn setup_chan(clients: &mut Clients) -> Result<()> {
         sleep(1000).await;
     }
 
-    let sent_keysend = cln1.keysend(&cln2_pubkey, 1_000_000).await?;
-    println!("=> sent_keysend {:?}", sent_keysend.status);
+    let sent_keysend = cln1.keysend(peer_pubkey, 1_000_000).await?;
+    println!(
+        "=> sent_keysend to {} {:?}",
+        peer_pubkey, sent_keysend.status
+    );
     Ok(())
 }
 
