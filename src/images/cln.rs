@@ -69,8 +69,8 @@ impl DockerConfig for ClnImage {
 impl DockerHubImage for ClnImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "elementsproject".to_string(),
-            repo: "lightningd".to_string(),
+            org: "sphinxlightning".to_string(),
+            repo: "cln-sphinx".to_string(),
         }
     }
 }
@@ -78,9 +78,9 @@ impl DockerHubImage for ClnImage {
 pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    // let version = "v22.11.1";
-    // let repo = img.repo();
-    // let image = format!("{}/{}", repo.org, repo.repo);
+    let version = "0.1.0";
+    let repo = img.repo();
+    let image = format!("{}/{}", repo.org, repo.repo);
 
     let mut environ = vec![
         "EXPOSE_TCP=true".to_string(),
@@ -133,8 +133,8 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         }
     }
     Config {
-        // image: Some(format!("{}:{}", image, version)),
-        image: Some("cln-sphinx:latest".to_string()),
+        image: Some(format!("{}:{}", image, version)),
+        // image: Some("cln-sphinx:latest".to_string()),
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),
         cmd: Some(cmd),
