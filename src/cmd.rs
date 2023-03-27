@@ -137,6 +137,9 @@ pub enum LndCmd {
 pub enum ClnCmd {
     GetInfo,
     ListPeers,
+    AddInvoice(AddInvoice),
+    PayInvoice(PayInvoice),
+    PayKeysend(PayKeysend),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

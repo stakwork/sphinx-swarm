@@ -121,9 +121,11 @@ export const node_state: Readable<NodeState> = derived(
   ([$selectedNode, $containers]) => {
     if (!$selectedNode) return;
     if ($selectedNode.place === "External") return;
-    return $containers?.find((n) =>
+    const con = $containers?.find((n) =>
       n.Names.includes(`/${$selectedNode.name}.sphinx`)
-    ).State as NodeState;
+    );
+    if (!con) return;
+    return con.State as NodeState;
   }
 );
 

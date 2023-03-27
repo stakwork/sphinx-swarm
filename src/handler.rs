@@ -225,6 +225,18 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let info = client.list_peers().await?;
                     Some(serde_json::to_string(&info)?)
                 }
+                ClnCmd::AddInvoice(i) => {
+                    let inv = client.create_invoice(i.amt_paid_sat as u64).await?;
+                    Some(serde_json::to_string(&inv)?)
+                }
+                ClnCmd::PayInvoice(i) => {
+                    let paid = client.pay(&i.payment_request).await?;
+                    Some(serde_json::to_string(&paid)?)
+                }
+                ClnCmd::PayKeysend(i) => {
+                    let paid = client.keysend(&i.dest, i.amt as u64).await?;
+                    Some(serde_json::to_string(&paid)?)
+                }
             }
         }
         Cmd::Proxy(c) => {

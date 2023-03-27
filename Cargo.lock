@@ -403,7 +403,7 @@ dependencies = [
 [[package]]
 name = "cln-grpc"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#938fc5167bd59f462c3d4ee099b8b9a3d28c3839"
+source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#71406dad7701f02d1b068d175113602c60ba0e70"
 dependencies = [
  "anyhow",
  "bitcoin 0.29.2",
@@ -419,7 +419,7 @@ dependencies = [
 [[package]]
 name = "cln-rpc"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#938fc5167bd59f462c3d4ee099b8b9a3d28c3839"
+source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#71406dad7701f02d1b068d175113602c60ba0e70"
 dependencies = [
  "anyhow",
  "bitcoin 0.29.2",

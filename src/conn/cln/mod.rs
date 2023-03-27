@@ -137,8 +137,35 @@ impl ClnRPC {
             .await?;
         Ok(response.into_inner())
     }
+
+    pub async fn create_invoice(&mut self, amt: u64) -> Result<pb::InvoiceResponse> {
+        let response = self
+            .client
+            .invoice(pb::InvoiceRequest {
+                amount_msat: amount_or_any(amt),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
+    pub async fn pay(&mut self, bolt11: &str) -> Result<pb::PayResponse> {
+        let response = self
+            .client
+            .pay(pb::PayRequest {
+                bolt11: bolt11.to_string(),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
 }
 
+fn amount_or_any(msat: u64) -> Option<pb::AmountOrAny> {
+    Some(pb::AmountOrAny {
+        value: Some(pb::amount_or_any::Value::Amount(amount(msat))),
+    })
+}
 fn amount_or_all(msat: u64) -> Option<pb::AmountOrAll> {
     Some(pb::AmountOrAll {
         value: Some(pb::amount_or_all::Value::Amount(amount(msat))),

@@ -16,6 +16,11 @@ COPY ./Cargo.toml ./Cargo.toml
 # Copy the source code
 COPY ./src ./src
 
+# install proto dep
+RUN apt-get update && \
+    apt-get install -y \
+    protobuf-compiler
+
 # Build for release.
 # remove the lib
 # RUN rm ./target/release/deps/sphinx_swarm*
