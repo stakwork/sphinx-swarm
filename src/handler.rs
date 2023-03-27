@@ -153,7 +153,6 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 .bitcoind
                 .get(tag)
                 .context("no bitcoind client")?;
-            println!("Client === {:#?}", client.get_info());
 
             match c {
                 BitcoindCmd::GetInfo => {
@@ -212,6 +211,15 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 LndCmd::PayKeysend(keysend) => {
                     let invoice = client.pay_keysend(keysend).await?;
                     Some(serde_json::to_string(&invoice)?)
+                }
+            }
+        }
+        Cmd::Cln(c) => {
+            let client = state.clients.cln.get_mut(tag).context("no cln client")?;
+            match c {
+                ClnCmd::GetInfo => {
+                    let info = client.get_info().await?;
+                    Some(serde_json::to_string(&info)?)
                 }
             }
         }

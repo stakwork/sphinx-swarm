@@ -8,6 +8,7 @@ pub enum Cmd {
     Relay(RelayCmd),
     Bitcoind(BitcoindCmd),
     Lnd(LndCmd),
+    Cln(ClnCmd),
     Proxy(ProxyCmd),
 }
 
@@ -48,7 +49,7 @@ pub enum SwarmCmd {
     ListContainers,
     StartContainer(String),
     StopContainer(String),
-    UpdateNode(UpdateNode)
+    UpdateNode(UpdateNode),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -129,6 +130,12 @@ pub enum LndCmd {
     AddInvoice(AddInvoice),
     PayInvoice(PayInvoice),
     PayKeysend(PayKeysend),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", content = "content")]
+pub enum ClnCmd {
+    GetInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
