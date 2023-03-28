@@ -184,7 +184,7 @@ impl Default for Stack {
         proxy.links(vec!["lnd"]);
 
         // relay
-        v = "v0.1.13";
+        v = "v0.1.16";
         let node_env = match host {
             Some(_) => "production",
             None => "development",

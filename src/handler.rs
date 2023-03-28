@@ -129,7 +129,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             match c {
                 RelayCmd::AddUser(u) => Some(client.add_user(u.initial_sats).await?.to_string()?),
                 RelayCmd::ListUsers => Some(client.list_users().await?.to_string()?),
-                RelayCmd::GetChats => Some(client.get_chats().await?),
+                RelayCmd::GetChats => Some(client.get_chats().await?.to_string()?),
                 RelayCmd::AddDefaultTribe(t) => {
                     Some(client.add_default_tribe(t.id).await?.to_string()?)
                 }
