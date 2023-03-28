@@ -245,10 +245,10 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        // let hm = res.text().await?;
-        // println!("HM {:?}", &hm);
-        // Ok(serde_json::from_str(&hm)?)
-        Ok(res.json().await?)
+        let hm = res.text().await?;
+        println!("get_chats: {:?}", &hm);
+        Ok(serde_json::from_str(&hm)?)
+        // Ok(res.json().await?)
     }
 
     pub async fn create_tribe(&self, name: &str) -> Result<RelayRes<Chat>> {
