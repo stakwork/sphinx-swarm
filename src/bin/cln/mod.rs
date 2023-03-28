@@ -113,7 +113,7 @@ fn make_stack() -> Stack {
     cln2.links(vec![BTC]);
 
     let v = "v0.15.5-beta";
-    let mut lnd = LndImage::new(LND1, v, &network, "10011", "9735");
+    let mut lnd = LndImage::new(LND1, v, &network, "10011", "9737");
     lnd.http_port = Some("8881".to_string());
     lnd.links(vec![BTC]);
 
