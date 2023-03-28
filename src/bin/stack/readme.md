@@ -31,7 +31,7 @@ docker logs sphinx-swarm --follow
 
 ### remove one volume to reset data
 
-docker volume rm proxy.sphinx
+docker volume rm neo4j.sphinx
 
 ### update one instance
 
@@ -41,7 +41,7 @@ update the version
 
 docker pull sphinxlightning/sphinx-proxy:0.1.18
 
-docker stop relay.sphinx && docker rm relay.sphinx
+docker stop jarvis.sphinx && docker rm jarvis.sphinx
 
 docker-compose stop sphinx-swarm && docker-compose up --detach sphinx-swarm && docker logs sphinx-swarm --follow
 
