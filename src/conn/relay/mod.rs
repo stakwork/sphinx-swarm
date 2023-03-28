@@ -237,7 +237,7 @@ impl RelayAPI {
         Ok(res.json().await?)
     }
 
-    pub async fn get_chats(&self) -> Result<RelayRes<ChatsRes>> {
+    pub async fn get_chats(&self) -> Result<String> {
         let route = format!("http://{}/chats", self.url);
         let res = self
             .client
@@ -246,8 +246,9 @@ impl RelayAPI {
             .send()
             .await?;
         let hm = res.text().await?;
-        println!("get_chats: {:?}", &hm);
-        Ok(serde_json::from_str(&hm)?)
+        println!("get_chats -> {:?}", &hm);
+        // Ok(serde_json::from_str(&hm)?)
+        Ok(hm)
         // Ok(res.json().await?)
     }
 
