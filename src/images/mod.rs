@@ -98,6 +98,13 @@ impl Image {
             Image::BoltWall(n) => n.version = version.to_string(),
         };
     }
+    pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
+        Ok(match self {
+            // unlock LND
+            Image::Neo4j(n) => n.pre_startup(docker).await?,
+            _ => (),
+        })
+    }
     pub async fn post_startup(&self, proj: &str, docker: &Docker) -> Result<()> {
         Ok(match self {
             // unlock LND

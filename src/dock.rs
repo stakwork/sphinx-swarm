@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use bollard::container::Config;
 use bollard::container::{
     CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
-    LogsOptions, RemoveContainerOptions, StopContainerOptions,
+    LogsOptions, RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
@@ -27,21 +27,20 @@ fn is_sphinx_image(img_tag: &str) -> bool {
         || img_tag.contains("cln-htlc-interceptor")
 }
 
-// returns container id
-pub async fn create_and_start(
+pub async fn create_and_init(
     docker: &Docker,
     c: Config<String>,
     skip: bool,
-) -> Result<Option<String>> {
+) -> Result<(Option<String>, bool)> {
     let hostname = c.hostname.clone().context("expected hostname")?;
     let current_id = id_by_name(docker, &hostname).await;
     if skip {
         log::info!("=> skip {}", &hostname);
         if let Some(id) = current_id {
-            return Ok(Some(id));
+            return Ok((Some(id), false));
         } else {
             // dont make the client
-            return Ok(None);
+            return Ok((None, false));
         }
     }
 
@@ -49,7 +48,7 @@ pub async fn create_and_start(
 
     if let Some(id) = current_id {
         log::info!("=> {} already exists", &hostname);
-        return Ok(Some(id));
+        return Ok((Some(id), false));
     }
 
     create_volume(&docker, &hostname).await?;
@@ -61,9 +60,22 @@ pub async fn create_and_start(
         create_image(&docker, &c).await?;
     }
     let id = create_container(&docker, c.clone()).await?;
-    start_container(&docker, &id).await?;
     log::info!("=> created {}", &hostname);
-    Ok(Some(id))
+    Ok((Some(id), true))
+}
+
+// returns container id
+pub async fn create_and_start(
+    docker: &Docker,
+    c: Config<String>,
+    skip: bool,
+) -> Result<Option<String>> {
+    let (id_opt, need_to_start) = create_and_init(docker, c, skip).await?;
+    if need_to_start {
+        let id = id_opt.clone().unwrap_or("".to_string());
+        start_container(&docker, &id).await?;
+    }
+    Ok(id_opt)
 }
 
 pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
@@ -144,6 +156,38 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
         )
         .await?;
     Ok(())
+}
+
+pub async fn upload_to_container(
+    docker: &Docker,
+    img_name: &str,
+    path: &str,
+    filename: &str,
+    bytes: &[u8],
+) -> Result<()> {
+    let tar = make_tar_from_file(bytes, filename)?;
+    Ok(docker
+        .upload_to_container::<String>(
+            &domain(img_name),
+            Some(UploadToContainerOptions {
+                path: path.into(),
+                ..Default::default()
+            }),
+            tar.into(),
+        )
+        .await?)
+}
+
+fn make_tar_from_file(bytes: &[u8], filename: &str) -> Result<Vec<u8>> {
+    use tar::{Builder, Header};
+    let mut header = Header::new_gnu();
+    header.set_path(filename)?;
+    header.set_size(bytes.len() as u64);
+    header.set_cksum();
+    let mut ar = Builder::new(Vec::new());
+    ar.append(&header, bytes)?;
+    let data = ar.into_inner()?;
+    Ok(data)
 }
 
 pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> Result<Vec<u8>> {
