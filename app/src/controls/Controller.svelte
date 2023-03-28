@@ -10,7 +10,6 @@
   import Proxy from "../Proxy.svelte";
   import NavFiber from "../NavFiber.svelte";
   import Boltwall from "../Boltwall.svelte";
-  import { login } from "../api/swarm";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
