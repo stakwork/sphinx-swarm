@@ -145,6 +145,7 @@ const defpos = {
   lnd: [580, 200],
   cln_1: [680, 140],
   cln_2: [680, 280],
+  lnd_1: [650, 420],
   proxy: [850, 140],
   relay: [1150, 375],
   load_balancer: [895, 40],
