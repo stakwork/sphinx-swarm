@@ -19,7 +19,7 @@
         <Invoices {tag} />
       </TabContent>
       <TabContent>
-        <Onchain {tag} />
+        <Onchain {tag} {type} />
       </TabContent>
     </svelte:fragment>
   </Tabs>

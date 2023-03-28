@@ -1,5 +1,6 @@
 <script lang="ts">
   export let tag = "";
+  export let type = "";
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
@@ -7,7 +8,12 @@
   import { lightningAddresses } from "../store";
 
   async function newAddress() {
-    let new_addy = await api.lnd.new_address(tag);
+    let new_addy;
+    if (type === "Cln") {
+      new_addy = await api.cln.new_address(tag);
+    } else {
+      new_addy = await api.lnd.new_address(tag);
+    }
     if (!new_addy) return;
     lightningAddresses.update((addys) => {
       return { ...addys, [tag]: new_addy };
