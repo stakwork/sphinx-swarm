@@ -13,3 +13,9 @@ export function formatMillisatsToSats(num) {
 export function convertBtcToSats(num) {
   return Number(num) * 1000000000;
 }
+
+export function bufferToHexString(byteArray) {
+  return Array.from(byteArray, function (byte: any) {
+    return ("0" + (byte & 0xff).toString(16)).slice(-2);
+  }).join("");
+}

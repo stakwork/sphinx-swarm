@@ -32,7 +32,8 @@ export type NodeType =
   | "Jarvis"
   | "BoltWall"
   | "Neo4j"
-  | "NavFiber";
+  | "NavFiber"
+  | "Cln";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",

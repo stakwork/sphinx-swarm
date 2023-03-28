@@ -76,6 +76,27 @@ const tribesControls: Control[] = [];
 
 const navfiberControls: Control[] = [];
 
+const clnControls: Control[] = [
+  {
+    name: "Get Info",
+    type: "button",
+    action: async (tag: string) => {
+      const info = await api.lnd.get_info(tag);
+    },
+  },
+  { name: "LND 2", type: "number", value: 42 },
+  { name: "LND 3", type: "text", value: "Some Text" },
+  {
+    name: "LND One",
+    value: "item1",
+    type: "dropdown",
+    items: [
+      { id: "item1", text: "blah blah" },
+      { id: "item2", text: "soemthing" },
+    ],
+  },
+];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
@@ -83,4 +104,5 @@ export const controls = {
   Btc: btcControls,
   Tribes: tribesControls,
   NavFiber: navfiberControls,
+  Cln: clnControls,
 };

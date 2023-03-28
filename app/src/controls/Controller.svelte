@@ -9,6 +9,7 @@
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
   import NavFiber from "../NavFiber.svelte";
+  import { login } from "../api/swarm";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -22,7 +23,10 @@
 </script>
 
 {#if ctrls}
-  <div class="main" style={`width: ${type === "Lnd" ? "35rem" : "23rem"}`}>
+  <div
+    class="main"
+    style={`width: ${type === "Lnd" || "Cln" ? "35rem" : "23rem"}`}
+  >
     <section class="close-btn-wrap">
       <button on:click={closeSidebar}>
         <Close size={24} />
@@ -50,6 +54,8 @@
         <Proxy {tag} />
       {:else if type === "NavFiber"}
         <NavFiber host={$selectedNode.host} />
+      {:else if type === "Cln"}
+        <Lnd {tag} {type} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}

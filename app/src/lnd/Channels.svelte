@@ -7,13 +7,16 @@
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
+  import { parseClnGetInfo, parseClnListPeerRes } from "../helpers/cln";
 
   import * as LND from "../api/lnd";
+  import * as CLN from "../api/cln";
 
   export let tag = "";
+  export let type = "";
 
   $: {
-    setup(tag);
+    setup(tag, type);
   }
 
   $: peers = $peersStore && $peersStore[tag];
@@ -23,11 +26,16 @@
 
   let lndData: LND.LndInfo;
 
-  let activePeer: LND.Peer = null;
+  let activePeer: LND.LndPeer = null;
 
   async function getLndInfo() {
     const lndRes = await LND.get_info(tag);
     lndData = lndRes;
+  }
+
+  async function getClnInfo() {
+    const clnRes = await CLN.get_info(tag);
+    lndData = await parseClnGetInfo(clnRes);
   }
 
   async function listChannels() {
@@ -39,6 +47,12 @@
     });
   }
 
+  async function clnListChannels() {
+    if ($channels[tag] && $channels[tag].length) return;
+    // Api not ready sir
+    // const channelsData =
+  }
+
   async function listPeers() {
     if (peers && peers.length) return;
     const peersData = await LND.list_peers(tag);
@@ -48,10 +62,26 @@
     });
   }
 
-  async function setup(_tag) {
-    await getLndInfo();
-    await listChannels();
-    await listPeers();
+  async function clnListPeers() {
+    if (peers && peers.length) return;
+    const peersData = await CLN.list_peers(tag);
+    const parsedPeersRes = await parseClnListPeerRes(peersData);
+    if (!peersData) return;
+    peersStore.update((peer) => {
+      return { ...peer, [tag]: parsedPeersRes };
+    });
+  }
+
+  async function setup(_tag, type) {
+    if (type === "Cln") {
+      await getClnInfo();
+      await clnListChannels();
+      await clnListPeers();
+    } else {
+      await getLndInfo();
+      await listChannels();
+      await listPeers();
+    }
   }
 
   function toggleAddPeer() {
@@ -83,7 +113,7 @@
     setTimeout(() => (copied = false), 150);
   }
 
-  function peerAddChannel(peer: LND.Peer) {
+  function peerAddChannel(peer: LND.LndPeer) {
     activePeer = peer;
     toggleAddChannel();
   }

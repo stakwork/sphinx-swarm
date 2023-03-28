@@ -7,7 +7,7 @@ if (IS_DEV) {
   root = "http://localhost:8000/api";
 }
 
-type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd" | "CLN" | "Proxy";
+type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd" | "Cln" | "Proxy";
 
 export type Cmd =
   | "GetConfig"
