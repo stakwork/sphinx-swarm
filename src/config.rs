@@ -147,6 +147,9 @@ impl Default for Stack {
 
         let mut host = std::env::var("HOST").ok();
         // must include a "."
+        if let Some(h) = host.clone() {
+            log::info!("HOST {:?}", h);
+        }
         if !host.clone().unwrap_or(".".to_string()).contains(".") {
             host = None
         }

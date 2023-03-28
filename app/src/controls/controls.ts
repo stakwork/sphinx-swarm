@@ -96,6 +96,7 @@ const clnControls: Control[] = [
     ],
   },
 ];
+const boltwallControls: Control[] = [];
 
 export const controls = {
   Relay: relayControls,
@@ -105,4 +106,5 @@ export const controls = {
   Tribes: tribesControls,
   NavFiber: navfiberControls,
   Cln: clnControls,
+  BoltWall: boltwallControls,
 };

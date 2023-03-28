@@ -1,5 +1,6 @@
 use super::*;
 use crate::config::Node;
+use crate::dock::upload_to_container;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -28,6 +29,21 @@ impl Neo4jImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
+        log::info!("=> download apoc plugin for neo4j...");
+        let apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.4.0.11/apoc-4.4.0.11-all.jar";
+        let bytes = reqwest::get(apoc_url).await?.bytes().await?;
+        upload_to_container(
+            docker,
+            &self.name,
+            "/var/lib/neo4j/plugins",
+            "apoc-4.4.0.11-all.jar",
+            &bytes,
+        )
+        .await?;
+        // upload the apoc
+        Ok(())
     }
 }
 

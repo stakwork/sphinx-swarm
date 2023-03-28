@@ -9,6 +9,7 @@
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
   import NavFiber from "../NavFiber.svelte";
+  import Boltwall from "../Boltwall.svelte";
   import { login } from "../api/swarm";
 
   $: type = $selectedNode && $selectedNode.type;
@@ -54,8 +55,6 @@
         <Proxy {tag} />
       {:else if type === "NavFiber"}
         <NavFiber host={$selectedNode.host} />
-      {:else if type === "Cln"}
-        <Lnd {tag} {type} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}
