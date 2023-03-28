@@ -55,6 +55,8 @@
         <Proxy {tag} />
       {:else if type === "NavFiber"}
         <NavFiber host={$selectedNode.host} />
+      {:else if type === "Cln"}
+        <Lnd {tag} {type} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}
