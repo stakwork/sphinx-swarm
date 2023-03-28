@@ -44,9 +44,9 @@ pub struct Users {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
     pub id: u32,
-    pub public_key: String,
-    pub deleted: u8,
-    pub created_at: String,
+    pub public_key: Option<String>,
+    pub deleted: Option<u8>,
+    pub created_at: Option<String>,
     pub alias: Option<String>,
     pub route_hint: Option<String>,
     pub photo_url: Option<String>,
@@ -69,8 +69,8 @@ pub struct ClaimRes {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chat {
     id: u16,
-    uuid: String,
-    name: String,
+    uuid: Option<String>,
+    name: Option<String>,
     photo_url: Option<String>,
     r#type: Option<u16>,
     group_key: Option<String>,
