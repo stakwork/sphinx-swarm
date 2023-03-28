@@ -10,6 +10,12 @@ export function formatMillisatsToSats(num) {
   formatSatsNumbers(n);
 }
 
+export function convertMillisatsToSats(num) {
+  if (!num) return 0;
+  const n = typeof num === "number" ? Math.floor(num / 1000) : 0;
+  return n;
+}
+
 export function convertBtcToSats(num) {
   return Number(num) * 1000000000;
 }

@@ -47,12 +47,6 @@
     });
   }
 
-  async function clnListChannels() {
-    if ($channels[tag] && $channels[tag].length) return;
-    // Api not ready sir
-    // const channelsData =
-  }
-
   async function listPeers() {
     if (peers && peers.length) return;
     const peersData = await LND.list_peers(tag);
@@ -62,21 +56,23 @@
     });
   }
 
-  async function clnListPeers() {
+  async function clnListPeersandChannels() {
     if (peers && peers.length) return;
     const peersData = await CLN.list_peers(tag);
-    const parsedPeersRes = await parseClnListPeerRes(peersData);
+    const parsedRes = await parseClnListPeerRes(peersData);
     if (!peersData) return;
     peersStore.update((peer) => {
-      return { ...peer, [tag]: parsedPeersRes };
+      return { ...peer, [tag]: parsedRes.peers };
+    });
+    channels.update((chans) => {
+      return { ...chans, [tag]: parsedRes.channels };
     });
   }
 
   async function setup(_tag, type) {
     if (type === "Cln") {
       await getClnInfo();
-      await clnListChannels();
-      await clnListPeers();
+      await clnListPeersandChannels();
     } else {
       await getLndInfo();
       await listChannels();
