@@ -8,6 +8,7 @@
   let page: Page = "add";
 
   export let tag = "";
+  export let type = "";
 
   interface Button {
     label: string;
@@ -39,7 +40,7 @@
   </Tabs> -->
 </div>
 {#if page === "add"}
-  <AddInvoice {tag} />
+  <AddInvoice {tag} {type} />
 {:else if page === "pay"}
   <PayInvoice {tag} />
 {:else}

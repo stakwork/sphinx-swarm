@@ -16,7 +16,7 @@
     <svelte:fragment slot="content">
       <TabContent><Channels {tag} {type} /></TabContent>
       <TabContent>
-        <Invoices {tag} />
+        <Invoices {tag} {type} />
       </TabContent>
       <TabContent>
         <Onchain {tag} {type} />
