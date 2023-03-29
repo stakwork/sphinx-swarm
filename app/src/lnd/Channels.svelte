@@ -57,7 +57,6 @@
   }
 
   async function clnListPeersandChannels() {
-    if (peers && peers.length) return;
     const peersData = await CLN.list_peers(tag);
     const parsedRes = await parseClnListPeerRes(peersData);
     if (!peersData) return;

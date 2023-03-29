@@ -6,30 +6,66 @@
   } from "carbon-components-svelte";
   import Pay from "carbon-icons-svelte/lib/Money.svelte";
   import * as LND from "../../api/lnd";
+  import * as CLN from "../../api/cln";
   import { channels } from "../../store";
+  import { parseClnListPeerRes } from "../../helpers/cln";
 
   export let tag = "";
+  export let type = "";
 
   $: pay_req = "";
 
   $: invDisabled = !pay_req;
 
   let show_notification = false;
+  let message = "";
+  let messageType = "";
 
   async function payInvoice() {
-    const payRes = await LND.pay_invoice(tag, pay_req);
-    if (payRes) {
+    if (type === "Cln") {
       show_notification = true;
-      pay_req = "";
-
-      /**
-       * After successfully invoice payment fetch the new channels
-       * To update the balance
-       */
-      const channelsData = await LND.list_channels(tag);
-      channels.update((chans) => {
-        return { ...chans, [tag]: channelsData };
-      });
+      const payRes = await CLN.pay_invoice(tag, pay_req);
+      if (payRes.status === 0) {
+        messageType = "success";
+        message = "Invoice payment has been made.";
+        pay_req = "";
+        setTimeout(async () => {
+          const peersData = await CLN.list_peers(tag);
+          const res = parseClnListPeerRes(peersData);
+          channels.update((chans) => {
+            return { ...chans, [tag]: res.channels };
+          });
+        }, 2000);
+      } else {
+        messageType = "error";
+        pay_req = "";
+        if (payRes.status === 1) {
+          message = "Invoice payment is pending";
+        }
+        if (payRes.status === 2) {
+          message = "Invoice payment failed";
+        }
+      }
+    } else {
+      const payRes = await LND.pay_invoice(tag, pay_req);
+      show_notification = true;
+      if (!payRes.payment_error) {
+        pay_req = "";
+        messageType = "success";
+        message = "Invoice payment has been made.";
+        /**
+         * After successfully invoice payment fetch the new channels
+         * To update the balance
+         */
+        const channelsData = await LND.list_channels(tag);
+        channels.update((chans) => {
+          return { ...chans, [tag]: channelsData };
+        });
+      } else {
+        messageType = "error";
+        message = payRes.payment_error;
+        pay_req = "";
+      }
     }
   }
 </script>
@@ -39,9 +75,9 @@
     {#if show_notification}
       <InlineNotification
         lowContrast
-        kind="success"
-        title="Success:"
-        subtitle="Inovice payment has been made."
+        kind={messageType}
+        title={messageType === "success" ? "Success:" : "Error:"}
+        subtitle={message}
         timeout={3000}
         on:close={(e) => {
           e.preventDefault();

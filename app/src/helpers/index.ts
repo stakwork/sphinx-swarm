@@ -16,6 +16,10 @@ export function convertMillisatsToSats(num) {
   return n;
 }
 
+export function convertSatsToMilliSats(num) {
+  return Number(num) * 1000;
+}
+
 export function convertBtcToSats(num) {
   return Number(num) * 1000000000;
 }

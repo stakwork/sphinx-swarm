@@ -42,7 +42,7 @@
 {#if page === "add"}
   <AddInvoice {tag} {type} />
 {:else if page === "pay"}
-  <PayInvoice {tag} />
+  <PayInvoice {tag} {type} />
 {:else}
   <PayKeysend {tag} {type} />
 {/if}

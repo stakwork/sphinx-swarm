@@ -5,6 +5,7 @@
   import * as CLN from "../../api/cln";
   import QrCode from "svelte-qrcode";
   import { activeInvoice } from "../../store";
+  import { convertSatsToMilliSats } from "../../helpers";
 
   export let tag = "";
   export let type = "";
@@ -16,7 +17,10 @@
 
   async function newInvoice() {
     if (type === "Cln") {
-      const invoiceRes = await CLN.add_invoice(tag, amount);
+      const invoiceRes = await CLN.add_invoice(
+        tag,
+        convertSatsToMilliSats(amount)
+      );
       if (invoiceRes) {
         activeInvoice.update((inv) => {
           return { ...inv, [tag]: invoiceRes.bolt11 };

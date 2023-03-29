@@ -9,6 +9,7 @@
   import { channels } from "../../store";
   import * as CLN from "../../api/cln";
   import { parseClnListPeerRes } from "../../helpers/cln";
+  import { convertSatsToMilliSats } from "../../helpers";
 
   export let tag = "";
   export let type = "";
@@ -23,18 +24,24 @@
 
   async function payKeysend() {
     if (type === "Cln") {
-      const payRes = await CLN.keysend(tag, dest, parseInt(amount) * 1000);
+      const payRes = await CLN.keysend(
+        tag,
+        dest,
+        convertSatsToMilliSats(amount)
+      );
       if (payRes) {
         show_notification = true;
         dest = "";
         amount = 0;
 
-        const peersData = await CLN.list_peers(tag);
-        const parsedRes = await parseClnListPeerRes(peersData);
-        if (!peersData) return;
-        channels.update((chans) => {
-          return { ...chans, [tag]: parsedRes.channels };
-        });
+        setTimeout(async () => {
+          const peersData = await CLN.list_peers(tag);
+          const parsedRes = await parseClnListPeerRes(peersData);
+          if (!peersData) return;
+          channels.update((chans) => {
+            return { ...chans, [tag]: parsedRes.channels };
+          });
+        }, 2000);
       }
     } else {
       const payRes = await LND.keysend(tag, dest, amount);
