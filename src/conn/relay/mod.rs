@@ -44,9 +44,9 @@ pub struct Users {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
     pub id: u32,
-    pub public_key: String,
-    pub deleted: u8,
-    pub created_at: String,
+    pub public_key: Option<String>,
+    pub deleted: Option<u8>,
+    pub created_at: Option<String>,
     pub alias: Option<String>,
     pub route_hint: Option<String>,
     pub photo_url: Option<String>,
@@ -69,22 +69,22 @@ pub struct ClaimRes {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chat {
     id: u16,
-    uuid: String,
-    name: String,
-    photo_url: String,
-    r#type: u16,
-    group_key: String,
-    host: String,
-    price_to_join: u64,
-    price_per_message: u64,
-    escrow_amount: u64,
-    escrow_millis: u64,
-    private: u8,
-    app_url: String,
-    feed_url: String,
-    tenant: u16,
-    pin: String,
-    default_join: u8,
+    uuid: Option<String>,
+    name: Option<String>,
+    photo_url: Option<String>,
+    r#type: Option<u16>,
+    group_key: Option<String>,
+    host: Option<String>,
+    price_to_join: Option<u64>,
+    price_per_message: Option<u64>,
+    escrow_amount: Option<u64>,
+    escrow_millis: Option<u64>,
+    private: Option<u8>,
+    app_url: Option<String>,
+    feed_url: Option<String>,
+    tenant: Option<u16>,
+    pin: Option<String>,
+    default_join: Option<u8>,
 }
 pub type ChatsRes = Vec<Chat>;
 
@@ -246,7 +246,7 @@ impl RelayAPI {
             .send()
             .await?;
         // let hm = res.text().await?;
-        // println!("HM {:?}", &hm);
+        // println!("get_chats -> {:?}", &hm);
         // Ok(serde_json::from_str(&hm)?)
         Ok(res.json().await?)
     }

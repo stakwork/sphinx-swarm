@@ -77,3 +77,7 @@ path = "src/bin/btc_prod.rs"
 # [[bin]]
 # name = "test"
 # path = "src/bin/test.rs"
+
+[[blah]]
+name = "blah"
+path = "src/bin/blah.rs"
