@@ -32,23 +32,28 @@ pub fn cln_vls(name: &str, network: &str, idx: u16, btc: &btc::BtcImage) -> Conf
         ps.http.clone(),
     ];
     let root_vol = "/root/.lightning";
+    let mut cmd = vec![
+        format!("--alias=sphinx-{}", name),
+        format!("--addr=0.0.0.0:{}", ps.main),
+        format!("--grpc-port={}", ps.grpc),
+        "--network=regtest".to_string(),
+        format!("--bitcoin-rpcconnect={}", &domain(&btc.name)),
+        "--bitcoin-rpcport=18443".to_string(),
+        "--log-level=debug".to_string(),
+        "--accept-htlc-tlv-types=133773310".to_string(),
+        "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker".to_string(),
+    ];
+    if let Some(u) = &btc.user {
+        if let Some(p) = &btc.pass {
+            cmd.push(format!("--bitcoin-rpcuser={}", u));
+            cmd.push(format!("--bitcoin-rpcpassword={}", p));
+        }
+    }
     Config {
         image: Some(format!("sphinxlightning/sphinx-cln-vls:{}", version)),
         hostname: Some(domain(name)),
         domainname: Some(name.to_string()),
-        cmd: Some(vec![
-            format!("--alias=sphinx-{}", name),
-            format!("--addr=0.0.0.0:{}", ps.main),
-            format!("--grpc-port={}", ps.grpc),
-            "--network=regtest".to_string(),
-            format!("--bitcoin-rpcconnect={}", &domain(&btc.name)),
-            "--bitcoin-rpcport=18443".to_string(),
-            format!("--bitcoin-rpcuser={}", btc.user),
-            format!("--bitcoin-rpcpassword={}", btc.pass),
-            "--log-level=debug".to_string(),
-            "--accept-htlc-tlv-types=133773310".to_string(),
-            "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker".to_string(),
-        ]),
+        cmd: Some(cmd),
         exposed_ports: exposed_ports(ports.clone()),
         env: Some(vec![
             "EXPOSE_TCP=true".to_string(),

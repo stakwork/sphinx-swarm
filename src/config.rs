@@ -156,13 +156,15 @@ impl Default for Stack {
 
         // bitcoind
         let mut v = "v23.0";
-        let mut bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+        let mut bitcoind = BtcImage::new("bitcoind", v, &network);
         // connect to already running BTC node
         if let Ok(btc_pass) = std::env::var("BTC_PASS") {
             // only if its really there (not empty string)
             if btc_pass.len() > 0 {
-                bitcoind.set_password(&btc_pass);
+                bitcoind.set_user_password("sphinx", &btc_pass);
             }
+        } else {
+            bitcoind.set_user_password("sphinx", &secrets::random_word(12));
         }
 
         // lnd
@@ -322,7 +324,8 @@ impl Stack {
             Node::External(e) => Node::External(e.clone()),
             Node::Internal(i) => match i.clone() {
                 Image::Btc(mut b) => {
-                    b.pass = "".to_string();
+                    b.user = None;
+                    b.pass = None;
                     Node::Internal(Image::Btc(b))
                 }
                 Image::Lnd(mut l) => {

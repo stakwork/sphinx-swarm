@@ -94,11 +94,15 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &domain(&btc.name)),
         "--bitcoin-rpcport=18443".to_string(),
-        format!("--bitcoin-rpcuser={}", btc.user),
-        format!("--bitcoin-rpcpassword={}", btc.pass),
         "--log-level=debug".to_string(),
         "--accept-htlc-tlv-types=133773310".to_string(),
     ];
+    if let Some(u) = &btc.user {
+        if let Some(p) = &btc.pass {
+            cmd.push(format!("--bitcoin-rpcuser={}", u));
+            cmd.push(format!("--bitcoin-rpcpassword={}", p));
+        }
+    }
     if img.plugins.contains(&ClnPlugin::HsmdBroker) {
         cmd.push(format!(
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker"
