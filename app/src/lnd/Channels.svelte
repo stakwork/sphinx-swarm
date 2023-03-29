@@ -174,6 +174,7 @@
       back={toggleAddChannel}
       activeKey={activePeer ? activePeer.pub_key : ""}
       {tag}
+      {type}
     />
     <div />
   {:else if $channels?.hasOwnProperty(tag) && $channels[tag]?.length}

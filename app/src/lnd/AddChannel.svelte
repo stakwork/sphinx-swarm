@@ -8,9 +8,11 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { create_channel, get_balance } from "../api/lnd";
+  import { list_funds } from "../api/cln";
   import { onMount } from "svelte";
   import { lndBalances, peers as peersStore } from "../store";
   import { formatSatsNumbers } from "../helpers";
+  import { parseClnListFunds } from "../helpers/cln";
 
   export let activeKey: string = null;
 
@@ -19,6 +21,7 @@
   $: sats = 0;
 
   export let tag = "";
+  export let type = "";
 
   $: balance = $lndBalances.hasOwnProperty(tag) ? $lndBalances[tag] : 0;
 
@@ -29,7 +32,7 @@
   let show_notification = false;
 
   // Check for length to avoid map error
-  $: peerData = peers.length
+  $: peerData = peers?.length
     ? peers.map((p) => ({
         id: p.pub_key,
         text: p.pub_key,
@@ -54,6 +57,15 @@
   async function getBalance() {
     const balance = await get_balance(tag);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
+    lndBalances.update((n) => {
+      return { ...n, [tag]: balance };
+    });
+  }
+
+  async function listClnFunds() {
+    const funds = await list_funds(tag);
+    const balance = parseClnListFunds(funds);
+    if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
     lndBalances.update((n) => {
       return { ...n, [tag]: balance };
@@ -61,7 +73,11 @@
   }
 
   onMount(() => {
-    getBalance();
+    if (type === "Cln") {
+      listClnFunds();
+    } else {
+      getBalance();
+    }
   });
 
   export let back = () => {};
