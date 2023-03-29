@@ -19,6 +19,7 @@ pub struct LndImage {
     pub peer_port: String,
     pub http_port: Option<String>,
     pub assumechanvalid: Option<bool>,
+    pub pinned_syncer: Option<String>,
     pub links: Links,
     pub unlock_password: String,
     pub host: Option<String>,
@@ -33,6 +34,7 @@ impl LndImage {
             peer_port: peer_port.to_string(),
             http_port: None,
             assumechanvalid: None,
+            pinned_syncer: None,
             links: vec![],
             unlock_password: secrets::random_word(12),
             host: None,
@@ -131,8 +133,13 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     ];
     if let Some(acv) = lnd.assumechanvalid {
         if acv {
+            log::info!("[lnd]: --routing.assumechanvalid");
             cmd.push("--routing.assumechanvalid".to_string());
         }
+    }
+    if let Some(ps) = &lnd.pinned_syncer {
+        log::info!("[lnd]: --gossip.pinned-syncers={}", ps);
+        cmd.push(format!("--gossip.pinned-syncers={}", ps));
     }
     if let Some(hp) = lnd.http_port.clone() {
         ports.push(hp.clone());
