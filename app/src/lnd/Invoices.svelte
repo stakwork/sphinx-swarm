@@ -44,7 +44,7 @@
 {:else if page === "pay"}
   <PayInvoice {tag} />
 {:else}
-  <PayKeysend {tag} />
+  <PayKeysend {tag} {type} />
 {/if}
 
 <style>
