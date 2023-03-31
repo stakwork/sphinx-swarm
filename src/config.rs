@@ -14,6 +14,7 @@ use crate::secrets;
 use crate::utils;
 use anyhow::Result;
 use once_cell::sync::Lazy;
+use rocket::tokio;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -186,7 +187,7 @@ impl Default for Stack {
         proxy.links(vec!["lnd"]);
 
         // relay
-        v = "v0.1.16";
+        v = "v0.1.17";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -304,17 +305,42 @@ impl ExternalNode {
     }
 }
 
+async fn file_exists(file: &str) -> bool {
+    let path = std::path::Path::new(&file);
+    tokio::fs::metadata(path).await.is_ok()
+}
+
+const YAML: bool = true;
+
 pub async fn load_config_file(project: &str) -> Stack {
     let path = format!("vol/{}/config.json", project);
-    utils::load_json(&path, Default::default()).await
+    if !YAML {
+        return utils::load_json(&path, Default::default()).await;
+    }
+    let yaml_path = format!("vol/{}/config.yaml", project);
+    if file_exists(&path).await {
+        // migrate to yaml
+        let stack: Stack = utils::load_json(&path, Default::default()).await;
+        // create the yaml version
+        utils::put_yaml(&yaml_path, &stack).await;
+        // delete the json version
+        let _ = tokio::fs::remove_file(path).await;
+        stack
+    } else {
+        let s = utils::load_yaml(&yaml_path, Default::default()).await;
+        println!("STACK! {:?}", s);
+        s
+    }
 }
-pub async fn get_config_file(project: &str) -> Stack {
-    let path = format!("vol/{}/config.json", project);
-    utils::get_json(&path).await
-}
+
 pub async fn put_config_file(project: &str, rs: &Stack) {
-    let path = format!("vol/{}/config.json", project);
-    utils::put_json(&path, rs).await
+    let ext = if YAML { "yaml" } else { "json" };
+    let path = format!("vol/{}/config.{}", project, ext);
+    if YAML {
+        utils::put_yaml(&path, rs).await
+    } else {
+        utils::put_json(&path, rs).await
+    }
 }
 
 impl Stack {

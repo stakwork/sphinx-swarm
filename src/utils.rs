@@ -235,6 +235,33 @@ pub async fn put_json<T: Serialize>(file: &str, rs: &T) {
     file.write_all(st.as_bytes()).await.expect("write failed");
 }
 
+pub async fn load_yaml<T: DeserializeOwned + Serialize>(file: &str, default: T) -> T {
+    let path = std::path::Path::new(&file);
+    match fs::read(path.clone()).await {
+        Ok(data) => match serde_yaml::from_slice(&data) {
+            Ok(d) => d,
+            Err(_) => default,
+        },
+        Err(_e) => {
+            let prefix = path.parent().unwrap();
+            fs::create_dir_all(prefix).await.unwrap();
+            put_yaml(file, &default).await;
+            default
+        }
+    }
+}
+pub async fn get_yaml<T: DeserializeOwned>(file: &str) -> T {
+    let path = std::path::Path::new(&file);
+    let data = fs::read(path.clone()).await.unwrap();
+    serde_yaml::from_slice(&data).unwrap()
+}
+pub async fn put_yaml<T: Serialize>(file: &str, rs: &T) {
+    let path = std::path::Path::new(&file);
+    let st = serde_yaml::to_string(rs).expect("failed to make yaml string");
+    let mut file = fs::File::create(path).await.expect("create failed");
+    file.write_all(st.as_bytes()).await.expect("write failed");
+}
+
 pub async fn wait_for_file(path: &str, iterations: usize) -> Result<()> {
     for _ in 0..iterations {
         if std::path::Path::new(path).exists() {
