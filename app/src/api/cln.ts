@@ -32,3 +32,16 @@ export async function pay_invoice(tag: string, payment_request) {
 export async function keysend(tag: string, dest: string, amt: number) {
   return await clnCmd("PayKeysend", tag, { dest, amt });
 }
+
+export async function create_channel(
+  tag: string,
+  pubkey: string,
+  amount: number,
+  satsperbyte: number
+) {
+  return await clnCmd("AddChannel", tag, { pubkey, amount, satsperbyte });
+}
+
+export async function add_peer(tag: string, pubkey: string, host: string) {
+  return await clnCmd("AddPeer", tag, { pubkey, host });
+}
