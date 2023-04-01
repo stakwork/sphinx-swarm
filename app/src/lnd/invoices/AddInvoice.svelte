@@ -9,6 +9,7 @@
 
   export let tag = "";
   export let type = "";
+
   $: amount = 0;
 
   $: invDisabled = !amount;

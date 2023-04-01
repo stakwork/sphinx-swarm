@@ -12,7 +12,7 @@
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { stack, logoutUser, containers } from "./store";
-  import { afterUpdate, onMount } from "svelte";
+  import { onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";

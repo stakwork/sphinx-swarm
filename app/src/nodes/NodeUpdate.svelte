@@ -130,7 +130,9 @@
     <div class="title">{name}</div>
     {#if $selectedNode.version}
       <div class="version">{`(${$selectedNode.version})`}</div>
-      <Button on:click={openModal} size="field" icon={Upgrade}>Update</Button>
+      <Button on:click={openModal} size="field" icon={Upgrade} disabled
+        >Update</Button
+      >
     {/if}
   </section>
 

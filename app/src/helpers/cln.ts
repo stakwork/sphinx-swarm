@@ -1,7 +1,8 @@
 import { bufferToHexString, convertMillisatsToSats } from "./";
 import long from "long";
+import type { LndChannel, LndPeer } from "../api/lnd";
 
-enum GreenlightChannelState {
+enum ClnChannelState {
   CHANNELD_AWAITING_LOCKIN = "CHANNELD_AWAITING_LOCKIN",
   /* Normal operating state. */
   CHANNELD_NORMAL = "CHANNELD_NORMAL",
@@ -32,9 +33,13 @@ export function parseClnGetInfo(res) {
   return { identity_pubkey: pubkey };
 }
 
+interface ParsedClnPeersAndChannels {
+  peers: LndPeer[];
+  channels: LndChannel[];
+}
 export function parseClnListPeerRes(res: {
   peers: { id: Buffer; netaddr; channels }[];
-}) {
+}): ParsedClnPeersAndChannels {
   // pub_key: string;
   // address: string;
   // bytes_sent: number;
@@ -44,14 +49,7 @@ export function parseClnListPeerRes(res: {
   // inbound: number;
   // ping_time: number;
   // sync_type: number;
-  let channels: {
-    remote_pubkey: string;
-    capacity: number;
-    local_balance: number;
-    remote_balance: number;
-    channel_point: string;
-    active: boolean;
-  }[] = [];
+  let channels: LndChannel[] = [];
   const peers = res.peers.map((peer) => {
     const pub_key = bufferToHexString(peer.id);
     channels = [...channels, ...parseClnChannelList(peer.channels, pub_key)];
@@ -70,7 +68,7 @@ export function parseClnListPeerRes(res: {
   return { peers, channels };
 }
 
-function parseClnChannelList(channels: any, pubkey: string) {
+function parseClnChannelList(channels: any, pubkey: string): LndChannel[] {
   // active: boolean;
   // remote_pubkey: string;
   // channel_point: string;
@@ -100,14 +98,14 @@ function parseClnChannelList(channels: any, pubkey: string) {
   // push_amount_sat: number;
   // thaw_height: number;
   const parsedChannels = channels.map((channel, index: number) => {
-    return {
+    return <LndChannel>{
       remote_pubkey: pubkey,
       capacity: convertMillisatsToSats(channel.total_msat.msat),
       local_balance: convertMillisatsToSats(channel.spendable_msat.msat),
       remote_balance: convertMillisatsToSats(channel.receivable_msat.msat),
       channel_point: `${bufferToHexString(channel.funding_txid)}:${index}`,
       active: getChannelStatus(channel.status),
-      chat_id: shortChanIDtoInt64(bufferToHexString(channel.channel_id)), //This currently returning an empty string
+      chan_id: shortChanIDtoInt64(channel.channel_id), //This currently returning an empty string
     };
   });
   return parsedChannels;
@@ -138,14 +136,14 @@ function getChannelStatus(status) {
   for (let i = 0; i < status.length; i++) {
     derivedStatus[status[i].split(":")[0]] = true;
   }
-  if (derivedStatus[GreenlightChannelState.CHANNELD_NORMAL]) {
+  if (derivedStatus[ClnChannelState.CHANNELD_NORMAL]) {
     return true;
   } else {
     false;
   }
 }
 
-export function parseClnListFunds(res) {
+export function parseClnListFunds(res): number {
   let balance = 0;
   for (let i = 0; i < res.outputs.length; i++) {
     let output = res.outputs[i];
