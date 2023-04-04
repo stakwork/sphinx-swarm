@@ -1,7 +1,6 @@
-version: '2'
+version: "2"
 
 services:
-
   load_balancer:
     image: traefik:v2.2.1
     container_name: load_balancer
@@ -30,7 +29,7 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/letsencrypt:/letsencrypt
-    environment: 
+    environment:
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
@@ -39,7 +38,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.1.52
+    image: sphinxlightning/sphinx-swarm:0.1.54
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
@@ -58,7 +57,7 @@ services:
       - "traefik.http.routers.elements.tls.certresolver=myresolver"
       - "traefik.http.routers.elements.entrypoints=websecure"
     restart: on-failure
-    environment: 
+    environment:
       - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
       - ONLY_NODE=$ONLY_NODE # only start this node
       - BTC_PASS=$BTC_PASS # for starting after bitcoind sync

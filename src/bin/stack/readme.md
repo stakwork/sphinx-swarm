@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.52
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.54
 
-docker push sphinxlightning/sphinx-swarm:0.1.52
+docker push sphinxlightning/sphinx-swarm:0.1.54
 
 ### run prod stack
 
@@ -25,6 +25,8 @@ docker-compose down
 
 ### update sphinx-swarm itself
 
+docker stop sphinx-swarm && docker rm sphinx-swarm
+
 docker-compose up sphinx-swarm -d
 
 docker logs sphinx-swarm --follow
@@ -41,7 +43,7 @@ update the version
 
 docker pull sphinxlightning/sphinx-relay-swarm:v0.1.16
 
-docker stop lnd.sphinx && docker rm lnd.sphinx
+docker stop bitcoind.sphinx && docker rm bitcoind.sphinx
 
 docker-compose up sphinx-swarm -d
 
