@@ -8,10 +8,10 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { create_channel, get_balance } from "../api/lnd";
-  import { list_funds } from "../api/cln";
+  import * as CLN from "../api/cln";
   import { onMount } from "svelte";
   import { lndBalances, peers as peersStore } from "../store";
-  import { formatSatsNumbers } from "../helpers";
+  import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
   import { parseClnListFunds } from "../helpers/cln";
 
   export let activeKey: string = null;
@@ -46,11 +46,26 @@
   $: peerItems = [{ id: "", text: "Select peer" }, ...peerData];
 
   async function addChannel() {
-    if (await create_channel(tag, pubkey, amount, sats)) {
-      show_notification = true;
-      pubkey = "";
-      amount = 0;
-      sats = 0;
+    if (type === "Cln") {
+      const channel = await CLN.create_channel(
+        tag,
+        pubkey,
+        convertSatsToMilliSats(amount),
+        sats
+      );
+      if (channel) {
+        show_notification = true;
+        pubkey = "";
+        amount = 0;
+        sats = 0;
+      }
+    } else {
+      if (await create_channel(tag, pubkey, amount, sats)) {
+        show_notification = true;
+        pubkey = "";
+        amount = 0;
+        sats = 0;
+      }
     }
   }
 
@@ -63,7 +78,7 @@
   }
 
   async function listClnFunds() {
-    const funds = await list_funds(tag);
+    const funds = await CLN.list_funds(tag);
     const balance = parseClnListFunds(funds);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 

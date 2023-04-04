@@ -19,14 +19,14 @@
 
   let show_notification = false;
   let message = "";
-  let messageType = "";
+  let success = false;
 
   async function payInvoice() {
     if (type === "Cln") {
       show_notification = true;
       const payRes = await CLN.pay_invoice(tag, pay_req);
       if (payRes.status === 0) {
-        messageType = "success";
+        success = true;
         message = "Invoice payment has been made.";
         pay_req = "";
         setTimeout(async () => {
@@ -37,7 +37,7 @@
           });
         }, 2000);
       } else {
-        messageType = "error";
+        success = false;
         pay_req = "";
         if (payRes.status === 1) {
           message = "Invoice payment is pending";
@@ -51,7 +51,7 @@
       show_notification = true;
       if (!payRes.payment_error) {
         pay_req = "";
-        messageType = "success";
+        success = true;
         message = "Invoice payment has been made.";
         /**
          * After successfully invoice payment fetch the new channels
@@ -62,7 +62,7 @@
           return { ...chans, [tag]: channelsData };
         });
       } else {
-        messageType = "error";
+        success = false;
         message = payRes.payment_error;
         pay_req = "";
       }
@@ -75,8 +75,8 @@
     {#if show_notification}
       <InlineNotification
         lowContrast
-        kind={messageType}
-        title={messageType === "success" ? "Success:" : "Error:"}
+        kind={success ? "error" : "success"}
+        title={success ? "Success:" : "Error:"}
         subtitle={message}
         timeout={3000}
         on:close={(e) => {
