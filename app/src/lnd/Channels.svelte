@@ -58,8 +58,8 @@
 
   async function clnListPeersandChannels() {
     const peersData = await CLN.list_peers(tag);
-    const parsedRes = await parseClnListPeerRes(peersData);
     if (!peersData) return;
+    const parsedRes = await parseClnListPeerRes(peersData);
     peersStore.update((peer) => {
       return { ...peer, [tag]: parsedRes.peers };
     });
@@ -167,7 +167,7 @@
   </section>
 
   {#if page === "peers"}
-    <Peers back={toggleAddPeer} {tag} newChannel={peerAddChannel} />
+    <Peers back={toggleAddPeer} {tag} {type} newChannel={peerAddChannel} />
   {:else if page === "add_channel"}
     <AddChannel
       back={toggleAddChannel}

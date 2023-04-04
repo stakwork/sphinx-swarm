@@ -6,31 +6,48 @@
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import { add_peer, list_peers, type Peer } from "../api/lnd";
+  import { add_peer, list_peers, type LndPeer } from "../api/lnd";
+  import * as CLN from "../api/cln";
   import { peers as peersStore } from "../store";
+  import { parseClnListPeerRes } from "../helpers/cln";
 
   $: pubkey = "";
   $: host = "";
 
   export let back = () => {};
   export let tag = "";
-  export let newChannel = (p: Peer) => {};
+  export let newChannel = (p: LndPeer) => {};
+  export let type = "";
 
   $: peers = $peersStore && $peersStore[tag];
 
   let show_notification = false;
 
   async function addPeer() {
-    if (await add_peer(tag, pubkey, host)) {
-      show_notification = true;
-      pubkey = "";
-      host = "";
+    if (type === "Cln") {
+      const peer = await CLN.add_peer(tag, pubkey, host);
+      if (peer) {
+        show_notification = true;
+        pubkey = "";
+        host = "";
+        const peersData = await CLN.list_peers(tag);
+        const parsedRes = await parseClnListPeerRes(peersData);
+        peersStore.update((peer) => {
+          return { ...peer, [tag]: parsedRes.peers };
+        });
+      }
+    } else {
+      if (await add_peer(tag, pubkey, host)) {
+        show_notification = true;
+        pubkey = "";
+        host = "";
 
-      const peersData = await list_peers(tag);
+        const peersData = await list_peers(tag);
 
-      peersStore.update((ps) => {
-        return { ...ps, [tag]: peersData.peers };
-      });
+        peersStore.update((ps) => {
+          return { ...ps, [tag]: peersData.peers };
+        });
+      }
     }
   }
 
