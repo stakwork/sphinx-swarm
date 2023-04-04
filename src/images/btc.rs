@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::{DockerConfig, DockerHubImage, Repository};
 use crate::config::{Clients, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
@@ -9,6 +10,8 @@ use bollard::container::Config;
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
 
+const RPC_PORT: &str = "18443";
+
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BtcImage {
     pub name: String,
@@ -16,6 +19,7 @@ pub struct BtcImage {
     pub network: String,
     pub user: String,
     pub pass: String,
+    pub host: Option<String>,
 }
 
 impl BtcImage {
@@ -26,6 +30,12 @@ impl BtcImage {
             network: network.to_string(),
             user: user.to_string(),
             pass: secrets::random_word(12),
+            host: None,
+        }
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("bitcoind.{}", h));
         }
     }
     pub fn set_password(&mut self, password: &str) {
@@ -41,7 +51,7 @@ impl BtcImage {
     }
     pub async fn connect_client(&self, clients: &mut Clients) {
         let btc_rpc_url = format!("http://{}", docker_domain_127(&self.name));
-        match BitcoinRPC::new_and_create_wallet(&self, &btc_rpc_url, "18443").await {
+        match BitcoinRPC::new_and_create_wallet(&self, &btc_rpc_url, RPC_PORT).await {
             Ok(client) => {
                 clients.bitcoind.insert(self.name.clone(), client);
             }
@@ -69,7 +79,7 @@ impl DockerHubImage for BtcImage {
 
 pub fn btc(node: &BtcImage) -> Config<String> {
     let ports = vec![
-        "18443".to_string(),
+        RPC_PORT.to_string(),
         "28332".to_string(),
         "28333".to_string(),
         "8333".to_string(),
@@ -99,14 +109,19 @@ pub fn btc(node: &BtcImage) -> Config<String> {
     if node.network != "bitcoin" {
         cmd.push(format!("-{}=1", node.network));
     }
-    Config {
+    let mut c = Config {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&node.name)),
         // user: user(),
         cmd: Some(cmd),
         host_config: host_config(&node.name, ports, root_vol, None),
         ..Default::default()
+    };
+    if let Some(host) = node.host.clone() {
+        // production tls extra domain
+        c.labels = Some(traefik_labels(&node.name, &host, RPC_PORT, false));
     }
+    c
 }
 
 async fn sleep(n: u64) {
