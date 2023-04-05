@@ -14,6 +14,7 @@ use crate::secrets;
 use crate::utils;
 use anyhow::Result;
 use once_cell::sync::Lazy;
+use rocket::tokio;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -156,13 +157,15 @@ impl Default for Stack {
 
         // bitcoind
         let mut v = "v23.0";
-        let mut bitcoind = BtcImage::new("bitcoind", v, &network, "sphinx");
+        let mut bitcoind = BtcImage::new("bitcoind", v, &network);
         // connect to already running BTC node
         if let Ok(btc_pass) = std::env::var("BTC_PASS") {
             // only if its really there (not empty string)
             if btc_pass.len() > 0 {
-                bitcoind.set_password(&btc_pass);
+                bitcoind.set_user_password("sphinx", &btc_pass);
             }
+        } else {
+            bitcoind.set_user_password("sphinx", &secrets::random_word(12));
         }
 
         // lnd
@@ -184,7 +187,7 @@ impl Default for Stack {
         proxy.links(vec!["lnd"]);
 
         // relay
-        v = "v0.1.16";
+        v = "v0.1.17";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -272,7 +275,7 @@ impl Default for Stack {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum ExternalNodeType {
-    Bitcoind,
+    Btc,
     Tribes,
     Meme,
     Postgres,
@@ -302,17 +305,42 @@ impl ExternalNode {
     }
 }
 
-pub async fn load_config_file(project: &str) -> Stack {
-    let path = format!("vol/{}/config.json", project);
-    utils::load_json(&path, Default::default()).await
+async fn file_exists(file: &str) -> bool {
+    let path = std::path::Path::new(&file);
+    tokio::fs::metadata(path).await.is_ok()
 }
-pub async fn get_config_file(project: &str) -> Stack {
+
+const YAML: bool = true;
+
+pub async fn load_config_file(project: &str) -> Result<Stack> {
     let path = format!("vol/{}/config.json", project);
-    utils::get_json(&path).await
+    if !YAML {
+        return Ok(utils::load_json(&path, Default::default()).await);
+    }
+    let yaml_path = format!("vol/{}/config.yaml", project);
+    if file_exists(&path).await {
+        // migrate to yaml
+        let stack: Stack = utils::load_json(&path, Default::default()).await;
+        // create the yaml version
+        utils::put_yaml(&yaml_path, &stack).await;
+        // delete the json version
+        let _ = tokio::fs::remove_file(path).await;
+        Ok(stack)
+    } else {
+        let s = utils::load_yaml(&yaml_path, Default::default()).await?;
+        println!("STACK! {:?}", s);
+        Ok(s)
+    }
 }
+
 pub async fn put_config_file(project: &str, rs: &Stack) {
-    let path = format!("vol/{}/config.json", project);
-    utils::put_json(&path, rs).await
+    let ext = if YAML { "yaml" } else { "json" };
+    let path = format!("vol/{}/config.{}", project, ext);
+    if YAML {
+        utils::put_yaml(&path, rs).await
+    } else {
+        utils::put_json(&path, rs).await
+    }
 }
 
 impl Stack {
@@ -322,7 +350,8 @@ impl Stack {
             Node::External(e) => Node::External(e.clone()),
             Node::Internal(i) => match i.clone() {
                 Image::Btc(mut b) => {
-                    b.pass = "".to_string();
+                    b.user = None;
+                    b.pass = None;
                     Node::Internal(Image::Btc(b))
                 }
                 Image::Lnd(mut l) => {

@@ -2,7 +2,8 @@ use super::traefik::traefik_labels;
 use super::{DockerConfig, DockerHubImage, Repository};
 use crate::config::{Clients, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-use crate::secrets;
+// use crate::secrets;
+use super::traefik::traefik_labels;
 use crate::utils::{docker_domain_127, domain, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -17,19 +18,19 @@ pub struct BtcImage {
     pub name: String,
     pub version: String,
     pub network: String,
-    pub user: String,
-    pub pass: String,
+    pub user: Option<String>,
+    pub pass: Option<String>,
     pub host: Option<String>,
 }
 
 impl BtcImage {
-    pub fn new(name: &str, version: &str, network: &str, user: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
             network: network.to_string(),
-            user: user.to_string(),
-            pass: secrets::random_word(12),
+            user: None,
+            pass: None,
             host: None,
         }
     }
@@ -38,8 +39,9 @@ impl BtcImage {
             self.host = Some(format!("bitcoind.{}", h));
         }
     }
-    pub fn set_password(&mut self, password: &str) {
-        self.pass = password.to_string();
+    pub fn set_user_password(&mut self, user: &str, password: &str) {
+        self.user = Some(user.to_string());
+        self.pass = Some(password.to_string());
     }
     pub async fn post_client(&self, clients: &Clients) -> Result<()> {
         let client = clients
@@ -90,8 +92,6 @@ pub fn btc(node: &BtcImage) -> Config<String> {
     let image = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/data/.bitcoin";
     let mut cmd = vec![
-        format!("-rpcuser={}", node.user),
-        format!("-rpcpassword={}", node.pass),
         format!("-rpcbind={}.sphinx", node.name),
         "-rpcallowip=0.0.0.0/0".to_string(),
         "-rpcport=18443".to_string(),
@@ -105,6 +105,12 @@ pub fn btc(node: &BtcImage) -> Config<String> {
         "-minrelaytxfee=0.00000000".to_string(),
         "-incrementalrelayfee=0.00000010".to_string(),
     ];
+    if let Some(u) = &node.user {
+        if let Some(p) = &node.pass {
+            cmd.push(format!("-rpcuser={}", u));
+            cmd.push(format!("-rpcpassword={}", p));
+        }
+    }
     // "bitcoin" network is default is not specified
     if node.network != "bitcoin" {
         cmd.push(format!("-{}=1", node.network));
