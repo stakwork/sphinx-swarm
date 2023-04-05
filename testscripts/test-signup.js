@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
 async function testSignup() {
-  const qrToken = `claim::localhost:3000::ZHE1bnJtcnVBdmtT`;
+  const qrToken = `claim::localhost:3000::MDZ2Tm9zVlBBNTND`;
   const arr = qrToken.split("::");
   const ip = arr[1];
   const token = decodeToken(arr[2]);
