@@ -235,18 +235,22 @@ pub async fn put_json<T: Serialize>(file: &str, rs: &T) {
     file.write_all(st.as_bytes()).await.expect("write failed");
 }
 
-pub async fn load_yaml<T: DeserializeOwned + Serialize>(file: &str, default: T) -> T {
+pub async fn load_yaml<T: DeserializeOwned + Serialize>(file: &str, default: T) -> Result<T> {
     let path = std::path::Path::new(&file);
     match fs::read(path.clone()).await {
-        Ok(data) => match serde_yaml::from_slice(&data) {
-            Ok(d) => d,
-            Err(_) => default,
+        Ok(data) => match serde_yaml::from_slice::<T>(&data) {
+            Ok(d) => Ok(d),
+            Err(e) => {
+                log::warn!("error loading YAML {:?}", e);
+                return Err(anyhow!("failed to load YAML config"));
+            }
         },
         Err(_e) => {
+            log::info!("creating a brand new default YAML config file!");
             let prefix = path.parent().unwrap();
             fs::create_dir_all(prefix).await.unwrap();
             put_yaml(file, &default).await;
-            default
+            Ok(default)
         }
     }
 }

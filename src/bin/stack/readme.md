@@ -37,7 +37,7 @@ docker volume rm proxy.sphinx
 
 ### update one instance
 
-sudo vi $HOME/vol/stack/config.json
+sudo vi $HOME/vol/stack/config.yaml
 
 update the version
 

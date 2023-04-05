@@ -275,7 +275,7 @@ impl Default for Stack {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum ExternalNodeType {
-    Bitcoind,
+    Btc,
     Tribes,
     Meme,
     Postgres,
@@ -312,10 +312,10 @@ async fn file_exists(file: &str) -> bool {
 
 const YAML: bool = true;
 
-pub async fn load_config_file(project: &str) -> Stack {
+pub async fn load_config_file(project: &str) -> Result<Stack> {
     let path = format!("vol/{}/config.json", project);
     if !YAML {
-        return utils::load_json(&path, Default::default()).await;
+        return Ok(utils::load_json(&path, Default::default()).await);
     }
     let yaml_path = format!("vol/{}/config.yaml", project);
     if file_exists(&path).await {
@@ -325,11 +325,11 @@ pub async fn load_config_file(project: &str) -> Stack {
         utils::put_yaml(&yaml_path, &stack).await;
         // delete the json version
         let _ = tokio::fs::remove_file(path).await;
-        stack
+        Ok(stack)
     } else {
-        let s = utils::load_yaml(&yaml_path, Default::default()).await;
+        let s = utils::load_yaml(&yaml_path, Default::default()).await?;
         println!("STACK! {:?}", s);
-        s
+        Ok(s)
     }
 }
 
