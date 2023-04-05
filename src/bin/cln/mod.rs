@@ -25,7 +25,15 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 
-    setup_chans(&mut clients).await?;
+    let mut skip_setup = false;
+    if let Ok(clnskip) = std::env::var("CLN_SKIP_SETUP") {
+        if clnskip == "true" {
+            skip_setup = true;
+        }
+    }
+    if !skip_setup {
+        setup_chans(&mut clients).await?;
+    }
 
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
 
