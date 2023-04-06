@@ -1,6 +1,7 @@
 use anyhow::Result;
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::btc::{btc, BtcImage};
+use sphinx_swarm::secrets;
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -13,9 +14,10 @@ pub async fn main() -> Result<()> {
     // create btc config
     let version = "v23.0";
     let network = "bitcoin";
-    let img = BtcImage::new("bitcoind", version, network, "sphinx");
+    let mut img = BtcImage::new("bitcoind", version, network);
+    img.set_user_password("sphinx", &secrets::random_word(12));
     log::info!("bitcoind rpc:");
-    log::info!("==> user: sphinx ==> password: {}", &img.pass);
+    log::info!("==> user: sphinx ==> password: {:?}", &img.pass);
     let btc1 = btc(&img);
 
     // launch btc

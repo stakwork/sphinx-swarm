@@ -6,10 +6,11 @@ use super::unlocker::LndUnlocker;
 
 pub fn strip_pem_prefix_suffix(s: &str) -> String {
     let mut ret = s.to_string();
-    if let Some(no_prefix) = ret.strip_prefix("-----BEGIN CERTIFICATE-----") {
+    ret.retain(|c| !c.is_whitespace());
+    if let Some(no_prefix) = ret.strip_prefix("-----BEGINCERTIFICATE-----") {
         ret = no_prefix.to_string();
     }
-    if let Some(no_suffix) = ret.strip_suffix("-----END CERTIFICATE-----") {
+    if let Some(no_suffix) = ret.strip_suffix("-----ENDCERTIFICATE-----") {
         ret = no_suffix.to_string();
     }
     ret
@@ -19,6 +20,11 @@ pub fn strip_pem_prefix_suffix(s: &str) -> String {
 pub async fn dl_cert(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
     let cert_bytes = dock::try_dl(docker, lnd_name, path).await?;
     Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
+}
+
+pub async fn dl_cert_to_base64(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
+    let cert_bytes = dock::try_dl(docker, lnd_name, path).await?;
+    Ok(base64::encode(cert_bytes))
 }
 
 // hex encoded

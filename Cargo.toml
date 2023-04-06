@@ -41,6 +41,7 @@ hmac = "0.12"
 async-trait = "0.1.64"
 tonic = { version = "0.8", features = ["tls", "transport"] }
 cln-grpc = { git = "https://github.com/stakwork/lightning", branch = "cln-grpc-serde" }
+serde_yaml = "0.9"
 
 [lib]
 name = "sphinx_swarm"
@@ -81,3 +82,7 @@ path = "src/bin/btc_prod.rs"
 [[blah]]
 name = "blah"
 path = "src/bin/blah.rs"
+
+[[blah]]
+name = "cln_mainnet_test"
+path = "src/bin/cln_mainnet_test.rs"

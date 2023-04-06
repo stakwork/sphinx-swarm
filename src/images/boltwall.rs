@@ -1,7 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
+use crate::conn::lnd::utils::{dl_cert_to_base64, dl_macaroon};
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
@@ -44,26 +44,17 @@ impl BoltwallImage {
 #[async_trait]
 impl DockerConfig for BoltwallImage {
     async fn make_config(&self, nodes: &Vec<Node>, docker: &Docker) -> Result<Config<String>> {
-        let lnd_node = nodes
-            .iter()
-            .find(|n| n.name() == "lnd")
-            .context("No LND")?
-            .as_internal()?
-            .as_lnd()?;
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let lnd_node = li.find_lnd().context("Boltwall: No LND")?;
 
         let cert_path = "/home/.lnd/tls.cert";
-        let cert_full = dl_cert(docker, &lnd_node.name, cert_path).await?;
-        let cert64 = strip_pem_prefix_suffix(&cert_full);
+        let cert64 = dl_cert_to_base64(docker, &lnd_node.name, cert_path).await?;
+        // let cert64 = strip_pem_prefix_suffix(&cert_full);
         let netwk = to_lnd_network(lnd_node.network.as_str());
         let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
         let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
 
-        let jarvis_node = nodes
-            .iter()
-            .find(|n| n.name() == "jarvis")
-            .context("No Jarvis")?
-            .as_internal()?
-            .as_jarvis()?;
+        let jarvis_node = li.find_jarvis().context("Boltwall: No Jarvis")?;
 
         Ok(boltwall(&self, &mac, &cert64, &lnd_node, &jarvis_node))
     }
@@ -91,7 +82,9 @@ pub fn boltwall(
     let ports = vec![node.port.clone()];
     let root_vol = "/boltwall";
 
-    let lnd_socket = format!("{}:{}", lnd_node.name, lnd_node.rpc_port);
+    // "lnd.sphinx:10009"
+    let lnd_socket = format!("{}:{}", &domain(&lnd_node.name), lnd_node.rpc_port);
+    log::info!("Boltwall: LND_SOCKET {}", lnd_socket);
     let mut env = vec![
         format!("PORT={}", node.port),
         format!("LND_TLS_CERT={}", cert),

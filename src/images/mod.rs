@@ -178,6 +178,7 @@ impl DockerHubImage for Image {
 
 pub struct LinkedImages(Vec<Image>);
 
+// internal nodes only
 impl LinkedImages {
     pub fn from_nodes(links: Vec<String>, nodes: &Vec<config::Node>) -> Self {
         let mut images = Vec::new();
@@ -209,6 +210,30 @@ impl LinkedImages {
     pub fn find_proxy(&self) -> Option<proxy::ProxyImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_proxy() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_neo4j(&self) -> Option<neo4j::Neo4jImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_neo4j() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_jarvis(&self) -> Option<jarvis::JarvisImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_jarvis() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_boltwall(&self) -> Option<boltwall::BoltwallImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_boltwall() {
                 return Some(i);
             }
         }

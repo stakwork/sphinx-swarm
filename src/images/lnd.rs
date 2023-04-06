@@ -118,10 +118,7 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--rpclisten=0.0.0.0:{}", &lnd.rpc_port),
         format!("--tlsextradomain={}.sphinx", lnd.name),
         format!("--alias={}", &lnd.name),
-        format!("--bitcoind.rpcuser={}", &btc.user),
-        format!("--bitcoind.rpcpass={}", &btc.pass),
         format!("--bitcoind.rpchost={}:18443", &btc_domain),
-        // format!("--bitcoind.rpcpolling"),
         format!("--bitcoind.zmqpubrawblock=tcp://{}:28332", &btc_domain),
         format!("--bitcoind.zmqpubrawtx=tcp://{}:28333", &btc_domain),
         format!("--bitcoin.basefee=0"),
@@ -131,6 +128,12 @@ pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--accept-amp"),
         format!("--db.bolt.auto-compact"),
     ];
+    if let Some(u) = &btc.user {
+        if let Some(p) = &btc.pass {
+            cmd.push(format!("--bitcoind.rpcuser={}", u));
+            cmd.push(format!("--bitcoind.rpcpass={}", p));
+        }
+    }
     if let Some(acv) = lnd.assumechanvalid {
         if acv {
             log::info!("[lnd]: --routing.assumechanvalid");

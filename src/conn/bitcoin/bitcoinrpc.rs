@@ -14,7 +14,10 @@ impl BitcoinRPC {
         let btc_url: String = format!("{}:{}", url, port);
         Ok(Self(Client::new(
             &btc_url,
-            Auth::UserPass(btc.user.to_string(), btc.pass.to_string()),
+            Auth::UserPass(
+                btc.user.clone().unwrap_or("".to_string()),
+                btc.pass.clone().unwrap_or("".to_string()),
+            ),
         )?))
     }
 

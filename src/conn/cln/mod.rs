@@ -128,11 +128,19 @@ impl ClnRPC {
 
     pub async fn keysend(&mut self, id: &str, amt: u64) -> Result<pb::KeysendResponse> {
         let id = hex::decode(id)?;
+        // let mut routehints = pb::RoutehintList { hints: vec![] };
+        // let mut hint1 = pb::Routehint { hops: vec![] };
+        // let hop1 = pb::RouteHop {
+        //     ..Default::default()
+        // };
+        // hint1.hops.push(hop1);
+        // routehints.hints.push(hint1);
         let response = self
             .client
             .key_send(pb::KeysendRequest {
                 destination: id,
                 amount_msat: Some(amount(amt)),
+                // routehints: Some(routehints),
                 ..Default::default()
             })
             .await?;

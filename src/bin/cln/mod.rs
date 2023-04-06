@@ -108,8 +108,8 @@ fn make_stack() -> Stack {
 
     // bitcoind
     let v = "v23.0";
-    let mut bitcoind = BtcImage::new(BTC, v, &network, "sphinx");
-    bitcoind.set_password("password");
+    let mut bitcoind = BtcImage::new(BTC, v, &network);
+    bitcoind.set_user_password("sphinx", "password");
 
     let v = "v23.02";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");

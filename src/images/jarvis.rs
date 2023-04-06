@@ -1,4 +1,4 @@
-use super::{neo4j::Neo4jImage, *};
+use super::{boltwall::BoltwallImage, neo4j::Neo4jImage, *};
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
@@ -31,13 +31,10 @@ impl JarvisImage {
 #[async_trait]
 impl DockerConfig for JarvisImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
-        let neo4j_node = nodes
-            .iter()
-            .find(|n| n.name() == "neo4j")
-            .context("No Neo4j")?
-            .as_internal()?
-            .as_neo4j()?;
-        Ok(jarvis(&self, &neo4j_node))
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let neo4j_node = li.find_neo4j().context("Jarvis: No Neo4j")?;
+        let boltwall_node = li.find_boltwall().context("Jarvis: No Boltwall")?;
+        Ok(jarvis(&self, &neo4j_node, &boltwall_node))
     }
 }
 
@@ -50,7 +47,7 @@ impl DockerHubImage for JarvisImage {
     }
 }
 
-pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage) -> Config<String> {
+pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
@@ -69,11 +66,22 @@ pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage) -> Config<String> {
         format!("JARVIS_BACKEND_PORT={}", node.port),
         format!("PUBLIC_GRAPH_RESULT_LIMIT=10"),
         format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images/"),
-        format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects")
+        format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"),
+        format!("RADAR_SCHEDULER_TIME_IN_SEC=86400"),
+        format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
+        format!("RADAR_SCHEDULER_JOB=1"),
+        format!("SELF_GENERATING_GRAPH=1")
     ];
+    if let Some(h) = &boltwall.host {
+        env.push(format!("RADAR_TWEET_WEBHOOK=https://{}", h));
+        env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}", h));
+    }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = std::env::var("STAKWORK_ADD_NODE_TOKEN") {
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
+    }
+    if let Ok(stakwork_radar_token) = std::env::var("STAKWORK_RADAR_REQUEST_TOKEN") {
+        env.push(format!("RADAR_REQUEST_TOKEN={}", stakwork_radar_token));
     }
     if let Ok(aws_key_id) = std::env::var("AWS_ACCESS_KEY_ID") {
         env.push(format!("AWS_ACCESS_KEY_ID={}", aws_key_id));

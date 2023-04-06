@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.54
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.63
 
-docker push sphinxlightning/sphinx-swarm:0.1.54
+docker push sphinxlightning/sphinx-swarm:0.1.63
 
 ### run prod stack
 
@@ -37,13 +37,15 @@ docker volume rm neo4j.sphinx
 
 ### update one instance
 
-sudo vi $HOME/vol/stack/config.json
+sudo vi $HOME/vol/stack/config.yaml
 
 update the version
 
 docker pull sphinxlightning/sphinx-relay-swarm:v0.1.16
 
-docker stop bitcoind.sphinx && docker rm bitcoind.sphinx
+docker stop boltwall.sphinx && docker rm boltwall.sphinx
+
+> > > > > > > master
 
 docker-compose up sphinx-swarm -d
 
@@ -51,7 +53,7 @@ docker logs sphinx-swarm --follow
 
 ### ps
 
-docker ps --format "table {{.Names}}\t{{.Image}}\t{{.RunningFor}}"
+docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.RunningFor}}"
 
 # deps
 

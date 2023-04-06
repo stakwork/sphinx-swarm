@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     sphinx_swarm::utils::setup_logs();
 
     let proj = "stack";
-    let stack: Stack = load_config_file(proj).await;
+    let stack: Stack = load_config_file(proj).await.expect("YAML CONFIG FAIL");
     let clients = builder::build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
     // put the jwt key into a var
