@@ -1,7 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::conn::lnd::utils::{dl_cert, dl_macaroon, strip_pem_prefix_suffix};
+use crate::conn::lnd::utils::{dl_cert_to_base64, dl_macaroon};
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
@@ -48,8 +48,8 @@ impl DockerConfig for BoltwallImage {
         let lnd_node = li.find_lnd().context("Boltwall: No LND")?;
 
         let cert_path = "/home/.lnd/tls.cert";
-        let cert_full = dl_cert(docker, &lnd_node.name, cert_path).await?;
-        let cert64 = strip_pem_prefix_suffix(&cert_full);
+        let cert64 = dl_cert_to_base64(docker, &lnd_node.name, cert_path).await?;
+        // let cert64 = strip_pem_prefix_suffix(&cert_full);
         let netwk = to_lnd_network(lnd_node.network.as_str());
         let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
         let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;

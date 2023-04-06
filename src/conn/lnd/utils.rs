@@ -22,6 +22,11 @@ pub async fn dl_cert(docker: &Docker, lnd_name: &str, path: &str) -> Result<Stri
     Ok(String::from_utf8_lossy(&cert_bytes[..]).to_string())
 }
 
+pub async fn dl_cert_to_base64(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
+    let cert_bytes = dock::try_dl(docker, lnd_name, path).await?;
+    Ok(base64::encode(cert_bytes))
+}
+
 // hex encoded
 pub async fn dl_macaroon(docker: &Docker, lnd_name: &str, path: &str) -> Result<String> {
     let mac_bytes = dock::try_dl(docker, lnd_name, path).await?;
