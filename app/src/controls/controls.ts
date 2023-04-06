@@ -76,6 +76,8 @@ const tribesControls: Control[] = [];
 
 const navfiberControls: Control[] = [];
 
+const clnControls: Control[] = [];
+
 const boltwallControls: Control[] = [];
 
 export const controls = {
@@ -85,5 +87,6 @@ export const controls = {
   Btc: btcControls,
   Tribes: tribesControls,
   NavFiber: navfiberControls,
+  Cln: clnControls,
   BoltWall: boltwallControls,
 };

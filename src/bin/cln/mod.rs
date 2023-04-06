@@ -3,7 +3,7 @@ use rocket::tokio::sync::{mpsc, Mutex};
 use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
-use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, Image};
+use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, lnd::LndImage, Image};
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::{builder, handler, logs, routes};
 use std::sync::Arc;
@@ -15,6 +15,7 @@ use std::sync::Arc;
 const BTC: &str = "btc_1";
 const CLN1: &str = "cln_1";
 const CLN2: &str = "cln_2";
+const LND1: &str = "lnd_1";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -24,7 +25,15 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 
-    setup_chans(&mut clients).await?;
+    let mut skip_setup = false;
+    if let Ok(clnskip) = std::env::var("CLN_SKIP_SETUP") {
+        if clnskip == "true" {
+            skip_setup = true;
+        }
+    }
+    if !skip_setup {
+        setup_chans(&mut clients).await?;
+    }
 
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
 
@@ -106,12 +115,22 @@ fn make_stack() -> Stack {
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
     let plugins = vec![ClnPlugin::HsmdBroker];
     cln.plugins(plugins);
-    cln.links(vec!["btc_1"]);
+    cln.links(vec![BTC]);
 
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
-    cln2.links(vec!["btc_1"]);
+    cln2.links(vec![BTC]);
 
-    let internal_nodes = vec![Image::Btc(bitcoind), Image::Cln(cln), Image::Cln(cln2)];
+    let v = "v0.15.5-beta";
+    let mut lnd = LndImage::new(LND1, v, &network, "10011", "9737");
+    lnd.http_port = Some("8881".to_string());
+    lnd.links(vec![BTC]);
+
+    let internal_nodes = vec![
+        Image::Btc(bitcoind),
+        Image::Cln(cln),
+        Image::Cln(cln2),
+        Image::Lnd(lnd),
+    ];
     let nodes: Vec<Node> = internal_nodes
         .iter()
         .map(|n| Node::Internal(n.to_owned()))

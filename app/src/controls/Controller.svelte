@@ -23,7 +23,10 @@
 </script>
 
 {#if ctrls}
-  <div class="main" style={`width: ${type === "Lnd" ? "35rem" : "23rem"}`}>
+  <div
+    class="main"
+    style={`width: ${type === "Lnd" || "Cln" ? "35rem" : "23rem"}`}
+  >
     <section class="close-btn-wrap">
       <button on:click={closeSidebar}>
         <Close size={24} />
@@ -53,6 +56,8 @@
         <NavFiber host={$selectedNode.host} />
       {:else if type === "BoltWall"}
         <Boltwall host={$selectedNode.host} />
+      {:else if type === "Cln"}
+        <Lnd {tag} {type} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}

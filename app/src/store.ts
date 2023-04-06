@@ -105,12 +105,25 @@ export const channelBalances = derived(
   ([$channels, $selectedNode]) => makeChannelBalances($channels, $selectedNode)
 );
 
+function nodeHostLocalhost(node: Node) {
+  if (node.type === "Relay") {
+    return `localhost:${node.port || "3000"}`;
+  } else if (node.type === "Lnd") {
+    return `localhost:${node.rpc_port || "10009"}`;
+  } else if (node.type === "Cln") {
+    return `localhost:${node.grpc_port || "10009"}`;
+  } else if (node.type === "Proxy") {
+    return `localhost:${node.port || "10009"}`;
+  }
+  return "localhost";
+}
+
 export const node_host = derived(
   [stack, selectedNode],
   ([$stack, $selectedNode]) => {
     return $selectedNode && $stack.host
       ? `${$selectedNode.name}.${$stack.host}`
-      : "localhost";
+      : nodeHostLocalhost($selectedNode);
   }
 );
 

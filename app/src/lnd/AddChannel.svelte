@@ -8,9 +8,11 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { create_channel, get_balance } from "../api/lnd";
+  import * as CLN from "../api/cln";
   import { onMount } from "svelte";
   import { lndBalances, peers as peersStore } from "../store";
-  import { formatSatsNumbers } from "../helpers";
+  import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
+  import { parseClnListFunds } from "../helpers/cln";
 
   export let activeKey: string = null;
 
@@ -19,6 +21,7 @@
   $: sats = 0;
 
   export let tag = "";
+  export let type = "";
 
   $: balance = $lndBalances.hasOwnProperty(tag) ? $lndBalances[tag] : 0;
 
@@ -29,7 +32,7 @@
   let show_notification = false;
 
   // Check for length to avoid map error
-  $: peerData = peers.length
+  $: peerData = peers?.length
     ? peers.map((p) => ({
         id: p.pub_key,
         text: p.pub_key,
@@ -43,16 +46,40 @@
   $: peerItems = [{ id: "", text: "Select peer" }, ...peerData];
 
   async function addChannel() {
-    if (await create_channel(tag, pubkey, amount, sats)) {
-      show_notification = true;
-      pubkey = "";
-      amount = 0;
-      sats = 0;
+    if (type === "Cln") {
+      const channel = await CLN.create_channel(
+        tag,
+        pubkey,
+        convertSatsToMilliSats(amount),
+        sats
+      );
+      if (channel) {
+        show_notification = true;
+        pubkey = "";
+        amount = 0;
+        sats = 0;
+      }
+    } else {
+      if (await create_channel(tag, pubkey, amount, sats)) {
+        show_notification = true;
+        pubkey = "";
+        amount = 0;
+        sats = 0;
+      }
     }
   }
 
   async function getBalance() {
     const balance = await get_balance(tag);
+    if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
+    lndBalances.update((n) => {
+      return { ...n, [tag]: balance };
+    });
+  }
+
+  async function listClnFunds() {
+    const funds = await CLN.list_funds(tag);
+    const balance = parseClnListFunds(funds);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
     lndBalances.update((n) => {
@@ -61,7 +88,11 @@
   }
 
   onMount(() => {
-    getBalance();
+    if (type === "Cln") {
+      listClnFunds();
+    } else {
+      getBalance();
+    }
   });
 
   export let back = () => {};

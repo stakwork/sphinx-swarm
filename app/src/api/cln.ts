@@ -2,7 +2,7 @@ import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 
 async function clnCmd(cmd: Cmd, tag: string, content?: any) {
-  return await send_cmd("CLN", { cmd, content }, tag);
+  return await send_cmd("Cln", { cmd, content }, tag);
 }
 
 export async function get_info(tag: string) {
@@ -31,4 +31,17 @@ export async function pay_invoice(tag: string, payment_request) {
 
 export async function keysend(tag: string, dest: string, amt: number) {
   return await clnCmd("PayKeysend", tag, { dest, amt });
+}
+
+export async function create_channel(
+  tag: string,
+  pubkey: string,
+  amount: number,
+  satsperbyte: number
+) {
+  return await clnCmd("AddChannel", tag, { pubkey, amount, satsperbyte });
+}
+
+export async function add_peer(tag: string, pubkey: string, host: string) {
+  return await clnCmd("AddPeer", tag, { pubkey, host });
 }

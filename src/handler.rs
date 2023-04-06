@@ -235,6 +235,24 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                         &address.bech32.unwrap_or("".to_string()),
                     )?)
                 }
+                ClnCmd::AddPeer(peer) => {
+                    let mut port = "9735";
+                    let hsplit = peer.host.clone();
+                    let host = if let Some((addr, p)) = hsplit.split_once(":") {
+                        port = p;
+                        addr.to_string()
+                    } else {
+                        peer.host
+                    };
+                    let result = client.connect_peer(&peer.pubkey, &host, port).await?;
+                    Some(serde_json::to_string(&result)?)
+                }
+                ClnCmd::AddChannel(channel) => {
+                    let channel = client
+                        .fund_channel(&channel.pubkey, channel.amount.try_into()?)
+                        .await?;
+                    Some(serde_json::to_string(&channel)?)
+                }
                 ClnCmd::AddInvoice(i) => {
                     let inv = client.create_invoice(i.amt_paid_sat as u64).await?;
                     Some(serde_json::to_string(&inv)?)

@@ -2,10 +2,14 @@
   import { Button, TextInput } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import * as LND from "../../api/lnd";
+  import * as CLN from "../../api/cln";
   import QrCode from "svelte-qrcode";
   import { activeInvoice } from "../../store";
+  import { convertSatsToMilliSats } from "../../helpers";
 
   export let tag = "";
+  export let type = "";
+
   $: amount = 0;
 
   $: invDisabled = !amount;
@@ -13,11 +17,23 @@
   $: invoice = $activeInvoice[tag] || "";
 
   async function newInvoice() {
-    const invoiceRes = await LND.add_invoice(tag, amount);
-    if (invoiceRes) {
-      activeInvoice.update((inv) => {
-        return { ...inv, [tag]: invoiceRes.payment_request };
-      });
+    if (type === "Cln") {
+      const invoiceRes = await CLN.add_invoice(
+        tag,
+        convertSatsToMilliSats(amount)
+      );
+      if (invoiceRes) {
+        activeInvoice.update((inv) => {
+          return { ...inv, [tag]: invoiceRes.bolt11 };
+        });
+      }
+    } else {
+      const invoiceRes = await LND.add_invoice(tag, amount);
+      if (invoiceRes) {
+        activeInvoice.update((inv) => {
+          return { ...inv, [tag]: invoiceRes.payment_request };
+        });
+      }
     }
   }
 

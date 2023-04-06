@@ -3,6 +3,7 @@ pub mod util;
 use anyhow::{anyhow, Result};
 use cln_grpc::pb;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
+use crate::secrets::hex_secret;
 pub use util::*;
 
 pub struct ClnRPC {
@@ -151,6 +152,7 @@ impl ClnRPC {
             .client
             .invoice(pb::InvoiceRequest {
                 amount_msat: amount_or_any(amt),
+                label: hex_secret(),
                 ..Default::default()
             })
             .await?;

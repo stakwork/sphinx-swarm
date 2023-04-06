@@ -5,6 +5,7 @@
   import Onchain from "./Onchain.svelte";
 
   export let tag = "";
+  export let type = "";
 </script>
 
 <div class="lnd-tabs-wrap">
@@ -13,12 +14,12 @@
     <Tab label="Invoices" />
     <Tab label="Onchain" />
     <svelte:fragment slot="content">
-      <TabContent><Channels {tag} /></TabContent>
+      <TabContent><Channels {tag} {type} /></TabContent>
       <TabContent>
-        <Invoices {tag} />
+        <Invoices {tag} {type} />
       </TabContent>
       <TabContent>
-        <Onchain {tag} />
+        <Onchain {tag} {type} />
       </TabContent>
     </svelte:fragment>
   </Tabs>

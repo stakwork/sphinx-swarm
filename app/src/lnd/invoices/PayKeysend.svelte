@@ -7,8 +7,12 @@
   import Pay from "carbon-icons-svelte/lib/Money.svelte";
   import * as LND from "../../api/lnd";
   import { channels } from "../../store";
+  import * as CLN from "../../api/cln";
+  import { parseClnListPeerRes } from "../../helpers/cln";
+  import { convertSatsToMilliSats } from "../../helpers";
 
   export let tag = "";
+  export let type = "";
 
   $: dest = "";
 
@@ -19,19 +23,41 @@
   let show_notification = false;
 
   async function payKeysend() {
-    const payRes = await LND.keysend(tag, dest, amount);
-    if (payRes) {
-      show_notification = true;
-      dest = "";
-      amount = 0;
-      /**
-       * After successfully invoice payment fetch the new channels
-       * To update the balance
-       */
-      const channelsData = await LND.list_channels(tag);
-      channels.update((chans) => {
-        return { ...chans, [tag]: channelsData };
-      });
+    if (type === "Cln") {
+      const payRes = await CLN.keysend(
+        tag,
+        dest,
+        convertSatsToMilliSats(amount)
+      );
+      if (payRes) {
+        show_notification = true;
+        dest = "";
+        amount = 0;
+
+        setTimeout(async () => {
+          const peersData = await CLN.list_peers(tag);
+          const parsedRes = await parseClnListPeerRes(peersData);
+          if (!peersData) return;
+          channels.update((chans) => {
+            return { ...chans, [tag]: parsedRes.channels };
+          });
+        }, 2000);
+      }
+    } else {
+      const payRes = await LND.keysend(tag, dest, amount);
+      if (payRes) {
+        show_notification = true;
+        dest = "";
+        amount = 0;
+        /**
+         * After successfully invoice payment fetch the new channels
+         * To update the balance
+         */
+        const channelsData = await LND.list_channels(tag);
+        channels.update((chans) => {
+          return { ...chans, [tag]: channelsData };
+        });
+      }
     }
   }
 </script>

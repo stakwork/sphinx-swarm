@@ -139,6 +139,8 @@ pub enum ClnCmd {
     ListPeers,
     ListFunds,
     NewAddress,
+    AddPeer(AddPeer),
+    AddChannel(AddChannel),
     AddInvoice(AddInvoice),
     PayInvoice(PayInvoice),
     PayKeysend(PayKeysend),
