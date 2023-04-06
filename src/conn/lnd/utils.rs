@@ -7,10 +7,10 @@ use super::unlocker::LndUnlocker;
 pub fn strip_pem_prefix_suffix(s: &str) -> String {
     let mut ret = s.to_string();
     ret.retain(|c| !c.is_whitespace());
-    if let Some(no_prefix) = ret.strip_prefix("-----BEGIN CERTIFICATE-----") {
+    if let Some(no_prefix) = ret.strip_prefix("-----BEGINCERTIFICATE-----") {
         ret = no_prefix.to_string();
     }
-    if let Some(no_suffix) = ret.strip_suffix("-----END CERTIFICATE-----") {
+    if let Some(no_suffix) = ret.strip_suffix("-----ENDCERTIFICATE-----") {
         ret = no_suffix.to_string();
     }
     ret
