@@ -45,8 +45,6 @@ docker pull sphinxlightning/sphinx-relay-swarm:v0.1.16
 
 docker stop boltwall.sphinx && docker rm boltwall.sphinx
 
-> > > > > > > master
-
 docker-compose up sphinx-swarm -d
 
 docker logs sphinx-swarm --follow

@@ -16,6 +16,7 @@
   onMount(async () => {
     if (!tag) return;
     const chats = await refreshTribes();
+    getUsers();
   });
 
   $: items = myChats
@@ -46,6 +47,17 @@
     await api.relay.add_default_tribe(tag, id);
     refreshTribes();
     selectedTribe = "";
+  }
+
+  async function getUsers() {
+    const interval = setInterval(async () => {
+      const userList = await api.relay.list_users(tag);
+      const adminIsSetup = userList.users?.find((u) => u.is_admin && u.alias);
+      if (adminIsSetup) {
+        users.set(userList.users);
+        clearInterval(interval);
+      }
+    }, 60000);
   }
 
   let showQr = false;
