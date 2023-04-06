@@ -82,7 +82,9 @@ pub fn boltwall(
     let ports = vec![node.port.clone()];
     let root_vol = "/boltwall";
 
-    let lnd_socket = format!("{}:{}", lnd_node.name, lnd_node.rpc_port);
+    // "lnd.sphinx:10009"
+    let lnd_socket = format!("{}:{}", &domain(&lnd_node.name), lnd_node.rpc_port);
+    log::info!("Boltwall: LND_SOCKET {}", lnd_socket);
     let mut env = vec![
         format!("PORT={}", node.port),
         format!("LND_TLS_CERT={}", cert),
