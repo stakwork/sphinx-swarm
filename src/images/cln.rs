@@ -1,9 +1,9 @@
 use super::*;
-use crate::config::{Clients, Node};
+use crate::config::{Clients, ExternalNodeType, Node};
 use crate::conn::cln::setup as setup_cln;
 use crate::conn::lnd::setup::test_mine_if_needed;
 use crate::utils::{domain, exposed_ports, host_config};
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
 
@@ -64,15 +64,22 @@ impl DockerConfig for ClnImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         if let Some(btc) = li.find_btc() {
+            // internal BTC node
             let args = ClnBtcArgs::new(&domain(&btc.name), &btc.user, &btc.pass);
             Ok(cln(self, args))
         } else {
-            // find external btc
-            // let p = url::Url::parse(&mbtc)?;
-            // let host = format!("{}{}", p.scheme(), p.host());
-            // let args = ClnBtcArgs::new(&host, &p.username(), &p.password());
-            // Ok(cln(self, args))
-            Err(anyhow!("nope"))
+            // external BTC node
+            let btcurl = nodes
+                .iter()
+                .find(|n| match n.as_external() {
+                    Ok(i) => i.kind == ExternalNodeType::Btc,
+                    Err(_) => false,
+                })
+                .context("CLN: no external BTC")?
+                .as_external()?
+                .url;
+            let args = ClnBtcArgs::from_url(&btcurl)?;
+            Ok(cln(self, args))
         }
     }
 }
@@ -86,6 +93,7 @@ impl DockerHubImage for ClnImage {
     }
 }
 
+#[derive(Debug)]
 pub struct ClnBtcArgs {
     rpcconnect: String,
     user: Option<String>,
@@ -98,6 +106,23 @@ impl ClnBtcArgs {
             user: user.clone(),
             pass: pass.clone(),
         }
+    }
+    pub fn from_url(btcurl: &str) -> Result<Self> {
+        let p = url::Url::parse(btcurl)?;
+        let host = p.host().context("CLN: no host found in external BTC url")?;
+        let fullhost = format!("{}", host);
+        let username = if p.username() == "" {
+            None
+        } else {
+            Some(p.username().to_string())
+        };
+        let password = if let Some(p) = p.password() {
+            Some(p.to_string())
+        } else {
+            None
+        };
+        log::info!("CLN: connect to external BTC: {}", &fullhost);
+        Ok(Self::new(&fullhost, &username, &password))
     }
 }
 pub fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
