@@ -82,3 +82,7 @@ path = "src/bin/btc_prod.rs"
 [[blah]]
 name = "blah"
 path = "src/bin/blah.rs"
+
+[[blah]]
+name = "cln_mainnet_test"
+path = "src/bin/cln_mainnet_test.rs"

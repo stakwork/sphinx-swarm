@@ -6,6 +6,7 @@ use super::unlocker::LndUnlocker;
 
 pub fn strip_pem_prefix_suffix(s: &str) -> String {
     let mut ret = s.to_string();
+    ret.retain(|c| !c.is_whitespace());
     if let Some(no_prefix) = ret.strip_prefix("-----BEGIN CERTIFICATE-----") {
         ret = no_prefix.to_string();
     }

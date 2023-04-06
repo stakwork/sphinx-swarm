@@ -44,12 +44,8 @@ impl BoltwallImage {
 #[async_trait]
 impl DockerConfig for BoltwallImage {
     async fn make_config(&self, nodes: &Vec<Node>, docker: &Docker) -> Result<Config<String>> {
-        let lnd_node = nodes
-            .iter()
-            .find(|n| n.name() == "lnd")
-            .context("No LND")?
-            .as_internal()?
-            .as_lnd()?;
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let lnd_node = li.find_lnd().context("Boltwall: No LND")?;
 
         let cert_path = "/home/.lnd/tls.cert";
         let cert_full = dl_cert(docker, &lnd_node.name, cert_path).await?;
@@ -58,12 +54,7 @@ impl DockerConfig for BoltwallImage {
         let macpath = format!("/home/.lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
         let mac = dl_macaroon(docker, &lnd_node.name, &macpath).await?;
 
-        let jarvis_node = nodes
-            .iter()
-            .find(|n| n.name() == "jarvis")
-            .context("No Jarvis")?
-            .as_internal()?
-            .as_jarvis()?;
+        let jarvis_node = li.find_jarvis().context("Boltwall: No Jarvis")?;
 
         Ok(boltwall(&self, &mac, &cert64, &lnd_node, &jarvis_node))
     }

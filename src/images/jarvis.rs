@@ -31,18 +31,9 @@ impl JarvisImage {
 #[async_trait]
 impl DockerConfig for JarvisImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
-        let neo4j_node = nodes
-            .iter()
-            .find(|n| n.name() == "neo4j")
-            .context("No Neo4j")?
-            .as_internal()?
-            .as_neo4j()?;
-        let boltwall_node = nodes
-            .iter()
-            .find(|n| n.name() == "boltwall")
-            .context("No Boltwall")?
-            .as_internal()?
-            .as_boltwall()?;
+        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let neo4j_node = li.find_neo4j().context("Jarvis: No Neo4j")?;
+        let boltwall_node = li.find_boltwall().context("Jarvis: No Boltwall")?;
         Ok(jarvis(&self, &neo4j_node, &boltwall_node))
     }
 }
