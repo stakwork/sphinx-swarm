@@ -11,6 +11,7 @@
     finishedOnboarding,
     copiedAddressForOnboarding,
   } from "../store";
+  import { onMount } from "svelte";
 
   async function newAddress() {
     let new_addy;
@@ -27,6 +28,11 @@
       return { ...addys, [tag]: new_addy };
     });
   }
+
+  onMount(async () => {
+    const balance = await api.lnd.get_balance(tag);
+    console.log(balance);
+  });
 
   $: myNewAddy = $lightningAddresses[tag];
 

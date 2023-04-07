@@ -59,6 +59,8 @@ export const onChainAddressGeneratedForOnboarding = writable<boolean>(false);
 
 export const copiedAddressForOnboarding = writable<boolean>(false);
 
+export const pendingTransaction = writable<boolean>(false);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {

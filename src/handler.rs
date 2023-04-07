@@ -198,7 +198,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 }
                 LndCmd::GetBalance => {
                     let bal = client.get_balance().await?;
-                    Some(serde_json::to_string(&bal.confirmed_balance)?)
+                    Some(serde_json::to_string(&bal)?)
                 }
                 LndCmd::AddInvoice(invoice) => {
                     let invoice = client.add_invoice(invoice).await?;

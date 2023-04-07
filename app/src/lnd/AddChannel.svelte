@@ -71,9 +71,13 @@
 
   async function getBalance() {
     const balance = await get_balance(tag);
-    if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
+    if (
+      lndBalances.hasOwnProperty(tag) &&
+      lndBalances[tag] === balance?.confirmed_balance
+    )
+      return;
     lndBalances.update((n) => {
-      return { ...n, [tag]: balance };
+      return { ...n, [tag]: balance?.confirmed_balance };
     });
   }
 
