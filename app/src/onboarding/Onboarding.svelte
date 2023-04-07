@@ -13,6 +13,7 @@
   $: disabled = true;
   $: $onChainAddressGeneratedForOnboarding, onChainAddressGenerated();
   $: $copiedAddressForOnboarding, copiedAddressHandler();
+  let open = true;
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
@@ -64,14 +65,21 @@
       currentStep = 3;
     }
   }
+
+  function togglePopover() {
+    open = !open;
+  }
 </script>
 
 <section class="onboarding_section" style:position="relative">
   {#if !$finishedOnboarding.hasAdmin || !$finishedOnboarding.hasChannels}
-    <Button size="field" kind="secondary" class="onboarding_btn"
-      >Onboarding</Button
+    <Button
+      on:click={togglePopover}
+      size="field"
+      kind="secondary"
+      class="onboarding_btn">Onboarding</Button
     >
-    <Popover open align="bottom-left" caret light highContrast>
+    <Popover bind:open align="bottom-left" caret light highContrast>
       <div class="popover_content_container">
         <p>{steps[currentStep].text}</p>
         <div class="button_container">
