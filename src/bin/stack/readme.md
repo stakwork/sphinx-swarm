@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.63
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.64
 
-docker push sphinxlightning/sphinx-swarm:0.1.63
+docker push sphinxlightning/sphinx-swarm:0.1.64
 
 ### run prod stack
 
@@ -99,10 +99,8 @@ docker network create sphinx-swarm
 
 docker-compose up -d
 
+docker logs sphinx-swarm --follow
+
 ### once bitcoind is synced
-
-in the root of sphinx-swarm directory, create a .env
-
-copy the AWS creds into it, and HOST=xxx
 
 docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose up sphinx-swarm -d && docker logs sphinx-swarm --follow
