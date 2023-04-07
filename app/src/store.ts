@@ -45,6 +45,8 @@ export const peers = writable<{ [tag: string]: LndPeer[] }>({});
 
 export const lndBalances = writable<{ [tag: string]: number }>({});
 
+export const unconfirmedBalance = writable<{ [tag: string]: number }>({});
+
 export const relayBalances = writable<{ [tag: string]: RelayBalance }>({});
 
 export const activeInvoice = writable<{ [tag: string]: string }>({});
