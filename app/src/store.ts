@@ -55,6 +55,10 @@ export const containers = writable<Container[]>([]);
 
 export const exitedNodes = writable<string[]>([]);
 
+export const onChainAddressGeneratedForOnboarding = writable<boolean>(false);
+
+export const copiedAddressForOnboarding = writable<boolean>(false);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
@@ -103,6 +107,20 @@ export function makeChannelBalances(
 export const channelBalances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => makeChannelBalances($channels, $selectedNode)
+);
+
+export const finishedOnboarding = derived(
+  [channels, users],
+  ([$channels, $users]) => {
+    let hasChannels = false;
+    for (let key in $channels) {
+      if ($channels[key].length > 0) {
+        hasChannels = true;
+      }
+    }
+    const hasAdmin = $users.find((user) => user.is_admin && user.alias);
+    return { hasAdmin, hasChannels };
+  }
 );
 
 function nodeHostLocalhost(node: Node) {

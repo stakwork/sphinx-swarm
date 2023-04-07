@@ -5,7 +5,12 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
   import * as api from "../api";
-  import { lightningAddresses } from "../store";
+  import {
+    lightningAddresses,
+    onChainAddressGeneratedForOnboarding,
+    finishedOnboarding,
+    copiedAddressForOnboarding,
+  } from "../store";
 
   async function newAddress() {
     let new_addy;
@@ -13,6 +18,9 @@
       new_addy = await api.cln.new_address(tag);
     } else {
       new_addy = await api.lnd.new_address(tag);
+      if (new_addy && !$finishedOnboarding.hasChannels) {
+        onChainAddressGeneratedForOnboarding.update(() => true);
+      }
     }
     if (!new_addy) return;
     lightningAddresses.update((addys) => {
@@ -24,6 +32,7 @@
 
   function copyAddressToClipboard() {
     navigator.clipboard.writeText(myNewAddy);
+    copiedAddressForOnboarding.update(() => true);
   }
 </script>
 
