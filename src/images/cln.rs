@@ -159,7 +159,8 @@ pub fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         ));
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
-        let git_version = "2f1a063-modded";
+        // let git_version = "2f1a063-modded";
+        let git_version = "6d76642";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
         if let Ok(pp) = img.peer_port.parse::<u16>() {
             if pp > 8876 {
@@ -187,8 +188,8 @@ pub fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         }
     }
     Config {
-        image: Some(format!("{}:{}", image, version)),
-        // image: Some("cln-sphinx:latest".to_string()),
+        // image: Some(format!("{}:{}", image, version)),
+        image: Some("cln-sphinx:latest".to_string()),
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),
         cmd: Some(cmd),
