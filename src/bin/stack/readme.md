@@ -41,9 +41,9 @@ sudo vi $HOME/vol/stack/config.yaml
 
 update the version
 
-docker pull sphinxlightning/sphinx-relay-swarm:v0.1.16
+docker pull sphinxlightning/sphinx-jarvis-backend:0.3.2
 
-docker stop boltwall.sphinx && docker rm boltwall.sphinx
+docker stop jarvis.sphinx && docker rm jarvis.sphinx
 
 docker-compose up sphinx-swarm -d
 

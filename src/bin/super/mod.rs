@@ -6,7 +6,7 @@ use sphinx_swarm::utils;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Super {
-    pub remotes: Vec<RemoteStack>,
+    pub stacks: Vec<RemoteStack>,
     pub users: Vec<User>,
     pub jwt_key: String,
 }
@@ -41,7 +41,7 @@ pub async fn put_config_file(project: &str, rs: &Super) {
 impl Default for Super {
     fn default() -> Self {
         Self {
-            remotes: Vec::new(),
+            stacks: Vec::new(),
             users: vec![default_superuser()],
             jwt_key: secrets::random_word(16),
         }
