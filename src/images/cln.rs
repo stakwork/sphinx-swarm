@@ -1,6 +1,7 @@
 use super::*;
-use crate::config::{Clients, Node};
+use crate::config::{Clients, ExternalNodeType, Node};
 use crate::conn::cln::setup as setup_cln;
+use crate::conn::lnd::setup::test_mine_if_needed;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -50,8 +51,9 @@ impl ClnImage {
         sleep(1).await;
         let (client, test_mine_addy) = setup_cln(self, docker).await?;
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let btc = li.find_btc().context("BTC required for CLN")?;
-        crate::conn::lnd::setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
+        if let Some(internal_btc) = li.find_btc() {
+            test_mine_if_needed(test_mine_addy, &internal_btc.name, clients);
+        }
         clients.cln.insert(self.name.clone(), client);
         Ok(())
     }
@@ -61,8 +63,24 @@ impl ClnImage {
 impl DockerConfig for ClnImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let btc = li.find_btc().context("BTC required for CLN")?;
-        Ok(cln(self, &btc))
+        if let Some(btc) = li.find_btc() {
+            // internal BTC node
+            let args = ClnBtcArgs::new(&domain(&btc.name), &btc.user, &btc.pass);
+            Ok(cln(self, args))
+        } else {
+            // external BTC node
+            let btcurl = nodes
+                .iter()
+                .find(|n| match n.as_external() {
+                    Ok(i) => i.kind == ExternalNodeType::Btc,
+                    Err(_) => false,
+                })
+                .context("CLN: no external BTC")?
+                .as_external()?
+                .url;
+            let args = ClnBtcArgs::from_url(&btcurl)?;
+            Ok(cln(self, args))
+        }
     }
 }
 
@@ -75,7 +93,39 @@ impl DockerHubImage for ClnImage {
     }
 }
 
-pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
+#[derive(Debug)]
+pub struct ClnBtcArgs {
+    rpcconnect: String,
+    user: Option<String>,
+    pass: Option<String>,
+}
+impl ClnBtcArgs {
+    pub fn new(rpcconnect: &str, user: &Option<String>, pass: &Option<String>) -> Self {
+        Self {
+            rpcconnect: rpcconnect.to_string(),
+            user: user.clone(),
+            pass: pass.clone(),
+        }
+    }
+    pub fn from_url(btcurl: &str) -> Result<Self> {
+        let p = url::Url::parse(btcurl)?;
+        let host = p.host().context("CLN: no host found in external BTC url")?;
+        let fullhost = format!("{}", host);
+        let username = if p.username() == "" {
+            None
+        } else {
+            Some(p.username().to_string())
+        };
+        let password = if let Some(p) = p.password() {
+            Some(p.to_string())
+        } else {
+            None
+        };
+        log::info!("CLN: connect to external BTC: {}", &fullhost);
+        Ok(Self::new(&fullhost, &username, &password))
+    }
+}
+pub fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
     let version = "0.1.0";
@@ -92,7 +142,7 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--addr=0.0.0.0:{}", &img.peer_port),
         format!("--grpc-port={}", &img.grpc_port),
         format!("--network={}", &img.network),
-        format!("--bitcoin-rpcconnect={}", &domain(&btc.name)),
+        format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
         "--bitcoin-rpcport=18443".to_string(),
         "--log-level=debug".to_string(),
         "--accept-htlc-tlv-types=133773310".to_string(),
@@ -109,7 +159,8 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         ));
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
-        let git_version = "2f1a063-modded";
+        // let git_version = "2f1a063-modded";
+        let git_version = "6d76642";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
         if let Ok(pp) = img.peer_port.parse::<u16>() {
             if pp > 8876 {
@@ -137,8 +188,8 @@ pub fn cln(img: &ClnImage, btc: &btc::BtcImage) -> Config<String> {
         }
     }
     Config {
-        image: Some(format!("{}:{}", image, version)),
-        // image: Some("cln-sphinx:latest".to_string()),
+        // image: Some(format!("{}:{}", image, version)),
+        image: Some("cln-sphinx:latest".to_string()),
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),
         cmd: Some(cmd),

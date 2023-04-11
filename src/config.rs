@@ -164,7 +164,9 @@ impl Default for Stack {
             if btc_pass.len() > 0 {
                 bitcoind.set_user_password("sphinx", &btc_pass);
             }
-        } else {
+        }
+        // generate random pass if none exists
+        if let None = bitcoind.pass {
             bitcoind.set_user_password("sphinx", &secrets::random_word(12));
         }
 
@@ -206,14 +208,14 @@ impl Default for Stack {
         let neo4j = Neo4jImage::new("neo4j", v);
 
         // jarvis
-        v = "0.1";
+        v = "0.3.2";
         let mut jarvis = JarvisImage::new("jarvis", v, "6000");
-        jarvis.links(vec!["neo4j"]);
+        jarvis.links(vec!["neo4j", "boltwall"]);
 
         // boltwall
         v = "latest";
         let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-        bolt.links(vec!["jarvis"]);
+        bolt.links(vec!["jarvis", "lnd"]);
         bolt.host(host.clone());
 
         // navfiber

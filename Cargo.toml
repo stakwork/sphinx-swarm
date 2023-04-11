@@ -79,6 +79,10 @@ path = "src/bin/btc_prod.rs"
 # name = "test"
 # path = "src/bin/test.rs"
 
-[[blah]]
-name = "blah"
-path = "src/bin/blah.rs"
+[[bin]]
+name = "cln_mainnet_test"
+path = "src/bin/cln_mainnet_test.rs"
+
+[[bin]]
+name = "super"
+path = "src/bin/super/mod.rs"

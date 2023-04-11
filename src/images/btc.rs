@@ -1,8 +1,6 @@
 use super::{DockerConfig, DockerHubImage, Repository};
 use crate::config::{Clients, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
-// use crate::secrets;
-use super::traefik::traefik_labels;
 use crate::utils::{docker_domain_127, domain, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
