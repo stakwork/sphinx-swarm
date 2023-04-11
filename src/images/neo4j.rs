@@ -104,7 +104,7 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     };
     if let Some(host) = node.host.clone() {
         // production tls extra domain
-        c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, false));
+        c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, true));
     }
     c
 }
