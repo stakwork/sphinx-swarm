@@ -6,20 +6,50 @@
     stack,
     onChainAddressGeneratedForOnboarding,
     copiedAddressForOnboarding,
+    lndBalances,
+    unconfirmedBalance,
   } from "../store";
+  import * as api from "../api";
+
+  $: tag = "";
 
   $: currentStep = 0;
-  $: $stack, determineCurrentStep();
+  $: $stack, determineCurrentStep(), determineTag();
   $: disabled = true;
   $: $onChainAddressGeneratedForOnboarding, onChainAddressGenerated();
   $: $copiedAddressForOnboarding, copiedAddressHandler();
   let open = true;
+  $: currentStep, checkForConfirmedTransaction();
+  $: $finishedOnboarding, determineCurrentStep();
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
   }
   function copiedAddressHandler() {
     disabled = !$copiedAddressForOnboarding;
+  }
+
+  function checkForConfirmedTransaction() {
+    if (currentStep === 2) {
+      const interval = setInterval(async () => {
+        const balance = await api.lnd.get_balance(tag);
+        updateUnconfirmedBalance(balance);
+        updateConfirmedBalance(balance);
+        if (balance?.confirmed_balance > 0) {
+          clearInterval(interval);
+          disabled = false;
+        }
+      }, 60000);
+    }
+  }
+
+  function determineTag() {
+    const lightning = $stack.nodes.find(
+      (node) => node.type === "Lnd" || node.type === "Cln"
+    );
+    if (lightning) {
+      tag = lightning.name;
+    }
   }
 
   const steps = [
@@ -39,6 +69,8 @@
       currentStep += 1;
       if (currentStep === 1 && $copiedAddressForOnboarding) {
         disabled = false;
+      } else if (currentStep === 3) {
+        disabled = true;
       } else {
         disabled = true;
       }
@@ -55,12 +87,16 @@
   function determineCurrentStep() {
     const hasAdmin = $finishedOnboarding.hasAdmin;
     const hasChannels = $finishedOnboarding.hasChannels;
-    if (!hasChannels) {
+    const hasBalance = $finishedOnboarding.hasBalance;
+    if (!hasBalance) {
       const lightning = $stack.nodes.find((node) => node.type === "Lnd");
       if (lightning) {
         selectedNode.update(() => lightning);
       }
       currentStep = 0;
+      console.log("We got here");
+    } else if (!hasChannels) {
+      currentStep = 3;
     } else if (!hasAdmin) {
       currentStep = 3;
     }
@@ -69,10 +105,32 @@
   function togglePopover() {
     open = !open;
   }
+
+  function updateConfirmedBalance(balance) {
+    if (
+      lndBalances.hasOwnProperty(tag) &&
+      lndBalances[tag] === balance?.confirmed_balance
+    )
+      return;
+    lndBalances.update((n) => {
+      return { ...n, [tag]: balance?.confirmed_balance };
+    });
+  }
+
+  function updateUnconfirmedBalance(balance) {
+    if (
+      unconfirmedBalance.hasOwnProperty(tag) &&
+      unconfirmedBalance[tag] === balance?.unconfirmed_balance
+    )
+      return;
+    unconfirmedBalance.update((n) => {
+      return { ...n, [tag]: balance?.unconfirmed_balance };
+    });
+  }
 </script>
 
 <section class="onboarding_section" style:position="relative">
-  {#if !$finishedOnboarding.hasAdmin || !$finishedOnboarding.hasChannels}
+  {#if !$finishedOnboarding.hasBalance || !$finishedOnboarding.hasChannels || !$finishedOnboarding.hasAdmin}
     <Button
       on:click={togglePopover}
       size="field"

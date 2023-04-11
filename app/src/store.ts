@@ -114,16 +114,23 @@ export const channelBalances = derived(
 );
 
 export const finishedOnboarding = derived(
-  [channels, users],
-  ([$channels, $users]) => {
+  [channels, users, lndBalances],
+  ([$channels, $users, $lndBalances]) => {
     let hasChannels = false;
+    let hasBalance = false;
     for (let key in $channels) {
       if ($channels[key].length > 0) {
         hasChannels = true;
       }
     }
+
+    for (let key in $lndBalances) {
+      if ($lndBalances[key] > 0) {
+        hasBalance = true;
+      }
+    }
     const hasAdmin = $users.find((user) => user.is_admin && user.alias);
-    return { hasAdmin, hasChannels };
+    return { hasAdmin, hasChannels, hasBalance };
   }
 );
 

@@ -10,8 +10,13 @@
   $: selected = 0;
   $: $finishedOnboarding, selectCurrentTab();
   function selectCurrentTab() {
-    if (!$finishedOnboarding.hasChannels) {
+    if (!$finishedOnboarding.hasBalance) {
       selected = 2;
+    } else if (
+      $finishedOnboarding.hasBalance &&
+      !$finishedOnboarding.hasChannels
+    ) {
+      selected = 0;
     }
   }
 </script>
