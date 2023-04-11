@@ -14,7 +14,6 @@ pub struct Neo4jImage {
     pub version: String,
     pub http_port: String,
     pub bolt_port: String,
-    pub browser_port: String,
     pub links: Links,
     pub host: Option<String>,
 }
@@ -26,8 +25,8 @@ impl Neo4jImage {
             name: name.to_string(),
             version: version.to_string(),
             http_port: "7474".to_string(),
-            bolt_port: "7687".to_string(),
-            browser_port: "7476".to_string(),
+            // bolt_port: "7687".to_string(),
+            bolt_port: "7476".to_string(),
             links: vec![],
             host: None,
         }
@@ -77,11 +76,7 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     let repo = node.repo();
     let img = format!("{}", repo.repo);
     let root_vol = "/data";
-    let ports = vec![
-        node.http_port.clone(),
-        node.bolt_port.clone(),
-        node.browser_port.clone(),
-    ];
+    let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
@@ -89,6 +84,7 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&name, ports, root_vol, None),
         env: Some(vec![
+            // format!("NEO4J_URI=neo4j://neo4j:{}", &node.bolt_port),
             format!("NEO4J_AUTH=neo4j/test"),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
@@ -97,7 +93,10 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_dbms_memory_heap_max__size=2G"),
             format!("NEO4J_apoc_uuid_enabled=true"),
             format!("NEO4J_dbms_default__listen__address=0.0.0.0"),
-            format!("NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:7687"),
+            format!(
+                "NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:{}",
+                &node.bolt_port
+            ),
             format!("NEO4J_dbms_allow__upgrade=true"),
             format!("NEO4J_dbms_default__database=neo4j"),
         ]),
@@ -105,7 +104,7 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     };
     if let Some(host) = node.host.clone() {
         // production tls extra domain
-        c.labels = Some(traefik_labels(&node.name, &host, &node.browser_port, false));
+        c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, false));
     }
     c
 }

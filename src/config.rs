@@ -205,7 +205,8 @@ impl Default for Stack {
 
         // neo4j
         v = "4.4.9";
-        let neo4j = Neo4jImage::new("neo4j", v);
+        let mut neo4j = Neo4jImage::new("neo4j", v);
+        neo4j.host(host.clone());
 
         // jarvis
         v = "0.3.2";

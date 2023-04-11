@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.65
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.66
 
-docker push sphinxlightning/sphinx-swarm:0.1.65
+docker push sphinxlightning/sphinx-swarm:0.1.66
 
 ### run prod stack
 
@@ -52,6 +52,10 @@ docker logs sphinx-swarm --follow
 ### ps
 
 docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.RunningFor}}"
+
+### load balancer logs
+
+docker logs load_balancer --follow --since 1m
 
 # deps
 
