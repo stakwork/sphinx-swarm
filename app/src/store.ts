@@ -63,6 +63,8 @@ export const copiedAddressForOnboarding = writable<boolean>(false);
 
 export const pendingTransaction = writable<boolean>(false);
 
+export const createdPeerForOnboarding = writable<boolean>(false);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
@@ -114,13 +116,20 @@ export const channelBalances = derived(
 );
 
 export const finishedOnboarding = derived(
-  [channels, users, lndBalances],
-  ([$channels, $users, $lndBalances]) => {
+  [channels, users, lndBalances, peers],
+  ([$channels, $users, $lndBalances, $peers]) => {
     let hasChannels = false;
     let hasBalance = false;
+    let hasPeers = false;
     for (let key in $channels) {
       if ($channels[key].length > 0) {
         hasChannels = true;
+      }
+    }
+
+    for (let key in $peers) {
+      if ($peers[key].length > 0) {
+        hasPeers = true;
       }
     }
 
@@ -130,7 +139,7 @@ export const finishedOnboarding = derived(
       }
     }
     const hasAdmin = $users.find((user) => user.is_admin && user.alias);
-    return { hasAdmin, hasChannels, hasBalance };
+    return { hasAdmin, hasChannels, hasBalance, hasPeers };
   }
 );
 

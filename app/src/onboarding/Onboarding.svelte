@@ -88,15 +88,17 @@
     const hasAdmin = $finishedOnboarding.hasAdmin;
     const hasChannels = $finishedOnboarding.hasChannels;
     const hasBalance = $finishedOnboarding.hasBalance;
+    const hasPeers = $finishedOnboarding.hasPeers;
     if (!hasBalance) {
       const lightning = $stack.nodes.find((node) => node.type === "Lnd");
       if (lightning) {
         selectedNode.update(() => lightning);
       }
       currentStep = 0;
-      console.log("We got here");
-    } else if (!hasChannels) {
+    } else if (!hasPeers) {
       currentStep = 3;
+    } else if (!hasChannels) {
+      currentStep = 4;
     } else if (!hasAdmin) {
       currentStep = 3;
     }
@@ -130,7 +132,7 @@
 </script>
 
 <section class="onboarding_section" style:position="relative">
-  {#if !$finishedOnboarding.hasBalance || !$finishedOnboarding.hasChannels || !$finishedOnboarding.hasAdmin}
+  {#if !$finishedOnboarding.hasBalance || !$finishedOnboarding.hasPeers || !$finishedOnboarding.hasChannels || !$finishedOnboarding.hasAdmin}
     <Button
       on:click={togglePopover}
       size="field"
