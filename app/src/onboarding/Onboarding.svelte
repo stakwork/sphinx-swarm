@@ -8,6 +8,7 @@
     copiedAddressForOnboarding,
     lndBalances,
     unconfirmedBalance,
+    channelCreatedForOnboarding,
   } from "../store";
   import * as api from "../api";
 
@@ -21,12 +22,17 @@
   let open = true;
   $: currentStep, checkForConfirmedTransaction();
   $: $finishedOnboarding, determineCurrentStep();
+  $: $channelCreatedForOnboarding, channelCreatedForOnboardingHandler();
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
   }
   function copiedAddressHandler() {
     disabled = !$copiedAddressForOnboarding;
+  }
+
+  function channelCreatedForOnboardingHandler() {
+    disabled = !$channelCreatedForOnboarding;
   }
 
   function checkForConfirmedTransaction() {
@@ -58,7 +64,7 @@
     { text: "Waiting for transaction to recieve 6 confirmations" },
     { text: "Peer with Sphinx node (Game_b 1)" },
     {
-      text: "Create channel with Game_b 1 and send some sats to the other side",
+      text: "Create channel and send some sats to the other side",
     },
     { text: "Scan qr code to get started on the sphinx app" },
     { text: "Add new users to your Swarm" },
@@ -71,6 +77,12 @@
         disabled = false;
       } else if (currentStep === 3) {
         disabled = true;
+      } else if (currentStep === 5 && $finishedOnboarding.hasChannels) {
+        disabled = true;
+        const relay = $stack.nodes.find((node) => node.type === "Relay");
+        if (relay) {
+          selectedNode.update(() => relay);
+        }
       } else {
         disabled = true;
       }
@@ -100,7 +112,11 @@
     } else if (!hasChannels) {
       currentStep = 4;
     } else if (!hasAdmin) {
-      currentStep = 3;
+      const relay = $stack.nodes.find((node) => node.type === "Relay");
+      if (relay) {
+        selectedNode.update(() => relay);
+      }
+      currentStep = 5;
     }
   }
 

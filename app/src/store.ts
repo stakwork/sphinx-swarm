@@ -65,6 +65,8 @@ export const pendingTransaction = writable<boolean>(false);
 
 export const createdPeerForOnboarding = writable<boolean>(false);
 
+export const channelCreatedForOnboarding = writable<boolean>(false);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
