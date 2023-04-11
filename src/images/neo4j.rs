@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
@@ -13,7 +14,9 @@ pub struct Neo4jImage {
     pub version: String,
     pub http_port: String,
     pub bolt_port: String,
+    pub browser_port: String,
     pub links: Links,
+    pub host: Option<String>,
 }
 
 impl Neo4jImage {
@@ -24,7 +27,14 @@ impl Neo4jImage {
             version: version.to_string(),
             http_port: "7474".to_string(),
             bolt_port: "7687".to_string(),
+            browser_port: "7476".to_string(),
             links: vec![],
+            host: None,
+        }
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("neo4j.{}", h));
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -42,7 +52,6 @@ impl Neo4jImage {
             &bytes,
         )
         .await?;
-        // upload the apoc
         Ok(())
     }
 }
@@ -68,9 +77,13 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     let repo = node.repo();
     let img = format!("{}", repo.repo);
     let root_vol = "/data";
-    let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
+    let ports = vec![
+        node.http_port.clone(),
+        node.bolt_port.clone(),
+        node.browser_port.clone(),
+    ];
 
-    Config {
+    let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
@@ -89,5 +102,10 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_dbms_default__database=neo4j"),
         ]),
         ..Default::default()
+    };
+    if let Some(host) = node.host.clone() {
+        // production tls extra domain
+        c.labels = Some(traefik_labels(&node.name, &host, &node.browser_port, false));
     }
+    c
 }
