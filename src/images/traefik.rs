@@ -155,7 +155,7 @@ pub fn neo4j_labels(
     http_port: &str,
     bolt_port: &str,
 ) -> HashMap<String, String> {
-    let auth_user = "neo4j";
+    let auth_user = "neo4j:test";
     let def = vec![
         "traefik.enable=true".to_string(),
         //
