@@ -169,10 +169,10 @@ pub fn neo4j_labels(
         format!("traefik.http.middlewares.neo4j-auth.basicauth.users={}", auth_user),
         format!("traefik.http.middlewares.neo4j-prefix.stripprefix.prefixes=/neo4j"),
         //
-        format!("traefik.http.routers.{}-bolt.rule=Host(`{}`)", name, host),
+        format!("traefik.http.routers.{}-bolt.rule=Host(`{}`) && PathPrefix(`/neo4j`)", name, host),
         format!("traefik.http.routers.{}-bolt.tls=true", name),
         format!("traefik.http.routers.{}-bolt.entrypoints=websecure", name),
-        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        format!("traefik.http.routers.{}-bolt.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}-bolt.service={}-bolt", name, name),
         format!("traefik.http.services.{}-bolt.loadbalancer.server.port={}", name, bolt_port),
         format!("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"),
