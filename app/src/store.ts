@@ -67,6 +67,8 @@ export const createdPeerForOnboarding = writable<boolean>(false);
 
 export const channelCreatedForOnboarding = writable<boolean>(false);
 
+export const adminIsCreatedForOnboarding = writable<boolean>(false);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
@@ -123,6 +125,7 @@ export const finishedOnboarding = derived(
     let hasChannels = false;
     let hasBalance = false;
     let hasPeers = false;
+    let hasUsers = false;
     for (let key in $channels) {
       if ($channels[key].length > 0) {
         hasChannels = true;
@@ -141,7 +144,8 @@ export const finishedOnboarding = derived(
       }
     }
     const hasAdmin = $users.find((user) => user.is_admin && user.alias);
-    return { hasAdmin, hasChannels, hasBalance, hasPeers };
+    if (hasAdmin && $users.length > 1) hasUsers = true;
+    return { hasAdmin, hasChannels, hasBalance, hasPeers, hasUsers };
   }
 );
 

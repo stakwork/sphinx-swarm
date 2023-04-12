@@ -9,6 +9,7 @@
     lndBalances,
     unconfirmedBalance,
     channelCreatedForOnboarding,
+    adminIsCreatedForOnboarding,
   } from "../store";
   import * as api from "../api";
 
@@ -23,6 +24,7 @@
   $: currentStep, checkForConfirmedTransaction();
   $: $finishedOnboarding, determineCurrentStep();
   $: $channelCreatedForOnboarding, channelCreatedForOnboardingHandler();
+  $: $adminIsCreatedForOnboarding, adminIsCreatedHandler();
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
@@ -33,6 +35,10 @@
 
   function channelCreatedForOnboardingHandler() {
     disabled = !$channelCreatedForOnboarding;
+  }
+
+  function adminIsCreatedHandler() {
+    disabled = !$adminIsCreatedForOnboarding;
   }
 
   function checkForConfirmedTransaction() {
@@ -78,11 +84,11 @@
       } else if (currentStep === 3) {
         disabled = true;
       } else if (currentStep === 5 && $finishedOnboarding.hasChannels) {
-        disabled = true;
         const relay = $stack.nodes.find((node) => node.type === "Relay");
         if (relay) {
           selectedNode.update(() => relay);
         }
+        disabled = true;
       } else {
         disabled = true;
       }
@@ -101,22 +107,39 @@
     const hasChannels = $finishedOnboarding.hasChannels;
     const hasBalance = $finishedOnboarding.hasBalance;
     const hasPeers = $finishedOnboarding.hasPeers;
+    const hasUsers = $finishedOnboarding.hasUsers;
     if (!hasBalance) {
       const lightning = $stack.nodes.find((node) => node.type === "Lnd");
       if (lightning) {
         selectedNode.update(() => lightning);
       }
       currentStep = 0;
-    } else if (!hasPeers) {
+    } else if (!hasPeers && hasBalance) {
+      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+      if (lightning) {
+        selectedNode.update(() => lightning);
+      }
       currentStep = 3;
-    } else if (!hasChannels) {
+    } else if (!hasChannels && hasPeers) {
+      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+      if (lightning) {
+        selectedNode.update(() => lightning);
+      }
       currentStep = 4;
-    } else if (!hasAdmin) {
+    } else if (!hasAdmin && hasChannels) {
       const relay = $stack.nodes.find((node) => node.type === "Relay");
       if (relay) {
         selectedNode.update(() => relay);
       }
       currentStep = 5;
+      disabled = true;
+    } else if (hasAdmin && !hasUsers) {
+      const relay = $stack.nodes.find((node) => node.type === "Relay");
+      if (relay) {
+        selectedNode.update(() => relay);
+      }
+      currentStep = 6;
+      disabled = true;
     }
   }
 
@@ -148,7 +171,7 @@
 </script>
 
 <section class="onboarding_section" style:position="relative">
-  {#if !$finishedOnboarding.hasBalance || !$finishedOnboarding.hasPeers || !$finishedOnboarding.hasChannels || !$finishedOnboarding.hasAdmin}
+  {#if !$finishedOnboarding.hasBalance || !$finishedOnboarding.hasPeers || !$finishedOnboarding.hasChannels || !$finishedOnboarding.hasAdmin || !$finishedOnboarding.hasUsers}
     <Button
       on:click={togglePopover}
       size="field"
@@ -164,12 +187,14 @@
               >Prev</button
             >
           {/if}
-          <button
-            {disabled}
-            type="button"
-            class="btn next_btn"
-            on:click={nextOnboardingHandler}>Next</button
-          >
+          {#if currentStep !== steps.length - 1}
+            <button
+              {disabled}
+              type="button"
+              class="btn next_btn"
+              on:click={nextOnboardingHandler}>Next</button
+            >
+          {/if}
         </div>
       </div>
     </Popover>

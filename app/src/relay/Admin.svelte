@@ -3,7 +3,12 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import { onMount } from "svelte";
   import * as api from "../api";
-  import { users, node_host } from "../store";
+  import {
+    users,
+    node_host,
+    finishedOnboarding,
+    adminIsCreatedForOnboarding,
+  } from "../store";
   import QrCode from "svelte-qrcode";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
 
@@ -55,6 +60,7 @@
       const adminIsSetup = userList.users?.find((u) => u.is_admin && u.alias);
       if (adminIsSetup) {
         users.set(userList.users);
+        adminIsCreatedForOnboarding.update(() => true);
         clearInterval(interval);
       }
     }, 60000);
@@ -79,6 +85,13 @@
   }
 
   $: qrString = `claim::${$node_host}::${admin_token}`;
+  $: $finishedOnboarding, determineToShowQr();
+  function determineToShowQr() {
+    if ($finishedOnboarding.hasChannels && !$finishedOnboarding.hasAdmin) {
+      showQr = false;
+      toggleQr();
+    }
+  }
 </script>
 
 <div class="tribes-wrap">

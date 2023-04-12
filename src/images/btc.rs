@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::{DockerConfig, DockerHubImage, Repository};
 use crate::config::{Clients, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
