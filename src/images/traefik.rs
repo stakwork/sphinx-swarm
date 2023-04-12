@@ -159,7 +159,7 @@ pub fn neo4j_labels(
     let def = vec![
         "traefik.enable=true".to_string(),
         //
-        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
+        format!("traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/neo4j`)", name, host),
         format!("traefik.http.routers.{}.tls=true", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
@@ -169,7 +169,7 @@ pub fn neo4j_labels(
         format!("traefik.http.middlewares.neo4j-auth.basicauth.users={}", auth_user),
         format!("traefik.http.middlewares.neo4j-prefix.stripprefix.prefixes=/neo4j"),
         //
-        format!("traefik.http.routers.{}-bolt.rule=Host(`{}`) && PathPrefix(`/neo4j`)", name, host),
+        format!("traefik.http.routers.{}-bolt.rule=Host(`{}`)", name, host),
         format!("traefik.http.routers.{}-bolt.tls=true", name),
         format!("traefik.http.routers.{}-bolt.entrypoints=websecure", name),
         format!("traefik.http.routers.{}-bolt.tls.certresolver=myresolver", name),
