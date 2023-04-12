@@ -1,4 +1,4 @@
-use super::traefik::traefik_labels;
+use super::traefik::{neo4j_labels, traefik_labels};
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
@@ -26,7 +26,7 @@ impl Neo4jImage {
             version: version.to_string(),
             http_port: "7474".to_string(),
             // bolt_port: "7687".to_string(),
-            bolt_port: "7476".to_string(),
+            bolt_port: "7687".to_string(),
             links: vec![],
             host: None,
         }
@@ -104,7 +104,13 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
     };
     if let Some(host) = node.host.clone() {
         // production tls extra domain
-        c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, true));
+        // c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, true));
+        c.labels = Some(neo4j_labels(
+            &node.name,
+            &host,
+            &node.http_port,
+            &node.bolt_port,
+        ));
     }
     c
 }

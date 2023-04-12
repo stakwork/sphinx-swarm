@@ -4,9 +4,9 @@ in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.67
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.68
 
-docker push sphinxlightning/sphinx-swarm:0.1.67
+docker push sphinxlightning/sphinx-swarm:0.1.68
 
 ### run prod stack
 
@@ -44,6 +44,7 @@ update the version
 docker pull sphinxlightning/sphinx-jarvis-backend:0.3.2
 
 docker stop jarvis.sphinx && docker rm jarvis.sphinx
+docker stop neo4j.sphinx && docker rm neo4j.sphinx
 
 docker-compose up sphinx-swarm -d
 

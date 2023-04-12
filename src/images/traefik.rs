@@ -134,7 +134,6 @@ pub fn traefik_labels(
     port: &str,
     websockets: bool,
 ) -> HashMap<String, String> {
-    let mut labels = HashMap::new();
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
     let mut def = vec![
         "traefik.enable=true".to_string(),
@@ -147,6 +146,50 @@ pub fn traefik_labels(
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string())
     }
+    to_labels(def)
+}
+
+pub fn neo4j_labels(
+    name: &str,
+    host: &str,
+    http_port: &str,
+    bolt_port: &str,
+) -> HashMap<String, String> {
+    let auth_user = "neo4j";
+    let def = vec![
+        "traefik.enable=true".to_string(),
+        //
+        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
+        format!("traefik.http.routers.{}.tls=true", name),
+        format!("traefik.http.routers.{}.entrypoints=websecure", name),
+        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        format!("traefik.http.routers.{}.service={}", name, name),
+        format!("traefik.http.routers.{}.middlewares=neo4j-auth,neo4j-prefix,security-headers-middleware", name),
+        format!("traefik.http.services.{}.loadbalancer.server.port={}", name, http_port),
+        format!("traefik.http.middlewares.neo4j-auth.basicauth.users={}", auth_user),
+        format!("traefik.http.middlewares.neo4j-prefix.stripprefix.prefixes=/neo4j"),
+        //
+        format!("traefik.http.routers.{}-bolt.rule=Host(`{}`)", name, host),
+        format!("traefik.http.routers.{}-bolt.tls=true", name),
+        format!("traefik.http.routers.{}-bolt.entrypoints=websecure", name),
+        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        format!("traefik.http.routers.{}-bolt.service={}-bolt", name, name),
+        format!("traefik.http.services.{}-bolt.loadbalancer.server.port={}", name, bolt_port),
+        format!("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https,wss"),
+        format!("traefik.http.routers.{}-bolt.middlewares=sslheader", name),
+        // 
+        format!("traefik.tcp.routers.{}-bolt.rule=HostSNI(`{}`)", name, host),
+        format!("traefik.tcp.routers.{}-bolt.tls=true", name),
+        format!("traefik.tcp.routers.{}-bolt.entrypoints=websecure", name),
+        format!("traefik.tcp.routers.{}-bolt.tls.certresolver=myresolver", name),
+        format!("traefik.tcp.routers.{}-bolt.service={}-bolt", name, name),
+        format!("traefik.tcp.services.{}-bolt.loadbalancer.server.port={}", name, bolt_port),
+    ];
+    to_labels(def)
+}
+
+fn to_labels(def: Vec<String>) -> HashMap<String, String> {
+    let mut labels = HashMap::new();
     def.iter().for_each(|l| {
         let parts = l.split("=").collect::<Vec<&str>>();
         if parts.len() > 1 {
