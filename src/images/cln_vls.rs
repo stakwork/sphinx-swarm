@@ -21,7 +21,7 @@ fn vls_ports(idx: u16) -> Ports {
     }
 }
 
-pub fn cln_vls(name: &str, network: &str, idx: u16, btc: &btc::BtcImage) -> Config<String> {
+fn cln_vls(name: &str, network: &str, idx: u16, btc: &btc::BtcImage) -> Config<String> {
     let version = "0.1.5"; // docker tag
     let cln_version = "v0.11.0.1-793-g243f8e3";
     let ps = vls_ports(idx);

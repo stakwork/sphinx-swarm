@@ -210,7 +210,7 @@ impl Default for Stack {
 
         // jarvis
         v = "0.3.2";
-        let mut jarvis = JarvisImage::new("jarvis", v, "6000");
+        let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
         jarvis.links(vec!["neo4j", "boltwall"]);
 
         // boltwall

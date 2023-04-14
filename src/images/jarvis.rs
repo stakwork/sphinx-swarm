@@ -11,15 +11,17 @@ pub struct JarvisImage {
     pub name: String,
     pub version: String,
     pub port: String,
+    pub self_generating: bool,
     pub links: Links,
 }
 
 impl JarvisImage {
-    pub fn new(name: &str, version: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, port: &str, self_generating: bool) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
+            self_generating: self_generating,
             links: vec![],
         }
     }
@@ -47,7 +49,7 @@ impl DockerHubImage for JarvisImage {
     }
 }
 
-pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> Config<String> {
+fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
@@ -70,8 +72,10 @@ pub fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) 
         format!("RADAR_SCHEDULER_TIME_IN_SEC=86400"),
         format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_JOB=1"),
-        format!("SELF_GENERATING_GRAPH=1")
     ];
+    if node.self_generating {
+        env.push(format!("SELF_GENERATING_GRAPH=1"));
+    }
     if let Some(h) = &boltwall.host {
         env.push(format!("RADAR_TWEET_WEBHOOK=https://{}", h));
         env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}", h));

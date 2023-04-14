@@ -4,7 +4,7 @@ use crate::conn::proxy::ProxyAPI;
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
@@ -58,8 +58,16 @@ impl ProxyImage {
 impl DockerConfig for ProxyImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let lnd = li.find_lnd().context("LND required for Proxy")?;
-        Ok(proxy(&self, &lnd))
+        let lnd = li.find_lnd();
+        let mut cln = li.find_cln();
+        if let None = lnd {
+            if let None = cln {
+                return Err(anyhow!("LND or CLN required for Proxy"));
+            }
+        } else {
+            cln = None
+        }
+        Ok(proxy(&self, lnd, cln))
     }
 }
 
@@ -72,24 +80,50 @@ impl DockerHubImage for ProxyImage {
     }
 }
 
-pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
+fn proxy(
+    proxy: &ProxyImage,
+    lnd: Option<lnd::LndImage>,
+    cln: Option<cln::ClnImage>,
+) -> Config<String> {
     let repo = proxy.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let version = proxy.version.clone();
     // let img = "sphinx-proxy";
     // let version = "latest";
-    let netwk = to_lnd_network(proxy.network.as_str());
-    let macpath = format!(
-        "--macaroon-location=/lnd/data/chain/bitcoin/{}/admin.macaroon",
-        &netwk,
-    );
     let root_vol = "/app/proxy";
-    let lnd_vol = volume_string(&lnd.name, "/lnd");
-    let extra_vols = vec![lnd_vol];
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
+
+    let mut mode = "lnd".to_string();
+    let mut extra_vols = vec![];
+    let mut rpc_port = "10009".to_string();
+    let mut thename = "127.0.0.1".to_string();
+    let mut netwk = proxy.network.clone();
+    let mut extra_cmd = vec![];
+    if let Some(lnd) = lnd {
+        let lnd_vol = volume_string(&lnd.name, "/lnd");
+        extra_vols.push(lnd_vol);
+        rpc_port = lnd.rpc_port;
+        thename = lnd.name;
+        netwk = to_lnd_network(proxy.network.as_str()).to_string();
+        let macpath = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", &netwk);
+        extra_cmd.push(format!("--macaroon-location={}", macpath))
+    } else if let Some(cln) = cln {
+        mode = "cln".to_string();
+        let cln_vol = volume_string(&cln.name, "/cln");
+        extra_vols.push(cln_vol);
+        rpc_port = cln.grpc_port;
+        thename = cln.name;
+        let ca_path = format!("/root/.lightning/{}/ca.pem", &netwk);
+        let client_cert_path = format!("/root/.lightning/{}/client.pem", &netwk);
+        let client_key_path = format!("/root/.lightning/{}/client-key.pem", &netwk);
+        extra_cmd.push(format!("--cln-ca-cert={}", ca_path));
+        extra_cmd.push(format!("--cln-client-cert={}", client_cert_path));
+        extra_cmd.push(format!("--cln-client-key={}", client_key_path));
+    }
+
     let mut cmd = vec![
         "/app/sphinx-proxy".to_string(),
-        macpath.to_string(),
+        format!("--mode={}", mode),
         "--rpclisten=0.0.0.0:11111".to_string(),
         "--store-dir=/app/proxy/badger".to_string(),
         "--bitcoin.active".to_string(),
@@ -98,8 +132,8 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
         format!("--bitcoin.{}", &netwk),
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),
-        format!("--lnd-ip={}.sphinx", &lnd.name),
-        format!("--lnd-port={}", &lnd.rpc_port),
+        format!("--lnd-ip={}.sphinx", &thename),
+        format!("--lnd-port={}", &rpc_port),
         format!("--tlsextradomain={}.sphinx", proxy.name),
         "--tlscertpath=/app/proxy/tls.cert".to_string(),
         "--tlskeypath=/app/proxy/tls.key".to_string(),
@@ -115,6 +149,10 @@ pub fn proxy(proxy: &ProxyImage, lnd: &lnd::LndImage) -> Config<String> {
     if let Some(sk) = &proxy.store_key {
         cmd.push(format!("--store-key={}", &sk));
     }
+    // add in extra cmds from lnd/cln
+    extra_cmd.iter().for_each(|c| {
+        cmd.push(c.to_string());
+    });
     Config {
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),

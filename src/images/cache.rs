@@ -75,12 +75,7 @@ impl DockerHubImage for CacheImage {
     }
 }
 
-pub fn cache(
-    node: &CacheImage,
-    meme_host: &str,
-    mqtt_host: &str,
-    mqtt_port: &str,
-) -> Config<String> {
+fn cache(node: &CacheImage, meme_host: &str, mqtt_host: &str, mqtt_port: &str) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);

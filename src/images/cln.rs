@@ -125,7 +125,7 @@ impl ClnBtcArgs {
         Ok(Self::new(&fullhost, &username, &password))
     }
 }
-pub fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
+fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
     let version = "0.1.0";

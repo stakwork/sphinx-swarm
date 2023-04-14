@@ -47,7 +47,7 @@ ulimits:
 */
 
 // all 3 required for inclusion
-fn aws_env() -> Option<Vec<String>> {
+fn _aws_env() -> Option<Vec<String>> {
     let aws_key = std::env::var("AWS_ACCESS_KEY_ID");
     let aws_secret = std::env::var("AWS_SECRET_ACCESS_KEY");
     let aws_region = std::env::var("AWS_REGION");
@@ -67,7 +67,7 @@ fn aws_env() -> Option<Vec<String>> {
     ])
 }
 
-pub fn traefik(img: &TraefikImage) -> Config<String> {
+fn _traefik(img: &TraefikImage) -> Config<String> {
     let name = img.name.clone();
     let image = "traefik:v2.2.1";
     let mut ports = vec!["80", "443"];
@@ -107,7 +107,7 @@ pub fn traefik(img: &TraefikImage) -> Config<String> {
     }
     let add_ulimits = true;
     let add_log_limit = true;
-    let awsenv = aws_env();
+    let awsenv = _aws_env();
     if let Some(ae) = &awsenv {
         log::info!("traefik: using AWS env {:?}", ae.get(0));
     } else {

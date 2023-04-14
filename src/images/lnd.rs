@@ -100,7 +100,7 @@ pub fn to_lnd_network(n: &str) -> &'static str {
     }
 }
 
-pub fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
+fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     let network = to_lnd_network(lnd.network.as_str());
     let repo = lnd.repo();
     let img = format!("{}/{}", repo.org, repo.repo);

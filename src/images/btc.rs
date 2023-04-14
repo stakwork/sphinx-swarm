@@ -77,7 +77,7 @@ impl DockerHubImage for BtcImage {
     }
 }
 
-pub fn btc(node: &BtcImage) -> Config<String> {
+fn btc(node: &BtcImage) -> Config<String> {
     let ports = vec![
         RPC_PORT.to_string(),
         "28332".to_string(),

@@ -137,7 +137,7 @@ pub fn _host_volume_string(project: &str, name: &str) -> String {
     format!("{}/vol/{}/{}", pwd.to_string_lossy(), project, name)
 }
 
-// DIR/vol/{project}/{container_name}:{dir}
+// {vol_name}:{dir} ... vol_name = container domain
 pub fn volume_string(name: &str, dir: &str) -> String {
     // ":z" is a fix for SELinux permissions. Can be shared
     format!(

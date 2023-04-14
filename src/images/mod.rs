@@ -2,7 +2,6 @@ pub mod boltwall;
 pub mod btc;
 pub mod cache;
 pub mod cln;
-pub mod cln_vls;
 pub mod jarvis;
 pub mod lnd;
 pub mod navfiber;
@@ -207,6 +206,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_cln(&self) -> Option<cln::ClnImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_cln() {
+                return Some(i);
+            }
+        }
+        None
+    }
     pub fn find_proxy(&self) -> Option<proxy::ProxyImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_proxy() {
@@ -252,6 +259,12 @@ impl Image {
         match self {
             Image::Lnd(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not LND".to_string())),
+        }
+    }
+    pub fn as_cln(&self) -> anyhow::Result<cln::ClnImage> {
+        match self {
+            Image::Cln(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not CLN".to_string())),
         }
     }
     pub fn as_proxy(&self) -> anyhow::Result<proxy::ProxyImage> {

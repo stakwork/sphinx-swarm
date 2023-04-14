@@ -1,4 +1,4 @@
-use super::traefik::{neo4j_labels, traefik_labels};
+// use super::traefik::{neo4j_labels, traefik_labels};
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
@@ -51,6 +51,15 @@ impl Neo4jImage {
             &bytes,
         )
         .await?;
+        log::info!("=> copy apoc.conf into container...");
+        upload_to_container(
+            docker,
+            &self.name,
+            "/var/lib/neo4j/conf",
+            "apoc.conf",
+            APOC_CONF.as_bytes(),
+        )
+        .await?;
         Ok(())
     }
 }
@@ -71,14 +80,14 @@ impl DockerHubImage for Neo4jImage {
     }
 }
 
-pub fn neo4j(node: &Neo4jImage) -> Config<String> {
+fn neo4j(node: &Neo4jImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}", repo.repo);
     let root_vol = "/data";
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
-    let mut c = Config {
+    let c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
@@ -102,15 +111,24 @@ pub fn neo4j(node: &Neo4jImage) -> Config<String> {
         ]),
         ..Default::default()
     };
-    if let Some(host) = node.host.clone() {
+    if let Some(_host) = node.host.clone() {
         // production tls extra domain
         // c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, true));
-        c.labels = Some(neo4j_labels(
-            &node.name,
-            &host,
-            &node.http_port,
-            &node.bolt_port,
-        ));
+        // c.labels = Some(neo4j_labels(
+        //     &node.name,
+        //     &host,
+        //     &node.http_port,
+        //     &node.bolt_port,
+        // ));
     }
     c
 }
+
+const APOC_CONF: &str = r#"
+apoc.import.file.use_neo4j_config=true
+apoc.import.file.enabled=true
+apoc.initializer.neo4j.1=CREATE FULLTEXT INDEX titles_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.show_title, n.episode_title]
+apoc.initializer.neo4j.2=CREATE FULLTEXT INDEX person_full_index IF NOT EXISTS FOR (n:Person) ON EACH [n.name]
+apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.topic]
+apoc.initializer.neo4j.4=CREATE FULLTEXT INDEX text_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.text]
+"#;

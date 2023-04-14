@@ -70,7 +70,7 @@ impl DockerHubImage for RelayImage {
     }
 }
 
-pub fn relay(
+fn relay(
     relay: &RelayImage,
     lnd: &lnd::LndImage,
     proxy: Option<proxy::ProxyImage>,

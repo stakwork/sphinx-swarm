@@ -52,7 +52,7 @@ impl DockerHubImage for NavFiberImage {
     }
 }
 
-pub fn navfiber(node: &NavFiberImage) -> Config<String> {
+fn navfiber(node: &NavFiberImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
