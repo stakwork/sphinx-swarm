@@ -2,7 +2,12 @@
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import View from "carbon-icons-svelte/lib/List.svelte";
-  import { channels, peers as peersStore, channelBalances } from "../store";
+  import {
+    channels,
+    peers as peersStore,
+    channelBalances,
+    finishedOnboarding,
+  } from "../store";
   import Peers from "./Peers.svelte";
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
@@ -20,6 +25,19 @@
   }
 
   $: peers = $peersStore && $peersStore[tag];
+  $: $finishedOnboarding, determineOnboardingStep();
+
+  function determineOnboardingStep() {
+    if ($finishedOnboarding.hasBalance && !$finishedOnboarding.hasPeers) {
+      page = "peers";
+    } else if (
+      $finishedOnboarding.hasBalance &&
+      $finishedOnboarding.hasPeers &&
+      !$finishedOnboarding.hasChannels
+    ) {
+      page = "add_channel";
+    }
+  }
 
   type ChannelPage = "main" | "peers" | "add_channel";
   let page: ChannelPage = "main";

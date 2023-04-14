@@ -18,7 +18,7 @@
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
   import type { Container } from "./api/swarm";
-
+  import Onboarding from "./onboarding/Onboarding.svelte";
   let selectedName = "";
 
   async function getConfig() {
@@ -86,33 +86,40 @@
 
 <main>
   <header>
-    <div class="lefty logo-wrap">
-      <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
-      <span class="stack-title">Sphinx Stack</span>
+    <div class="head_section">
+      <div class="lefty logo-wrap">
+        <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
+        <span class="stack-title">Sphinx Stack</span>
+      </div>
+
+      <section class="header-btn-wrap">
+        {#if $selectedNode}
+          <NodeUpdate />
+        {/if}
+
+        {#if $selectedNode && $selectedNode.place === "Internal"}
+          <NodeLogs nodeName={$selectedNode.name} />
+
+          <NodeAction
+            on:stop_message={addStopClass}
+            on:start_message={removeStopClass}
+          />
+        {/if}
+      </section>
     </div>
-
-    <section class="header-btn-wrap">
-      {#if $selectedNode}
-        <NodeUpdate />
-      {/if}
-
-      {#if $selectedNode && $selectedNode.place === "Internal"}
-        <NodeLogs nodeName={$selectedNode.name} />
-
-        <NodeAction
-          on:stop_message={addStopClass}
-          on:start_message={removeStopClass}
-        />
-      {/if}
-    </section>
-
-    <AddNode />
-    <section class="menu-btn">
-      <OverflowMenu icon={User} flipped>
-        <OverflowMenuItem on:click={toChangePassword} text="Change Password" />
-        <OverflowMenuItem on:click={logoutUser} text="Logout" />
-      </OverflowMenu>
-    </section>
+    <div class="head_section">
+      <Onboarding />
+      <AddNode />
+      <section class="menu-btn">
+        <OverflowMenu icon={User} flipped>
+          <OverflowMenuItem
+            on:click={toChangePassword}
+            text="Change Password"
+          />
+          <OverflowMenuItem on:click={logoutUser} text="Logout" />
+        </OverflowMenu>
+      </section>
+    </div>
   </header>
   <div class="body" bind:this={body}>
     {#if page === "change_password"}
@@ -145,10 +152,16 @@
     display: flex;
     background: #1a242e;
     align-items: center;
+    justify-content: space-between;
     border-bottom: 1px solid #101317;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
   .logo-wrap {
+    display: flex;
+    align-items: center;
+  }
+
+  .head_section {
     display: flex;
     align-items: center;
   }

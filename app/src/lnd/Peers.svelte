@@ -8,11 +8,16 @@
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { add_peer, list_peers, type LndPeer } from "../api/lnd";
   import * as CLN from "../api/cln";
-  import { peers as peersStore } from "../store";
+  import {
+    peers as peersStore,
+    finishedOnboarding,
+    createdPeerForOnboarding,
+  } from "../store";
   import { parseClnListPeerRes } from "../helpers/cln";
 
   $: pubkey = "";
   $: host = "";
+  $: $finishedOnboarding, addDefaultPeer();
 
   export let back = () => {};
   export let tag = "";
@@ -35,6 +40,7 @@
         peersStore.update((peer) => {
           return { ...peer, [tag]: parsedRes.peers };
         });
+        createdPeerForOnboarding.update(() => true);
       }
     } else {
       if (await add_peer(tag, pubkey, host)) {
@@ -42,12 +48,22 @@
         pubkey = "";
         host = "";
 
-        const peersData = await list_peers(tag);
-
-        peersStore.update((ps) => {
-          return { ...ps, [tag]: peersData.peers };
-        });
+        setTimeout(async () => {
+          const peersData = await list_peers(tag);
+          peersStore.update((ps) => {
+            return { ...ps, [tag]: peersData.peers };
+          });
+          createdPeerForOnboarding.update(() => true);
+        }, 1000);
       }
+    }
+  }
+
+  function addDefaultPeer() {
+    if ($finishedOnboarding.hasBalance && !$finishedOnboarding.hasPeers) {
+      pubkey =
+        "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f";
+      host = "54.159.193.149:9735";
     }
   }
 

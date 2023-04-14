@@ -102,7 +102,7 @@
 
 <style>
   .add-node-btn {
-    margin-left: auto;
+    /* margin-left: auto; */
     margin-right: 1.2rem;
   }
   .modal-content {

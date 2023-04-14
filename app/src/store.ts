@@ -45,6 +45,8 @@ export const peers = writable<{ [tag: string]: LndPeer[] }>({});
 
 export const lndBalances = writable<{ [tag: string]: number }>({});
 
+export const unconfirmedBalance = writable<{ [tag: string]: number }>({});
+
 export const relayBalances = writable<{ [tag: string]: RelayBalance }>({});
 
 export const activeInvoice = writable<{ [tag: string]: string }>({});
@@ -54,6 +56,18 @@ export const activeUser = writable<string>();
 export const containers = writable<Container[]>([]);
 
 export const exitedNodes = writable<string[]>([]);
+
+export const onChainAddressGeneratedForOnboarding = writable<boolean>(false);
+
+export const copiedAddressForOnboarding = writable<boolean>(false);
+
+export const pendingTransaction = writable<boolean>(false);
+
+export const createdPeerForOnboarding = writable<boolean>(false);
+
+export const channelCreatedForOnboarding = writable<boolean>(false);
+
+export const adminIsCreatedForOnboarding = writable<boolean>(false);
 
 export const balances = derived(
   [channels, selectedNode],
@@ -103,6 +117,36 @@ export function makeChannelBalances(
 export const channelBalances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => makeChannelBalances($channels, $selectedNode)
+);
+
+export const finishedOnboarding = derived(
+  [channels, users, lndBalances, peers],
+  ([$channels, $users, $lndBalances, $peers]) => {
+    let hasChannels = false;
+    let hasBalance = false;
+    let hasPeers = false;
+    let hasUsers = false;
+    for (let key in $channels) {
+      if ($channels[key].length > 0) {
+        hasChannels = true;
+      }
+    }
+
+    for (let key in $peers) {
+      if ($peers[key].length > 0) {
+        hasPeers = true;
+      }
+    }
+
+    for (let key in $lndBalances) {
+      if ($lndBalances[key] > 0) {
+        hasBalance = true;
+      }
+    }
+    const hasAdmin = $users.find((user) => user.is_admin && user.alias);
+    if (hasAdmin && $users.length > 1) hasUsers = true;
+    return { hasAdmin, hasChannels, hasBalance, hasPeers, hasUsers };
+  }
 );
 
 function nodeHostLocalhost(node: Node) {

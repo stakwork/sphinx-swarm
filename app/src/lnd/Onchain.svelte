@@ -5,7 +5,15 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
   import * as api from "../api";
-  import { lightningAddresses } from "../store";
+  import {
+    lightningAddresses,
+    onChainAddressGeneratedForOnboarding,
+    finishedOnboarding,
+    copiedAddressForOnboarding,
+    lndBalances,
+    unconfirmedBalance,
+  } from "../store";
+  import { onMount } from "svelte";
 
   async function newAddress() {
     let new_addy;
@@ -13,6 +21,9 @@
       new_addy = await api.cln.new_address(tag);
     } else {
       new_addy = await api.lnd.new_address(tag);
+      if (new_addy && !$finishedOnboarding.hasChannels) {
+        onChainAddressGeneratedForOnboarding.update(() => true);
+      }
     }
     if (!new_addy) return;
     lightningAddresses.update((addys) => {
@@ -20,14 +31,50 @@
     });
   }
 
+  onMount(async () => {
+    getBalance();
+  });
+
+  async function getBalance() {
+    const balance = await api.lnd.get_balance(tag);
+    updateConfirmedBalance(balance);
+    updateUnconfirmedBalance(balance);
+  }
+
+  function updateConfirmedBalance(balance) {
+    if (
+      lndBalances.hasOwnProperty(tag) &&
+      lndBalances[tag] === balance?.confirmed_balance
+    )
+      return;
+    lndBalances.update((n) => {
+      return { ...n, [tag]: balance?.confirmed_balance };
+    });
+  }
+
+  function updateUnconfirmedBalance(balance) {
+    if (
+      unconfirmedBalance.hasOwnProperty(tag) &&
+      unconfirmedBalance[tag] === balance?.unconfirmed_balance
+    )
+      return;
+    unconfirmedBalance.update((n) => {
+      return { ...n, [tag]: balance?.unconfirmed_balance };
+    });
+  }
   $: myNewAddy = $lightningAddresses[tag];
 
   function copyAddressToClipboard() {
     navigator.clipboard.writeText(myNewAddy);
+    copiedAddressForOnboarding.update(() => true);
   }
 </script>
 
 <div class="wrap">
+  <div class="confirmed_balance_container">
+    <p class="confirmed_balance">Confirmed Balance:</p>
+    <p class="confirmed_amount">{$lndBalances[tag]}</p>
+  </div>
   <aside class="address-wrap">
     <div class="address">
       <section class="input-wrap">
@@ -51,11 +98,47 @@
       >Generate Address</Button
     >
   </aside>
+  <div class="unconfirmed_balance_container">
+    <p class="unconfirmed_balance">Unconfirmed Balance:</p>
+    <p class="unconfirmed_amount">{$unconfirmedBalance[tag]}</p>
+  </div>
 </div>
 
 <style>
   .wrap {
     padding: 1.5rem;
+  }
+
+  .confirmed_balance {
+    font-size: 0.875rem;
+    color: #527931;
+  }
+
+  .confirmed_amount {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #59b708;
+  }
+
+  .unconfirmed_balance {
+    font-size: 0.875rem;
+    color: #8d562e;
+    text-align: right;
+  }
+
+  .unconfirmed_amount {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #f47d27;
+    text-align: right;
+  }
+
+  .confirmed_balance_container {
+    margin-bottom: 2rem;
+  }
+  .unconfirmed_balance_container {
+    margin-top: 2rem;
+    margin-left: auto;
   }
   .address-wrap {
     margin-top: 20px;
