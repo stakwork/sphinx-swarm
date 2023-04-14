@@ -18,11 +18,13 @@ pub struct LndImage {
     pub rpc_port: String,
     pub peer_port: String,
     pub http_port: Option<String>,
-    pub assumechanvalid: Option<bool>,
-    pub pinned_syncer: Option<String>,
     pub links: Links,
     pub unlock_password: String,
     pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assumechanvalid: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pinned_syncer: Option<String>,
 }
 impl LndImage {
     pub fn new(name: &str, version: &str, network: &str, rpc_port: &str, peer_port: &str) -> Self {
