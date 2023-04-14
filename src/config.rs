@@ -209,18 +209,18 @@ impl Default for Stack {
         neo4j.host(host.clone());
 
         // jarvis
-        v = "0.3.2";
+        v = "0.3.5";
         let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
         jarvis.links(vec!["neo4j", "boltwall"]);
 
         // boltwall
-        v = "latest";
+        v = "0.3.5";
         let mut bolt = BoltwallImage::new("boltwall", v, "8444");
         bolt.links(vec!["jarvis", "lnd"]);
         bolt.host(host.clone());
 
         // navfiber
-        v = "latest";
+        v = "0.3.5";
         let mut nav = NavFiberImage::new("navfiber", v, "8001");
         nav.links(vec!["jarvis"]);
         nav.host(host.clone());
