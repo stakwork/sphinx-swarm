@@ -1,3 +1,13 @@
+### changing stuff in swarm
+
+cd sphinx-swarm
+
+sudo vi $HOME/vol/stack/config.yaml
+
+`./stop.sh jarvis`
+
+`./restart.sh`
+
 ### build docker
 
 in src/bin/stack/app `yarn build`
