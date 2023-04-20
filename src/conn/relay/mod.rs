@@ -170,7 +170,11 @@ impl RelayAPI {
         let route = format!("http://{}/initial_admin_pubkey", self.url);
         let res = self.client.get(route.as_str()).send().await?;
         let ipr: RelayRes<InitialPubkeyResult> = res.json().await?;
-        Ok(ipr.response.unwrap().pubkey)
+        if let Some(res) = ipr.response {
+            Ok(res.pubkey)
+        } else {
+            Err(anyhow!("no initial admin pubkey"))
+        }
     }
 
     pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {

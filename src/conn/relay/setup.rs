@@ -18,12 +18,15 @@ pub async fn relay_client(proj: &str, relay: &RelayImage) -> Result<RelayAPI> {
         return Ok(api);
     }
     sleep_ms(2400).await;
-    let root_pubkey = api.initial_admin_pubkey().await?;
-    let claim_res = api.claim_user(&root_pubkey, &relay_token).await?;
-    secrets::add_to_secrets(proj, &relay.name, &relay_token).await;
-    println!(
-        "Relay Root User claimed! {}",
-        claim_res.response.unwrap().id
-    );
+    if let Ok(root_pubkey) = api.initial_admin_pubkey().await {
+        let claim_res = api.claim_user(&root_pubkey, &relay_token).await?;
+        println!(
+            "Relay Root User claimed! {}",
+            claim_res.response.unwrap().id
+        );
+        secrets::add_to_secrets(proj, &relay.name, &relay_token).await;
+    } else {
+        log::warn!("failed to generate relay first user");
+    }
     Ok(api)
 }
