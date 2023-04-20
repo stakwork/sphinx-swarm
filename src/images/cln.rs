@@ -173,6 +173,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
                 ports.push(http_port.to_string());
             }
         }
+        environ.push(format!("BROKER_NETWORK={}", img.network));
     }
     // add the interceptor at grpc port + 200
     if img.plugins.contains(&ClnPlugin::HtlcInterceptor) {

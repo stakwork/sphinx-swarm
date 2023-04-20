@@ -93,18 +93,20 @@ fn proxy(
     let root_vol = "/app/proxy";
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
 
+    let netwk = proxy.network.clone();
+    // lnd or proxy uses "mainnet" instead of "bitcoin"
+    let lnd_netwk = to_lnd_network(proxy.network.as_str()).to_string();
+
     let mut mode = "lnd".to_string();
     let mut extra_vols = vec![];
     let mut rpc_port = "10009".to_string();
     let mut thename = "127.0.0.1".to_string();
-    let netwk = proxy.network.clone();
     let mut extra_cmd = vec![];
     if let Some(lnd) = lnd {
         let lnd_vol = volume_string(&lnd.name, "/lnd");
         extra_vols.push(lnd_vol);
         rpc_port = lnd.rpc_port;
         thename = lnd.name;
-        let lnd_netwk = to_lnd_network(proxy.network.as_str()).to_string();
         let macpath = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", &lnd_netwk);
         extra_cmd.push(format!("--macaroon-location={}", macpath))
     } else if let Some(cln) = cln {
@@ -113,6 +115,7 @@ fn proxy(
         extra_vols.push(cln_vol);
         rpc_port = cln.grpc_port;
         thename = cln.name;
+        // cln uses "bitcoin" not "mainnet" network name
         let cln_root = format!("/cln/root/.lightning/{}", &netwk);
         let ca_path = format!("{}/ca.pem", cln_root);
         let client_cert_path = format!("{}/client.pem", cln_root);
@@ -130,7 +133,7 @@ fn proxy(
         "--bitcoin.active".to_string(),
         "--bitcoin.basefee=0".to_string(),
         "--use-hd-keys".to_string(), // HD key derivation
-        format!("--bitcoin.{}", &netwk),
+        format!("--bitcoin.{}", &lnd_netwk),
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),
         format!("--lnd-ip={}.sphinx", &thename),
