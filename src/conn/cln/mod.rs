@@ -1,9 +1,11 @@
 pub mod util;
 
+use crate::images::cln::ClnImage;
+use crate::secrets::hex_secret;
+use crate::utils::docker_domain_tonic;
 use anyhow::{anyhow, Result};
 use cln_grpc::pb;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
-use crate::secrets::hex_secret;
 pub use util::*;
 
 pub struct ClnRPC {
@@ -12,9 +14,9 @@ pub struct ClnRPC {
 
 impl ClnRPC {
     // try new a few times
-    pub async fn try_new(grpc_port: &str, creds: &Creds, i: usize) -> Result<Self> {
+    pub async fn try_new(cln: &ClnImage, creds: &Creds, i: usize) -> Result<Self> {
         for iteration in 0..i {
-            if let Ok(c) = Self::new(grpc_port, creds).await {
+            if let Ok(c) = Self::new(cln, creds).await {
                 return Ok(c);
             }
             sleep_ms(1000).await;
@@ -22,7 +24,7 @@ impl ClnRPC {
         }
         Err(anyhow!("could not connect to CLN"))
     }
-    pub async fn new(grpc_port: &str, creds: &Creds) -> Result<Self> {
+    pub async fn new(cln: &ClnImage, creds: &Creds) -> Result<Self> {
         // println!("CA PEM {:?}", &creds.ca_pem);
         // println!("CLEINT PEM {:?}", &creds.client_pem);
         // println!("CLIENT KEY {:?}", &creds.client_key);
@@ -35,7 +37,8 @@ impl ClnRPC {
             .identity(ident)
             .ca_certificate(ca);
 
-        let url = format!("http://[::1]:{}", grpc_port);
+        let grpc_url = docker_domain_tonic(&cln.name);
+        let url = format!("http://{}:{}", grpc_url, &cln.grpc_port);
         let channel = Channel::from_shared(url)?
             .tls_config(tls)?
             .connect()

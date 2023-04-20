@@ -37,3 +37,5 @@ docker stop load_balancer
 docker rm load_balancer
 
 sudo rm -rf $HOME/vol/stack
+
+docker volume rm cln.sphinx

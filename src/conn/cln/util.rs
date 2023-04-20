@@ -6,7 +6,11 @@ use bollard::Docker;
 
 pub async fn setup(node: &ClnImage, docker: &Docker) -> Result<(ClnRPC, Option<String>)> {
     let creds = collect_creds(docker, &node.name, &node.network).await?;
-    let mut client = ClnRPC::try_new(&node.grpc_port, &creds, 100).await?;
+    log::info!(
+        "CLN CREDS {:?}",
+        std::str::from_utf8(&creds.ca_pem).expect("nope ca cred")
+    );
+    let mut client = ClnRPC::try_new(&node, &creds, 100).await?;
 
     if &node.network != "regtest" {
         return Ok((client, None));
@@ -19,6 +23,7 @@ pub async fn setup(node: &ClnImage, docker: &Docker) -> Result<(ClnRPC, Option<S
     Ok((client, Some(addy.bech32.expect("no bech32 address"))))
 }
 
+#[derive(Debug)]
 pub struct Creds {
     pub ca_pem: Vec<u8>,
     pub client_pem: Vec<u8>,

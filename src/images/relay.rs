@@ -4,7 +4,7 @@ use crate::config::{Clients, Node};
 use crate::conn::relay::setup::relay_client;
 use crate::images::lnd::to_lnd_network;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
@@ -55,9 +55,9 @@ impl RelayImage {
 impl DockerConfig for RelayImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let lnd = li.find_lnd().context("LND required for Relay")?;
+        let lnd = li.find_lnd();
         let proxy = li.find_proxy();
-        Ok(relay(&self, &lnd, proxy))
+        Ok(relay(&self, lnd, proxy))
     }
 }
 
@@ -72,7 +72,7 @@ impl DockerHubImage for RelayImage {
 
 fn relay(
     relay: &RelayImage,
-    lnd: &lnd::LndImage,
+    lnd_opt: Option<lnd::LndImage>,
     proxy: Option<proxy::ProxyImage>,
 ) -> Config<String> {
     // let img = "sphinx-relay";
@@ -82,10 +82,13 @@ fn relay(
     let version = relay.version.clone();
     let root_vol = "/relay/data";
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
-    conf.lnd(lnd);
-    // add the LND volumes
-    let lnd_vol = volume_string(&lnd.name, "/lnd");
-    let mut extra_vols = vec![lnd_vol];
+    let mut extra_vols = vec![];
+    if let Some(lnd) = lnd_opt {
+        conf.lnd(&lnd);
+        // add the LND volumes
+        let lnd_vol = volume_string(&lnd.name, "/lnd");
+        extra_vols.push(lnd_vol);
+    }
     // add the optional Proxy stuff
     if let Some(p) = proxy {
         conf.proxy(&p);
