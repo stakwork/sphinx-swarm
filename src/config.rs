@@ -203,10 +203,14 @@ impl Default for Stack {
         }
 
         // proxy
-        let mut v = "0.1.18";
+        let mut v = "0.1.19";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
-        proxy.links(vec!["lnd"]);
+        if is_cln {
+            proxy.links(vec!["cln"]);
+        } else {
+            proxy.links(vec!["lnd"]);
+        }
 
         // relay
         v = "v0.1.17";
