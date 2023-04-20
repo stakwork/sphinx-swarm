@@ -30,3 +30,10 @@ docker stop proxy.sphinx
 docker rm proxy.sphinx
 docker volume rm proxy.sphinx
 
+docker stop sphinx-swarm
+docker rm sphinx-swarm
+
+docker stop load_balancer
+docker rm load_balancer
+
+sudo rm -rf $HOME/vol/stack

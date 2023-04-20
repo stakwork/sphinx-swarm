@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::*;
 use crate::config::{Clients, ExternalNodeType, Node};
 use crate::conn::cln::setup as setup_cln;
@@ -16,6 +17,7 @@ pub struct ClnImage {
     pub grpc_port: String,
     pub plugins: Vec<ClnPlugin>,
     pub links: Vec<String>,
+    pub host: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -34,6 +36,12 @@ impl ClnImage {
             grpc_port: grpc_port.to_string(),
             plugins: vec![],
             links: vec![],
+            host: None,
+        }
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("{}.{}", self.name, h));
         }
     }
     pub fn plugins(&mut self, plugins: Vec<ClnPlugin>) {
@@ -188,8 +196,8 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
             ));
             ports.push(plugin_port.to_string());
         }
-    }
-    Config {
+    };
+    let mut c = Config {
         image: Some(format!("{}:{}", image, version)),
         // image: Some("cln-sphinx:latest".to_string()),
         hostname: Some(domain(&img.name)),
@@ -199,7 +207,11 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         env: Some(environ),
         host_config: host_config(&img.name, ports, root_vol, None),
         ..Default::default()
+    };
+    if let Some(host) = img.host.clone() {
+        c.labels = Some(traefik_labels(&img.name, &host, &img.peer_port, false));
     }
+    c
 }
 
 async fn sleep(n: u64) {

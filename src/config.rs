@@ -170,6 +170,7 @@ impl Default for Stack {
                 cln.links(vec!["bitcoind"]);
                 let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
                 cln.plugins(plugins);
+                cln.host(host.clone());
                 internal_nodes.push(Image::Cln(cln));
                 is_cln = true;
             }
