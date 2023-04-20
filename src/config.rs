@@ -4,6 +4,7 @@ use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::boltwall::BoltwallImage;
+use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::jarvis::JarvisImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
@@ -155,35 +156,54 @@ impl Default for Stack {
             host = None
         }
 
-        // bitcoind
-        let mut v = "v23.0";
-        let mut bitcoind = BtcImage::new("bitcoind", v, &network);
-        // connect to already running BTC node
-        if let Ok(btc_pass) = std::env::var("BTC_PASS") {
-            // only if its really there (not empty string)
-            if btc_pass.len() > 0 {
-                bitcoind.set_user_password("sphinx", &btc_pass);
+        let mut internal_nodes = vec![];
+        let mut external_nodes = vec![];
+        let mut is_cln = false;
+
+        // CLN and external BTC
+        if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
+            // check the BTC url is ok
+            if let Ok(_) = url::Url::parse(&ebtc) {
+                let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
+                external_nodes.push(Node::External(btc));
+                let mut cln = ClnImage::new("cln", "0.1.1", &network, "9735", "10009");
+                cln.links(vec!["bitcoind"]);
+                let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
+                cln.plugins(plugins);
+                internal_nodes.push(Image::Cln(cln));
+                is_cln = true;
             }
         }
-        // generate random pass if none exists
-        if let None = bitcoind.pass {
-            bitcoind.set_user_password("sphinx", &secrets::random_word(12));
+
+        // LND and internal BTC
+        if !is_cln {
+            // bitcoind
+            let mut v = "v23.0";
+            let mut bitcoind = BtcImage::new("bitcoind", v, &network);
+            // connect to already running BTC node
+            if let Ok(btc_pass) = std::env::var("BTC_PASS") {
+                // only if its really there (not empty string)
+                if btc_pass.len() > 0 {
+                    bitcoind.set_user_password("sphinx", &btc_pass);
+                }
+            }
+            // generate random pass if none exists
+            if let None = bitcoind.pass {
+                bitcoind.set_user_password("sphinx", &secrets::random_word(12));
+            }
+            internal_nodes.push(Image::Btc(bitcoind));
+
+            // lnd
+            v = "v0.15.5-beta";
+            let mut lnd = LndImage::new("lnd", v, &network, "10009", "9735");
+            lnd.http_port = Some("8881".to_string());
+            lnd.links(vec!["bitcoind"]);
+            lnd.host(host.clone());
+            internal_nodes.push(Image::Lnd(lnd));
         }
 
-        // lnd
-        v = "v0.15.5-beta";
-        let mut lnd = LndImage::new("lnd", v, &network, "10009", "9735");
-        lnd.http_port = Some("8881".to_string());
-        lnd.links(vec!["bitcoind"]);
-        lnd.host(host.clone());
-
-        // lnd2
-        // let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");
-        // lnd2.http_port = Some("8882".to_string());
-        // lnd2.links(vec!["bitcoind", "lnd"]);
-
         // proxy
-        v = "0.1.18";
+        let mut v = "0.1.18";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec!["lnd"]);
@@ -225,14 +245,13 @@ impl Default for Stack {
         nav.links(vec!["jarvis"]);
         nav.host(host.clone());
 
-        // internal nodes
-        let mut internal_nodes = vec![
-            Image::Btc(bitcoind),
-            Image::Lnd(lnd),
+        // other_internal_nodes
+        let other_internal_nodes = vec![
             Image::Proxy(proxy),
             Image::Relay(relay),
             Image::Cache(cache),
         ];
+        internal_nodes.extend(other_internal_nodes);
 
         // NO_SECOND_BRAIN=true will skip these nodes
         let skip_second_brain = match std::env::var("NO_SECOND_BRAIN").ok() {
@@ -255,17 +274,21 @@ impl Default for Stack {
             .collect();
 
         // external nodes
-        nodes.push(Node::External(ExternalNode::new(
+        external_nodes.push(Node::External(ExternalNode::new(
             "tribes",
             ExternalNodeType::Tribes,
             "tribes.sphinx.chat",
         )));
 
-        nodes.push(Node::External(ExternalNode::new(
+        external_nodes.push(Node::External(ExternalNode::new(
             "memes",
             ExternalNodeType::Meme,
             "meme.sphinx.chat",
         )));
+
+        // final nodes array
+        nodes.extend(external_nodes);
+
         Stack {
             network,
             nodes,
