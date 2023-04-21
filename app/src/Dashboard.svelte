@@ -18,7 +18,7 @@
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
   import type { Container } from "./api/swarm";
-  import Onboarding from "./onboarding/Onboarding.svelte";
+  // import Onboarding from "./onboarding/Onboarding.svelte";
   let selectedName = "";
 
   async function getConfig() {
@@ -108,7 +108,7 @@
       </section>
     </div>
     <div class="head_section">
-      <Onboarding />
+      <!-- <Onboarding /> -->
       <AddNode />
       <section class="menu-btn">
         <OverflowMenu icon={User} flipped>
