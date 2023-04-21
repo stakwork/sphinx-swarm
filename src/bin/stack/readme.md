@@ -1,4 +1,4 @@
-### changing stuff in swarm
+### changing container in swarm
 
 cd sphinx-swarm
 
@@ -8,15 +8,25 @@ sudo vi $HOME/vol/stack/config.yaml
 
 `./restart.sh`
 
+### changing swarm container itself
+
+build a new docker image
+
+tag and push
+
+update the image in docker-compose.yaml
+
+pull on the server and `./restart.sh`
+
 ### build docker
 
 in src/bin/stack/app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.80
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.1.81
 
-docker push sphinxlightning/sphinx-swarm:0.1.80
+docker push sphinxlightning/sphinx-swarm:0.1.81
 
 ### run prod stack
 
