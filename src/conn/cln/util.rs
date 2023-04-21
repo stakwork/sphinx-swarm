@@ -10,7 +10,8 @@ pub async fn setup(node: &ClnImage, docker: &Docker) -> Result<(ClnRPC, Option<S
         "CLN CREDS {:?}",
         std::str::from_utf8(&creds.ca_pem).expect("nope ca cred")
     );
-    let mut client = ClnRPC::try_new(&node, &creds, 100).await?;
+    let seconds_in_a_day = 86400;
+    let mut client = ClnRPC::try_new(&node, &creds, seconds_in_a_day).await?;
 
     if &node.network != "regtest" {
         return Ok((client, None));

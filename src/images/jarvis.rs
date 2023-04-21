@@ -77,8 +77,8 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
         env.push(format!("SELF_GENERATING_GRAPH=1"));
     }
     if let Some(h) = &boltwall.host {
-        env.push(format!("RADAR_TWEET_WEBHOOK=https://{}", h));
-        env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}", h));
+        env.push(format!("RADAR_TWEET_WEBHOOK=https://{}/v1/tweet", h));
+        env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}/v1/tweet", h));
     }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = std::env::var("STAKWORK_ADD_NODE_TOKEN") {
