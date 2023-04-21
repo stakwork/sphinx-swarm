@@ -67,7 +67,7 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
         format!("STAKWORK_ADD_NODE_URL=https://api.stakwork.com/api/v1/knowledge_graph_projects"),
         format!("JARVIS_BACKEND_PORT={}", node.port),
         format!("PUBLIC_GRAPH_RESULT_LIMIT=10"),
-        format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images/"),
+        format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images"),
         format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_TIME_IN_SEC=86400"),
         format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
