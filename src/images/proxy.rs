@@ -93,7 +93,6 @@ fn proxy(
     let root_vol = "/app/proxy";
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
 
-    let netwk = proxy.network.clone();
     // lnd or proxy uses "mainnet" instead of "bitcoin"
     let lnd_netwk = to_lnd_network(proxy.network.as_str()).to_string();
 
@@ -113,16 +112,13 @@ fn proxy(
         mode = "cln".to_string();
         let cln_vol = volume_string(&cln.name, "/cln");
         extra_vols.push(cln_vol);
-        rpc_port = cln.grpc_port;
-        thename = cln.name;
+        rpc_port = cln.grpc_port.clone();
+        thename = cln.name.clone();
+        let creds = cln.credentials_paths();
         // cln uses "bitcoin" not "mainnet" network name
-        let cln_root = format!("/cln/root/.lightning/{}", &netwk);
-        let ca_path = format!("{}/ca.pem", cln_root);
-        let client_cert_path = format!("{}/client.pem", cln_root);
-        let client_key_path = format!("{}/client-key.pem", cln_root);
-        extra_cmd.push(format!("--cln-ca-cert={}", ca_path));
-        extra_cmd.push(format!("--cln-client-cert={}", client_cert_path));
-        extra_cmd.push(format!("--cln-client-key={}", client_key_path));
+        extra_cmd.push(format!("--cln-ca-cert={}", creds.ca_cert));
+        extra_cmd.push(format!("--cln-client-cert={}", creds.client_cert));
+        extra_cmd.push(format!("--cln-client-key={}", creds.client_key));
     }
 
     let mut cmd = vec![

@@ -1,8 +1,10 @@
+# quick reference
+
 ### changing container in swarm
 
 cd sphinx-swarm
 
-sudo vi $HOME/vol/stack/config.yaml
+sudo vi $HOME/vol/stack/config.yaml (in here you can update the image version)
 
 `./stop.sh jarvis`
 
@@ -17,6 +19,8 @@ tag and push
 update the image in docker-compose.yaml
 
 pull on the server and `./restart.sh`
+
+# other stuff
 
 ### build docker
 

@@ -26,6 +26,12 @@ pub enum ClnPlugin {
     HtlcInterceptor,
 }
 
+pub struct ClnCreds {
+    pub ca_cert: String,
+    pub client_cert: String,
+    pub client_key: String,
+}
+
 impl ClnImage {
     pub fn new(name: &str, version: &str, network: &str, peer_port: &str, grpc_port: &str) -> Self {
         Self {
@@ -64,6 +70,17 @@ impl ClnImage {
         }
         clients.cln.insert(self.name.clone(), client);
         Ok(())
+    }
+    pub fn credentials_paths(&self) -> ClnCreds {
+        let cln_root = format!("/cln/root/.lightning/{}", &self.network);
+        let ca_cert = format!("{}/ca.pem", cln_root);
+        let client_cert = format!("{}/client.pem", cln_root);
+        let client_key = format!("{}/client-key.pem", cln_root);
+        ClnCreds {
+            ca_cert,
+            client_cert,
+            client_key,
+        }
     }
 }
 
