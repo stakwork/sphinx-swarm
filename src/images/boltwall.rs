@@ -116,7 +116,7 @@ fn boltwall(
     if let Some(cln) = cln_node {
         let cln_vol = volume_string(&cln.name, "/cln");
         extra_vols = Some(vec![cln_vol]);
-        let creds = cln.credentials_paths();
+        let creds = cln.credentials_paths("cln");
         // add CLN env vars here
     }
     // the webhook url "callback"

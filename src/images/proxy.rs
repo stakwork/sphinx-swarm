@@ -114,7 +114,7 @@ fn proxy(
         extra_vols.push(cln_vol);
         rpc_port = cln.grpc_port.clone();
         thename = cln.name.clone();
-        let creds = cln.credentials_paths();
+        let creds = cln.credentials_paths("cln");
         // cln uses "bitcoin" not "mainnet" network name
         extra_cmd.push(format!("--cln-ca-cert={}", creds.ca_cert));
         extra_cmd.push(format!("--cln-client-cert={}", creds.client_cert));
