@@ -98,27 +98,25 @@ fn proxy(
 
     let mut mode = "lnd".to_string();
     let mut extra_vols = vec![];
-    let mut rpc_port = "10009".to_string();
-    let mut thename = "127.0.0.1".to_string();
     let mut extra_cmd = vec![];
     if let Some(lnd) = lnd {
         let lnd_vol = volume_string(&lnd.name, "/lnd");
         extra_vols.push(lnd_vol);
-        rpc_port = lnd.rpc_port;
-        thename = lnd.name;
         let macpath = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", &lnd_netwk);
-        extra_cmd.push(format!("--macaroon-location={}", macpath))
+        extra_cmd.push(format!("--macaroon-location={}", macpath));
+        extra_cmd.push(format!("--lnd-ip={}.sphinx", &lnd.name));
+        extra_cmd.push(format!("--lnd-port={}", &lnd.rpc_port));
     } else if let Some(cln) = cln {
         mode = "cln".to_string();
         let cln_vol = volume_string(&cln.name, "/cln");
         extra_vols.push(cln_vol);
-        rpc_port = cln.grpc_port.clone();
-        thename = cln.name.clone();
         let creds = cln.credentials_paths("cln");
         // cln uses "bitcoin" not "mainnet" network name
         extra_cmd.push(format!("--cln-ca-cert={}", creds.ca_cert));
         extra_cmd.push(format!("--cln-client-cert={}", creds.client_cert));
         extra_cmd.push(format!("--cln-client-key={}", creds.client_key));
+        extra_cmd.push(format!("--cln-ip={}.sphinx", &cln.name));
+        extra_cmd.push(format!("--cln-port={}", &cln.grpc_port));
     }
 
     let mut cmd = vec![
@@ -132,8 +130,6 @@ fn proxy(
         format!("--bitcoin.{}", &lnd_netwk),
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),
-        format!("--lnd-ip={}.sphinx", &thename),
-        format!("--lnd-port={}", &rpc_port),
         format!("--tlsextradomain={}.sphinx", proxy.name),
         "--tlscertpath=/app/proxy/tls.cert".to_string(),
         "--tlskeypath=/app/proxy/tls.key".to_string(),

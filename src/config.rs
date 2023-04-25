@@ -204,7 +204,7 @@ impl Default for Stack {
         }
 
         // proxy
-        let mut v = "0.1.20";
+        let mut v = "0.1.21";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         if is_cln {
