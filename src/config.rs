@@ -220,7 +220,13 @@ impl Default for Stack {
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
-        relay.links(vec!["proxy", "lnd", "tribes", "memes", "boltwall", "cache"]);
+        let mut relay_links = vec!["proxy", "tribes", "memes", "boltwall", "cache"];
+        if is_cln {
+            relay_links.push("cln");
+        } else {
+            relay_links.push("lnd")
+        }
+        relay.links(relay_links);
         relay.host(host.clone());
 
         // cache
@@ -241,7 +247,13 @@ impl Default for Stack {
         // boltwall
         v = "0.3.5";
         let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-        bolt.links(vec!["jarvis", "lnd"]);
+        let mut bolt_links = vec!["jarvis"];
+        if is_cln {
+            bolt_links.push("cln");
+        } else {
+            bolt_links.push("lnd")
+        }
+        bolt.links(bolt_links);
         bolt.host(host.clone());
 
         // navfiber

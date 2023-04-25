@@ -10,6 +10,10 @@ docker stop cln.sphinx
 docker rm cln.sphinx
 docker volume rm cln.sphinx
 
+docker stop lnd.sphinx
+docker rm lnd.sphinx
+docker volume rm lnd.sphinx
+
 docker stop relay.sphinx
 docker rm relay.sphinx
 docker volume rm relay.sphinx
@@ -39,3 +43,4 @@ docker rm load_balancer
 sudo rm -rf $HOME/vol/stack
 
 docker volume rm cln.sphinx
+docker volume rm lnd.sphinx

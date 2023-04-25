@@ -56,8 +56,9 @@ impl DockerConfig for RelayImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let lnd = li.find_lnd();
+        let cln = li.find_cln();
         let proxy = li.find_proxy();
-        Ok(relay(&self, lnd, proxy))
+        Ok(relay(&self, lnd, cln, proxy))
     }
 }
 
@@ -73,6 +74,7 @@ impl DockerHubImage for RelayImage {
 fn relay(
     relay: &RelayImage,
     lnd_opt: Option<lnd::LndImage>,
+    cln_opt: Option<cln::ClnImage>,
     proxy: Option<proxy::ProxyImage>,
 ) -> Config<String> {
     // let img = "sphinx-relay";
@@ -84,10 +86,16 @@ fn relay(
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     let mut extra_vols = vec![];
     if let Some(lnd) = lnd_opt {
-        conf.lnd(&lnd);
+        conf.lnd(&lnd, "lnd");
         // add the LND volumes
         let lnd_vol = volume_string(&lnd.name, "/lnd");
         extra_vols.push(lnd_vol);
+    }
+    if let Some(cln) = cln_opt {
+        conf.cln(&cln, "cln");
+        // add the CLN volume
+        let cln_vol = volume_string(&cln.name, "/cln");
+        extra_vols.push(cln_vol);
     }
     // add the optional Proxy stuff
     if let Some(p) = proxy {
@@ -122,6 +130,7 @@ fn relay(
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct RelayConfig {
+    pub mode: String,
     pub node_ip: String,
     pub lnd_ip: String,
     pub lnd_port: String,
@@ -147,6 +156,9 @@ pub struct RelayConfig {
     pub proxy_new_nodes: Option<String>,
     pub proxy_initial_sats: Option<String>,
     pub proxy_hd_keys: Option<String>,
+    pub cln_ca_cert: Option<String>,
+    pub cln_device_key: Option<String>,
+    pub cln_device_cert: Option<String>,
 }
 
 impl RelayConfig {
@@ -157,12 +169,25 @@ impl RelayConfig {
             ..Default::default()
         }
     }
-    pub fn lnd(&mut self, lnd: &lnd::LndImage) {
+    pub fn lnd(&mut self, lnd: &lnd::LndImage, root_vol_dir: &str) {
+        self.mode = "LND".to_string();
         self.lnd_ip = domain(&lnd.name);
         self.lnd_port = lnd.rpc_port.to_string();
-        self.tls_location = "/lnd/tls.cert".to_string();
+        self.tls_location = format!("/{}/tls.cert", root_vol_dir);
         let netwk = to_lnd_network(lnd.network.as_str());
-        self.macaroon_location = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", netwk);
+        self.macaroon_location = format!(
+            "/{}/data/chain/bitcoin/{}/admin.macaroon",
+            root_vol_dir, netwk
+        );
+    }
+    pub fn cln(&mut self, cln: &cln::ClnImage, root_vol_dir: &str) {
+        self.mode = "CLN".to_string();
+        self.lnd_ip = domain(&cln.name);
+        self.lnd_port = cln.grpc_port.to_string();
+        let creds = cln.credentials_paths(root_vol_dir);
+        self.cln_ca_cert = Some(creds.ca_cert);
+        self.cln_device_cert = Some(creds.client_cert);
+        self.cln_device_key = Some(creds.client_key);
     }
     pub fn proxy(&mut self, proxy: &proxy::ProxyImage) {
         self.proxy_lnd_ip = Some(domain(&proxy.name));
@@ -195,6 +220,7 @@ pub fn relay_env_config(c: &RelayConfig) -> Vec<String> {
 impl Default for RelayConfig {
     fn default() -> Self {
         Self {
+            mode: "LND".to_string(),
             node_ip: "127.0.0.1".to_string(),
             lnd_ip: "lnd.sphinx".to_string(),
             lnd_port: "10009".to_string(),
@@ -220,6 +246,9 @@ impl Default for RelayConfig {
             proxy_new_nodes: None,
             proxy_initial_sats: None,
             proxy_hd_keys: None,
+            cln_ca_cert: None,
+            cln_device_cert: None,
+            cln_device_key: None,
         }
     }
 }
@@ -251,13 +280,10 @@ mod tests {
     #[test]
     fn test_relay_config() {
         let mut c = RelayConfig::new("relay", "3000");
-        c.lnd(&lnd::LndImage::new(
+        c.lnd(
+            &lnd::LndImage::new("lnd", "v0.14.3-beta.rc1", "regtest", "10009", "9735"),
             "lnd",
-            "v0.14.3-beta.rc1",
-            "regtest",
-            "10009",
-            "9735",
-        ));
+        );
         relay_env_config(&c);
         assert!(true == true)
     }
