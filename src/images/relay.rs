@@ -130,19 +130,19 @@ fn relay(
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct RelayConfig {
-    pub mode: String,
+    pub lightning_provider: String,
     pub node_ip: String,
     pub lnd_ip: String,
     pub lnd_port: String,
     pub public_url: String,
-    pub tls_location: String,
-    pub macaroon_location: String,
     pub node_http_port: String,
     pub db_dialect: String,
     pub db_storage: String,
     pub tribes_mqtt_port: String,
     pub tribes_host: String,
     pub people_host: String,
+    pub tls_location: Option<String>,      // lnd
+    pub macaroon_location: Option<String>, // lnd
     pub tribes_insecure: Option<String>,
     pub node_http_protocol: Option<String>,
     pub transport_private_key_location: Option<String>,
@@ -170,18 +170,18 @@ impl RelayConfig {
         }
     }
     pub fn lnd(&mut self, lnd: &lnd::LndImage, root_vol_dir: &str) {
-        self.mode = "LND".to_string();
+        self.lightning_provider = "LND".to_string();
         self.lnd_ip = domain(&lnd.name);
         self.lnd_port = lnd.rpc_port.to_string();
-        self.tls_location = format!("/{}/tls.cert", root_vol_dir);
+        self.tls_location = Some(format!("/{}/tls.cert", root_vol_dir));
         let netwk = to_lnd_network(lnd.network.as_str());
-        self.macaroon_location = format!(
+        self.macaroon_location = Some(format!(
             "/{}/data/chain/bitcoin/{}/admin.macaroon",
             root_vol_dir, netwk
-        );
+        ));
     }
     pub fn cln(&mut self, cln: &cln::ClnImage, root_vol_dir: &str) {
-        self.mode = "CLN".to_string();
+        self.lightning_provider = "CLN".to_string();
         self.lnd_ip = domain(&cln.name);
         self.lnd_port = cln.grpc_port.to_string();
         let creds = cln.credentials_paths(root_vol_dir);
@@ -220,13 +220,11 @@ pub fn relay_env_config(c: &RelayConfig) -> Vec<String> {
 impl Default for RelayConfig {
     fn default() -> Self {
         Self {
-            mode: "LND".to_string(),
+            lightning_provider: "LND".to_string(),
             node_ip: "127.0.0.1".to_string(),
             lnd_ip: "lnd.sphinx".to_string(),
             lnd_port: "10009".to_string(),
             public_url: "127.0.0.0:3000".to_string(),
-            tls_location: "/relay/.lnd/tls.cert".to_string(),
-            macaroon_location: "/relay/.lnd/data/chain/bitcoin/regtest/admin.macaroon".to_string(),
             node_http_port: "3000".to_string(),
             db_dialect: "sqlite".to_string(),
             db_storage: "/relay/data/sphinx.db".to_string(),
@@ -235,6 +233,8 @@ impl Default for RelayConfig {
             tribes_mqtt_port: "8883".to_string(),
             tribes_host: "tribes.sphinx.chat".to_string(),
             people_host: "people.sphinx.chat".to_string(),
+            tls_location: None,
+            macaroon_location: None,
             transport_private_key_location: None,
             transport_public_key_location: None,
             proxy_macaroons_dir: None,

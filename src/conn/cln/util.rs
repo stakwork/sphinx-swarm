@@ -6,10 +6,7 @@ use bollard::Docker;
 
 pub async fn setup(node: &ClnImage, docker: &Docker) -> Result<(ClnRPC, Option<String>)> {
     let creds = collect_creds(docker, &node.name, &node.network).await?;
-    log::info!(
-        "CLN CREDS {:?}",
-        std::str::from_utf8(&creds.ca_pem).expect("nope ca cred")
-    );
+
     let seconds_in_a_day = 86400;
     let mut client = ClnRPC::try_new(&node, &creds, seconds_in_a_day).await?;
 
