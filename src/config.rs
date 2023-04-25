@@ -214,7 +214,7 @@ impl Default for Stack {
         }
 
         // relay
-        v = "v0.1.17";
+        v = "v0.1.18";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
