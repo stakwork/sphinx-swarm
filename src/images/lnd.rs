@@ -118,7 +118,7 @@ fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--bitcoin.{}", network),
         format!("--listen=0.0.0.0:{}", &lnd.peer_port),
         format!("--rpclisten=0.0.0.0:{}", &lnd.rpc_port),
-        format!("--tlsextradomain={}.sphinx", lnd.name),
+        format!("--tlsextradomain={}", domain(&lnd.name)),
         format!("--alias={}", &lnd.name),
         format!("--bitcoind.rpchost={}:18443", &btc_domain),
         format!("--bitcoind.zmqpubrawblock=tcp://{}:28332", &btc_domain),

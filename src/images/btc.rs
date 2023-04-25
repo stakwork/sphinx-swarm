@@ -90,7 +90,7 @@ pub fn btc(node: &BtcImage) -> Config<String> {
     let image = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/data/.bitcoin";
     let mut cmd = vec![
-        format!("-rpcbind={}.sphinx", node.name),
+        format!("-rpcbind={}", domain(&node.name)),
         "-rpcallowip=0.0.0.0/0".to_string(),
         "-rpcport=18443".to_string(),
         "-server=1".to_string(),

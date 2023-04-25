@@ -58,8 +58,8 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
 
     let mut env = vec![
         format!(
-            "NEO4J_URI=neo4j://{}.sphinx:{}",
-            neo4j.name, neo4j.bolt_port
+            "NEO4J_URI=neo4j://{}:{}",
+            domain(&neo4j.name), neo4j.bolt_port
         ),
         format!("NEO4J_USER=neo4j"),
         format!("NEO4J_PASS=test"),

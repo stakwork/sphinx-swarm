@@ -104,7 +104,7 @@ fn proxy(
         extra_vols.push(lnd_vol);
         let macpath = format!("/lnd/data/chain/bitcoin/{}/admin.macaroon", &lnd_netwk);
         extra_cmd.push(format!("--macaroon-location={}", macpath));
-        extra_cmd.push(format!("--lnd-ip={}.sphinx", &lnd.name));
+        extra_cmd.push(format!("--lnd-ip={}", domain(&lnd.name)));
         extra_cmd.push(format!("--lnd-port={}", &lnd.rpc_port));
     } else if let Some(cln) = cln {
         mode = "cln".to_string();
@@ -115,7 +115,7 @@ fn proxy(
         extra_cmd.push(format!("--cln-ca-cert={}", creds.ca_cert));
         extra_cmd.push(format!("--cln-client-cert={}", creds.client_cert));
         extra_cmd.push(format!("--cln-client-key={}", creds.client_key));
-        extra_cmd.push(format!("--cln-ip={}.sphinx", &cln.name));
+        extra_cmd.push(format!("--cln-ip={}", domain(&cln.name)));
         extra_cmd.push(format!("--cln-port={}", &cln.grpc_port));
     }
 
@@ -130,7 +130,7 @@ fn proxy(
         format!("--bitcoin.{}", &lnd_netwk),
         format!("--rpclisten=0.0.0.0:{}", &proxy.port),
         format!("--admin-port={}", &proxy.admin_port),
-        format!("--tlsextradomain={}.sphinx", proxy.name),
+        format!("--tlsextradomain={}", domain(&proxy.name)),
         "--tlscertpath=/app/proxy/tls.cert".to_string(),
         "--tlskeypath=/app/proxy/tls.key".to_string(),
         "--tls-location=/lnd/tls.cert".to_string(),

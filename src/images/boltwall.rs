@@ -99,8 +99,9 @@ fn boltwall(
         format!("BOLTWALL_MIN_AMOUNT=2"),
         format!("LIQUID_SERVER=https://liquid.sphinx.chat/"),
         format!(
-            "JARVIS_BACKEND_URL=http://{}.sphinx:{}",
-            jarvis.name, jarvis.port
+            "JARVIS_BACKEND_URL=http://{}:{}",
+            domain(&jarvis.name),
+            jarvis.port
         ),
         format!("SESSION_SECRET={}", node.session_secret),
     ];

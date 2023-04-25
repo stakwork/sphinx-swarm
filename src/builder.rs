@@ -3,6 +3,7 @@ use crate::config::{Clients, Node, Stack};
 use crate::dock::*;
 use crate::dock::{create_and_start, stop_and_remove};
 use crate::images::{DockerConfig, Image};
+use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
 
@@ -63,9 +64,7 @@ pub async fn add_node(
 }
 
 pub fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<Image> {
-    let name = hostname
-        .strip_suffix(".sphinx")
-        .context(format!("no {:?}", hostname))?;
+    let name = hostname.strip_suffix(".sphinx").unwrap_or(hostname);
     Ok(nodes
         .iter()
         .find(|n| n.name() == name)
@@ -75,7 +74,7 @@ pub fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<Image
 
 pub async fn update_node(docker: &Docker, un: &UpdateNode, nodes: &mut Vec<Node>) -> Result<()> {
     let pos = nodes.iter().position(|n| n.name() == un.id);
-    let hostname = format!("{}.sphinx", &un.id);
+    let hostname = domain(&un.id);
     if let None = pos {
         return Err(anyhow!("cannot find node in stack"));
     }

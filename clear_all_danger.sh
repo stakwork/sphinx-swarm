@@ -44,3 +44,5 @@ sudo rm -rf $HOME/vol/stack
 
 docker volume rm cln.sphinx
 docker volume rm lnd.sphinx
+
+docker volume rm $(docker volume ls -q)

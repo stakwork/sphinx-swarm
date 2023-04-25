@@ -5,6 +5,7 @@ use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, Image};
 use sphinx_swarm::rocket_utils::CmdRequest;
+use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, handler, logs, routes};
 use std::sync::Arc;
 
@@ -64,7 +65,7 @@ async fn setup_chans(clients: &mut Clients) -> Result<()> {
 async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
     let cln1 = clients.cln.get_mut(CLN1).unwrap();
     let connected = cln1
-        .connect_peer(peer_pubkey, &format!("{}.sphinx", CLN2), "9736")
+        .connect_peer(peer_pubkey, &domain(CLN2), "9736")
         .await?;
     let channel = hex::encode(connected.id);
     log::info!("CLN1 connected to CLN2: {}", channel);
