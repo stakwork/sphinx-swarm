@@ -72,7 +72,8 @@ impl ClnImage {
         Ok(())
     }
     pub fn credentials_paths(&self, root_dir: &str) -> ClnCreds {
-        let cln_root = format!("/{}/root/.lightning/{}", root_dir, &self.network);
+        // let cln_root = format!("/{}/root/.lightning/{}", root_dir, &self.network);
+        let cln_root = format!("/{}/{}", root_dir, &self.network);
         let ca_cert = format!("{}/ca.pem", cln_root);
         let client_cert = format!("{}/client.pem", cln_root);
         let client_key = format!("{}/client-key.pem", cln_root);
