@@ -244,7 +244,7 @@ impl Default for Stack {
         jarvis.links(vec!["neo4j", "boltwall"]);
 
         // boltwall
-        v = "0.3.5";
+        v = "0.3.7";
         let mut bolt = BoltwallImage::new("boltwall", v, "8444");
         bolt.links(vec!["jarvis", lightning_provider]);
         bolt.host(host.clone());
