@@ -206,13 +206,13 @@ impl Default for Stack {
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         // proxy
-        let mut v = "0.1.22";
+        let mut v = "0.1.23";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.18";
+        v = "v0.1.19";
         let node_env = match host {
             Some(_) => "production",
             None => "development",

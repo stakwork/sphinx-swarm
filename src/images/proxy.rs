@@ -117,7 +117,7 @@ fn proxy(
         extra_cmd.push(format!("--cln-client-key={}", creds.client_key));
         extra_cmd.push(format!("--cln-ip={}", domain(&cln.name)));
         extra_cmd.push(format!("--cln-port={}", &cln.grpc_port));
-        extra_cmd.push(format!("--cln-server-name={}", domain(&cln.name)));
+        extra_cmd.push(format!("--cln-server-name={}", "cln"));
         extra_cmd.push(format!("--htlc-interceptor-ip={}", domain(&cln.name)));
         if let Ok(rp) = cln.grpc_port.parse::<u16>() {
             extra_cmd.push(format!("--htlc-interceptor-port={}", rp + 200));
