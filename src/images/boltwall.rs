@@ -118,7 +118,10 @@ fn boltwall(
         let cln_vol = volume_string(&cln.name, "/cln");
         extra_vols = Some(vec![cln_vol]);
         let creds = cln.credentials_paths("cln");
-        // add CLN env vars here
+        env.push(format!("CLN_TLS_LOCATION={}", creds.ca_cert));
+        env.push(format!("CLN_TLS_KEY_LOCATION={}", creds.client_key));
+        env.push(format!("CLN_TLS_CHAIN_LOCATION={}", creds.client_cert));
+        env.push(format!("CLN_URI={}:{}", domain(&cln.name), cln.grpc_port));
     }
     // the webhook url "callback"
     if let Some(h) = &node.host {
