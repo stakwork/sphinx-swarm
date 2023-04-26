@@ -250,7 +250,7 @@ impl Default for Stack {
         bolt.host(host.clone());
 
         // navfiber
-        v = "0.3.5";
+        v = "0.3.10";
         let mut nav = NavFiberImage::new("navfiber", v, "8001");
         nav.links(vec!["jarvis"]);
         nav.host(host.clone());
