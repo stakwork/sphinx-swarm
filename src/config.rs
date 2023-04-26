@@ -203,15 +203,13 @@ impl Default for Stack {
             internal_nodes.push(Image::Lnd(lnd));
         }
 
+        let lightning_provider = if is_cln { "cln" } else { "lnd" };
+
         // proxy
-        let mut v = "0.1.21";
+        let mut v = "0.1.22";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
-        if is_cln {
-            proxy.links(vec!["cln"]);
-        } else {
-            proxy.links(vec!["lnd"]);
-        }
+        proxy.links(vec![lightning_provider]);
 
         // relay
         v = "v0.1.18";
@@ -220,13 +218,14 @@ impl Default for Stack {
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
-        let mut relay_links = vec!["proxy", "tribes", "memes", "boltwall", "cache"];
-        if is_cln {
-            relay_links.push("cln");
-        } else {
-            relay_links.push("lnd")
-        }
-        relay.links(relay_links);
+        relay.links(vec![
+            "proxy",
+            lightning_provider,
+            "tribes",
+            "memes",
+            "boltwall",
+            "cache",
+        ]);
         relay.host(host.clone());
 
         // cache
@@ -247,13 +246,7 @@ impl Default for Stack {
         // boltwall
         v = "0.3.5";
         let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-        let mut bolt_links = vec!["jarvis"];
-        if is_cln {
-            bolt_links.push("cln");
-        } else {
-            bolt_links.push("lnd")
-        }
-        bolt.links(bolt_links);
+        bolt.links(vec!["jarvis", lightning_provider]);
         bolt.host(host.clone());
 
         // navfiber

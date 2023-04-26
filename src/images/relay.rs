@@ -20,6 +20,7 @@ pub struct RelayImage {
     pub port: String,
     pub links: Links,
     pub host: Option<String>,
+    pub dont_ping_hub: Option<bool>,
 }
 impl RelayImage {
     pub fn new(name: &str, version: &str, node_env: &str, port: &str) -> Self {
@@ -30,6 +31,7 @@ impl RelayImage {
             port: port.to_string(),
             links: vec![],
             host: None,
+            dont_ping_hub: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -39,6 +41,9 @@ impl RelayImage {
         if let Some(h) = eh {
             self.host = Some(format!("{}.{}", self.name, h));
         }
+    }
+    pub fn dont_ping_hub(&mut self) {
+        self.dont_ping_hub = Some(true);
     }
     pub async fn connect_client(&self, proj: &str, clients: &mut Clients) -> Result<()> {
         match relay_client(proj, self).await {
@@ -84,6 +89,11 @@ fn relay(
     let version = relay.version.clone();
     let root_vol = "/relay/data";
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
+    if let Some(b) = relay.dont_ping_hub {
+        if b {
+            conf.dont_ping_hub();
+        }
+    }
     let mut extra_vols = vec![];
     if let Some(lnd) = lnd_opt {
         conf.lnd(&lnd, "lnd");
@@ -159,6 +169,7 @@ pub struct RelayConfig {
     pub cln_ca_cert: Option<String>,
     pub cln_device_key: Option<String>,
     pub cln_device_cert: Option<String>,
+    pub dont_ping_hub: Option<String>,
 }
 
 impl RelayConfig {
@@ -168,6 +179,9 @@ impl RelayConfig {
             public_url: format!("127.0.0.1:{}", port).to_string(),
             ..Default::default()
         }
+    }
+    pub fn dont_ping_hub(&mut self) {
+        self.dont_ping_hub = Some("true".to_string());
     }
     pub fn lnd(&mut self, lnd: &lnd::LndImage, root_vol_dir: &str) {
         self.lightning_provider = "LND".to_string();
@@ -249,6 +263,7 @@ impl Default for RelayConfig {
             cln_ca_cert: None,
             cln_device_cert: None,
             cln_device_key: None,
+            dont_ping_hub: None,
         }
     }
 }
