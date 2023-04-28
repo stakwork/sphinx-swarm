@@ -189,21 +189,21 @@ pub fn cln_traefik_labels(
         ),
         format!("traefik.http.routers.{}.entrypoints=websecure", ctrl_name),
         // mqtt service (HostSNI and mqttsecure entrypoint)
-        format!("traefik.http.routers.{}.service={}", mqtt_name, mqtt_name),
+        format!("traefik.tcp.routers.{}.service={}", mqtt_name, mqtt_name),
         format!(
-            "traefik.http.services.{}.loadbalancer.server.port={}",
+            "traefik.tcp.services.{}.loadbalancer.server.port={}",
             mqtt_name, mqtt_port
         ),
         format!(
-            "traefik.http.routers.{}.rule=HostSNI(`{}`)",
+            "traefik.tcp.routers.{}.rule=HostSNI(`{}`)",
             mqtt_name, mqtt_host
         ),
-        format!("traefik.http.routers.{}.tls=true", mqtt_name),
+        format!("traefik.tcp.routers.{}.tls=true", mqtt_name),
         format!(
-            "traefik.http.routers.{}.tls.certresolver=myresolver",
+            "traefik.tcp.routers.{}.tls.certresolver=myresolver",
             mqtt_name
         ),
-        format!("traefik.http.routers.{}.entrypoints=mqttsecure", mqtt_name),
+        format!("traefik.tcp.routers.{}.entrypoints=mqttsecure", mqtt_name),
     ];
     to_labels(def)
 }
