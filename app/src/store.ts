@@ -149,7 +149,8 @@ export const finishedOnboarding = derived(
   }
 );
 
-function nodeHostLocalhost(node: Node) {
+function nodeHostLocalhost(node: Node): string {
+  if (!node) return;
   if (node.type === "Relay") {
     return `localhost:${node.port || "3000"}`;
   } else if (node.type === "Lnd") {
@@ -165,7 +166,8 @@ function nodeHostLocalhost(node: Node) {
 export const node_host = derived(
   [stack, selectedNode],
   ([$stack, $selectedNode]) => {
-    return $selectedNode && $stack.host
+    if (!$selectedNode) return "";
+    return $stack.host
       ? `${$selectedNode.name}.${$stack.host}`
       : nodeHostLocalhost($selectedNode);
   }

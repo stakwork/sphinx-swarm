@@ -10,7 +10,7 @@
   $: $finishedOnboarding, selectCurrentTab();
   function selectCurrentTab() {
     if ($finishedOnboarding.hasChannels && !$finishedOnboarding.hasAdmin) {
-      console.log($finishedOnboarding);
+      // console.log($finishedOnboarding);
       selected = 1;
     }
     if (

@@ -143,6 +143,7 @@ function defaultPositions() {
 const defpos = {
   bitcoind: [320, 140],
   lnd: [580, 200],
+  cln: [580, 200],
   cln_1: [680, 140],
   cln_2: [680, 280],
   lnd_1: [650, 420],
