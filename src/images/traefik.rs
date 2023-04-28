@@ -149,6 +149,65 @@ pub fn traefik_labels(
     to_labels(def)
 }
 
+pub fn cln_traefik_labels(
+    name: &str,
+    host: &str,
+    peer_port: &str,
+    ctrl_port: &str,
+    mqtt_port: &str,
+) -> HashMap<String, String> {
+    let ctrl_name = format!("{}-ctrl", name);
+    let ctrl_host = format!("ctrl-{}", host);
+    let mqtt_name = format!("{}-mqtt", name);
+    let mqtt_host = format!("mqtt-{}", host);
+    let def = vec![
+        "traefik.enable=true".to_string(),
+        // main service (peering)
+        format!("traefik.http.routers.{}.service={}", name, name),
+        format!(
+            "traefik.http.services.{}.loadbalancer.server.port={}",
+            name, peer_port
+        ),
+        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
+        format!("traefik.http.routers.{}.tls=true", name),
+        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        format!("traefik.http.routers.{}.entrypoints=websecure", name),
+        // ctrl service
+        format!("traefik.http.routers.{}.service={}", ctrl_name, ctrl_name),
+        format!(
+            "traefik.http.services.{}.loadbalancer.server.port={}",
+            ctrl_name, ctrl_port
+        ),
+        format!(
+            "traefik.http.routers.{}.rule=Host(`{}`)",
+            ctrl_name, ctrl_host
+        ),
+        format!("traefik.http.routers.{}.tls=true", ctrl_name),
+        format!(
+            "traefik.http.routers.{}.tls.certresolver=myresolver",
+            ctrl_name
+        ),
+        format!("traefik.http.routers.{}.entrypoints=websecure", ctrl_name),
+        // mqtt service (HostSNI and mqttsecure entrypoint)
+        format!("traefik.http.routers.{}.service={}", mqtt_name, mqtt_name),
+        format!(
+            "traefik.http.services.{}.loadbalancer.server.port={}",
+            mqtt_name, mqtt_port
+        ),
+        format!(
+            "traefik.http.routers.{}.rule=HostSNI(`{}`)",
+            mqtt_name, mqtt_host
+        ),
+        format!("traefik.http.routers.{}.tls=true", mqtt_name),
+        format!(
+            "traefik.http.routers.{}.tls.certresolver=myresolver",
+            mqtt_name
+        ),
+        format!("traefik.http.routers.{}.entrypoints=mqttsecure", mqtt_name),
+    ];
+    to_labels(def)
+}
+
 pub fn neo4j_labels(
     name: &str,
     host: &str,

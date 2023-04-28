@@ -13,6 +13,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mqttsecure.address=:8883"
       - "--certificatesresolvers.myresolver.acme.email=evanfeenstra@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
@@ -25,6 +26,7 @@ services:
       - 8080:8080
       # entrypoints
       - 443:443
+      - 8883:8883
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
@@ -38,7 +40,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.1.90
+    image: sphinxlightning/sphinx-swarm:0.1.91
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm

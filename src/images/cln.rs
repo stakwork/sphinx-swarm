@@ -1,10 +1,10 @@
-use super::traefik::traefik_labels;
+use super::traefik::{cln_traefik_labels, traefik_labels};
 use super::*;
 use crate::config::{Clients, ExternalNodeType, Node};
 use crate::conn::cln::setup as setup_cln;
 use crate::conn::lnd::setup::test_mine_if_needed;
 use crate::utils::{domain, exposed_ports, host_config};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
 
@@ -151,6 +151,25 @@ impl ClnBtcArgs {
         Ok(Self::new(&fullhost, &username, &password))
     }
 }
+
+struct HsmdBrokerPorts {
+    http_port: String,
+    mqtt_port: String,
+}
+fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
+    let pp = peer_port.parse::<u16>()?;
+    if pp > 8876 {
+        let mqtt_port = pp - 7852; // 1883
+        let http_port = pp - 1735 + 10; // 8010
+        Ok(HsmdBrokerPorts {
+            http_port: http_port.to_string(),
+            mqtt_port: mqtt_port.to_string(),
+        })
+    } else {
+        Err(anyhow!("peer port too low"))
+    }
+}
+
 fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
@@ -189,15 +208,11 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         // let git_version = "2f1a063-modded";
         let git_version = "v23.02.2-50-gd15200c";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
-        if let Ok(pp) = img.peer_port.parse::<u16>() {
-            if pp > 8876 {
-                let mqtt_port = pp - 7852; // 1883
-                environ.push(format!("BROKER_MQTT_PORT={}", mqtt_port));
-                ports.push(mqtt_port.to_string());
-                let http_port = pp - 1735 + 10; // 8010
-                environ.push(format!("BROKER_HTTP_PORT={}", http_port));
-                ports.push(http_port.to_string());
-            }
+        if let Ok(hbp) = hsmd_broker_ports(&img.peer_port) {
+            environ.push(format!("BROKER_MQTT_PORT={}", &hbp.mqtt_port));
+            ports.push(hbp.mqtt_port);
+            environ.push(format!("BROKER_HTTP_PORT={}", &hbp.http_port));
+            ports.push(hbp.http_port);
         }
         environ.push(format!("BROKER_NETWORK={}", img.network));
     }
@@ -227,7 +242,19 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         ..Default::default()
     };
     if let Some(host) = img.host.clone() {
-        c.labels = Some(traefik_labels(&img.name, &host, &img.peer_port, false));
+        if img.plugins.contains(&ClnPlugin::HsmdBroker) {
+            if let Ok(hbp) = hsmd_broker_ports(&img.peer_port) {
+                c.labels = Some(cln_traefik_labels(
+                    &img.name,
+                    &host,
+                    &img.peer_port,
+                    &hbp.http_port,
+                    &hbp.mqtt_port,
+                ))
+            }
+        } else {
+            c.labels = Some(traefik_labels(&img.name, &host, &img.peer_port, false));
+        }
     }
     c
 }
