@@ -141,6 +141,7 @@ fn relay(
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct RelayConfig {
     pub lightning_provider: String,
+    pub logging: String,
     pub node_ip: String,
     pub lnd_ip: String,
     pub lnd_port: String,
@@ -233,8 +234,10 @@ pub fn relay_env_config(c: &RelayConfig) -> Vec<String> {
 
 impl Default for RelayConfig {
     fn default() -> Self {
+        let logging = "LIGHTNING,TRIBES,MEME,NOTIFICATION,EXPRESS,NETWORK,DB,PROXY,LSAT,BOTS";
         Self {
             lightning_provider: "LND".to_string(),
+            logging: logging.to_string(),
             node_ip: "127.0.0.1".to_string(),
             lnd_ip: domain("lnd"),
             lnd_port: "10009".to_string(),
