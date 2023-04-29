@@ -20,7 +20,9 @@ pub struct RelayImage {
     pub port: String,
     pub links: Links,
     pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dont_ping_hub: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub logging: Option<String>,
 }
 impl RelayImage {
