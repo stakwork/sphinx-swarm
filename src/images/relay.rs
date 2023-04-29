@@ -21,6 +21,7 @@ pub struct RelayImage {
     pub links: Links,
     pub host: Option<String>,
     pub dont_ping_hub: Option<bool>,
+    pub logging: Option<String>,
 }
 impl RelayImage {
     pub fn new(name: &str, version: &str, node_env: &str, port: &str) -> Self {
@@ -32,6 +33,7 @@ impl RelayImage {
             links: vec![],
             host: None,
             dont_ping_hub: None,
+            logging: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -94,6 +96,9 @@ fn relay(
             conf.dont_ping_hub();
         }
     }
+    if let Some(lg) = &relay.logging {
+        conf.logging(&lg);
+    }
     let mut extra_vols = vec![];
     if let Some(lnd) = lnd_opt {
         conf.lnd(&lnd, "lnd");
@@ -141,7 +146,7 @@ fn relay(
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct RelayConfig {
     pub lightning_provider: String,
-    pub logging: String,
+    pub logging: Option<String>,
     pub node_ip: String,
     pub lnd_ip: String,
     pub lnd_port: String,
@@ -183,6 +188,9 @@ impl RelayConfig {
     }
     pub fn dont_ping_hub(&mut self) {
         self.dont_ping_hub = Some("true".to_string());
+    }
+    pub fn logging(&mut self, logging: &str) {
+        self.logging = Some(logging.to_string());
     }
     pub fn lnd(&mut self, lnd: &lnd::LndImage, root_vol_dir: &str) {
         self.lightning_provider = "LND".to_string();
@@ -234,10 +242,10 @@ pub fn relay_env_config(c: &RelayConfig) -> Vec<String> {
 
 impl Default for RelayConfig {
     fn default() -> Self {
-        let logging = "LIGHTNING,TRIBES,MEME,NOTIFICATION,EXPRESS,NETWORK,DB,PROXY,LSAT,BOTS";
+        // let logging = "LIGHTNING,TRIBES,MEME,NOTIFICATION,EXPRESS,NETWORK,DB,PROXY,LSAT,BOTS";
         Self {
             lightning_provider: "LND".to_string(),
-            logging: logging.to_string(),
+            logging: None,
             node_ip: "127.0.0.1".to_string(),
             lnd_ip: domain("lnd"),
             lnd_port: "10009".to_string(),
