@@ -212,12 +212,13 @@ impl Default for Stack {
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.20";
+        v = "v0.1.22";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
+        relay.dont_ping_hub();
         relay.links(vec![
             "proxy",
             lightning_provider,
