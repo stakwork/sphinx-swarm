@@ -212,7 +212,7 @@ impl Default for Stack {
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.22";
+        v = "v0.1.23";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
