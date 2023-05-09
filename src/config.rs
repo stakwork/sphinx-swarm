@@ -195,7 +195,7 @@ impl Default for Stack {
             internal_nodes.push(Image::Btc(bitcoind));
 
             // lnd
-            v = "v0.15.5-beta";
+            v = "v0.16.2-beta";
             let mut lnd = LndImage::new("lnd", v, &network, "10009", "9735");
             lnd.http_port = Some("8881".to_string());
             lnd.links(vec!["bitcoind"]);
