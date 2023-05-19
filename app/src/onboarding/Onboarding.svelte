@@ -13,7 +13,9 @@
     isOnboarding,
   } from "../store";
   import * as api from "../api";
+  import * as CLN from "../api/cln";
   import { onMount } from "svelte";
+  import { parseClnListFunds } from "../helpers/cln";
 
   $: tag = "";
 
@@ -48,7 +50,42 @@
 
   onMount(() => {
     checkOnboarding();
+    setTimeout(() => {
+      setup();
+    }, 500);
   });
+
+  function setup() {
+    //Setup Lightining Balance
+    setupBalance();
+    //Setup Relay
+    //Setup Admin
+    //Setup channles
+    //setup peers
+  }
+
+  async function setupBalance() {
+    if (tag === "cln") {
+      const funds = await CLN.list_funds(tag);
+      const balance = parseClnListFunds(funds);
+      if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance)
+        return;
+
+      lndBalances.update((n) => {
+        return { ...n, [tag]: balance };
+      });
+    } else if (tag === "lnd") {
+      const balance = await api.lnd.get_balance(tag);
+      if (
+        lndBalances.hasOwnProperty(tag) &&
+        lndBalances[tag] === balance?.confirmed_balance
+      )
+        return;
+      lndBalances.update((n) => {
+        return { ...n, [tag]: balance?.confirmed_balance };
+      });
+    }
+  }
 
   function checkOnboarding() {
     if (
