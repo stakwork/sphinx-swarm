@@ -18,16 +18,18 @@
   $: tag = "";
 
   $: currentStep = 0;
-  $: $stack, determineCurrentStep(), determineTag();
+  $: $stack, determineTag(), determineCurrentStep($finishedOnboarding);
   $: disabled = true;
   $: $onChainAddressGeneratedForOnboarding, onChainAddressGenerated();
   $: $copiedAddressForOnboarding, copiedAddressHandler();
   let open = true;
+  let finishedOnboardingObject = {};
   $: currentStep, checkForConfirmedTransaction();
-  $: $finishedOnboarding, determineCurrentStep();
   $: $channelCreatedForOnboarding, channelCreatedForOnboardingHandler();
   $: $adminIsCreatedForOnboarding, adminIsCreatedHandler();
-  $: $finishedOnboarding, checkOnboarding();
+  $: $finishedOnboarding,
+    checkOnboarding(),
+    determineCurrentStep($finishedOnboarding);
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
@@ -123,44 +125,51 @@
     }
   };
 
-  function determineCurrentStep() {
-    const hasAdmin = $finishedOnboarding.hasAdmin;
-    const hasChannels = $finishedOnboarding.hasChannels;
-    const hasBalance = $finishedOnboarding.hasBalance;
-    const hasPeers = $finishedOnboarding.hasPeers;
-    const hasUsers = $finishedOnboarding.hasUsers;
-    if (!hasBalance) {
-      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
-      if (lightning) {
-        selectedNode.update(() => lightning);
+  function determineCurrentStep(finishedOnboarding) {
+    if (
+      JSON.stringify(finishedOnboardingObject) !==
+        JSON.stringify(finishedOnboarding) &&
+      isOnboarding
+    ) {
+      finishedOnboardingObject = { ...finishedOnboarding };
+      const hasAdmin = finishedOnboarding.hasAdmin;
+      const hasChannels = finishedOnboarding.hasChannels;
+      const hasBalance = finishedOnboarding.hasBalance;
+      const hasPeers = finishedOnboarding.hasPeers;
+      const hasUsers = finishedOnboarding.hasUsers;
+      if (!hasBalance) {
+        const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+        if (lightning) {
+          selectedNode.update(() => lightning);
+        }
+        currentStep = 0;
+      } else if (!hasPeers && hasBalance) {
+        const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+        if (lightning) {
+          selectedNode.update(() => lightning);
+        }
+        currentStep = 3;
+      } else if (!hasChannels && hasPeers) {
+        const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+        if (lightning) {
+          selectedNode.update(() => lightning);
+        }
+        currentStep = 4;
+      } else if (!hasAdmin && hasChannels) {
+        const relay = $stack.nodes.find((node) => node.type === "Relay");
+        if (relay) {
+          selectedNode.update(() => relay);
+        }
+        currentStep = 5;
+        disabled = true;
+      } else if (hasAdmin && !hasUsers) {
+        const relay = $stack.nodes.find((node) => node.type === "Relay");
+        if (relay) {
+          selectedNode.update(() => relay);
+        }
+        currentStep = 6;
+        disabled = true;
       }
-      currentStep = 0;
-    } else if (!hasPeers && hasBalance) {
-      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
-      if (lightning) {
-        selectedNode.update(() => lightning);
-      }
-      currentStep = 3;
-    } else if (!hasChannels && hasPeers) {
-      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
-      if (lightning) {
-        selectedNode.update(() => lightning);
-      }
-      currentStep = 4;
-    } else if (!hasAdmin && hasChannels) {
-      const relay = $stack.nodes.find((node) => node.type === "Relay");
-      if (relay) {
-        selectedNode.update(() => relay);
-      }
-      currentStep = 5;
-      disabled = true;
-    } else if (hasAdmin && !hasUsers) {
-      const relay = $stack.nodes.find((node) => node.type === "Relay");
-      if (relay) {
-        selectedNode.update(() => relay);
-      }
-      currentStep = 6;
-      disabled = true;
     }
   }
 
