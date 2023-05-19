@@ -8,6 +8,7 @@
     node_host,
     finishedOnboarding,
     adminIsCreatedForOnboarding,
+    isOnboarding,
   } from "../store";
   import QrCode from "svelte-qrcode";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
@@ -87,7 +88,11 @@
   $: qrString = `claim::${$node_host}::${admin_token}`;
   $: $finishedOnboarding, determineToShowQr();
   function determineToShowQr() {
-    if ($finishedOnboarding.hasChannels && !$finishedOnboarding.hasAdmin) {
+    if (
+      $finishedOnboarding.hasChannels &&
+      !$finishedOnboarding.hasAdmin &&
+      $isOnboarding
+    ) {
       showQr = false;
       toggleQr();
     }

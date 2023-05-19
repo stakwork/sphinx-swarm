@@ -3,20 +3,22 @@
   import Channels from "./Channels.svelte";
   import Invoices from "./Invoices.svelte";
   import Onchain from "./Onchain.svelte";
-  import { finishedOnboarding } from "../store";
+  import { finishedOnboarding, isOnboarding } from "../store";
 
   export let tag = "";
   export let type = "";
   $: selected = 0;
   $: $finishedOnboarding, selectCurrentTab();
   function selectCurrentTab() {
-    if (!$finishedOnboarding.hasBalance) {
-      selected = 2;
-    } else if (
-      $finishedOnboarding.hasBalance &&
-      !$finishedOnboarding.hasChannels
-    ) {
-      selected = 0;
+    if ($isOnboarding) {
+      if (!$finishedOnboarding.hasBalance) {
+        selected = 2;
+      } else if (
+        $finishedOnboarding.hasBalance &&
+        !$finishedOnboarding.hasChannels
+      ) {
+        selected = 0;
+      }
     }
   }
 </script>
