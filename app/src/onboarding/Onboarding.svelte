@@ -10,8 +10,10 @@
     unconfirmedBalance,
     channelCreatedForOnboarding,
     adminIsCreatedForOnboarding,
+    isOnboarding,
   } from "../store";
   import * as api from "../api";
+  import { onMount } from "svelte";
 
   $: tag = "";
 
@@ -25,6 +27,7 @@
   $: $finishedOnboarding, determineCurrentStep();
   $: $channelCreatedForOnboarding, channelCreatedForOnboardingHandler();
   $: $adminIsCreatedForOnboarding, adminIsCreatedHandler();
+  $: $finishedOnboarding, checkOnboarding();
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
@@ -39,6 +42,24 @@
 
   function adminIsCreatedHandler() {
     disabled = !$adminIsCreatedForOnboarding;
+  }
+
+  onMount(() => {
+    checkOnboarding();
+  });
+
+  function checkOnboarding() {
+    if (
+      $finishedOnboarding.hasBalance &&
+      $finishedOnboarding.hasPeers &&
+      $finishedOnboarding.hasChannels &&
+      $finishedOnboarding.hasAdmin &&
+      $finishedOnboarding.hasUsers
+    ) {
+      isOnboarding.update(() => false);
+    } else {
+      isOnboarding.update(() => true);
+    }
   }
 
   function checkForConfirmedTransaction() {
@@ -145,6 +166,7 @@
 
   function togglePopover() {
     open = !open;
+    isOnboarding.update(() => !$isOnboarding);
   }
 
   function updateConfirmedBalance(balance) {
