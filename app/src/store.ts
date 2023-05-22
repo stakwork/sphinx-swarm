@@ -69,6 +69,8 @@ export const channelCreatedForOnboarding = writable<boolean>(false);
 
 export const adminIsCreatedForOnboarding = writable<boolean>(false);
 
+export const isOnboarding = writable<boolean>(false);
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {

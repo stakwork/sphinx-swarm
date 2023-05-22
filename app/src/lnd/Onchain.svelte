@@ -5,6 +5,7 @@
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
   import * as api from "../api";
+  import * as CLN from "../api/cln";
   import {
     lightningAddresses,
     onChainAddressGeneratedForOnboarding,
@@ -14,6 +15,10 @@
     unconfirmedBalance,
   } from "../store";
   import { onMount } from "svelte";
+  import {
+    parseClnListFunds,
+    parseUnconfirmedClnBalance,
+  } from "../helpers/cln";
 
   async function newAddress() {
     let new_addy;
@@ -36,30 +41,34 @@
   });
 
   async function getBalance() {
-    const balance = await api.lnd.get_balance(tag);
-    updateConfirmedBalance(balance);
-    updateUnconfirmedBalance(balance);
+    if (tag === "lnd") {
+      const balance = await api.lnd.get_balance(tag);
+      updateConfirmedBalance(balance?.confirmed_balance);
+      updateUnconfirmedBalance(balance?.unconfirmed_balance);
+    } else if (tag === "cln") {
+      const funds = await CLN.list_funds(tag);
+      const balance = parseClnListFunds(funds);
+      const unconfrimed_balance = parseUnconfirmedClnBalance(funds);
+      updateConfirmedBalance(balance);
+      updateUnconfirmedBalance(unconfrimed_balance);
+    }
   }
 
   function updateConfirmedBalance(balance) {
-    if (
-      lndBalances.hasOwnProperty(tag) &&
-      lndBalances[tag] === balance?.confirmed_balance
-    )
-      return;
+    if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
     lndBalances.update((n) => {
-      return { ...n, [tag]: balance?.confirmed_balance };
+      return { ...n, [tag]: balance };
     });
   }
 
   function updateUnconfirmedBalance(balance) {
     if (
       unconfirmedBalance.hasOwnProperty(tag) &&
-      unconfirmedBalance[tag] === balance?.unconfirmed_balance
+      unconfirmedBalance[tag] === balance
     )
       return;
     unconfirmedBalance.update((n) => {
-      return { ...n, [tag]: balance?.unconfirmed_balance };
+      return { ...n, [tag]: balance };
     });
   }
   $: myNewAddy = $lightningAddresses[tag];
@@ -73,7 +82,7 @@
 <div class="wrap">
   <div class="confirmed_balance_container">
     <p class="confirmed_balance">Confirmed Balance:</p>
-    <p class="confirmed_amount">{$lndBalances[tag]}</p>
+    <p class="confirmed_amount">{$lndBalances[tag] || 0}</p>
   </div>
   <aside class="address-wrap">
     <div class="address">
@@ -100,7 +109,7 @@
   </aside>
   <div class="unconfirmed_balance_container">
     <p class="unconfirmed_balance">Unconfirmed Balance:</p>
-    <p class="unconfirmed_amount">{$unconfirmedBalance[tag]}</p>
+    <p class="unconfirmed_amount">{$unconfirmedBalance[tag] || 0}</p>
   </div>
 </div>
 

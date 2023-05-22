@@ -10,21 +10,28 @@
     unconfirmedBalance,
     channelCreatedForOnboarding,
     adminIsCreatedForOnboarding,
+    isOnboarding,
   } from "../store";
   import * as api from "../api";
+  import * as CLN from "../api/cln";
+  import { onMount } from "svelte";
+  import { parseClnListFunds } from "../helpers/cln";
 
   $: tag = "";
 
   $: currentStep = 0;
-  $: $stack, determineCurrentStep(), determineTag();
+  $: $stack, determineTag(), determineCurrentStep($finishedOnboarding);
   $: disabled = true;
   $: $onChainAddressGeneratedForOnboarding, onChainAddressGenerated();
   $: $copiedAddressForOnboarding, copiedAddressHandler();
   let open = true;
+  let finishedOnboardingObject = {};
   $: currentStep, checkForConfirmedTransaction();
-  $: $finishedOnboarding, determineCurrentStep();
   $: $channelCreatedForOnboarding, channelCreatedForOnboardingHandler();
   $: $adminIsCreatedForOnboarding, adminIsCreatedHandler();
+  $: $finishedOnboarding,
+    checkOnboarding(),
+    determineCurrentStep($finishedOnboarding);
 
   function onChainAddressGenerated() {
     disabled = !$onChainAddressGeneratedForOnboarding;
@@ -39,6 +46,59 @@
 
   function adminIsCreatedHandler() {
     disabled = !$adminIsCreatedForOnboarding;
+  }
+
+  onMount(() => {
+    checkOnboarding();
+    setTimeout(() => {
+      setup();
+    }, 500);
+  });
+
+  function setup() {
+    //Setup Lightining Balance
+    setupBalance();
+    //Setup Relay
+    //Setup Admin
+    //Setup channles
+    //setup peers
+  }
+
+  async function setupBalance() {
+    if (tag === "cln") {
+      const funds = await CLN.list_funds(tag);
+      const balance = parseClnListFunds(funds);
+      if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance)
+        return;
+
+      lndBalances.update((n) => {
+        return { ...n, [tag]: balance };
+      });
+    } else if (tag === "lnd") {
+      const balance = await api.lnd.get_balance(tag);
+      if (
+        lndBalances.hasOwnProperty(tag) &&
+        lndBalances[tag] === balance?.confirmed_balance
+      )
+        return;
+      lndBalances.update((n) => {
+        return { ...n, [tag]: balance?.confirmed_balance };
+      });
+    }
+  }
+
+  function checkOnboarding() {
+    if (
+      $finishedOnboarding.hasBalance &&
+      $finishedOnboarding.hasPeers &&
+      $finishedOnboarding.hasChannels &&
+      $finishedOnboarding.hasAdmin &&
+      $finishedOnboarding.hasUsers
+    ) {
+      isOnboarding.update(() => false);
+    } else {
+      isOnboarding.update(() => true);
+    }
   }
 
   function checkForConfirmedTransaction() {
@@ -102,49 +162,57 @@
     }
   };
 
-  function determineCurrentStep() {
-    const hasAdmin = $finishedOnboarding.hasAdmin;
-    const hasChannels = $finishedOnboarding.hasChannels;
-    const hasBalance = $finishedOnboarding.hasBalance;
-    const hasPeers = $finishedOnboarding.hasPeers;
-    const hasUsers = $finishedOnboarding.hasUsers;
-    if (!hasBalance) {
-      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
-      if (lightning) {
-        selectedNode.update(() => lightning);
+  function determineCurrentStep(finishedOnboarding) {
+    if (
+      JSON.stringify(finishedOnboardingObject) !==
+        JSON.stringify(finishedOnboarding) &&
+      isOnboarding
+    ) {
+      finishedOnboardingObject = { ...finishedOnboarding };
+      const hasAdmin = finishedOnboarding.hasAdmin;
+      const hasChannels = finishedOnboarding.hasChannels;
+      const hasBalance = finishedOnboarding.hasBalance;
+      const hasPeers = finishedOnboarding.hasPeers;
+      const hasUsers = finishedOnboarding.hasUsers;
+      if (!hasBalance) {
+        const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+        if (lightning) {
+          selectedNode.update(() => lightning);
+        }
+        currentStep = 0;
+      } else if (!hasPeers && hasBalance) {
+        const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+        if (lightning) {
+          selectedNode.update(() => lightning);
+        }
+        currentStep = 3;
+      } else if (!hasChannels && hasPeers) {
+        const lightning = $stack.nodes.find((node) => node.type === "Lnd");
+        if (lightning) {
+          selectedNode.update(() => lightning);
+        }
+        currentStep = 4;
+      } else if (!hasAdmin && hasChannels) {
+        const relay = $stack.nodes.find((node) => node.type === "Relay");
+        if (relay) {
+          selectedNode.update(() => relay);
+        }
+        currentStep = 5;
+        disabled = true;
+      } else if (hasAdmin && !hasUsers) {
+        const relay = $stack.nodes.find((node) => node.type === "Relay");
+        if (relay) {
+          selectedNode.update(() => relay);
+        }
+        currentStep = 6;
+        disabled = true;
       }
-      currentStep = 0;
-    } else if (!hasPeers && hasBalance) {
-      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
-      if (lightning) {
-        selectedNode.update(() => lightning);
-      }
-      currentStep = 3;
-    } else if (!hasChannels && hasPeers) {
-      const lightning = $stack.nodes.find((node) => node.type === "Lnd");
-      if (lightning) {
-        selectedNode.update(() => lightning);
-      }
-      currentStep = 4;
-    } else if (!hasAdmin && hasChannels) {
-      const relay = $stack.nodes.find((node) => node.type === "Relay");
-      if (relay) {
-        selectedNode.update(() => relay);
-      }
-      currentStep = 5;
-      disabled = true;
-    } else if (hasAdmin && !hasUsers) {
-      const relay = $stack.nodes.find((node) => node.type === "Relay");
-      if (relay) {
-        selectedNode.update(() => relay);
-      }
-      currentStep = 6;
-      disabled = true;
     }
   }
 
   function togglePopover() {
     open = !open;
+    isOnboarding.update(() => !$isOnboarding);
   }
 
   function updateConfirmedBalance(balance) {
