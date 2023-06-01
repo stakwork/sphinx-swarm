@@ -173,7 +173,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let version = "0.1.3-lss-2";
+    let version = "0.1.3-lss-3";
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -202,7 +202,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         cmd.push(format!(
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker"
         ));
-        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:0.1.1
+        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:0.1.3-lss-2
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
         // let git_version = "2f1a063-modded";
@@ -232,6 +232,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
             ports.push(plugin_port.to_string());
         }
     };
+    log::info!("CMD {:?}", cmd.clone());
     let mut c = Config {
         image: Some(format!("{}:{}", image, version)),
         // image: Some("cln-sphinx:latest".to_string()),
