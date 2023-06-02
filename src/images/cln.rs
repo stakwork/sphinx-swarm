@@ -173,7 +173,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let version = "0.1.3-lss-3";
+    let version = "0.1.3-lss-6";
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
