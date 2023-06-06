@@ -53,7 +53,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
             SwarmCmd::UpdateNode(un) => {
                 log::info!("UpdateNode -> {}", un.id);
-                builder::update_node(&docker, &un, &mut state.stack.nodes).await?;
+                builder::update_node(proj, &docker, &un, &mut state).await?;
                 must_save_stack = true;
                 Some(serde_json::to_string("")?)
             }
