@@ -173,7 +173,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let version = "0.1.1";
+    let version = "0.1.4";
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -206,8 +206,11 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
         // let git_version = "2f1a063-modded";
-        let git_version = "v23.02.2-50-gd15200c";
+        // let git_version = "v23.02.2-50-gd15200c";
+        let git_version = "v23.02.2-52-g2c10e5c";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
+        // lss server
+        environ.push(format!("VLS_LSS=http://host.docker.internal:55551"));
         if let Ok(hbp) = hsmd_broker_ports(&img.peer_port) {
             environ.push(format!("BROKER_MQTT_PORT={}", &hbp.mqtt_port));
             ports.push(hbp.mqtt_port);

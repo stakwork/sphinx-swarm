@@ -1,5 +1,5 @@
 use crate::cmd::UpdateNode;
-use crate::config::{Clients, Node, Stack};
+use crate::config::{Clients, Node, Stack, State};
 use crate::dock::*;
 use crate::dock::{create_and_start, stop_and_remove};
 use crate::images::{DockerConfig, Image};
@@ -72,8 +72,14 @@ pub fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<Image
         .as_internal()?)
 }
 
-pub async fn update_node(docker: &Docker, un: &UpdateNode, nodes: &mut Vec<Node>) -> Result<()> {
-    let pos = nodes.iter().position(|n| n.name() == un.id);
+pub async fn update_node(
+    proj: &str,
+    docker: &Docker,
+    un: &UpdateNode,
+    state: &mut State,
+    // clients: &mut Clients,
+) -> Result<()> {
+    let pos = state.stack.nodes.iter().position(|n| n.name() == un.id);
     let hostname = domain(&un.id);
     if let None = pos {
         return Err(anyhow!("cannot find node in stack"));
@@ -83,12 +89,21 @@ pub async fn update_node(docker: &Docker, un: &UpdateNode, nodes: &mut Vec<Node>
     // stop the node
     stop_and_remove(docker, &hostname).await?;
 
-    nodes[pos].set_version(&un.version)?;
+    state.stack.nodes[pos].set_version(&un.version)?;
 
-    let theimg = nodes[pos].as_internal()?;
-    let theconfig = theimg.make_config(nodes, docker).await?;
+    let theimg = state.stack.nodes[pos].as_internal()?;
+    let theconfig = theimg.make_config(&state.stack.nodes, docker).await?;
 
     create_and_start(docker, theconfig, false).await?;
+
+    // post-startup steps (LND unlock)
+    theimg.post_startup(proj, docker).await?;
+    // create and connect client
+    theimg
+        .connect_client(proj, &mut state.clients, docker, &state.stack.nodes)
+        .await?;
+    // post-client connection steps (BTC load wallet)
+    theimg.post_client(&mut state.clients).await?;
 
     Ok(())
 }
