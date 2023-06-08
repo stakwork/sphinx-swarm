@@ -61,6 +61,7 @@ export const upgradableNodes: NodeType[] = [
   "Cache",
   "Cln",
   "Jarvis",
+  "BoltWall",
 ];
 
 type Place = "Internal" | "External";
