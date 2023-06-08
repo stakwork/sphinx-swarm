@@ -27,17 +27,6 @@
       >{button.label}</Button
     >
   {/each}
-
-  <!-- <Tabs>
-    <Tab label="Add Invoice" />
-    <Tab label="Pay Invoice" />
-    <Tab label="Keysend" />
-    <svelte:fragment slot="content">
-      <TabContent><AddInvoice {tag} /></TabContent>
-      <TabContent><PayInvoice {tag} /></TabContent>
-      <TabContent><PayKeysend {tag} /></TabContent>
-    </svelte:fragment>
-  </Tabs> -->
 </div>
 {#if page === "add"}
   <AddInvoice {tag} {type} />
