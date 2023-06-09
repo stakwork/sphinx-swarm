@@ -14,12 +14,14 @@
   import Upgrade from "carbon-icons-svelte/lib/Upgrade.svelte";
   import ImageRow from "./ImageRow.svelte";
   import { selectedNode, containers } from "../store";
+  import { upgradableNodes } from "../nodes";
 
   let open = false;
 
   $: name = $selectedNode.name;
   let selectedVersion = $selectedNode.version;
   $: btnDis = false;
+  $: updateDisabled = !upgradableNodes.includes($selectedNode.type);
 
   let org = "";
   let repo = "";
@@ -89,7 +91,14 @@
        * incase the node gets stuck in a restarting state
        * */
       const res: api.swarm.Container[] = await api.swarm.list_containers();
-      if (res) containers.set(res);
+      if (res) {
+        const node = $selectedNode;
+        containers.set(res);
+        selectedNode.set({
+          ...node,
+          version: selectedVersion,
+        });
+      }
     }
   }
 
@@ -130,8 +139,11 @@
     <div class="title">{name}</div>
     {#if $selectedNode.version}
       <div class="version">{`(${$selectedNode.version})`}</div>
-      <Button on:click={openModal} size="field" icon={Upgrade} disabled
-        >Update</Button
+      <Button
+        on:click={openModal}
+        size="field"
+        icon={Upgrade}
+        disabled={updateDisabled}>Update</Button
       >
     {/if}
   </section>

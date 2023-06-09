@@ -200,6 +200,7 @@ impl Default for Stack {
             lnd.http_port = Some("8881".to_string());
             lnd.links(vec!["bitcoind"]);
             lnd.host(host.clone());
+
             internal_nodes.push(Image::Lnd(lnd));
         }
 
@@ -212,7 +213,7 @@ impl Default for Stack {
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.24";
+        v = "v0.1.25";
         let node_env = match host {
             Some(_) => "production",
             None => "development",

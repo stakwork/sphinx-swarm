@@ -53,6 +53,17 @@ export const allNodeTypes: NodeType[] = [
   "Jarvis",
 ];
 
+export const upgradableNodes: NodeType[] = [
+  "Btc",
+  "Lnd",
+  "Proxy",
+  "Relay",
+  "Cache",
+  "Cln",
+  "Jarvis",
+  "BoltWall",
+];
+
 type Place = "Internal" | "External";
 
 type Network = "bitcoin" | "regtest";

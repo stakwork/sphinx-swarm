@@ -24,7 +24,7 @@ find the bitcoind password in vol/stack/config.json
 
 generate an address in LND, then
 
-`export ADDY=xxxxxxx`
+`export ADDY=xxxxx`
 
 `bitcoin-cli -regtest -rpcuser=sphinx -rpcpassword=$BTC_PASS generatetoaddress 6 "$ADDY"`
 
