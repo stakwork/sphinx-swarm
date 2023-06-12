@@ -95,9 +95,10 @@
       $finishedOnboarding.hasAdmin &&
       $finishedOnboarding.hasUsers
     ) {
-      isOnboarding.update(() => false);
+      isOnboarding.set(false);
     } else {
-      isOnboarding.update(() => true);
+      // console.log("set onboarding = true in checkOnboarding");
+      isOnboarding.set(true);
     }
   }
 
@@ -212,7 +213,7 @@
 
   function togglePopover() {
     open = !open;
-    isOnboarding.update(() => !$isOnboarding);
+    isOnboarding.update((current) => !current);
   }
 
   function updateConfirmedBalance(balance) {
