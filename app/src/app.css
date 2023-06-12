@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
+* {
+	box-sizing: border-box;
+}
+
 html, body {
 	position: relative;
 	width: 100%;
@@ -117,6 +121,22 @@ html {
 	padding: 0px 30px;
 	flex-direction: row;
 	align-items: center;
+	position: relative;
+	height: 90px;
+}
+
+.remote-hsmd {
+	position: absolute;
+	border: 2px solid #ddd;
+	width: 32px;
+	height: 32px;
+	top: -17px;
+	left: 16px;
+	border-radius: 5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #1A242E;
 }
 
 .node-img {
@@ -313,6 +333,14 @@ html {
 	border: 3px solid #AA6C11 !important;
 }
 
+.selected-cln_1 .node-cln_1 {
+	border: 3px solid #AA6C11 !important;
+}
+
+.selected-cln_2 .node-cln_2 {
+	border: 3px solid #AA6C11 !important;
+}
+
 .selected-lnd.lnd-stopped .node-lnd {
 	border: 3px solid #6A6C6D !important;
 }
@@ -322,6 +350,10 @@ html {
 }
 
 .selected-bitcoind .node-bitcoind {
+	border: 3px solid #F2BC52 !important;
+}
+
+.selected-btc_1 .node-btc_1 {
 	border: 3px solid #F2BC52 !important;
 }
 

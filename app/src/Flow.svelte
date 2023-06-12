@@ -1,16 +1,17 @@
 <script lang="ts">
   import Svelvet from "svelvet";
   import { defaultPositions } from "./nodes";
-  import type { Node, NodeType } from "./nodes";
+  import { chipSVG, type Node, type NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
-  import {onMount} from "svelte";
+  import { onMount } from "svelte";
 
   $: flow = toSvelvet($stack.nodes, nodeCallback);
 
   const nodeCallback = (node) => {
     const n = $stack.nodes.find((n) => n.name === node.data.name);
     if (n) {
+      console.log(n);
       selectedNode.update((node) => (node && node.name === n.name ? null : n));
     }
   };
@@ -39,6 +40,7 @@
 
       const pos = defaultPositions()[n.name] || [150, 150];
 
+      const remoteHsmd = n.plugins && n.plugins.includes("HsmdBroker");
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },
@@ -48,7 +50,7 @@
         // bgColor: colorz[n.type],
         bgColor: "#1A242E",
         clickCallback,
-        data: { html: content(n.type), name: n.name },
+        data: { html: content(n.type, remoteHsmd), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
         className:
@@ -72,10 +74,11 @@
     Postgres: "#9D61FF",
   };
 
-  function content(t: NodeType) {
+  function content(t: NodeType, remoteHsmd = false) {
     return `<section class='node-html'>
       <img src='swarm/${t.toLowerCase()}.png' class='node-img'></img>
       <p class="node-text">${t}</p>
+      ${remoteHsmd && `<div class="remote-hsmd">${chipSVG}</div>`}
     </section>`;
   }
 </script>

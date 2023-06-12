@@ -23,8 +23,8 @@
 
   async function payInvoice() {
     if (type === "Cln") {
-      show_notification = true;
       const payRes = await CLN.pay_invoice(tag, pay_req);
+      show_notification = true;
       if (payRes.status === 0) {
         success = true;
         message = "Invoice payment has been made.";
@@ -75,7 +75,7 @@
     {#if show_notification}
       <InlineNotification
         lowContrast
-        kind={success ? "error" : "success"}
+        kind={success ? "success" : "error"}
         title={success ? "Success:" : "Error:"}
         subtitle={message}
         timeout={3000}
