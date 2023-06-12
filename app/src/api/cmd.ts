@@ -1,4 +1,4 @@
-const IS_DEV =
+export const IS_DEV =
   window.location.host === "localhost:5173" ||
   window.location.host === "127.0.0.1:5173";
 

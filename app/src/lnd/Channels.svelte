@@ -13,6 +13,8 @@
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
   import { parseClnGetInfo, parseClnListPeerRes } from "../helpers/cln";
+  import { IS_DEV } from "../api/cmd";
+  import { chipSVG } from "../nodes";
 
   import * as LND from "../api/lnd";
   import * as CLN from "../api/cln";
@@ -119,6 +121,10 @@
     return `${pk.substring(0, 6)}...${pk.substring(pk.length - 6)}`;
   }
 
+  function openHsmdUI() {
+    window.open("http://localhost:8080", "_blank");
+  }
+
   let copied = false;
   function copyPubkey() {
     navigator.clipboard.writeText(lndData.identity_pubkey);
@@ -135,6 +141,10 @@
 <div class="wrap">
   <section class="header-btns">
     {#if lndData && lndData.identity_pubkey}
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      {#if IS_DEV}
+        <div class="hsmd-wrap" on:click={openHsmdUI}>{@html chipSVG}</div>
+      {/if}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div
         class="pubkey"
@@ -272,5 +282,11 @@
   }
   .pubkey:hover {
     color: white;
+  }
+  .hsmd-wrap {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>
