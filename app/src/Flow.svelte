@@ -4,14 +4,13 @@
   import { chipSVG, type Node, type NodeType } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
-  import { onMount } from "svelte";
 
   $: flow = toSvelvet($stack.nodes, nodeCallback);
 
   const nodeCallback = (node) => {
     const n = $stack.nodes.find((n) => n.name === node.data.name);
     if (n) {
-      console.log(n);
+      console.log("=>", n);
       selectedNode.update((node) => (node && node.name === n.name ? null : n));
     }
   };
@@ -78,7 +77,11 @@
     return `<section class='node-html'>
       <img src='swarm/${t.toLowerCase()}.png' class='node-img'></img>
       <p class="node-text">${t}</p>
-      ${remoteHsmd && `<div class="remote-hsmd">${chipSVG}</div>`}
+      ${
+        remoteHsmd
+          ? `<div class="remote-hsmd">${chipSVG}</div>`
+          : "<span></span>"
+      }
     </section>`;
   }
 </script>

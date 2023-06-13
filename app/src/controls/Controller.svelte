@@ -10,6 +10,8 @@
   import Proxy from "../Proxy.svelte";
   import NavFiber from "../NavFiber.svelte";
   import Boltwall from "../Boltwall.svelte";
+  import { IS_DEV } from "../api/cmd";
+  import { chipSVG } from "../nodes";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -20,6 +22,15 @@
   function closeSidebar() {
     selectedNode.set(null);
   }
+
+  function openHsmdUI() {
+    window.open("http://localhost:8080", "_blank");
+  }
+
+  $: hasHsmd =
+    $selectedNode &&
+    $selectedNode.plugins &&
+    $selectedNode.plugins.includes("HsmdBroker");
 </script>
 
 {#if ctrls}
@@ -40,6 +51,10 @@
         alt="node "
       />
       {$selectedNode.name}
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      {#if IS_DEV && hasHsmd}
+        <div class="hsmd-wrap" on:click={openHsmdUI}>{@html chipSVG}</div>
+      {/if}
     </header>
     <div class="ctrls">
       {#if type === "Relay"}
@@ -138,5 +153,12 @@
     box-shadow: 0 4px 8px 0 #1a242e, 0 6px 20px 0 #1a242e;
     cursor: pointer;
     box-shadow: none;
+  }
+  .hsmd-wrap {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.85rem;
   }
 </style>
