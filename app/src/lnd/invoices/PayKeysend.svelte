@@ -86,7 +86,7 @@
     <div class="spacer" />
 
     <TextInput
-      labelText={"Amount"}
+      labelText={"Amount (satoshis)"}
       placeholder={"Enter amount"}
       type={"number"}
       bind:value={amount}

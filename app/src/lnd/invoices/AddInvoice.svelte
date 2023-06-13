@@ -45,7 +45,7 @@
 <main>
   <section class="invoice-wrap">
     <TextInput
-      labelText={"Amount"}
+      labelText={"Amount (satoshis)"}
       placeholder={"Enter invoice amount"}
       type={"number"}
       bind:value={amount}
