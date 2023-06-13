@@ -12,6 +12,7 @@
     peers as peersStore,
     finishedOnboarding,
     createdPeerForOnboarding,
+    isOnboarding,
   } from "../store";
   import { parseClnListPeerRes } from "../helpers/cln";
 
@@ -60,7 +61,11 @@
   }
 
   function addDefaultPeer() {
-    if ($finishedOnboarding.hasBalance && !$finishedOnboarding.hasPeers) {
+    if (
+      $isOnboarding &&
+      $finishedOnboarding.hasBalance &&
+      !$finishedOnboarding.hasPeers
+    ) {
       pubkey =
         "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f";
       host = "54.159.193.149:9735";

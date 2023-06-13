@@ -96,6 +96,8 @@
       $finishedOnboarding.hasUsers
     ) {
       isOnboarding.set(false);
+    } else if (!open) {
+      isOnboarding.set(false);
     } else {
       // console.log("set onboarding = true in checkOnboarding");
       isOnboarding.set(true);
@@ -167,7 +169,7 @@
     if (
       JSON.stringify(finishedOnboardingObject) !==
         JSON.stringify(finishedOnboarding) &&
-      isOnboarding
+      $isOnboarding
     ) {
       finishedOnboardingObject = { ...finishedOnboarding };
       const hasAdmin = finishedOnboarding.hasAdmin;

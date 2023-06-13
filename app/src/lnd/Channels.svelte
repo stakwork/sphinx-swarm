@@ -7,6 +7,7 @@
     peers as peersStore,
     channelBalances,
     finishedOnboarding,
+    isOnboarding,
   } from "../store";
   import Peers from "./Peers.svelte";
   import AddChannel from "./AddChannel.svelte";
@@ -28,14 +29,16 @@
   $: $finishedOnboarding, determineOnboardingStep();
 
   function determineOnboardingStep() {
-    if ($finishedOnboarding.hasBalance && !$finishedOnboarding.hasPeers) {
-      page = "peers";
-    } else if (
-      $finishedOnboarding.hasBalance &&
-      $finishedOnboarding.hasPeers &&
-      !$finishedOnboarding.hasChannels
-    ) {
-      page = "add_channel";
+    if ($isOnboarding) {
+      if ($finishedOnboarding.hasBalance && !$finishedOnboarding.hasPeers) {
+        page = "peers";
+      } else if (
+        $finishedOnboarding.hasBalance &&
+        $finishedOnboarding.hasPeers &&
+        !$finishedOnboarding.hasChannels
+      ) {
+        page = "add_channel";
+      }
     }
   }
 
