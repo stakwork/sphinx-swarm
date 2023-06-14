@@ -207,7 +207,7 @@ impl Default for Stack {
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         // proxy
-        let mut v = "0.1.24";
+        let mut v = "0.1.34";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec![lightning_provider]);
