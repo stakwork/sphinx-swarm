@@ -16,6 +16,7 @@ use std::sync::Arc;
 const BTC: &str = "btc_1";
 const CLN1: &str = "cln_1";
 const CLN2: &str = "cln_2";
+const JWT_KEY: &str = "e8int45s0pofgtye";
 // const LND1: &str = "lnd_1";
 
 #[rocket::main]
@@ -64,6 +65,16 @@ async fn setup_chans(clients: &mut Clients) -> Result<()> {
 
 async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
     let cln1 = clients.cln.get_mut(CLN1).unwrap();
+
+    // skip if already have a chan
+    let peers = cln1.list_peers().await?;
+    for p in peers.peers {
+        if p.channels.len() > 0 {
+            log::info!("skipping new channel setup");
+            return Ok(());
+        }
+    }
+
     let connected = cln1
         .connect_peer(peer_pubkey, &domain(CLN2), "9736")
         .await?;
@@ -142,7 +153,7 @@ fn make_stack() -> Stack {
         nodes,
         host: None,
         users: vec![Default::default()],
-        jwt_key: sphinx_swarm::secrets::random_word(16),
+        jwt_key: JWT_KEY.to_string(),
     }
 }
 

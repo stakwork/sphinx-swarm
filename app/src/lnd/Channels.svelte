@@ -79,6 +79,7 @@
 
   async function clnListPeersandChannels() {
     const peersData = await CLN.list_peers(tag);
+    console.log(peersData);
     if (!peersData) return;
     const parsedRes = await parseClnListPeerRes(peersData);
     peersStore.update((peer) => {
@@ -132,6 +133,15 @@
   function peerAddChannel(peer: LND.LndPeer) {
     activePeer = peer;
     toggleAddChannel();
+  }
+
+  async function onCloseChannel(id: string, dest: string) {
+    if (type === "Cln") {
+      const clnRes = await CLN.close_channel(tag, id, dest);
+      console.log(clnRes);
+    } else {
+      console.log("ERROR: lnd does not support close yet");
+    }
   }
 </script>
 
@@ -198,7 +208,7 @@
     />
     <div />
   {:else if $channels?.hasOwnProperty(tag) && $channels[tag]?.length}
-    <ChannelRows {tag} />
+    <ChannelRows {tag} onclose={onCloseChannel} />
   {:else}
     <section class="no-data-wrap">
       <h3>

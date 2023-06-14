@@ -172,6 +172,19 @@ impl ClnRPC {
             .await?;
         Ok(response.into_inner())
     }
+
+    pub async fn close(&mut self, id: &str, out_addy: &str) -> Result<pb::CloseResponse> {
+        let response = self
+            .client
+            .close(pb::CloseRequest {
+                id: id.to_string(),
+                destination: Some(out_addy.to_string()),
+                unilateraltimeout: Some(30),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
 }
 
 fn amount_or_any(msat: u64) -> Option<pb::AmountOrAny> {

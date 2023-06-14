@@ -1,12 +1,15 @@
 <script lang="ts">
+  import { TextInput, Button, InlineLoading } from "carbon-components-svelte";
   import ReceiveLineWrap from "../components/ReceiveLineWrap.svelte";
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
   import { channels } from "../store";
   import { formatSatsNumbers } from "../helpers";
+  import Exit from "carbon-icons-svelte/lib/Exit.svelte";
 
   export let tag = "";
+  export let onclose = (id: string, dest: string) => {};
 
   function getBarCalculation(chan) {
     const remote_balance = Number(chan.remote_balance);
@@ -28,6 +31,29 @@
       local_percentage,
     };
   }
+
+  let selectedChannelParter = "";
+  let forceCloseDestination = "";
+
+  function clickRow(chan) {
+    console.log(chan);
+    if (!chan.active) return;
+    if (selectedChannelParter === chan.remote_pubkey) {
+      selectedChannelParter = "";
+      forceCloseDestination = "";
+    } else {
+      selectedChannelParter = chan.remote_pubkey;
+    }
+  }
+
+  let closing = false;
+  async function forceClose(e) {
+    e.stopPropagation();
+    console.log("CLOSE TO ", forceCloseDestination);
+    closing = true;
+    await onclose(selectedChannelParter, forceCloseDestination);
+    closing = false;
+  }
 </script>
 
 <div class="lnd-table-wrap">
@@ -40,33 +66,71 @@
 
   <section class="table-body">
     {#each $channels[tag].map(getBarCalculation) as chan}
-      <section class="row">
-        <div class="td">
-          <DotWrap>
-            <Dot color={chan.active ? "#52B550" : `#ED7474`} />
-          </DotWrap>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <section
+        class={`${
+          selectedChannelParter === chan.remote_pubkey ? "selected" : ""
+        } row`}
+        on:click={() => clickRow(chan)}
+      >
+        <div class="row-top">
+          <div class="td">
+            <DotWrap>
+              <Dot color={chan.active ? "#52B550" : `#ED7474`} />
+            </DotWrap>
+          </div>
+          {#if chan.active}
+            <div class="td">
+              <section class="can-receive-wrap">
+                <section>
+                  {formatSatsNumbers(chan.local_balance)}
+                </section>
+                <ReceiveLineWrap>
+                  <ReceiveLine
+                    color={chan.color}
+                    width={`${chan.local_percentage}%`}
+                  />
+                  <ReceiveLine
+                    color={chan.color}
+                    width={`${chan.remote_percentage}%`}
+                  />
+                </ReceiveLineWrap>
+              </section>
+            </div>
+            <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
+          {:else}
+            <div class="inactive">Channel Not Active</div>
+          {/if}
+          <div class="td">
+            <span class="pubkey">{chan.remote_pubkey}</span>
+          </div>
         </div>
-        <div class="td">
-          <section class="can-receive-wrap">
-            <section>
-              {formatSatsNumbers(chan.local_balance)}
-            </section>
-            <ReceiveLineWrap>
-              <ReceiveLine
-                color={chan.color}
-                width={`${chan.local_percentage}%`}
+        {#if selectedChannelParter === chan.remote_pubkey}
+          <div class="row-bottom">
+            <div class="row-bottom-text">
+              <TextInput
+                size="sm"
+                placeholder={"Close Channel To Address"}
+                bind:value={forceCloseDestination}
+                on:click={(e) => e.stopPropagation()}
               />
-              <ReceiveLine
-                color={chan.color}
-                width={`${chan.remote_percentage}%`}
-              />
-            </ReceiveLineWrap>
-          </section>
-        </div>
-        <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
-        <div class="td">
-          <span class="pubkey">{chan.remote_pubkey}</span>
-        </div>
+            </div>
+            <Button
+              disabled={!forceCloseDestination}
+              on:click={forceClose}
+              size="small"
+              kind="danger-tertiary"
+              icon={Exit}
+            >
+              Close
+            </Button>
+            {#if closing}
+              <div class="loading-wrapper">
+                <InlineLoading />
+              </div>
+            {/if}
+          </div>
+        {/if}
       </section>
     {/each}
   </section>
@@ -125,9 +189,34 @@
 
   .lnd-table-wrap .table-body .row {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     border-bottom: 1px solid #151e27;
+    cursor: pointer;
+    height: 62px;
+  }
+
+  .lnd-table-wrap .table-body .row.selected {
+    height: 124px;
+  }
+
+  .lnd-table-wrap .table-body .row .row-top {
+    height: 62px;
+    display: flex;
+    flex-direction: row;
     align-items: center;
+  }
+
+  .lnd-table-wrap .table-body .row .row-bottom {
+    height: 62px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .lnd-table-wrap .table-body .row .row-bottom-text {
+    width: 330px;
+    min-width: 330px;
+    margin: 0 20px;
   }
 
   .lnd-table-wrap .table-body .row .td {
@@ -159,5 +248,17 @@
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+  }
+  .loading-wrapper {
+    height: 60px;
+    width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 20px;
+  }
+  .inactive {
+    font-size: 16px;
+    width: 420px;
   }
 </style>

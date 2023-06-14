@@ -60,6 +60,7 @@ impl BitcoinRPC {
         } else {
             self.0.get_new_address(None, Some(AddressType::Bech32))?
         };
+        let _ = self.load_wallet();
         Ok(self.0.generate_to_address(n, &address)?)
     }
 }

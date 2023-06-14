@@ -1,6 +1,4 @@
 <script lang="ts">
-  export let tag = "";
-  export let type = "";
   import { Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import Copy from "carbon-icons-svelte/lib/Copy.svelte";
@@ -19,6 +17,9 @@
     parseClnListFunds,
     parseUnconfirmedClnBalance,
   } from "../helpers/cln";
+
+  export let tag = "";
+  export let type = "";
 
   async function newAddress() {
     let new_addy;
@@ -41,16 +42,16 @@
   });
 
   async function getBalance() {
-    if (tag === "lnd") {
+    if (type === "Lnd") {
       const balance = await api.lnd.get_balance(tag);
       updateConfirmedBalance(balance?.confirmed_balance);
       updateUnconfirmedBalance(balance?.unconfirmed_balance);
-    } else if (tag === "cln") {
+    } else if (type === "Cln") {
       const funds = await CLN.list_funds(tag);
       const balance = parseClnListFunds(funds);
-      const unconfrimed_balance = parseUnconfirmedClnBalance(funds);
+      const unconfirmed_balance = parseUnconfirmedClnBalance(funds);
       updateConfirmedBalance(balance);
-      updateUnconfirmedBalance(unconfrimed_balance);
+      updateUnconfirmedBalance(unconfirmed_balance);
     }
   }
 

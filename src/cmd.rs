@@ -103,6 +103,11 @@ pub struct PayKeysend {
     pub dest: String,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CloseChannel {
+    pub id: String,
+    pub destination: String,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddChannel {
     pub pubkey: String,
     pub amount: i64,
@@ -144,6 +149,7 @@ pub enum ClnCmd {
     AddInvoice(AddInvoice),
     PayInvoice(PayInvoice),
     PayKeysend(PayKeysend),
+    CloseChannel(CloseChannel),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

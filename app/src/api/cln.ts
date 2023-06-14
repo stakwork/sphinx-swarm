@@ -33,6 +33,14 @@ export async function keysend(tag: string, dest: string, amt: number) {
   return await clnCmd("PayKeysend", tag, { dest, amt });
 }
 
+export async function close_channel(
+  tag: string,
+  id: string,
+  destination: string
+) {
+  return await clnCmd("CloseChannel", tag, { id, destination });
+}
+
 export async function create_channel(
   tag: string,
   pubkey: string,

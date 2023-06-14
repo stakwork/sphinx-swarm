@@ -139,7 +139,7 @@ function getChannelStatus(status) {
   if (derivedStatus[ClnChannelState.CHANNELD_NORMAL]) {
     return true;
   } else {
-    false;
+    return false;
   }
 }
 

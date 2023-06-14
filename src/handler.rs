@@ -265,6 +265,14 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let paid = client.keysend(&i.dest, i.amt as u64).await?;
                     Some(serde_json::to_string(&paid)?)
                 }
+                ClnCmd::CloseChannel(i) => {
+                    let closed = client.close(&i.id, &i.destination).await?;
+                    let mut hm = HashMap::new();
+                    hm.insert("type", closed.item_type.to_string());
+                    hm.insert("txid", hex::encode(closed.txid()));
+                    hm.insert("tx", hex::encode(closed.tx()));
+                    Some(serde_json::to_string(&hm)?)
+                }
             }
         }
         Cmd::Proxy(c) => {
