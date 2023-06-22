@@ -45,6 +45,9 @@ sudo rm -rf $HOME/vol/stack
 docker volume rm cln.sphinx
 docker volume rm lnd.sphinx
 
+rm -rf /home/admin/.lss
+
+echo "removed .lss dir"
+
 docker volume rm $(docker volume ls -q)
 
-rm -rf /home/admin/.lss

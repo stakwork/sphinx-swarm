@@ -209,8 +209,14 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         // let git_version = "v23.02.2-50-gd15200c";
         let git_version = "v23.02.2-52-g2c10e5c";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
-        // lss server
-        environ.push(format!("VLS_LSS=http://host.docker.internal:55551"));
+        // lss server (default to host.docker.internal)
+        let mut vls_lss = "http://host.docker.internal:55551".to_string();
+        if let Ok(lssurl) = std::env::var("LSS_URL") {
+            if lssurl.len() > 0 {
+                vls_lss = lssurl;
+            }
+        }
+        environ.push(format!("VLS_LSS={}", &vls_lss));
         if let Ok(hbp) = hsmd_broker_ports(&img.peer_port) {
             environ.push(format!("BROKER_MQTT_PORT={}", &hbp.mqtt_port));
             ports.push(hbp.mqtt_port);

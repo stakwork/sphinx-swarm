@@ -40,7 +40,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:0.2.1
+    image: sphinxlightning/sphinx-swarm:0.2.2
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
@@ -74,6 +74,7 @@ services:
       - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
       - STAKWORK_RADAR_REQUEST_TOKEN=$STAKWORK_RADAR_REQUEST_TOKEN
       - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
+      - LSS_URL=$LSS_URL
 
 networks:
   sphinx-swarm:
