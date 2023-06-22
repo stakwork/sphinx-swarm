@@ -46,3 +46,5 @@ docker volume rm cln.sphinx
 docker volume rm lnd.sphinx
 
 docker volume rm $(docker volume ls -q)
+
+rm -rf /home/admin/.lss
