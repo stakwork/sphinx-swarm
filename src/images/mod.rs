@@ -4,6 +4,7 @@ pub mod cache;
 pub mod cln;
 pub mod jarvis;
 pub mod lnd;
+pub mod lss;
 pub mod navfiber;
 pub mod neo4j;
 pub mod postgres;
@@ -31,6 +32,7 @@ pub enum Image {
     NavFiber(navfiber::NavFiberImage),
     BoltWall(boltwall::BoltwallImage),
     Jarvis(jarvis::JarvisImage),
+    Lss(lss::LssImage),
 }
 
 pub struct Repository {
@@ -66,6 +68,7 @@ impl Image {
             Image::NavFiber(n) => n.name.clone(),
             Image::Jarvis(n) => n.name.clone(),
             Image::BoltWall(n) => n.name.clone(),
+            Image::Lss(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -80,6 +83,7 @@ impl Image {
             Image::NavFiber(_n) => "NavFiber",
             Image::Jarvis(_n) => "JarvisBackend",
             Image::BoltWall(_n) => "BoltWall",
+            Image::Lss(_n) => "LSS",
         }
         .to_string()
     }
@@ -95,6 +99,7 @@ impl Image {
             Image::NavFiber(n) => n.version = version.to_string(),
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
+            Image::Lss(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -154,6 +159,7 @@ impl DockerConfig for Image {
             Image::NavFiber(n) => n.make_config(nodes, docker).await,
             Image::Jarvis(n) => n.make_config(nodes, docker).await,
             Image::BoltWall(n) => n.make_config(nodes, docker).await,
+            Image::Lss(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -171,6 +177,7 @@ impl DockerHubImage for Image {
             Image::NavFiber(n) => n.repo(),
             Image::Jarvis(n) => n.repo(),
             Image::BoltWall(n) => n.repo(),
+            Image::Lss(n) => n.repo(),
         }
     }
 }
@@ -246,6 +253,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_lss(&self) -> Option<lss::LssImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_lss() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -307,6 +322,12 @@ impl Image {
         match self {
             Image::Cache(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Cache".to_string())),
+        }
+    }
+    pub fn as_lss(&self) -> anyhow::Result<lss::LssImage> {
+        match self {
+            Image::Lss(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not LSS".to_string())),
         }
     }
 }

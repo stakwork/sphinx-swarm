@@ -9,7 +9,8 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::{
-    btc::BtcImage, cache::CacheImage, lnd::LndImage, proxy::ProxyImage, relay::RelayImage, Image,
+    btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
+    relay::RelayImage, Image,
 };
 use crate::secrets;
 use crate::utils;
@@ -166,8 +167,12 @@ impl Default for Stack {
             if let Ok(_) = url::Url::parse(&ebtc) {
                 let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
                 external_nodes.push(Node::External(btc));
-                let mut cln = ClnImage::new("cln", "0.1.1", &network, "9735", "10009");
-                cln.links(vec!["bitcoind"]);
+                // lightning storage server
+                let lss = LssImage::new("lss", "0.0.4");
+                internal_nodes.push(Image::Lss(lss));
+                // cln with plugins
+                let mut cln = ClnImage::new("cln", "0.1.5", &network, "9735", "10009");
+                cln.links(vec!["bitcoind", "lss"]);
                 let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
                 cln.plugins(plugins);
                 cln.host(host.clone());
@@ -411,6 +416,7 @@ impl Stack {
                     b.session_secret = "".to_string();
                     Node::Internal(Image::BoltWall(b))
                 }
+                Image::Lss(l) => Node::Internal(Image::Lss(l)),
             },
         });
         Stack {

@@ -89,10 +89,11 @@ impl ClnImage {
 impl DockerConfig for ClnImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+        let lss = li.find_lss();
         if let Some(btc) = li.find_btc() {
             // internal BTC node
             let args = ClnBtcArgs::new(&domain(&btc.name), &btc.user, &btc.pass);
-            Ok(cln(self, args))
+            Ok(cln(self, args, lss))
         } else {
             // external BTC node
             let btcurl = nodes
@@ -105,7 +106,7 @@ impl DockerConfig for ClnImage {
                 .as_external()?
                 .url;
             let args = ClnBtcArgs::from_url(&btcurl)?;
-            Ok(cln(self, args))
+            Ok(cln(self, args, lss))
         }
     }
 }
@@ -170,7 +171,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
     }
 }
 
-fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
+fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
     let version = "0.1.5";
@@ -182,6 +183,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         format!("LIGHTNINGD_PORT={}", &img.peer_port),
         format!("LIGHTNINGD_NETWORK={}", &img.network),
     ];
+    log::info!("CLN network: {}", &img.network);
     let mut cmd = vec![
         format!("--alias=sphinx-{}", &img.name),
         format!("--addr=0.0.0.0:{}", &img.peer_port),
@@ -210,13 +212,17 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs) -> Config<String> {
         let git_version = "v23.02.2-52-g2c10e5c";
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
         // lss server (default to host.docker.internal)
-        let mut vls_lss = "http://host.docker.internal:55551".to_string();
-        if let Ok(lssurl) = std::env::var("LSS_URL") {
-            if lssurl.len() > 0 {
-                vls_lss = lssurl;
-            }
+        if let Some(lss) = lss {
+            let vls_lss = format!("http://{}:55551", &domain(&lss.name));
+            log::info!("hook up to LSS {}", &vls_lss);
+            environ.push(format!("VLS_LSS={}", &vls_lss));
         }
-        environ.push(format!("VLS_LSS={}", &vls_lss));
+        // if let Ok(lssurl) = std::env::var("LSS_URL") {
+        //     if lssurl.len() > 0 {
+        //         vls_lss = lssurl;
+        //     }
+        // }
+
         if let Ok(hbp) = hsmd_broker_ports(&img.peer_port) {
             environ.push(format!("BROKER_MQTT_PORT={}", &hbp.mqtt_port));
             ports.push(hbp.mqtt_port);
