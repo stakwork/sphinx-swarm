@@ -62,5 +62,6 @@ fn make_stack() -> Stack {
         host: None,
         users: vec![Default::default()],
         jwt_key: sphinx_swarm::secrets::random_word(16),
+        ready: false,
     }
 }

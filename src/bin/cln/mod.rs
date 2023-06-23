@@ -25,6 +25,15 @@ pub async fn main() -> Result<()> {
     sphinx_swarm::utils::setup_logs();
 
     let stack = make_stack();
+
+    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
+    handler::hydrate_stack(stack.clone()).await;
+
+    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
+
+    println!("=> spawn handler");
+    handler::spawn_handler("cln_test", rx, docker.clone());
+
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 
     let mut skip_setup = false;
@@ -37,15 +46,9 @@ pub async fn main() -> Result<()> {
         setup_chans(&mut clients).await?;
     }
 
-    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
+    handler::hydrate_clients(clients).await;
 
-    handler::hydrate(stack, clients).await;
-
-    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
-
-    println!("=> spawn handler");
-    handler::spawn_handler("cln_test", rx, docker.clone());
 
     println!("=> launch rocket");
     let log_txs = Arc::new(Mutex::new(log_txs));
@@ -80,7 +83,7 @@ async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
         .await?;
     let channel = hex::encode(connected.id);
     log::info!("CLN1 connected to CLN2: {}", channel);
-    let funded = cln1.try_fund_channel(&channel, 100_000_000).await?;
+    let funded = cln1.try_fund_channel(&channel, 100_000_000, None).await?;
     log::info!("funded {:?}", hex::encode(funded.tx));
     let addr = cln1.new_addr().await?;
 
@@ -154,6 +157,7 @@ fn make_stack() -> Stack {
         host: None,
         users: vec![Default::default()],
         jwt_key: JWT_KEY.to_string(),
+        ready: false,
     }
 }
 

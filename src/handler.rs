@@ -23,6 +23,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
 
     let mut must_save_stack = false;
 
+    if !state.stack.ready {
+        if !cmd.can_run_before_ready() {
+            return Err(anyhow::anyhow!("cant run this command yet..."));
+        }
+    }
+
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
             SwarmCmd::GetConfig => {
@@ -249,7 +255,11 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 }
                 ClnCmd::AddChannel(channel) => {
                     let channel = client
-                        .fund_channel(&channel.pubkey, channel.amount.try_into()?)
+                        .fund_channel(
+                            &channel.pubkey,
+                            channel.amount.try_into()?,
+                            Some(channel.satsperbyte.try_into()?),
+                        )
                         .await?;
                     Some(serde_json::to_string(&channel)?)
                 }
@@ -296,6 +306,17 @@ pub async fn hydrate(stack: Stack, clients: Clients) {
     // set into the main state mutex
     let mut state = STATE.lock().await;
     *state = State { stack, clients };
+}
+
+pub async fn hydrate_stack(stack: Stack) {
+    let mut state = STATE.lock().await;
+    state.stack = stack
+}
+
+pub async fn hydrate_clients(clients: Clients) {
+    let mut state = STATE.lock().await;
+    state.clients = clients;
+    state.stack.ready = true;
 }
 
 pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Docker) {

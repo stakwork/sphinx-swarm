@@ -105,9 +105,10 @@ impl ClnRPC {
         &mut self,
         id: &str,
         amt: u64,
+        satsperbyte: Option<u32>,
     ) -> Result<pb::FundchannelResponse> {
         for iteration in 0..100 {
-            if let Ok(c) = self.fund_channel(id, amt).await {
+            if let Ok(c) = self.fund_channel(id, amt, satsperbyte).await {
                 return Ok(c);
             }
             sleep_ms(5000).await;
@@ -116,16 +117,27 @@ impl ClnRPC {
         Err(anyhow!("could not fund channel - probably not synced"))
     }
 
-    pub async fn fund_channel(&mut self, id: &str, amt: u64) -> Result<pb::FundchannelResponse> {
+    pub async fn fund_channel(
+        &mut self,
+        id: &str,
+        amt: u64,
+        satsperbyte: Option<u32>,
+    ) -> Result<pb::FundchannelResponse> {
         let id = hex::decode(id)?;
-        let response = self
-            .client
-            .fund_channel(pb::FundchannelRequest {
-                id: id,
-                amount: amount_or_all(amt),
-                ..Default::default()
-            })
-            .await?;
+        let mut req = pb::FundchannelRequest {
+            id: id,
+            amount: amount_or_all(amt),
+            ..Default::default()
+        };
+        if let Some(spvb) = satsperbyte {
+            if spvb > 0 {
+                let perkw = spvb * 1000;
+                req.feerate = Some(pb::Feerate {
+                    style: Some(pb::feerate::Style::Perkb(perkw)),
+                });
+            }
+        }
+        let response = self.client.fund_channel(req).await?;
         Ok(response.into_inner())
     }
 

@@ -120,6 +120,9 @@ fn relay(
         let proxy_vol = volume_string(&p.name, "/proxy");
         extra_vols.push(proxy_vol);
     }
+    if let Some(host) = relay.host.clone() {
+        conf.host_name(&host);
+    }
     // relay config from env
     let mut relay_conf = relay_env_config(&conf);
     relay_conf.push(format!("NODE_ENV={}", &relay.node_env));
@@ -178,6 +181,7 @@ pub struct RelayConfig {
     pub cln_device_key: Option<String>,
     pub cln_device_cert: Option<String>,
     pub dont_ping_hub: Option<String>,
+    pub host_name: Option<String>,
 }
 
 impl RelayConfig {
@@ -193,6 +197,9 @@ impl RelayConfig {
     }
     pub fn logging(&mut self, logging: &str) {
         self.logging = Some(logging.to_string());
+    }
+    pub fn host_name(&mut self, host_name: &str) {
+        self.host_name = Some(host_name.to_string());
     }
     pub fn lnd(&mut self, lnd: &lnd::LndImage, root_vol_dir: &str) {
         self.lightning_provider = "LND".to_string();
@@ -277,6 +284,7 @@ impl Default for RelayConfig {
             cln_device_cert: None,
             cln_device_key: None,
             dont_ping_hub: None,
+            host_name: None,
         }
     }
 }

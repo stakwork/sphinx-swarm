@@ -158,6 +158,19 @@ pub enum ProxyCmd {
     GetBalance,
 }
 
+impl Cmd {
+    pub fn can_run_before_ready(&self) -> bool {
+        match self {
+            Cmd::Swarm(c) => match c {
+                SwarmCmd::GetConfig => true,
+                SwarmCmd::Login(_) => true,
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

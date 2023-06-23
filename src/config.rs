@@ -57,7 +57,7 @@ impl Default for Clients {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
@@ -65,6 +65,7 @@ pub struct Stack {
     pub host: Option<String>, // root host for traefik (PRODUCTION)
     pub users: Vec<User>,
     pub jwt_key: String,
+    pub ready: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -312,6 +313,7 @@ impl Default for Stack {
             host,
             users: vec![Default::default()],
             jwt_key: secrets::random_word(16),
+            ready: false,
         }
     }
 }
@@ -425,6 +427,7 @@ impl Stack {
             host: self.host.clone(),
             users: vec![],
             jwt_key: "".to_string(),
+            ready: self.ready,
         }
     }
 }
