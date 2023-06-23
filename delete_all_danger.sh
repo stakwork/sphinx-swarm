@@ -1,3 +1,7 @@
+docker stop lss.sphinx
+docker rm lss.sphinx
+docker volume rm lss.sphinx
+
 docker stop jarvis.sphinx
 docker rm jarvis.sphinx
 docker volume rm jarvis.sphinx

@@ -24,7 +24,7 @@
   $: disabled = true;
   $: $onChainAddressGeneratedForOnboarding, onChainAddressGenerated();
   $: $copiedAddressForOnboarding, copiedAddressHandler();
-  let open = true;
+  let open = false;
   let finishedOnboardingObject = {};
   $: currentStep, checkForConfirmedTransaction();
   $: $channelCreatedForOnboarding, channelCreatedForOnboardingHandler();

@@ -24,7 +24,9 @@
   }
 
   function openHsmdUI() {
-    window.open("http://localhost:8080", "_blank");
+    if (IS_DEV) {
+      window.open("http://localhost:8080", "_blank");
+    }
   }
 
   $: hasHsmd =
@@ -52,7 +54,7 @@
       />
       {$selectedNode.name}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
-      {#if IS_DEV && hasHsmd}
+      {#if hasHsmd}
         <div class="hsmd-wrap" on:click={openHsmdUI}>{@html chipSVG}</div>
       {/if}
     </header>

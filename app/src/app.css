@@ -125,6 +125,13 @@ html {
 	height: 90px;
 }
 
+.node-lss .node-html {
+	height: 70px;
+}
+.node-lss .node-html .node-text {
+	margin-left:16px;
+}
+
 .remote-hsmd {
 	position: absolute;
 	border: 2px solid #ddd;
@@ -140,7 +147,7 @@ html {
 }
 
 .node-img {
-	width: 26%;
+	width: 32px;
 	margin: 0;
 	padding: 0;
 	display: block;

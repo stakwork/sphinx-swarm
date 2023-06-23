@@ -168,6 +168,11 @@ const defpos = {
   boltwall: [750, 375],
   neo4j: [480, 425],
   navfiber: [1150, 475],
+  lss: [400, 280],
+};
+
+export const sizes = {
+  lss: [130, 70],
 };
 
 export { stack, defaultPositions };

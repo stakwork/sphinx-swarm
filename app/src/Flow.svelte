@@ -1,7 +1,7 @@
 <script lang="ts">
   import Svelvet from "svelvet";
   import { defaultPositions } from "./nodes";
-  import { chipSVG, type Node, type NodeType } from "./nodes";
+  import { chipSVG, type Node, type NodeType, sizes } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
 
@@ -40,11 +40,13 @@
       const pos = defaultPositions()[n.name] || [150, 150];
 
       const remoteHsmd = n.plugins && n.plugins.includes("HsmdBroker");
+      const width = sizes[n.name] ? sizes[n.name][0] : 180;
+      const height = sizes[n.name] ? sizes[n.name][1] : 90;
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },
-        width: 180,
-        height: 90,
+        width,
+        height,
         borderRadius: 8,
         // bgColor: colorz[n.type],
         bgColor: "#1A242E",
