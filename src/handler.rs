@@ -302,8 +302,9 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
     Ok(ret.context("internal error")?)
 }
 
-pub async fn hydrate(stack: Stack, clients: Clients) {
+pub async fn hydrate(mut stack: Stack, clients: Clients) {
     // set into the main state mutex
+    stack.ready = true;
     let mut state = STATE.lock().await;
     *state = State { stack, clients };
 }
