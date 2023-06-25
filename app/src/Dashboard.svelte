@@ -4,6 +4,7 @@
     Loading,
     OverflowMenu,
     OverflowMenuItem,
+    InlineLoading,
   } from "carbon-components-svelte";
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
@@ -11,7 +12,7 @@
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
-  import { stack, logoutUser, containers } from "./store";
+  import { stack, logoutUser, containers, sleep } from "./store";
   import { onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
@@ -21,11 +22,22 @@
   import Onboarding from "./onboarding/Onboarding.svelte";
   let selectedName = "";
 
-  async function getConfig() {
+  async function pollConfig() {
+    let ready = false;
+    while (!ready) {
+      const stackReady = await getConfig();
+      if (stackReady) ready = true;
+      await sleep(3000);
+    }
+  }
+
+  async function getConfig(): Promise<boolean> {
     const stackRemote: Stack = await api.swarm.get_config();
+    console.log("=>", stackRemote);
     if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
     }
+    return stackRemote.ready;
   }
 
   async function listContainers() {
@@ -35,7 +47,7 @@
 
   onMount(() => {
     listContainers();
-    getConfig();
+    pollConfig();
   });
 
   type DashboardPage = "main" | "change_password";
@@ -89,7 +101,13 @@
     <div class="head_section">
       <div class="lefty logo-wrap">
         <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
-        <span class="stack-title">Sphinx Stack</span>
+        <span
+          class="stack-title"
+          style={`color:${$stack.ready ? "white" : "#999"}`}>Sphinx Stack</span
+        >
+        {#if !$stack.ready}
+          <InlineLoading />
+        {/if}
       </div>
 
       <section class="header-btn-wrap">
@@ -176,8 +194,6 @@
     height: 100%;
   }
   .lefty {
-    width: 18rem;
-    max-width: 18rem;
     height: 100%;
     border-right: 1px solid #101317;
   }
@@ -185,6 +201,7 @@
     color: white;
     margin-left: 0.5rem;
     font-size: 1.2rem;
+    width: 18rem;
   }
   .header-btn-wrap {
     display: flex;

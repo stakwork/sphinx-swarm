@@ -123,13 +123,15 @@ html {
 	align-items: center;
 	position: relative;
 	height: 90px;
+	position: absolute;
+	top:1px; left:1px;
 }
 
-.node-lss .node-html {
+.node-small .node-html {
 	height: 70px;
 }
-.node-lss .node-html .node-text {
-	margin-left:16px;
+.node-small .node-html .node-text {
+	margin-left:10px;
 }
 
 .remote-hsmd {
@@ -387,6 +389,9 @@ html {
 .selected-neo4j .node-neo4j,
 .selected-navfiber .node-navfiber,
 .selected-boltwall .node-boltwall,
+.selected-cln .node-cln,
+.selected-lss .node-lss,
+.selected-cache .node-cache,
 .selected-memes .node-memes {
 	border: 3px solid #FFF !important;
 }

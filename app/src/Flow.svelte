@@ -1,13 +1,14 @@
 <script lang="ts">
   import Svelvet from "svelvet";
   import { defaultPositions } from "./nodes";
-  import { chipSVG, type Node, type NodeType, sizes } from "./nodes";
+  import { chipSVG, type Node, type NodeType, smalls } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
 
   $: flow = toSvelvet($stack.nodes, nodeCallback);
 
   const nodeCallback = (node) => {
+    if (!$stack.ready) return console.log("stack is not ready...");
     const n = $stack.nodes.find((n) => n.name === node.data.name);
     if (n) {
       console.log("=>", n);
@@ -40,13 +41,19 @@
       const pos = defaultPositions()[n.name] || [150, 150];
 
       const remoteHsmd = n.plugins && n.plugins.includes("HsmdBroker");
-      const width = sizes[n.name] ? sizes[n.name][0] : 180;
-      const height = sizes[n.name] ? sizes[n.name][1] : 90;
+
+      const isSmall = smalls.includes(n.name);
+
+      let className = `node-${n.name}`;
+      if (n.place === "Internal") className += " node-internal";
+      else className += " node-external";
+      if (isSmall) className += " node-small";
+
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },
-        width,
-        height,
+        width: isSmall ? 140 : 180,
+        height: isSmall ? 70 : 90,
         borderRadius: 8,
         // bgColor: colorz[n.type],
         bgColor: "#1A242E",
@@ -54,10 +61,7 @@
         data: { html: content(n.type, remoteHsmd), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
-        className:
-          n.place === "Internal"
-            ? `node-internal node-${n.name}`
-            : `node-external node-${n.name}`,
+        className,
       };
     });
     return { nodes, edges };

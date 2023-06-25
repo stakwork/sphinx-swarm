@@ -12,7 +12,11 @@ import * as api from "./api";
 import type { RelayBalance } from "./api/relay";
 import type { Container } from "./api/swarm";
 
-export const emptyStack: Stack = { network: "regtest", nodes: [] };
+export const emptyStack: Stack = {
+  network: "regtest",
+  nodes: [],
+  ready: false,
+};
 
 export const selectedNode = writable<Node>();
 
@@ -238,3 +242,7 @@ export const logoutUser = () => {
  * and save to store
  */
 saveUserToStore();
+
+export async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

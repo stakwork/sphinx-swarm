@@ -2,6 +2,7 @@ export interface Stack {
   network: Network;
   nodes: Node[];
   host?: string;
+  ready: boolean;
 }
 
 export interface Node {
@@ -70,6 +71,7 @@ type Network = "bitcoin" | "regtest";
 
 const stack: Stack = {
   network: "regtest",
+  ready: true,
   nodes: [
     {
       place: "Internal",
@@ -153,27 +155,26 @@ function defaultPositions() {
 
 const defpos = {
   bitcoind: [320, 140],
-  lnd: [580, 200],
-  cln: [580, 200],
-  cln_1: [680, 140],
+  lnd: [600, 200],
+  cln: [600, 200],
+  lss_1: [500, 120],
+  cln_1: [680, 160],
   cln_2: [680, 280],
   lnd_1: [650, 420],
   proxy: [850, 140],
   relay: [1150, 375],
   load_balancer: [895, 40],
-  cache: [900, 600],
-  tribes: [680, 650],
+  cache: [920, 625],
+  tribes: [690, 650],
   memes: [900, 720],
   jarvis: [750, 475],
-  boltwall: [750, 375],
-  neo4j: [480, 425],
+  boltwall: [770, 380],
+  neo4j: [540, 425],
   navfiber: [1150, 475],
-  lss: [400, 280],
+  lss: [400, 270],
 };
 
-export const sizes = {
-  lss: [130, 70],
-};
+export const smalls = ["lss", "boltwall", "neo4j", "cache", "lss_1"];
 
 export { stack, defaultPositions };
 
