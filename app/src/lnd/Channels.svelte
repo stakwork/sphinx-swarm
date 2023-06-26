@@ -79,7 +79,7 @@
 
   async function clnListPeersandChannels() {
     const peersData = await CLN.list_peers(tag);
-    console.log(peersData);
+    console.log("peersData:", peersData);
     if (!peersData) return;
     const parsedRes = await parseClnListPeerRes(peersData);
     peersStore.update((peer) => {
@@ -256,7 +256,7 @@
     margin-left: auto;
     position: absolute;
     right: 1rem;
-    top: -5.6rem;
+    top: -7.5rem;
   }
   .no-data-wrap {
     display: flex;

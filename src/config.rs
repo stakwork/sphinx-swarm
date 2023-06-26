@@ -219,7 +219,7 @@ impl Default for Stack {
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.25";
+        v = "v0.1.28";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -247,18 +247,18 @@ impl Default for Stack {
         neo4j.host(host.clone());
 
         // jarvis
-        v = "0.3.5";
+        v = "v0.0.16";
         let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
         jarvis.links(vec!["neo4j", "boltwall"]);
 
         // boltwall
-        v = "0.3.7";
+        v = "v0.0.42";
         let mut bolt = BoltwallImage::new("boltwall", v, "8444");
         bolt.links(vec!["jarvis", lightning_provider]);
         bolt.host(host.clone());
 
         // navfiber
-        v = "v0.3.27";
+        v = "v0.1.38";
         let mut nav = NavFiberImage::new("navfiber", v, "8001");
         nav.links(vec!["jarvis"]);
         nav.host(host.clone());

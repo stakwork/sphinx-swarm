@@ -5,7 +5,7 @@ export const IS_DEV =
 export let root = "/api";
 if (IS_DEV) {
   root = "http://localhost:8000/api";
-  // root = "https://app.swarm9.sphinx.chat/api";
+  // root = "https://app.swarm4.sphinx.chat/api";
 }
 
 type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd" | "Cln" | "Proxy";

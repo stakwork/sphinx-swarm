@@ -118,13 +118,14 @@ html {
 
 .node-html {
 	display: flex;
-	padding: 0px 30px;
 	flex-direction: row;
 	align-items: center;
+	justify-content: center;
 	position: relative;
 	height: 90px;
 	position: absolute;
 	top:1px; left:1px;
+	width: 100%;
 }
 
 .node-small .node-html {
