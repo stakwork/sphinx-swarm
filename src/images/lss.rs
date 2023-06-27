@@ -64,7 +64,7 @@ fn lss(node: &LssImage) -> Config<String> {
 pre-build = ["apt-get install protobuf-compiler -y"]
 */
 
-// cross build --release --target x86_64-unknown-linux-musl --no-default-features features crypt
+// cross build --release --target x86_64-unknown-linux-musl --no-default-features --features crypt
 
 // vls Dockerfile
 /*
