@@ -39,6 +39,8 @@ pub async fn main() -> Result<()> {
     let log_txs = Arc::new(Mutex::new(log_txs));
     tokio::spawn(async move {
         let _r = routes::launch_rocket(tx.clone(), log_txs).await.unwrap();
+        // ctrl-c shuts down rocket
+        builder::shutdown_now();
     });
 
     println!("=> spawn handler");
@@ -60,6 +62,8 @@ pub async fn main() -> Result<()> {
     handler::hydrate_clients(clients).await;
 
     tokio::signal::ctrl_c().await?;
+
+    builder::shutdown_now();
 
     Ok(())
 }

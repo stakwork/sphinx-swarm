@@ -14,12 +14,24 @@ pub struct ClnRPC {
 
 impl ClnRPC {
     // try new a few times
-    pub async fn try_new(cln: &ClnImage, creds: &Creds, i: usize) -> Result<Self> {
+    pub async fn try_new<Canceller>(
+        cln: &ClnImage,
+        creds: &Creds,
+        i: usize,
+        canceller: Canceller,
+    ) -> Result<Self>
+    where
+        Canceller: Fn() -> bool,
+    {
         for iteration in 0..i {
             if let Ok(c) = Self::new(cln, creds).await {
                 return Ok(c);
             }
             sleep_ms(1000).await;
+            println!("===> {}", canceller());
+            if canceller() {
+                break;
+            }
             log::info!("retry CLN connect {}", iteration);
         }
         Err(anyhow!("could not connect to CLN"))

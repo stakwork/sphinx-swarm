@@ -6,6 +6,17 @@ use crate::images::{DockerConfig, Image};
 use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);
+
+pub fn is_shutdown() -> bool {
+    SHUTDOWN.load(Ordering::Relaxed)
+}
+
+pub fn shutdown_now() {
+    SHUTDOWN.store(true, Ordering::Relaxed);
+}
 
 // return a map of name:docker_id
 pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<Clients> {
@@ -19,6 +30,9 @@ pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<C
         only_node = None;
     }
     for node in nodes.iter() {
+        if is_shutdown() {
+            break;
+        }
         let skip = match &only_node {
             Some(only) => &node.name() != only,
             None => false,
@@ -57,7 +71,8 @@ pub async fn add_node(
     // post-startup steps (LND unlock)
     img.post_startup(proj, docker).await?;
     // create and connect client
-    img.connect_client(proj, clients, docker, nodes).await?;
+    img.connect_client(proj, clients, docker, nodes, is_shutdown)
+        .await?;
     // post-client connection steps (BTC load wallet)
     img.post_client(clients).await?;
     Ok(())
@@ -100,7 +115,13 @@ pub async fn update_node(
     theimg.post_startup(proj, docker).await?;
     // create and connect client
     theimg
-        .connect_client(proj, &mut state.clients, docker, &state.stack.nodes)
+        .connect_client(
+            proj,
+            &mut state.clients,
+            docker,
+            &state.stack.nodes,
+            is_shutdown,
+        )
         .await?;
     // post-client connection steps (BTC load wallet)
     theimg.post_client(&mut state.clients).await?;

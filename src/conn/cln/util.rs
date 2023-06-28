@@ -4,11 +4,18 @@ use crate::images::cln::ClnImage;
 use anyhow::Result;
 use bollard::Docker;
 
-pub async fn setup(node: &ClnImage, docker: &Docker) -> Result<(ClnRPC, Option<String>)> {
+pub async fn setup<Canceller>(
+    node: &ClnImage,
+    docker: &Docker,
+    canceller: Canceller,
+) -> Result<(ClnRPC, Option<String>)>
+where
+    Canceller: Fn() -> bool,
+{
     let creds = collect_creds(docker, &node.name, &node.network).await?;
 
     let seconds_in_a_day = 86400;
-    let mut client = ClnRPC::try_new(&node, &creds, seconds_in_a_day).await?;
+    let mut client = ClnRPC::try_new(&node, &creds, seconds_in_a_day, canceller).await?;
 
     if &node.network != "regtest" {
         return Ok((client, None));

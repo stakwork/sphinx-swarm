@@ -56,14 +56,18 @@ impl ClnImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
-    pub async fn connect_client(
+    pub async fn connect_client<Canceller>(
         &self,
         clients: &mut Clients,
         docker: &Docker,
         nodes: &Vec<Node>,
-    ) -> Result<()> {
+        canceller: Canceller,
+    ) -> Result<()>
+    where
+        Canceller: Fn() -> bool,
+    {
         sleep(1).await;
-        let (client, test_mine_addy) = setup_cln(self, docker).await?;
+        let (client, test_mine_addy) = setup_cln(self, docker, canceller).await?;
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         if let Some(internal_btc) = li.find_btc() {
             test_mine_if_needed(test_mine_addy, &internal_btc.name, clients);

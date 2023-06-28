@@ -17,27 +17,37 @@ async fn main() -> Result<()> {
 
     let proj = "stack";
     let stack: Stack = load_config_file(proj).await.expect("YAML CONFIG FAIL");
-    let clients = builder::build_stack(proj, &docker, &stack).await?;
-    put_config_file(proj, &stack).await;
+
     // put the jwt key into a var
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
-
-    handler::hydrate(stack, clients).await;
+    // hyrate the "stack" without clients
+    handler::hydrate_stack(stack.clone()).await;
 
     let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
 
+    let log_txs = Arc::new(Mutex::new(log_txs));
+    println!("=> launch rocket");
+    tokio::spawn(async move {
+        // launch rocket
+        let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
+        log::info!("🚀 => http://localhost:{}", port);
+        let _r = routes::launch_rocket(tx.clone(), log_txs).await.unwrap();
+        // ctrl-c shuts down rocket
+        builder::shutdown_now();
+    });
+
     handler::spawn_handler(proj, rx, docker.clone());
 
-    // launch rocket
-    let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
-    log::info!("🚀 => http://localhost:{}", port);
-    let log_txs = Arc::new(Mutex::new(log_txs));
-    let _r = routes::launch_rocket(tx.clone(), log_txs).await?;
+    let clients = builder::build_stack(proj, &docker, &stack).await?;
+    put_config_file(proj, &stack).await;
 
-    // for (_, id) in ids {
-    //     stop_and_remove(&docker, &id).await?;
-    // }
+    println!("hydrate clients now!");
+    handler::hydrate_clients(clients).await;
+
+    tokio::signal::ctrl_c().await?;
+
+    builder::shutdown_now();
 
     Ok(())
 }

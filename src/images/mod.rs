@@ -116,17 +116,21 @@ impl Image {
             _ => (),
         })
     }
-    pub async fn connect_client(
+    pub async fn connect_client<Canceller>(
         &self,
         proj: &str,
         clients: &mut config::Clients,
         docker: &Docker,
         nodes: &Vec<config::Node>,
-    ) -> Result<()> {
+        canceller: Canceller,
+    ) -> Result<()>
+    where
+        Canceller: Fn() -> bool,
+    {
         Ok(match self {
             Image::Btc(n) => n.connect_client(clients).await,
             Image::Lnd(n) => n.connect_client(clients, docker, nodes).await?,
-            Image::Cln(n) => n.connect_client(clients, docker, nodes).await?,
+            Image::Cln(n) => n.connect_client(clients, docker, nodes, canceller).await?,
             Image::Proxy(n) => n.connect_client(clients).await?,
             Image::Relay(n) => n.connect_client(proj, clients).await?,
             _ => (),
