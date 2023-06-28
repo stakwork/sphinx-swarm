@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { selectedNode, exitedNodes, nodes_exited } from "./store";
+  import {
+    stack,
+    logoutUser,
+    containers,
+    sleep,
+    selectedNode,
+    nodes_exited,
+  } from "./store";
   import {
     Loading,
     OverflowMenu,
@@ -12,7 +19,6 @@
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
-  import { stack, logoutUser, containers, sleep } from "./store";
   import { onMount } from "svelte";
   import * as api from "./api";
   import type { Stack } from "./nodes";
@@ -126,7 +132,9 @@
       </section>
     </div>
     <div class="head_section">
-      <Onboarding />
+      {#if $stack.ready}
+        <Onboarding />
+      {/if}
       <AddNode />
       <section class="menu-btn">
         <OverflowMenu icon={User} flipped>

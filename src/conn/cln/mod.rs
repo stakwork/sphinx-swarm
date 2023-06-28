@@ -28,7 +28,6 @@ impl ClnRPC {
                 return Ok(c);
             }
             sleep_ms(1000).await;
-            println!("===> {}", canceller());
             if canceller() {
                 break;
             }

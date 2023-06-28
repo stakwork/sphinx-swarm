@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode, node_state } from "../store";
+  import { selectedNode, node_state, stack } from "../store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
@@ -12,6 +12,7 @@
   import Boltwall from "../Boltwall.svelte";
   import { IS_DEV } from "../api/cmd";
   import { chipSVG } from "../nodes";
+  import FirstConnect from "./FirstConnect.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
@@ -35,7 +36,11 @@
     $selectedNode.plugins.includes("HsmdBroker");
 </script>
 
-{#if ctrls}
+{#if !$stack.ready}
+  <div class="main" style="width: 35rem">
+    <FirstConnect />
+  </div>
+{:else if ctrls}
   <div
     class="main"
     style={`width: ${type === "Lnd" || "Cln" ? "35rem" : "23rem"}`}
