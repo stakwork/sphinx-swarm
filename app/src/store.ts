@@ -111,11 +111,15 @@ export function makeChannelBalances(
   return {
     inbound:
       channels[tag] && channels[tag].length
-        ? channels[tag].reduce((acc, chan) => acc + chan.remote_balance, 0)
+        ? channels[tag].reduce((acc, chan) => {
+            return chan.active ? acc + chan.remote_balance : acc;
+          }, 0)
         : 0,
     outbound:
       channels[tag] && channels[tag].length
-        ? channels[tag].reduce((acc, chan) => acc + chan.local_balance, 0)
+        ? channels[tag].reduce((acc, chan) => {
+            return chan.active ? acc + chan.local_balance : acc;
+          }, 0)
         : 0,
   };
 }
