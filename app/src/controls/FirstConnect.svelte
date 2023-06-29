@@ -5,7 +5,7 @@
   $: cln_node = $stack && $stack.nodes.find((n) => n.type === "Cln");
   $: host =
     $stack.host && cln_node
-      ? `${cln_node.name}-mqtt.${$stack.host}:8883`
+      ? `mqtt-${cln_node.name}.${$stack.host}:8883`
       : `127.0.0.1:1883`;
 
   function makeQR(mqtt: string, network: string) {
@@ -16,9 +16,15 @@
 <div class="wrap">
   <div class="head">Connect your Signer:</div>
   <div class="body">
-    <div class="mqtt-url">
-      <span>MQTT URL:</span>
-      <span>{host}</span>
+    <div class="labels">
+      <div class="label-section">
+        <span>MQTT URL:</span>
+        <span>Network:</span>
+      </div>
+      <div class="label-section">
+        <span>{host}</span>
+        <span>{$stack.network}</span>
+      </div>
     </div>
     <div class="qr-wrap">
       <QrCode size={256} padding={4} value={makeQR(host, $stack.network)} />
@@ -40,16 +46,27 @@
     display: flex;
     flex-direction: column;
   }
-  .mqtt-url {
+  .labels {
+    display: flex;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  .label-section {
     color: #ccc;
     font-weight: bold;
-    font-size: 0.75rem;
-    width: 100%;
+    font-size: 0.8rem;
     display: flex;
-    align-items: center;
+    flex-direction: column;
   }
-  .mqtt-url span:first-child {
-    margin-right: 1rem;
+  .label-section:first-child {
+    width: 5.5rem;
+  }
+  .label-section:last-child {
+    color: white;
+    font-size: 0.8rem;
+  }
+  .label-section span:first-child {
+    margin-bottom: 1rem;
   }
   .qr-wrap {
     margin-top: 1rem;

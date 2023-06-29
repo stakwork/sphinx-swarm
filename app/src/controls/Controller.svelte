@@ -37,7 +37,7 @@
 </script>
 
 {#if !$stack.ready}
-  <div class="main" style="width: 35rem">
+  <div class="main" style="width: 30rem">
     <FirstConnect />
   </div>
 {:else if ctrls}
