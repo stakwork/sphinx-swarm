@@ -172,7 +172,7 @@ impl Default for Stack {
                 let lss = LssImage::new("lss", "0.0.4");
                 internal_nodes.push(Image::Lss(lss));
                 // cln with plugins
-                let mut cln = ClnImage::new("cln", "0.1.5", &network, "9735", "10009");
+                let mut cln = ClnImage::new("cln", "0.1.6", &network, "9735", "10009");
                 cln.links(vec!["bitcoind", "lss"]);
                 let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
                 cln.plugins(plugins);
