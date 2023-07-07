@@ -68,7 +68,14 @@
         pubkey = "";
         amount = 0;
         sats = 0;
-        channelCreatedForOnboarding.update(() => true);
+        setTimeout(async () => {
+          const peersData = await CLN.list_peers(tag);
+          const parsedRes = await parseClnListPeerRes(peersData);
+          channels.update((chans) => {
+            return { ...chans, [tag]: parsedRes.channels };
+          });
+          channelCreatedForOnboarding.update(() => true);
+        }, 1500);
       }
     } else {
       if (await create_channel(tag, pubkey, amount, sats)) {
