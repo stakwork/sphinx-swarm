@@ -7,7 +7,12 @@
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import { create_channel, get_balance, list_channels } from "../api/lnd";
+  import {
+    create_channel,
+    get_balance,
+    list_channels,
+    list_peers,
+  } from "../api/lnd";
   import * as CLN from "../api/cln";
   import { onMount } from "svelte";
   import {
@@ -17,7 +22,7 @@
     channelCreatedForOnboarding,
   } from "../store";
   import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
-  import { parseClnListFunds } from "../helpers/cln";
+  import { parseClnListFunds, parseClnListPeerRes } from "../helpers/cln";
 
   export let activeKey: string = null;
 
@@ -104,7 +109,46 @@
     });
   }
 
+  async function checkingNewPeer() {
+    setInterval(async () => {
+      try {
+        await getPeers();
+      } catch (error) {
+        console.log(error);
+      }
+    }, 20000);
+  }
+
+  async function getPeers() {
+    try {
+      if (type === "Cln") {
+        const peersData = await CLN.list_peers(tag);
+        const parsedRes = await parseClnListPeerRes(peersData);
+        if (JSON.stringify(parsedRes.peers) !== JSON.stringify(peers)) {
+          peersStore.update((peer) => {
+            return { ...peer, [tag]: parsedRes.peers };
+          });
+        }
+      } else {
+        const peersData = await list_peers(tag);
+        if (JSON.stringify(peersData.peers) !== JSON.stringify(peers)) {
+          peersStore.update((ps) => {
+            return { ...ps, [tag]: peersData.peers };
+          });
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
   onMount(() => {
+    //Check for peer
+    getPeers();
+
+    //pulling for new peer
+    checkingNewPeer();
     if (type === "Cln") {
       listClnFunds();
     } else {
