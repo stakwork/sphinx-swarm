@@ -74,6 +74,7 @@
           channels.update((chans) => {
             return { ...chans, [tag]: parsedRes.channels };
           });
+          await listClnFunds();
           channelCreatedForOnboarding.update(() => true);
         }, 1500);
       }
@@ -88,6 +89,7 @@
           channels.update((chans) => {
             return { ...chans, [tag]: channelsData };
           });
+          await getBalance();
           channelCreatedForOnboarding.update(() => true);
         }, 1500);
       }
@@ -108,7 +110,7 @@
 
   async function listClnFunds() {
     const funds = await CLN.list_funds(tag);
-    const peers = await CLN.list_funds(tag);
+    const peers = await CLN.list_peers(tag);
     const balance = parseClnListFunds(funds, peers);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
