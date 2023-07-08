@@ -143,15 +143,38 @@ function getChannelStatus(status) {
   }
 }
 
-export function parseClnListFunds(res): number {
+function convertChannelArrayToObj(peerObj) {
+  const peers = peerObj.peers;
+  const obj = {};
+  for (let i = 0; i < peers.length; i++) {
+    for (let y = 0; y < peers[i].channels.length; y++) {
+      const channel = peers[i].channels[y];
+      obj[channel.short_channel_id] = channel;
+    }
+  }
+  return obj;
+}
+
+export function parseClnListFunds(res, peers): number {
   let balance = 0;
+  let channelBal = 0;
+  const channelsObj = convertChannelArrayToObj(peers);
+
+  for (let i = 0; i < res.channels.length; i++) {
+    const currentChan = res.channels[i];
+    if (channelsObj[currentChan.short_channel_id].opener === 0) {
+      channelBal += currentChan.amount_msat.msat;
+    }
+  }
+
   for (let i = 0; i < res.outputs.length; i++) {
     let output = res.outputs[i];
     if (output.status === 1 && !output.reserved) {
       balance += output.amount_msat.msat;
     }
   }
-  return convertMillisatsToSats(balance);
+  const finalBalance = balance - channelBal;
+  return convertMillisatsToSats(finalBalance);
 }
 
 export function parseUnconfirmedClnBalance(res): number {

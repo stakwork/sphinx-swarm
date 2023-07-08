@@ -39,7 +39,20 @@
 
   onMount(async () => {
     getBalance();
+
+    //Polling Get Balance
+    pollGetBalance();
   });
+
+  function pollGetBalance() {
+    try {
+      setInterval(async () => {
+        await getBalance();
+      }, 20000);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   async function getBalance() {
     if (type === "Lnd") {
@@ -48,7 +61,8 @@
       updateUnconfirmedBalance(balance?.unconfirmed_balance);
     } else if (type === "Cln") {
       const funds = await CLN.list_funds(tag);
-      const balance = parseClnListFunds(funds);
+      const peers = await CLN.list_peers(tag);
+      const balance = parseClnListFunds(funds, peers);
       const unconfirmed_balance = parseUnconfirmedClnBalance(funds);
       updateConfirmedBalance(balance);
       updateUnconfirmedBalance(unconfirmed_balance);
