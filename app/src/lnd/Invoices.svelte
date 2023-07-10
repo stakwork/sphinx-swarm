@@ -3,8 +3,9 @@
   import AddInvoice from "./invoices/AddInvoice.svelte";
   import PayInvoice from "./invoices/PayInvoice.svelte";
   import PayKeysend from "./invoices/PayKeysend.svelte";
+  import PaymentHistory from "./invoices/PaymentHistory.svelte";
 
-  type Page = "add" | "pay" | "keysend";
+  type Page = "add" | "pay" | "keysend" | "history";
   let page: Page = "add";
 
   export let tag = "";
@@ -18,6 +19,7 @@
     { label: "Add Invoice", page: "add" },
     { label: "Pay Invoice", page: "pay" },
     { label: "Keysend", page: "keysend" },
+    { label: "History", page: "history" },
   ];
 </script>
 
@@ -32,6 +34,8 @@
   <AddInvoice {tag} {type} />
 {:else if page === "pay"}
   <PayInvoice {tag} {type} />
+{:else if page === "history"}
+  <PaymentHistory {tag} {type} />
 {:else}
   <PayKeysend {tag} {type} />
 {/if}
