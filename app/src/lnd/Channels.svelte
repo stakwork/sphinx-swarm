@@ -152,32 +152,23 @@
       } catch (error) {
         console.log(error);
       }
-    }, 20000);
+    }, 10000);
   }
 
   async function getChannels() {
-    try {
-      if (type === "Cln") {
-        const peersData = await CLN.list_peers(tag);
-        const parsedRes = await parseClnListPeerRes(peersData);
-        if (
-          JSON.stringify(parsedRes.channels) !== JSON.stringify($channels[tag])
-        ) {
-          channels.update((chans) => {
-            return { ...chans, [tag]: parsedRes.channels };
-          });
-        }
-      } else {
-        const channelsData = await LND.list_channels(tag);
-        if (JSON.stringify(channelsData) !== JSON.stringify($channels[tag])) {
-          channels.update((chans) => {
-            return { ...chans, [tag]: channelsData };
-          });
-        }
-      }
-    } catch (error) {
-      console.log(error);
-      throw error;
+    let newChannels = [];
+    if (type === "Cln") {
+      const peersData = await CLN.list_peers(tag);
+      const parsedRes = await parseClnListPeerRes(peersData);
+      newChannels = parsedRes.channels;
+    } else {
+      const channelsData = await LND.list_channels(tag);
+      newChannels = channelsData;
+    }
+    if (JSON.stringify(newChannels) !== JSON.stringify($channels[tag])) {
+      channels.update((chans) => {
+        return { ...chans, [tag]: newChannels };
+      });
     }
   }
 

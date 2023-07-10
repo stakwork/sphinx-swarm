@@ -126,30 +126,23 @@
       } catch (error) {
         console.log(error);
       }
-    }, 20000);
+    }, 10000);
   }
 
   async function getPeers() {
-    try {
-      if (type === "Cln") {
-        const peersData = await CLN.list_peers(tag);
-        const parsedRes = await parseClnListPeerRes(peersData);
-        if (JSON.stringify(parsedRes.peers) !== JSON.stringify(peers)) {
-          peersStore.update((peer) => {
-            return { ...peer, [tag]: parsedRes.peers };
-          });
-        }
-      } else {
-        const peersData = await list_peers(tag);
-        if (JSON.stringify(peersData.peers) !== JSON.stringify(peers)) {
-          peersStore.update((ps) => {
-            return { ...ps, [tag]: peersData.peers };
-          });
-        }
-      }
-    } catch (error) {
-      console.log(error);
-      throw error;
+    let newPeers = [];
+    if (type === "Cln") {
+      const peersData = await CLN.list_peers(tag);
+      const parsedRes = await parseClnListPeerRes(peersData);
+      newPeers = parsedRes.peers;
+    } else {
+      const peersData = await list_peers(tag);
+      newPeers = peersData.peers;
+    }
+    if (JSON.stringify(newPeers) !== JSON.stringify(peers)) {
+      peersStore.update((ps) => {
+        return { ...ps, [tag]: newPeers };
+      });
     }
   }
 
