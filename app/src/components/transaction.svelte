@@ -1,5 +1,5 @@
 <script>
-  import { DataTable, Loading } from "carbon-components-svelte";
+  import { DataTable, Loading, Pagination } from "carbon-components-svelte";
   import { onMount } from "svelte";
   export let tag = "";
   export let type = "";
@@ -8,6 +8,8 @@
   console.log(tag);
 
   $: transactions = null;
+  let pageSize = 5;
+  let page = 1;
   let tran = [
     {
       id: "1pYt...PUyt",
@@ -72,6 +74,13 @@
       date: "10 March, 2011",
       amount: "10,000 sats",
     },
+    {
+      id: "5qwet...PUyt",
+      index: "10.",
+      invoice: "1pYt...PUqw",
+      date: "10 November, 2011",
+      amount: "10,000 sats",
+    },
   ];
 
   async function getSentPayment() {
@@ -89,8 +98,8 @@
     if (type === "Cln") {
       // Make Api call to CLN
       setTimeout(() => {
-        transactions = [];
-      }, 15000);
+        transactions = [...tran];
+      }, 5000);
     } else {
       //Make Api call to LND
     }
@@ -128,6 +137,14 @@
         { key: "amount", value: "Amount" },
       ]}
       rows={transactions}
+      {pageSize}
+      {page}
+    />
+    <Pagination
+      bind:pageSize
+      bind:page
+      totalItems={transactions.length}
+      pageSizeInputDisabled
     />
   {/if}
 </main>
