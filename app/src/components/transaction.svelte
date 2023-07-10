@@ -129,23 +129,25 @@
       <p>No {paymentType} transactions yet!!...</p>
     </div>
   {:else}
-    <DataTable
-      headers={[
-        { key: "index", value: "Index" },
-        { key: "invoice", value: "Invoice" },
-        { key: "date", value: "Date" },
-        { key: "amount", value: "Amount" },
-      ]}
-      rows={transactions}
-      {pageSize}
-      {page}
-    />
-    <Pagination
-      bind:pageSize
-      bind:page
-      totalItems={transactions.length}
-      pageSizeInputDisabled
-    />
+    <div>
+      <DataTable
+        headers={[
+          { key: "index", value: "Index" },
+          { key: "invoice", value: "Invoice" },
+          { key: "date", value: "Date" },
+          { key: "amount", value: "Amount" },
+        ]}
+        rows={transactions}
+        {pageSize}
+        {page}
+      />
+      <Pagination
+        bind:pageSize
+        bind:page
+        totalItems={transactions.length}
+        pageSizeInputDisabled
+      />
+    </div>
   {/if}
 </main>
 

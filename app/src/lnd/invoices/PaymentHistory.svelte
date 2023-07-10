@@ -23,5 +23,6 @@
 <style>
   main {
     padding: 1.5rem 1.8rem;
+    margin-top: 0.1rem;
   }
 </style>
