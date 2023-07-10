@@ -17,6 +17,7 @@
 
   import * as LND from "../api/lnd";
   import * as CLN from "../api/cln";
+  import { onMount } from "svelte";
 
   export let tag = "";
   export let type = "";
@@ -143,6 +144,41 @@
       console.log("ERROR: lnd does not support close yet");
     }
   }
+
+  async function checkingChannels() {
+    setInterval(async () => {
+      try {
+        await getChannels();
+      } catch (error) {
+        console.log(error);
+      }
+    }, 10000);
+  }
+
+  async function getChannels() {
+    let newChannels = [];
+    if (type === "Cln") {
+      const peersData = await CLN.list_peers(tag);
+      const parsedRes = await parseClnListPeerRes(peersData);
+      newChannels = parsedRes.channels;
+    } else {
+      const channelsData = await LND.list_channels(tag);
+      newChannels = channelsData;
+    }
+    if (JSON.stringify(newChannels) !== JSON.stringify($channels[tag])) {
+      channels.update((chans) => {
+        return { ...chans, [tag]: newChannels };
+      });
+    }
+  }
+
+  onMount(() => {
+    //Check for channel
+    getChannels();
+
+    //pulling for new channel
+    checkingChannels();
+  });
 </script>
 
 <div class="wrap">
