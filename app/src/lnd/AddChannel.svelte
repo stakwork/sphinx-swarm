@@ -7,7 +7,12 @@
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import { create_channel, get_balance, list_channels } from "../api/lnd";
+  import {
+    create_channel,
+    get_balance,
+    list_channels,
+    list_peers,
+  } from "../api/lnd";
   import * as CLN from "../api/cln";
   import { onMount } from "svelte";
   import {
@@ -17,7 +22,7 @@
     channelCreatedForOnboarding,
   } from "../store";
   import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
-  import { parseClnListFunds } from "../helpers/cln";
+  import { parseClnListFunds, parseClnListPeerRes } from "../helpers/cln";
 
   export let activeKey: string = null;
 
@@ -63,7 +68,15 @@
         pubkey = "";
         amount = 0;
         sats = 0;
-        channelCreatedForOnboarding.update(() => true);
+        setTimeout(async () => {
+          const peersData = await CLN.list_peers(tag);
+          const parsedRes = await parseClnListPeerRes(peersData);
+          channels.update((chans) => {
+            return { ...chans, [tag]: parsedRes.channels };
+          });
+          await listClnFunds();
+          channelCreatedForOnboarding.update(() => true);
+        }, 1500);
       }
     } else {
       if (await create_channel(tag, pubkey, amount, sats)) {
@@ -76,6 +89,7 @@
           channels.update((chans) => {
             return { ...chans, [tag]: channelsData };
           });
+          await getBalance();
           channelCreatedForOnboarding.update(() => true);
         }, 1500);
       }
@@ -96,7 +110,8 @@
 
   async function listClnFunds() {
     const funds = await CLN.list_funds(tag);
-    const balance = parseClnListFunds(funds);
+    const peers = await CLN.list_peers(tag);
+    const balance = parseClnListFunds(funds, peers);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
     lndBalances.update((n) => {
@@ -104,7 +119,39 @@
     });
   }
 
+  async function checkingNewPeer() {
+    setInterval(async () => {
+      try {
+        await getPeers();
+      } catch (error) {
+        console.log(error);
+      }
+    }, 10000);
+  }
+
+  async function getPeers() {
+    let newPeers = [];
+    if (type === "Cln") {
+      const peersData = await CLN.list_peers(tag);
+      const parsedRes = await parseClnListPeerRes(peersData);
+      newPeers = parsedRes.peers;
+    } else {
+      const peersData = await list_peers(tag);
+      newPeers = peersData.peers;
+    }
+    if (JSON.stringify(newPeers) !== JSON.stringify(peers)) {
+      peersStore.update((ps) => {
+        return { ...ps, [tag]: newPeers };
+      });
+    }
+  }
+
   onMount(() => {
+    //Check for peer
+    getPeers();
+
+    //pulling for new peer
+    checkingNewPeer();
     if (type === "Cln") {
       listClnFunds();
     } else {
