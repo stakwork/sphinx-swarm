@@ -79,6 +79,8 @@
   }
 
   async function clnListPeersandChannels() {
+    const invoices = await CLN.list_invoices(tag);
+    console.log(invoices);
     const peersData = await CLN.list_peers(tag);
     console.log("peersData:", peersData);
     if (!peersData) return;

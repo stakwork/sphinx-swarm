@@ -208,6 +208,16 @@ impl ClnRPC {
             .await?;
         Ok(response.into_inner())
     }
+
+    pub async fn list_invoices(&mut self) -> Result<pb::ListinvoicesResponse> {
+        let response = self
+            .client
+            .list_invoices(pb::ListinvoicesRequest {
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
 }
 
 fn amount_or_any(msat: u64) -> Option<pb::AmountOrAny> {

@@ -283,6 +283,10 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     hm.insert("tx", hex::encode(closed.tx()));
                     Some(serde_json::to_string(&hm)?)
                 }
+                ClnCmd::ListInvoices => {
+                    let invoices = client.list_invoices().await?;
+                    Some(serde_json::to_string(&invoices)?)
+                }
             }
         }
         Cmd::Proxy(c) => {

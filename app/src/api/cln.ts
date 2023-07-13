@@ -41,6 +41,10 @@ export async function close_channel(
   return await clnCmd("CloseChannel", tag, { id, destination });
 }
 
+export async function list_invoices(tag: string) {
+  return await clnCmd("ListInvoices", tag);
+}
+
 export async function create_channel(
   tag: string,
   pubkey: string,
