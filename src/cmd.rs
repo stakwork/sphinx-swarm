@@ -151,6 +151,7 @@ pub enum ClnCmd {
     PayKeysend(PayKeysend),
     CloseChannel(CloseChannel),
     ListInvoices,
+    ListPays,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

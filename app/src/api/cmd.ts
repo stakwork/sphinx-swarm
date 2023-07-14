@@ -40,7 +40,8 @@ export type Cmd =
   | "UpdateNode"
   | "ListFunds"
   | "CloseChannel"
-  | "ListInvoices";
+  | "ListInvoices"
+  | "ListPays";
 
 interface CmdData {
   cmd: Cmd;

@@ -4,6 +4,7 @@
   export let tag = "";
   export let type = "";
   export let paymentType = "";
+  import * as CLN from "../api/cln";
 
   console.log(tag);
 
@@ -86,6 +87,8 @@
   async function getSentPayment() {
     if (type === "Cln") {
       //Make api call to CLN
+      const pays = await CLN.list_pays(tag);
+      console.log(pays);
       setTimeout(() => {
         transactions = [];
       }, 15000);
@@ -97,6 +100,8 @@
   async function getReceivedPayment() {
     if (type === "Cln") {
       // Make Api call to CLN
+      const invoices = await CLN.list_invoices(tag);
+      console.log(invoices);
       setTimeout(() => {
         transactions = [...tran];
       }, 5000);

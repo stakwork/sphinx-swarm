@@ -287,6 +287,10 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let invoices = client.list_invoices().await?;
                     Some(serde_json::to_string(&invoices)?)
                 }
+                ClnCmd::ListPays => {
+                    let pays = client.list_pays().await?;
+                    Some(serde_json::to_string(&pays)?)
+                }
             }
         }
         Cmd::Proxy(c) => {
