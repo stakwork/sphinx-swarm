@@ -218,6 +218,14 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let invoice = client.pay_keysend(keysend).await?;
                     Some(serde_json::to_string(&invoice)?)
                 }
+                LndCmd::ListPayments => {
+                    let payments = client.list_payments().await?;
+                    Some(serde_json::to_string(&payments)?)
+                }
+                LndCmd::ListInvoices => {
+                    let invoices = client.list_invoices().await?;
+                    Some(serde_json::to_string(&invoices)?)
+                }
             }
         }
         Cmd::Cln(c) => {
