@@ -7,93 +7,27 @@
   import * as CLN from "../api/cln";
   import { parseClnInvoices, parseClnPayments } from "../helpers/cln";
 
-  console.log(tag);
-
   $: transactions = null;
   let pageSize = 5;
   let page = 1;
-  let tran = [
-    {
-      id: "1pYt...PUyt",
-      index: "1.",
-      invoice: "1pYt...PUyt",
-      date: "12-04-23 10:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "1pYt...PUut",
-      index: "2.",
-      invoice: "1pYt...PUyt",
-      date: "12-04-23 10:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "1pYt...Ppyt",
-      index: "3.",
-      invoice: "1pYt...PUyt",
-      date: "12-04-23 10:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "1pYt...lUyt",
-      index: "4.",
-      invoice: "1pYt...PUyt",
-      date: "12-04-23 10:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "1pYq...PUyt",
-      index: "5.",
-      invoice: "3pYt...PUyt",
-      date: "12-04-23 10:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "9pYt...PUyt",
-      index: "6.",
-      invoice: "1pYt...PUqw",
-      date: "12-04-23 12:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "9pNt...PUyt",
-      index: "7.",
-      invoice: "1pYt...PUqw",
-      date: "12-04-23 06:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "6pYt...PUyt",
-      index: "8.",
-      invoice: "1pYt...PUqw",
-      date: "12-04-23 02:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "9qweYt...PUyt",
-      index: "9.",
-      invoice: "1pYt...PUqw",
-      date: "12-04-23 05:15pm",
-      amount: "10,000 sats",
-    },
-    {
-      id: "5qwet...PUyt",
-      index: "10.",
-      invoice: "1pYt...PUqw",
-      date: "12-04-23 10:02pm",
-      amount: "10,000 sats",
-    },
-  ];
 
+  let tempTag = "";
+  $: tag, checkTagChange();
   async function getSentPayment() {
     if (type === "Cln") {
       //Make api call to CLN
       const pays = await CLN.list_pays(tag);
-      console.log("payments", pays);
       const trans = parseClnPayments(pays.payments);
       transactions = [...trans];
     } else {
       // Make Api call to LND
+    }
+  }
+
+  function checkTagChange() {
+    if (tag !== tempTag) {
+      loadTransactions();
+      tempTag = tag;
     }
   }
 
@@ -118,6 +52,7 @@
 
   onMount(() => {
     loadTransactions();
+    tempTag = tag;
   });
 </script>
 

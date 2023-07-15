@@ -228,7 +228,7 @@ export function parseClnPayments(transactions) {
       if (transaction.status === 2) {
         trans.push({
           id,
-          index: `${i + 1}`,
+          index: `${i + 1}.`,
           invoice: shortTransactionId(id),
           date: parseDate(transaction.created_at),
           amount: `${convertMillisatsToSats(
@@ -252,7 +252,7 @@ export function parseClnInvoices(transactions) {
       if (transaction.status === 1) {
         trans.push({
           id,
-          index: `${i + 1}`,
+          index: `${i + 1}.`,
           invoice: shortTransactionId(id),
           date: parseDate(transaction.paid_at),
           amount: `${convertMillisatsToSats(
