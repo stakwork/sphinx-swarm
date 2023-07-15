@@ -5,6 +5,7 @@
   export let type = "";
   export let paymentType = "";
   import * as CLN from "../api/cln";
+  import { parseClnInvoices, parseClnPayments } from "../helpers/cln";
 
   console.log(tag);
 
@@ -88,10 +89,9 @@
     if (type === "Cln") {
       //Make api call to CLN
       const pays = await CLN.list_pays(tag);
-      console.log(pays);
-      setTimeout(() => {
-        transactions = [];
-      }, 15000);
+      console.log("payments", pays);
+      const trans = parseClnPayments(pays.payments);
+      transactions = [...trans];
     } else {
       // Make Api call to LND
     }
@@ -101,10 +101,8 @@
     if (type === "Cln") {
       // Make Api call to CLN
       const invoices = await CLN.list_invoices(tag);
-      console.log(invoices);
-      setTimeout(() => {
-        transactions = [...tran];
-      }, 5000);
+      const trans = parseClnInvoices(invoices.invoices);
+      transactions = [...trans];
     } else {
       //Make Api call to LND
     }

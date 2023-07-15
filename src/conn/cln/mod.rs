@@ -219,10 +219,10 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn list_pays(&mut self) -> Result<pb::ListpaysResponse> {
+    pub async fn list_pays(&mut self) -> Result<pb::ListsendpaysResponse> {
         let response = self
             .client
-            .list_pays(pb::ListpaysRequest {
+            .list_send_pays(pb::ListsendpaysRequest {
                 ..Default::default()
             })
             .await?;

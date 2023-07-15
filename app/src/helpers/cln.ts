@@ -187,3 +187,82 @@ export function parseUnconfirmedClnBalance(res): number {
   }
   return convertMillisatsToSats(balance);
 }
+
+function shortTransactionId(id: string): string {
+  return `${id.substring(0, 4)}...${id.substring(id.length - 4, id.length)}`;
+}
+
+function addZeroToSingleDigit(value: number): string {
+  if (value <= 9) {
+    return `0${value}`;
+  }
+  return `${value}`;
+}
+
+function parseDate(date: number): string {
+  let newDate = new Date(date * 1000);
+  const year = newDate.getFullYear();
+  const month = newDate.getMonth();
+  const day = newDate.getDate();
+  let hours = newDate.getHours();
+  if (hours === 0) {
+    hours = 0;
+  } else {
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+  }
+  const minute = newDate.getMinutes();
+  const amPm = hours >= 12 ? "PM" : "AM";
+  return `${year}-${addZeroToSingleDigit(month + 1)}-${addZeroToSingleDigit(
+    day
+  )} ${addZeroToSingleDigit(hours)}:${addZeroToSingleDigit(minute)} ${amPm}`;
+}
+
+export function parseClnPayments(transactions) {
+  if (transactions.length > 0) {
+    let trans = [];
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+      const id =
+        transaction.bolt11 || bufferToHexString(transaction.payment_hash);
+      if (transaction.status === 2) {
+        trans.push({
+          id,
+          index: `${i + 1}`,
+          invoice: shortTransactionId(id),
+          date: parseDate(transaction.created_at),
+          amount: `${convertMillisatsToSats(
+            transaction.amount_sent_msat.msat
+          ).toLocaleString()} sats`,
+        });
+      }
+    }
+    return trans;
+  } else {
+    return [];
+  }
+}
+
+export function parseClnInvoices(transactions) {
+  if (transactions.length > 0) {
+    let trans = [];
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+      const id = transaction.bolt11;
+      if (transaction.status === 1) {
+        trans.push({
+          id,
+          index: `${i + 1}`,
+          invoice: shortTransactionId(id),
+          date: parseDate(transaction.paid_at),
+          amount: `${convertMillisatsToSats(
+            transaction.amount_received_msat?.msat
+          ).toLocaleString()} sats`,
+        });
+      }
+    }
+    return trans;
+  } else {
+    return [];
+  }
+}
