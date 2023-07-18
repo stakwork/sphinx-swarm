@@ -207,7 +207,13 @@ impl Default for Stack {
             lnd.links(vec!["bitcoind"]);
             lnd.host(host.clone());
 
+            let mut lnd2 = LndImage::new("lnd2", v, &network, "10010", "9736");
+            lnd2.http_port = Some("8882".to_string());
+            lnd2.links(vec!["bitcoind"]);
+            lnd2.host(host.clone());
+
             internal_nodes.push(Image::Lnd(lnd));
+            internal_nodes.push(Image::Lnd(lnd2));
         }
 
         let lightning_provider = if is_cln { "cln" } else { "lnd" };

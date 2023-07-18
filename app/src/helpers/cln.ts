@@ -1,4 +1,9 @@
-import { bufferToHexString, convertMillisatsToSats } from "./";
+import {
+  bufferToHexString,
+  convertMillisatsToSats,
+  parseDate,
+  shortTransactionId,
+} from "./";
 import long from "long";
 import type { LndChannel, LndPeer } from "../api/lnd";
 
@@ -186,36 +191,6 @@ export function parseUnconfirmedClnBalance(res): number {
     }
   }
   return convertMillisatsToSats(balance);
-}
-
-function shortTransactionId(id: string): string {
-  return `${id.substring(0, 4)}...${id.substring(id.length - 4, id.length)}`;
-}
-
-function addZeroToSingleDigit(value: number): string {
-  if (value <= 9) {
-    return `0${value}`;
-  }
-  return `${value}`;
-}
-
-function parseDate(date: number): string {
-  let newDate = new Date(date * 1000);
-  const year = newDate.getFullYear();
-  const month = newDate.getMonth();
-  const day = newDate.getDate();
-  let hours = newDate.getHours();
-  if (hours === 0) {
-    hours = 0;
-  } else {
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-  }
-  const minute = newDate.getMinutes();
-  const amPm = hours >= 12 ? "PM" : "AM";
-  return `${year}-${addZeroToSingleDigit(month + 1)}-${addZeroToSingleDigit(
-    day
-  )} ${addZeroToSingleDigit(hours)}:${addZeroToSingleDigit(minute)} ${amPm}`;
 }
 
 export function parseClnPayments(transactions) {

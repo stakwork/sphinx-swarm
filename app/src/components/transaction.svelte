@@ -5,7 +5,9 @@
   export let type = "";
   export let paymentType = "";
   import * as CLN from "../api/cln";
+  import * as LND from "../api/lnd";
   import { parseClnInvoices, parseClnPayments } from "../helpers/cln";
+  import { parseLndPayments, parseLndInvoices } from "../helpers/lnd";
 
   $: transactions = null;
   let pageSize = 5;
@@ -21,6 +23,9 @@
       transactions = [...trans];
     } else {
       // Make Api call to LND
+      const payments = await LND.list_payments(tag);
+      const trans = parseLndPayments(payments);
+      transactions = [...trans];
     }
   }
 
@@ -39,6 +44,9 @@
       transactions = [...trans];
     } else {
       //Make Api call to LND
+      const invoices = await LND.list_invoices(tag);
+      const trans = parseLndInvoices(invoices);
+      transactions = [...trans];
     }
   }
 
