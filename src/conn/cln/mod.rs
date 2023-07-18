@@ -209,24 +209,58 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn list_invoices(&mut self) -> Result<pb::ListinvoicesResponse> {
-        let response = self
-            .client
-            .list_invoices(pb::ListinvoicesRequest {
-                ..Default::default()
-            })
-            .await?;
-        Ok(response.into_inner())
+    pub async fn list_invoices(
+        &mut self,
+        payment_hash: Option<String>,
+    ) -> Result<pb::ListinvoicesResponse> {
+        match payment_hash {
+            Some(hash) => {
+                let response = self
+                    .client
+                    .list_invoices(pb::ListinvoicesRequest {
+                        payment_hash: Some(hex::decode(hash)?),
+                        ..Default::default()
+                    })
+                    .await?;
+                Ok(response.into_inner())
+            }
+            None => {
+                let response = self
+                    .client
+                    .list_invoices(pb::ListinvoicesRequest {
+                        ..Default::default()
+                    })
+                    .await?;
+                Ok(response.into_inner())
+            }
+        }
     }
 
-    pub async fn list_pays(&mut self) -> Result<pb::ListsendpaysResponse> {
-        let response = self
-            .client
-            .list_send_pays(pb::ListsendpaysRequest {
-                ..Default::default()
-            })
-            .await?;
-        Ok(response.into_inner())
+    pub async fn list_pays(
+        &mut self,
+        payment_hash: Option<String>,
+    ) -> Result<pb::ListsendpaysResponse> {
+        match payment_hash {
+            Some(hash) => {
+                let response = self
+                    .client
+                    .list_send_pays(pb::ListsendpaysRequest {
+                        payment_hash: Some(hex::decode(hash)?),
+                        ..Default::default()
+                    })
+                    .await?;
+                Ok(response.into_inner())
+            }
+            None => {
+                let response = self
+                    .client
+                    .list_send_pays(pb::ListsendpaysRequest {
+                        ..Default::default()
+                    })
+                    .await?;
+                Ok(response.into_inner())
+            }
+        }
     }
 }
 

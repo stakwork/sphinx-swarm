@@ -291,14 +291,26 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     hm.insert("tx", hex::encode(closed.tx()));
                     Some(serde_json::to_string(&hm)?)
                 }
-                ClnCmd::ListInvoices => {
-                    let invoices = client.list_invoices().await?;
-                    Some(serde_json::to_string(&invoices)?)
-                }
-                ClnCmd::ListPays => {
-                    let pays = client.list_pays().await?;
-                    Some(serde_json::to_string(&pays)?)
-                }
+                ClnCmd::ListInvoices(i) => match i {
+                    Some(hash) => {
+                        let invoices = client.list_invoices(hash.payment_hash).await?;
+                        Some(serde_json::to_string(&invoices)?)
+                    }
+                    None => {
+                        let invoices = client.list_invoices(None).await?;
+                        Some(serde_json::to_string(&invoices)?)
+                    }
+                },
+                ClnCmd::ListPays(i) => match i {
+                    Some(hash) => {
+                        let pays = client.list_pays(hash.payment_hash).await?;
+                        Some(serde_json::to_string(&pays)?)
+                    }
+                    None => {
+                        let pays = client.list_pays(None).await?;
+                        Some(serde_json::to_string(&pays)?)
+                    }
+                },
             }
         }
         Cmd::Proxy(c) => {

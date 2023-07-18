@@ -41,12 +41,12 @@ export async function close_channel(
   return await clnCmd("CloseChannel", tag, { id, destination });
 }
 
-export async function list_invoices(tag: string) {
-  return await clnCmd("ListInvoices", tag);
+export async function list_invoices(tag: string, payment_hash?: string) {
+  return await clnCmd("ListInvoices", tag, payment_hash && { payment_hash });
 }
 
-export async function list_pays(tag: string) {
-  return await clnCmd("ListPays", tag);
+export async function list_pays(tag: string, payment_hash?: string) {
+  return await clnCmd("ListPays", tag, payment_hash && { payment_hash });
 }
 
 export async function create_channel(
