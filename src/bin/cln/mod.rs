@@ -143,7 +143,8 @@ fn make_stack() -> Stack {
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
     // let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
     let plugins = vec![ClnPlugin::HsmdBroker];
-    // cln.plugins(plugins);
+    // let plugins = vec![ClnPlugin::HtlcInterceptor];
+    cln.plugins(plugins);
     cln.links(vec![BTC, LSS]);
 
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
