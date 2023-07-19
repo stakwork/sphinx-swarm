@@ -1,4 +1,9 @@
-import { bufferToHexString, convertMillisatsToSats } from "./";
+import {
+  bufferToHexString,
+  convertMillisatsToSats,
+  parseDate,
+  shortTransactionId,
+} from "./";
 import long from "long";
 import type { LndChannel, LndPeer } from "../api/lnd";
 
@@ -186,4 +191,53 @@ export function parseUnconfirmedClnBalance(res): number {
     }
   }
   return convertMillisatsToSats(balance);
+}
+
+export function parseClnPayments(transactions) {
+  if (transactions.length > 0) {
+    let trans = [];
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+      const id =
+        transaction.bolt11 || bufferToHexString(transaction.payment_hash);
+      if (transaction.status === 2) {
+        trans.push({
+          id,
+          index: `${i + 1}.`,
+          invoice: shortTransactionId(id),
+          date: parseDate(transaction.created_at),
+          amount: `${convertMillisatsToSats(
+            transaction.amount_sent_msat.msat
+          ).toLocaleString()} sats`,
+        });
+      }
+    }
+    return trans;
+  } else {
+    return [];
+  }
+}
+
+export function parseClnInvoices(transactions) {
+  if (transactions.length > 0) {
+    let trans = [];
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+      const id = transaction.bolt11;
+      if (transaction.status === 1) {
+        trans.push({
+          id,
+          index: `${i + 1}.`,
+          invoice: shortTransactionId(id),
+          date: parseDate(transaction.paid_at),
+          amount: `${convertMillisatsToSats(
+            transaction.amount_received_msat?.msat
+          ).toLocaleString()} sats`,
+        });
+      }
+    }
+    return trans;
+  } else {
+    return [];
+  }
 }

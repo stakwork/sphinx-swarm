@@ -403,7 +403,7 @@ dependencies = [
 [[package]]
 name = "cln-grpc"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#71406dad7701f02d1b068d175113602c60ba0e70"
+source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#0faeef6ef8cec792426e21361fade4bc08f32e75"
 dependencies = [
  "anyhow",
  "bitcoin 0.29.2",
@@ -419,7 +419,7 @@ dependencies = [
 [[package]]
 name = "cln-rpc"
 version = "0.1.2"
-source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#71406dad7701f02d1b068d175113602c60ba0e70"
+source = "git+https://github.com/stakwork/lightning?branch=cln-grpc-serde#0faeef6ef8cec792426e21361fade4bc08f32e75"
 dependencies = [
  "anyhow",
  "bitcoin 0.29.2",
@@ -2690,7 +2690,7 @@ dependencies = [
 [[package]]
 name = "tonic_lnd"
 version = "0.5.0"
-source = "git+https://github.com/Evanfeenstra/tonic_lnd?branch=add-serde#a4eb9ad70d9fb3ff62721ad8cc5145758a3fd9a7"
+source = "git+https://github.com/Evanfeenstra/tonic_lnd?branch=add-serde#ff52c6de108829e3b0e09ae78d95c7901fd9af5b"
 dependencies = [
  "hex",
  "prost 0.9.0",

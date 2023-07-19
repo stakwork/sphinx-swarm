@@ -39,7 +39,10 @@ export type Cmd =
   | "StopContainer"
   | "UpdateNode"
   | "ListFunds"
-  | "CloseChannel";
+  | "CloseChannel"
+  | "ListInvoices"
+  | "ListPays"
+  | "ListPayments";
 
 interface CmdData {
   cmd: Cmd;

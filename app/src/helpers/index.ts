@@ -29,3 +29,33 @@ export function bufferToHexString(byteArray) {
     return ("0" + (byte & 0xff).toString(16)).slice(-2);
   }).join("");
 }
+
+function addZeroToSingleDigit(value: number): string {
+  if (value <= 9) {
+    return `0${value}`;
+  }
+  return `${value}`;
+}
+
+export function parseDate(date: number): string {
+  let newDate = new Date(date * 1000);
+  const year = newDate.getFullYear();
+  const month = newDate.getMonth();
+  const day = newDate.getDate();
+  let hours = newDate.getHours();
+  if (hours === 0) {
+    hours = 0;
+  } else {
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+  }
+  const minute = newDate.getMinutes();
+  const amPm = hours >= 12 ? "PM" : "AM";
+  return `${year}-${addZeroToSingleDigit(month + 1)}-${addZeroToSingleDigit(
+    day
+  )} ${addZeroToSingleDigit(hours)}:${addZeroToSingleDigit(minute)} ${amPm}`;
+}
+
+export function shortTransactionId(id: string): string {
+  return `${id.substring(0, 4)}...${id.substring(id.length - 4, id.length)}`;
+}

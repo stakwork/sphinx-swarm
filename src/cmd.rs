@@ -113,6 +113,10 @@ pub struct AddChannel {
     pub amount: i64,
     pub satsperbyte: u64,
 }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetInvoice {
+    pub payment_hash: Option<String>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
@@ -135,6 +139,8 @@ pub enum LndCmd {
     AddInvoice(AddInvoice),
     PayInvoice(PayInvoice),
     PayKeysend(PayKeysend),
+    ListPayments,
+    ListInvoices,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -150,6 +156,8 @@ pub enum ClnCmd {
     PayInvoice(PayInvoice),
     PayKeysend(PayKeysend),
     CloseChannel(CloseChannel),
+    ListInvoices(Option<GetInvoice>),
+    ListPays(Option<GetInvoice>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

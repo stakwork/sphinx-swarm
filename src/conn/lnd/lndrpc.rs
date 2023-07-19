@@ -151,6 +151,28 @@ impl LndRPC {
             .await?;
         Ok(response.into_inner())
     }
+
+    pub async fn list_payments(&mut self) -> Result<ListPaymentsResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .list_payments(ListPaymentsRequest {
+                ..Default::default()
+            })
+            .await?;
+
+        Ok(response.into_inner())
+    }
+
+    pub async fn list_invoices(&mut self) -> Result<ListInvoiceResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .list_invoices(ListInvoiceRequest {
+                ..Default::default()
+            })
+            .await?;
+
+        Ok(response.into_inner())
+    }
 }
 
 pub async fn sleep_ms(n: u64) {
