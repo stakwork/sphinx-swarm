@@ -174,7 +174,12 @@ impl Default for Stack {
                 // cln with plugins
                 let mut cln = ClnImage::new("cln", "0.1.6", &network, "9735", "10009");
                 cln.links(vec!["bitcoind", "lss"]);
-                let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
+                let mut plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
+                if let Ok(nrs) = std::env::var("NO_REMOTE_SIGNER") {
+                    if nrs == "true".to_string() {
+                        plugins = vec![ClnPlugin::HsmdBroker];
+                    }
+                }
                 cln.plugins(plugins);
                 cln.host(host.clone());
                 internal_nodes.push(Image::Cln(cln));
@@ -213,7 +218,7 @@ impl Default for Stack {
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         // proxy
-        let mut v = "0.1.38";
+        let mut v = "0.1.40";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec![lightning_provider]);

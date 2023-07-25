@@ -160,15 +160,18 @@ impl ClnBtcArgs {
 struct HsmdBrokerPorts {
     http_port: String,
     mqtt_port: String,
+    ws_port: String,
 }
 fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
     let pp = peer_port.parse::<u16>()?;
     if pp > 8876 {
         let mqtt_port = pp - 7852; // 1883
         let http_port = pp - 1735 + 10; // 8010
+        let ws_port = pp - 1735 + 83; // 8083
         Ok(HsmdBrokerPorts {
             http_port: http_port.to_string(),
             mqtt_port: mqtt_port.to_string(),
+            ws_port: ws_port.to_string(),
         })
     } else {
         Err(anyhow!("peer port too low"))
@@ -178,7 +181,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let version = "0.2.1";
+    let version = "0.2.3";
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -232,6 +235,8 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
             ports.push(hbp.mqtt_port);
             environ.push(format!("BROKER_HTTP_PORT={}", &hbp.http_port));
             ports.push(hbp.http_port);
+            environ.push(format!("BROKER_WS_PORT={}", &hbp.ws_port));
+            ports.push(hbp.ws_port);
         }
         environ.push(format!("BROKER_NETWORK={}", img.network));
     }
