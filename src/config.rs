@@ -174,12 +174,15 @@ impl Default for Stack {
                 // cln with plugins
                 let mut cln = ClnImage::new("cln", "0.1.6", &network, "9735", "10009");
                 cln.links(vec!["bitcoind", "lss"]);
-                let mut plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
-                if let Ok(nrs) = std::env::var("NO_REMOTE_SIGNER") {
-                    if nrs == "true".to_string() {
-                        plugins = vec![ClnPlugin::HsmdBroker];
-                    }
-                }
+                let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
+                    Some(nsb) => nsb == "true",
+                    None => false,
+                };
+                let plugins = if skip_remote_signer {
+                    vec![ClnPlugin::HtlcInterceptor]
+                } else {
+                    vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor]
+                };
                 cln.plugins(plugins);
                 cln.host(host.clone());
                 internal_nodes.push(Image::Cln(cln));
