@@ -1,8 +1,8 @@
+use crate::images::proxy::ProxyImage;
+use crate::utils::docker_domain;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
-
-use crate::images::ProxyImage;
 
 pub struct ProxyAPI {
     pub client: reqwest::Client,
@@ -29,9 +29,9 @@ impl ProxyAPI {
             .danger_accept_invalid_certs(true)
             .build()
             .expect("couldnt build proxy reqwest client");
-
+        let host = docker_domain(&proxy.name);
         Ok(Self {
-            url: format!("localhost:{}", proxy.admin_port),
+            url: format!("{}:{}", &host, proxy.admin_port),
             client,
             token: proxy.admin_token.clone().unwrap_or("".to_string()),
         })

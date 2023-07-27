@@ -1,5 +1,5 @@
 [package]
-name = "sphinx-swarm"
+name = "sphinx_swarm"
 version = "0.1.0"
 edition = "2021"
 
@@ -30,3 +30,59 @@ rand = "0.8"
 bitcoincore-rpc = "0.15.0"
 bitcoincore-rpc-json = "0.15.0"
 dotenv = "0.15.0"
+url = "2.2.2"
+rsa = "0.7.2"
+walkdir = "2"
+tar = "0.4"
+jwt = "0.16.0"
+bcrypt = "0.13"
+sha2 = "0.10"
+hmac = "0.12"
+async-trait = "0.1.64"
+tonic = { version = "0.8", features = ["tls", "transport"] }
+cln-grpc = { git = "https://github.com/stakwork/lightning", branch = "cln-grpc-serde" }
+serde_yaml = "0.9"
+
+[lib]
+name = "sphinx_swarm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "perm"
+path = "src/perm.rs"
+
+[[bin]]
+name = "stack"
+path = "src/bin/stack/mod.rs"
+
+[[bin]]
+name = "cln"
+path = "src/bin/cln/mod.rs"
+
+[[bin]]
+name = "down"
+path = "src/bin/down.rs"
+
+[[bin]]
+name = "btc"
+path = "src/bin/btc_test.rs"
+
+[[bin]]
+name = "btc_prod"
+path = "src/bin/btc_prod.rs"
+
+# [[bin]]
+# name = "demo"
+# path = "src/bin/demo/mod.rs"
+
+# [[bin]]
+# name = "test"
+# path = "src/bin/test.rs"
+
+[[bin]]
+name = "cln_mainnet_test"
+path = "src/bin/cln_mainnet_test.rs"
+
+[[bin]]
+name = "super"
+path = "src/bin/super/mod.rs"

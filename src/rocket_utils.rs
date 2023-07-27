@@ -38,7 +38,7 @@ impl Fairing for CORS {
         response.set_header(http::Header::new("Access-Control-Allow-Origin", "*"));
         response.set_header(http::Header::new(
             "Access-Control-Allow-Methods",
-            "POST, GET, PATCH, OPTIONS",
+            "POST, GET, PATCH, OPTIONS, PUT",
         ));
         response.set_header(http::Header::new("Access-Control-Allow-Headers", "*"));
         response.set_header(http::Header::new(
@@ -58,16 +58,22 @@ pub enum Error {
     Hex(#[from] hex::FromHexError),
     #[error("rocket error: {0}")]
     Rocket(#[from] rocket::Error),
+    #[error("json error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("anyhow error: {0}")]
+    Anyhow(#[from] anyhow::Error),
+    #[error("BcryptError error: {0}")]
+    BcryptError(#[from] bcrypt::BcryptError),
+    #[error("unauthorized")]
+    Unauthorized,
 }
 
 use rocket::http::Status;
 use rocket::response::{self, Responder};
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
     fn respond_to(self, req: &'r rocket::Request<'_>) -> response::Result<'o> {
-        // log `self` to your favored error tracker, e.g.
-        // sentry::capture_error(&self);
         match self {
-            // in our simplistic example, we're happy to respond with the default 500 responder in all cases
+            Error::Unauthorized => Status::Unauthorized.respond_to(req),
             _ => Status::InternalServerError.respond_to(req),
         }
     }

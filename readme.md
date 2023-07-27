@@ -1,11 +1,15 @@
 ### stack
 
-`cargo run stack`
+`cargo run --bin stack`
 
-`cd src/modes/stack/app`
+`cd app`
 
 `yarn dev`
 
+[http://localhost:5173/](http://localhost:5173/)
+
+login with `admin`/`password`
+
 ### pull nodes down
 
-`cargo run down`
+`./clear.sh`

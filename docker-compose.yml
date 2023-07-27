@@ -1,0 +1,82 @@
+version: "2"
+
+services:
+  load_balancer:
+    image: traefik:v2.2.1
+    container_name: load_balancer
+    networks:
+      - sphinx-swarm
+    command:
+      # - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mqttsecure.address=:8883"
+      - "--certificatesresolvers.myresolver.acme.email=evanfeenstra@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=route53"
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+    ports:
+      # The HTTP port
+      - 80:80
+      # The Web UI (enabled by --api.insecure=true)
+      - 8080:8080
+      # entrypoints
+      - 443:443
+      - 8883:8883
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/admin/letsencrypt:/letsencrypt
+    environment:
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - AWS_REGION=$AWS_REGION
+    logging:
+      options:
+        max-size: 10m
+
+  sphinx-swarm:
+    image: sphinxlightning/sphinx-swarm:0.3.8
+    container_name: sphinx-swarm
+    networks:
+      - sphinx-swarm
+    depends_on:
+      - load_balancer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/admin/vol:/vol
+    ports:
+      - 8000:8000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elements.rule=Host(`app.${HOST}`)"
+      - "traefik.http.services.elements.loadbalancer.server.port=8000"
+      - "traefik.http.routers.elements.tls=true"
+      - "traefik.http.routers.elements.tls.certresolver=myresolver"
+      - "traefik.http.routers.elements.entrypoints=websecure"
+    restart: on-failure
+    environment:
+      - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
+      - ONLY_NODE=$ONLY_NODE # only start this node
+      - BTC_PASS=$BTC_PASS # for starting after bitcoind sync
+      - DOCKER_RUN=true # client use sphinx-swarm network
+      - NETWORK=bitcoin
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8000
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - AWS_REGION=$AWS_REGION
+      - AWS_S3_REGION_NAME=$AWS_S3_REGION_NAME
+      - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
+      - STAKWORK_RADAR_REQUEST_TOKEN=$STAKWORK_RADAR_REQUEST_TOKEN
+      - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
+      - NO_REMOTE_SIGNER=$NO_REMOTE_SIGNER
+      - NO_SECOND_BRAIN=$NO_SECOND_BRAIN
+
+networks:
+  sphinx-swarm:
+    external: true
