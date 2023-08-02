@@ -3,7 +3,7 @@ use crate::conn::cln::ClnRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
-use crate::images::boltwall::BoltwallImage;
+use crate::images::boltwall::{BoltwallImage, ExternalLnd};
 use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::jarvis::JarvisImage;
 use crate::images::navfiber::NavFiberImage;
@@ -135,6 +135,83 @@ impl Default for User {
     }
 }
 
+fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &str) -> Stack {
+    Stack {
+        network: network.to_string(),
+        nodes: second_brain_imgs(host.clone(), lightning_provider)
+            .iter()
+            .map(|n| Node::Internal(n.to_owned()))
+            .collect(),
+        host,
+        users: vec![Default::default()],
+        jwt_key: secrets::random_word(16),
+        ready: false,
+    }
+}
+
+fn env_no_empty(varname: &str) -> Option<String> {
+    match std::env::var(varname).ok() {
+        Some(v) => {
+            if v == "" {
+                return None;
+            } else {
+                Some(v)
+            }
+        }
+        None => None,
+    }
+}
+
+fn external_lnd() -> Option<ExternalLnd> {
+    let address = env_no_empty("EXTERNAL_LND_ADDRESS");
+    let macaroon = env_no_empty("EXTERNAL_LND_MACAROON");
+    let cert = env_no_empty("EXTERNAL_LND_CERT");
+    if let Some(a) = address {
+        if let Some(m) = macaroon {
+            if let Some(c) = cert {
+                return Some(ExternalLnd::new(&a, &m, &c));
+            }
+        }
+    }
+    None
+}
+
+fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Image> {
+    // neo4j
+    let mut v = "4.4.9";
+    let mut neo4j = Neo4jImage::new("neo4j", v);
+    neo4j.host(host.clone());
+
+    // jarvis
+    v = "v0.0.16";
+    let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
+    jarvis.links(vec!["neo4j", "boltwall"]);
+
+    // boltwall
+    v = "v0.0.42";
+    let mut bolt = BoltwallImage::new("boltwall", v, "8444");
+    if let Some(ext) = external_lnd() {
+        bolt.external_lnd(ext);
+        bolt.links(vec!["jarvis"]);
+    } else {
+        bolt.links(vec!["jarvis", lightning_provider]);
+    }
+    bolt.host(host.clone());
+
+    // navfiber
+    v = "v0.1.38";
+    let mut nav = NavFiberImage::new("navfiber", v, "8001");
+    nav.links(vec!["jarvis"]);
+    nav.host(host.clone());
+
+    vec![
+        Image::NavFiber(nav),
+        Image::Neo4j(neo4j),
+        Image::BoltWall(bolt),
+        Image::Jarvis(jarvis),
+    ]
+}
+
 // NETWORK = "bitcoin", "regtest"
 // HOST = hostname for this server (swarmx.sphinx.chat)
 // BTC_PASS = already created BTC password
@@ -149,6 +226,7 @@ impl Default for Stack {
             }
         }
 
+        // host
         let mut host = std::env::var("HOST").ok();
         // must include a "."
         if let Some(h) = host.clone() {
@@ -158,9 +236,21 @@ impl Default for Stack {
             host = None
         }
 
+        // choose cln or lnd
+        let mut is_cln = false;
+        let lightning_provider = if is_cln { "cln" } else { "lnd" };
+
+        // choose only second brain
+        let second_brain_only = match std::env::var("SECOND_BRAIN_ONLY").ok() {
+            Some(sbo) => sbo == "true",
+            None => false,
+        };
+        if second_brain_only {
+            return only_second_brain(&network, host.clone(), lightning_provider);
+        }
+
         let mut internal_nodes = vec![];
         let mut external_nodes = vec![];
-        let mut is_cln = false;
 
         // CLN and external BTC
         if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
@@ -218,8 +308,6 @@ impl Default for Stack {
             internal_nodes.push(Image::Lnd(lnd));
         }
 
-        let lightning_provider = if is_cln { "cln" } else { "lnd" };
-
         // proxy
         let mut v = "0.1.40";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
@@ -249,28 +337,6 @@ impl Default for Stack {
         let mut cache = CacheImage::new("cache", v, "9000", true);
         cache.links(vec!["tribes"]);
 
-        // neo4j
-        v = "4.4.9";
-        let mut neo4j = Neo4jImage::new("neo4j", v);
-        neo4j.host(host.clone());
-
-        // jarvis
-        v = "v0.0.16";
-        let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
-        jarvis.links(vec!["neo4j", "boltwall"]);
-
-        // boltwall
-        v = "v0.0.42";
-        let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-        bolt.links(vec!["jarvis", lightning_provider]);
-        bolt.host(host.clone());
-
-        // navfiber
-        v = "v0.1.38";
-        let mut nav = NavFiberImage::new("navfiber", v, "8001");
-        nav.links(vec!["jarvis"]);
-        nav.host(host.clone());
-
         // other_internal_nodes
         let other_internal_nodes = vec![
             Image::Proxy(proxy),
@@ -285,12 +351,7 @@ impl Default for Stack {
             None => false,
         };
         if !skip_second_brain {
-            let second_brain_nodes = vec![
-                Image::NavFiber(nav),
-                Image::Neo4j(neo4j),
-                Image::BoltWall(bolt),
-                Image::Jarvis(jarvis),
-            ];
+            let second_brain_nodes = second_brain_imgs(host.clone(), lightning_provider);
             internal_nodes.extend(second_brain_nodes);
         }
 
@@ -305,7 +366,6 @@ impl Default for Stack {
             ExternalNodeType::Tribes,
             "tribes.sphinx.chat",
         )));
-
         external_nodes.push(Node::External(ExternalNode::new(
             "memes",
             ExternalNodeType::Meme,
