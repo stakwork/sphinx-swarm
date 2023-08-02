@@ -79,15 +79,17 @@ pub async fn create_and_start(
 }
 
 pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
+    let from_image = c.image.clone().context("expected image")?;
+    let mut opts = CreateImageOptions {
+        from_image: from_image.to_string(),
+        ..Default::default()
+    };
+    if from_image.contains("/sphinx-lss") {
+        log::info!("running sphinxlightning/sphinx-lss on linux/x86_64");
+        opts.platform = "linux/x86_64".to_string();
+    }
     docker
-        .create_image::<String>(
-            Some(CreateImageOptions {
-                from_image: c.image.clone().context("expected image")?.into(),
-                ..Default::default()
-            }),
-            None,
-            None,
-        )
+        .create_image::<String>(Some(opts), None, None)
         .try_collect::<Vec<_>>()
         .await?;
     Ok(())
