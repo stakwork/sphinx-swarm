@@ -78,14 +78,25 @@ pub async fn create_and_start(
     Ok(id_opt)
 }
 
+fn m1_not_supported(from_image: &str) -> bool {
+    let vs = vec!["/sphinx-lss".to_string(), "/cln-sphinx".to_string()];
+    let mut b = false;
+    for v in vs {
+        if from_image.contains(&v) {
+            b = true;
+        }
+    }
+    b
+}
+
 pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
     let from_image = c.image.clone().context("expected image")?;
     let mut opts = CreateImageOptions {
         from_image: from_image.to_string(),
         ..Default::default()
     };
-    if from_image.contains("/sphinx-lss") || from_image.contains("/cln-sphinx") {
-        log::info!("running sphinxlightning/sphinx-lss on linux/x86_64");
+    if m1_not_supported(&from_image) {
+        log::info!("running {} on linux/x86_64", &from_image);
         opts.platform = "linux/x86_64".to_string();
     }
     docker
