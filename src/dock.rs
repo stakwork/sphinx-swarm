@@ -84,7 +84,7 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
         from_image: from_image.to_string(),
         ..Default::default()
     };
-    if from_image.contains("/sphinx-lss") {
+    if from_image.contains("/sphinx-lss") || from_image.contains("/cln-sphinx") {
         log::info!("running sphinxlightning/sphinx-lss on linux/x86_64");
         opts.platform = "linux/x86_64".to_string();
     }
