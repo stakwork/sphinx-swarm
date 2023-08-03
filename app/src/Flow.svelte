@@ -3,7 +3,7 @@
   import { defaultPositions } from "./nodes";
   import { chipSVG, type Node, type NodeType, smalls } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
-  import { selectedNode, stack } from "./store";
+  import {selectedNode, stack} from "./store";
 
   $: flow = toSvelvet($stack.nodes, nodeCallback);
 

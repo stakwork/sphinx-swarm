@@ -42,7 +42,8 @@ export type Cmd =
   | "CloseChannel"
   | "ListInvoices"
   | "ListPays"
-  | "ListPayments";
+  | "ListPayments"
+  | "GetStatistics";
 
 interface CmdData {
   cmd: Cmd;

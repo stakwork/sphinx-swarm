@@ -17,3 +17,4 @@ src/bin/stack/notes
 src/bin/cln/creds
 src/bin/stack/app/node_modules
 somefile.md
+.idea

@@ -17,6 +17,7 @@
   import Controller from "./controls/Controller.svelte";
   import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
+  import NodeStats from "./nodes/NodeStats.svelte";
   import NodeAction from "./nodes/NodeAction.svelte";
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { onMount } from "svelte";
@@ -134,6 +135,7 @@
     <div class="head_section">
       {#if $stack.ready}
         <Onboarding />
+        <NodeStats />
       {/if}
       <AddNode />
       <section class="menu-btn">
