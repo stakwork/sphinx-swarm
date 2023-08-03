@@ -17,6 +17,7 @@ pub struct BoltwallImage {
     pub port: String,
     pub host: Option<String>,
     pub session_secret: String,
+    pub external_lnd: Option<ExternalLnd>,
     pub links: Links,
 }
 
@@ -28,11 +29,15 @@ impl BoltwallImage {
             port: port.to_string(),
             host: None,
             session_secret: secrets::random_word(32),
+            external_lnd: None,
             links: vec![],
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
-        self.links = strarr(links)
+        self.links = strarr(links);
+    }
+    pub fn external_lnd(&mut self, external_lnd: ExternalLnd) {
+        self.external_lnd = Some(external_lnd);
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
@@ -45,6 +50,20 @@ impl BoltwallImage {
 impl DockerConfig for BoltwallImage {
     async fn make_config(&self, nodes: &Vec<Node>, docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+
+        let jarvis_node = li.find_jarvis().context("Boltwall: No Jarvis")?;
+
+        if let Some(ext) = self.external_lnd.clone() {
+            return Ok(boltwall(
+                &self,
+                None,
+                Some(ext.creds),
+                None,
+                &jarvis_node,
+                Some(ext.address),
+            ));
+        }
+
         let lnd_node = li.find_lnd();
         let mut lnd_creds = None;
         if let Some(lnd) = &lnd_node {
@@ -61,9 +80,14 @@ impl DockerConfig for BoltwallImage {
         }
         let cln_node = li.find_cln();
 
-        let jarvis_node = li.find_jarvis().context("Boltwall: No Jarvis")?;
-
-        Ok(boltwall(&self, lnd_node, lnd_creds, cln_node, &jarvis_node))
+        Ok(boltwall(
+            &self,
+            lnd_node,
+            lnd_creds,
+            cln_node,
+            &jarvis_node,
+            None,
+        ))
     }
 }
 
@@ -76,7 +100,26 @@ impl DockerHubImage for BoltwallImage {
     }
 }
 
-struct LndCreds {
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct ExternalLnd {
+    pub address: String,
+    pub creds: LndCreds,
+}
+
+impl ExternalLnd {
+    pub fn new(address: &str, mac: &str, cert: &str) -> Self {
+        Self {
+            address: address.to_string(),
+            creds: LndCreds {
+                macaroon: mac.to_string(),
+                cert: cert.to_string(),
+            },
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct LndCreds {
     macaroon: String,
     cert: String,
 }
@@ -87,6 +130,7 @@ fn boltwall(
     lnd_creds: Option<LndCreds>,
     cln_node: Option<cln::ClnImage>,
     jarvis: &jarvis::JarvisImage,
+    external_lnd_address: Option<String>,
 ) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
@@ -105,16 +149,25 @@ fn boltwall(
         ),
         format!("SESSION_SECRET={}", node.session_secret),
     ];
-    if let Some(lnd_node) = lnd_node {
+    let mut extra_vols = None;
+
+    // EXTERNAL LND
+    if let Some(ext_addy) = external_lnd_address {
+        env.push(format!("LND_SOCKET={}", ext_addy));
+        if let Some(creds) = lnd_creds {
+            env.push(format!("LND_TLS_CERT={}", &creds.cert));
+            env.push(format!("LND_MACAROON={}", &creds.macaroon));
+        }
+    // INTERNAL LND
+    } else if let Some(lnd_node) = lnd_node {
         let lnd_socket = format!("{}:{}", &domain(&lnd_node.name), lnd_node.rpc_port);
         env.push(format!("LND_SOCKET={}", lnd_socket));
         if let Some(creds) = lnd_creds {
             env.push(format!("LND_TLS_CERT={}", &creds.cert));
             env.push(format!("LND_MACAROON={}", &creds.macaroon));
         }
-    }
-    let mut extra_vols = None;
-    if let Some(cln) = cln_node {
+    // INTERNAL CLN
+    } else if let Some(cln) = cln_node {
         let cln_vol = volume_string(&cln.name, "/cln");
         extra_vols = Some(vec![cln_vol]);
         let creds = cln.credentials_paths("cln");
