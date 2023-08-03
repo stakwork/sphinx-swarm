@@ -151,24 +151,18 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
 
 fn env_no_empty(varname: &str) -> Option<String> {
     match std::env::var(varname).ok() {
-        Some(v) => {
-            if v == "" {
-                return None;
-            } else {
-                Some(v)
-            }
-        }
+        Some(v) => match v.as_str() {
+            "" => None,
+            s => Some(s.to_string()),
+        },
         None => None,
     }
 }
 
 fn external_lnd() -> Option<ExternalLnd> {
-    let address = env_no_empty("EXTERNAL_LND_ADDRESS");
-    let macaroon = env_no_empty("EXTERNAL_LND_MACAROON");
-    let cert = env_no_empty("EXTERNAL_LND_CERT");
-    if let Some(a) = address {
-        if let Some(m) = macaroon {
-            if let Some(c) = cert {
+    if let Some(a) = env_no_empty("EXTERNAL_LND_ADDRESS") {
+        if let Some(m) = env_no_empty("EXTERNAL_LND_MACAROON") {
+            if let Some(c) = env_no_empty("EXTERNAL_LND_CERT") {
                 return Some(ExternalLnd::new(&a, &m, &c));
             }
         }
