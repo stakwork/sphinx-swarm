@@ -432,19 +432,14 @@ pub async fn get_container_statistics(
 
                 if let Some(Ok(stats)) = stream.next().await {
                     let cont_name = container.names.clone().unwrap().get(0).unwrap().to_owned().replace("/", "");
-                    println!("==>1 {:?}", cont_name);
-                    println!("==>2 {:?}", container_name);
                     if container_name.len() > 1{
                         if cont_name == container_name {
-                            println!("==>in if");
                             let container_stat = get_container_stats(container_id, cont_name, container.image.clone().unwrap(),
                                                                      stats.cpu_stats.cpu_usage.total_usage, stats.cpu_stats.system_cpu_usage, stats.memory_stats.usage, stats.memory_stats.max_usage);
                             container_stats.push(container_stat);
                             break;
                         }
                     } else {
-                        println!("==>in else");
-
                         if cont_name.ends_with(".sphinx") {
                             let container_stat = get_container_stats(container_id, cont_name, container.image.clone().unwrap(),
                                                                      stats.cpu_stats.cpu_usage.total_usage, stats.cpu_stats.system_cpu_usage, stats.memory_stats.usage, stats.memory_stats.max_usage);

@@ -256,22 +256,7 @@
   }
   .doughnut-box {
     margin: 2rem;
+    flex-wrap: wrap;
   }
 
-  .doughnut-grid-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 3 columns with equal width */
-    gap: 20px; /* Gap between grid items */
-    background-color: #f3f3f3;
-    padding: 20px;
-  }
-
-  /* Style individual grid items */
-  .doughnut-grid-item {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: center;
-    font-size: 16px;
-  }
 </style>

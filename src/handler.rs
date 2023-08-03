@@ -131,9 +131,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
             SwarmCmd::GetStatistics(container_name) => {
                 let docker = dockr();
-
-                // get_container_statistics(&docker, &container_name).await?;
-                println!("GetStatistics Called with {:?}", &container_name);
+                println!("Calling GetStatistics with {:?}", &container_name);
                 let containers = get_container_statistics(&docker, &container_name).await?;
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
