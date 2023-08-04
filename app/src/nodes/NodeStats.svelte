@@ -70,7 +70,7 @@
 
   function getData() {
     let doughnut_data = []
-    console.log(">>>>>>isGlobalStats  ", $selectedNode)
+    console.log(">>>>>>$selectedNode  ", $selectedNode)
     if(!$selectedNode){
       for (let i = 0; i < stats.length; i++) {
         doughnut_data.push({
@@ -142,7 +142,7 @@
     </section>
     {#if isLoading}
       <div class="loader">
-        <Loading />
+        <Loading small="true" />
       </div>
     {/if}
     <section class="container">
