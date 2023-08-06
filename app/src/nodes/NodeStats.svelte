@@ -7,12 +7,12 @@
   import {get_container_stat} from "../api/swarm";
   import { Doughnut } from 'svelte-chartjs';
   import {
-      Chart as ChartJS,
-      Title,
-      Tooltip,
-      Legend,
-      ArcElement,
-      CategoryScale,
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement,
+    CategoryScale,
   } from 'chart.js';
   import {selectedNode} from "../store";
 
@@ -29,7 +29,6 @@
   let stats = [{...default_stats}];
   let data = getData();
   let isLoading = false;
-
 
 
   async function getNodeStats() {
@@ -122,16 +121,16 @@
 <section class="stats_section">
   <Button
           size="field" kind="secondary" icon={Logs} on:click={getNodeStats}
-    >Get Stats</Button
+  >Get Stats</Button
   >
 
-<!--  <Button-->
-<!--          on:click={getNodeStats}-->
-<!--          icon={Logs}-->
-<!--          size="field"-->
-<!--          kind="secondary"-->
-<!--          class="get_stats_btn">Get Stats</Button-->
-<!--  >-->
+  <!--  <Button-->
+  <!--          on:click={getNodeStats}-->
+  <!--          icon={Logs}-->
+  <!--          size="field"-->
+  <!--          kind="secondary"-->
+  <!--          class="get_stats_btn">Get Stats</Button-->
+  <!--  >-->
 
   <div class="modal" style={`display: ${open ? "block" : "none"}`}>
     <section class="modal-head">
@@ -168,10 +167,10 @@
             </div>
           {/if}
           <!--{:else if stats.length > 1}-->
-        <!--  {#each stats as stat}-->
-        <!--    <div class="mini-doughnut"> <Doughnut {data} options={{ responsive: true, class: "mini-doughnut" }} /> </div>-->
-        <!--  {/each}-->
-        <!--{:else}-->
+          <!--  {#each stats as stat}-->
+          <!--    <div class="mini-doughnut"> <Doughnut {data} options={{ responsive: true, class: "mini-doughnut" }} /> </div>-->
+          <!--  {/each}-->
+          <!--{:else}-->
         {/if}
       </div>
     </section>
