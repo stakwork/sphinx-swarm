@@ -303,7 +303,7 @@ impl Default for Stack {
         }
 
         // proxy
-        let mut v = "0.1.40";
+        let mut v = "0.1.44";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec![lightning_provider]);
