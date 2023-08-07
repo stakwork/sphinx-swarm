@@ -23,7 +23,7 @@ window.route_hint = `${lndpk}:${scid}`;
 
 03cd01230c28e29300f1a10892e3421d5474d32fccbd34d60f315c556c443b7e38
 
-curl http://localhost:5052/balances -H "x-admin-token: $ADMIN_TOKEN"
+curl http://localhost:5555/balances -H "x-admin-token: $ADMIN_TOKEN"
 
 ### copy creds for proxy js test
 
