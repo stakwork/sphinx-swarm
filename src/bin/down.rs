@@ -17,7 +17,7 @@ pub async fn main() -> anyhow::Result<()> {
         log::info!("=> no running containers");
     }
     for c in all {
-        if let Some(name) = should_go(&c.names) {
+        if let Some(name) = sphinx_container(&c.names) {
             if let Some(id) = c.id {
                 log::info!("=> pulling down {:?}", &name);
                 stop_and_remove(&docker, id.as_str()).await?;
@@ -41,16 +41,4 @@ pub async fn main() -> anyhow::Result<()> {
     log::info!("=> removed network {}", net_name);
 
     Ok(())
-}
-
-// only containers with domains that end in .sphinx
-fn should_go(names: &Option<Vec<String>>) -> Option<String> {
-    if let Some(names) = names.clone() {
-        if let Some(name) = names.get(0) {
-            if name.ends_with(".sphinx") {
-                return Some(name.clone());
-            }
-        }
-    };
-    None
 }

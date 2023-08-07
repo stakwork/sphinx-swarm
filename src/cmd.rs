@@ -50,7 +50,7 @@ pub enum SwarmCmd {
     StartContainer(String),
     StopContainer(String),
     UpdateNode(UpdateNode),
-    GetStatistics(String)
+    GetStatistics(Option<String>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
