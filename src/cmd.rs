@@ -102,6 +102,7 @@ pub struct PayInvoice {
 pub struct PayKeysend {
     pub amt: i64,
     pub dest: String,
+    pub route_hint: Option<String>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CloseChannel {

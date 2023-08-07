@@ -1,6 +1,13 @@
 import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 
+// test route hint
+declare global {
+  interface Window {
+    route_hint: string;
+  }
+}
+
 async function clnCmd(cmd: Cmd, tag: string, content?: any) {
   return await send_cmd("Cln", { cmd, content }, tag);
 }
@@ -29,8 +36,18 @@ export async function pay_invoice(tag: string, payment_request) {
   return await clnCmd("PayInvoice", tag, { payment_request });
 }
 
-export async function keysend(tag: string, dest: string, amt: number) {
-  return await clnCmd("PayKeysend", tag, { dest, amt });
+export async function keysend(
+  tag: string,
+  dest: string,
+  amt: number,
+  route_hint?: string
+) {
+  const bod: { [k: string]: any } = {
+    dest,
+    amt,
+  };
+  if (route_hint) bod.route_hint = route_hint;
+  return await clnCmd("PayKeysend", tag, bod);
 }
 
 export async function close_channel(

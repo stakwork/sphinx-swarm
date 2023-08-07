@@ -287,7 +287,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     Some(serde_json::to_string(&paid)?)
                 }
                 ClnCmd::PayKeysend(i) => {
-                    let paid = client.keysend(&i.dest, i.amt as u64).await?;
+                    let paid = client.keysend(&i.dest, i.amt as u64, i.route_hint).await?;
                     Some(serde_json::to_string(&paid)?)
                 }
                 ClnCmd::CloseChannel(i) => {

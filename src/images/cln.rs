@@ -224,7 +224,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         environ.push(format!("GREENLIGHT_VERSION={}", git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {
-            let vls_lss = format!("http://{}:55551", &domain(&lss.name));
+            let vls_lss = format!("http://{}:{}", &domain(&lss.name), &lss.port);
             log::info!("hook up to LSS {}", &vls_lss);
             environ.push(format!("VLS_LSS={}", &vls_lss));
         }

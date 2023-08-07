@@ -4,7 +4,7 @@ use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::lss::LssImage;
-use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, Image};
+use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, lnd::LndImage, proxy::ProxyImage, Image};
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, handler, logs, routes};
@@ -20,7 +20,7 @@ const CLN1: &str = "cln_1";
 const CLN2: &str = "cln_2";
 const LSS: &str = "lss_1";
 const JWT_KEY: &str = "e8int45s0pofgtye";
-// const LND1: &str = "lnd_1";
+const LND_1: &str = "lnd_1";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -55,7 +55,8 @@ pub async fn main() -> Result<()> {
         }
     }
     if !skip_setup {
-        setup_chans(&mut clients).await?;
+        setup_cln_chans(&mut clients, &stack.nodes).await?;
+        setup_lnd_chans(&mut clients, &stack.nodes).await?;
     }
 
     println!("hydrate clients now!");
@@ -68,21 +69,50 @@ pub async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn setup_chans(clients: &mut Clients) -> Result<()> {
+async fn setup_cln_chans(clients: &mut Clients, nodes: &Vec<Node>) -> Result<()> {
     let cln2 = clients.cln.get_mut(CLN2).unwrap();
     let cln2_info = cln2.get_info().await?;
     let cln2_pubkey = hex::encode(cln2_info.id);
-    log::info!("CLN2 pubkey {}", &cln2_pubkey);
-    make_new_chan(clients, &cln2_pubkey).await?;
+    if let Some(node) = nodes.iter().find(|n| n.clone().name() == CLN2) {
+        log::info!("CLN2 pubkey {}", &cln2_pubkey);
+        let n = node.as_internal()?.as_cln()?;
+        make_new_chan(clients, CLN2, &cln2_pubkey, &n.peer_port).await?;
+    } else {
+        log::error!("CLN2 not found!");
+    }
     Ok(())
 }
 
-async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
+async fn setup_lnd_chans(clients: &mut Clients, nodes: &Vec<Node>) -> Result<()> {
+    if !do_test_proxy() {
+        return Ok(());
+    }
+    let lnd1 = clients.lnd.get_mut(LND_1).unwrap();
+    let lnd1_info = lnd1.get_info().await?;
+    let lnd1_pubkey = lnd1_info.identity_pubkey;
+    if let Some(node) = nodes.iter().find(|n| n.clone().name() == LND_1) {
+        log::info!("LND1 pubkey {}", &lnd1_pubkey);
+        let n = node.as_internal()?.as_lnd()?;
+        make_new_chan(clients, LND_1, &lnd1_pubkey, &n.peer_port).await?;
+    }
+    Ok(())
+}
+
+async fn make_new_chan(
+    clients: &mut Clients,
+    node_name: &str,
+    peer_pubkey: &str,
+    peer_port: &str,
+) -> Result<()> {
     let cln1 = clients.cln.get_mut(CLN1).unwrap();
 
     // skip if already have a chan
     let peers = cln1.list_peers().await?;
-    for p in peers.peers {
+    for p in peers
+        .peers
+        .iter()
+        .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
+    {
         if p.channels.len() > 0 {
             log::info!("skipping new channel setup");
             return Ok(());
@@ -90,10 +120,10 @@ async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
     }
 
     let connected = cln1
-        .connect_peer(peer_pubkey, &domain(CLN2), "9736")
+        .connect_peer(peer_pubkey, &domain(node_name), peer_port)
         .await?;
     let channel = hex::encode(connected.id);
-    log::info!("CLN1 connected to CLN2: {}", channel);
+    log::info!("CLN1 connected to {}: {}", node_name, channel);
     let funded = cln1.try_fund_channel(&channel, 100_000_000, None).await?;
     log::info!("funded {:?}", hex::encode(funded.tx));
     let addr = cln1.new_addr().await?;
@@ -107,7 +137,11 @@ async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
     log::info!("wait for channel to confirm...");
     while !ok {
         let peers = cln1.list_peers().await?;
-        for p in peers.peers {
+        for p in peers
+            .peers
+            .into_iter()
+            .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
+        {
             for c in p.channels {
                 // println!("{:?}", c.status);
                 if let Some(status) = c.status.get(0) {
@@ -121,11 +155,16 @@ async fn make_new_chan(clients: &mut Clients, peer_pubkey: &str) -> Result<()> {
         sleep(1000).await;
     }
 
-    let sent_keysend = cln1.keysend(peer_pubkey, 1_000_000).await?;
-    println!(
-        "=> sent_keysend to {} {:?}",
-        peer_pubkey, sent_keysend.status
-    );
+    match cln1.keysend(peer_pubkey, 1_000_000, None).await {
+        Ok(sent_keysend) => println!(
+            "=> sent_keysend to {} {:?}",
+            peer_pubkey, sent_keysend.status
+        ),
+        Err(e) => {
+            println!("keysend err {:?}", e)
+        }
+    };
+
     Ok(())
 }
 
@@ -137,31 +176,42 @@ fn make_stack() -> Stack {
     let mut bitcoind = BtcImage::new(BTC, v, &network);
     bitcoind.set_user_password("sphinx", "password");
 
-    let lss = LssImage::new(LSS, "0.0.4");
+    let lss = LssImage::new(LSS, "0.0.4", "55551");
 
     let v = "v23.02";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
     // let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
-    let plugins = vec![ClnPlugin::HsmdBroker];
-    // let plugins = vec![ClnPlugin::HtlcInterceptor];
-    cln.plugins(plugins);
+    // let plugins = vec![ClnPlugin::HsmdBroker];
+    let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
+    cln.plugins(cln_plugins.clone());
     cln.links(vec![BTC, LSS]);
 
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
     cln2.links(vec![BTC]);
 
-    // let v = "v0.15.5-beta";
-    // let mut lnd = sphinx_swarm::images::lnd::LndImage::new(LND1, v, &network, "10011", "9737");
-    // lnd.http_port = Some("8881".to_string());
-    // lnd.links(vec![BTC]);
+    let mut internal_nodes = vec![Image::Btc(bitcoind), Image::Cln(cln), Image::Cln(cln2)];
+    if cln_plugins.contains(&ClnPlugin::HsmdBroker) {
+        internal_nodes.push(Image::Lss(lss));
+    }
 
-    let internal_nodes = vec![
-        Image::Btc(bitcoind),
-        Image::Lss(lss),
-        Image::Cln(cln),
-        Image::Cln(cln2),
-        // Image::Lnd(lnd),
-    ];
+    if do_test_proxy() {
+        let v = "v0.16.2-beta";
+        let mut lnd = LndImage::new(LND_1, v, &network, "10011", "9737");
+        lnd.http_port = Some("8881".to_string());
+        lnd.links(vec![BTC]);
+
+        let v = "0.1.44";
+        let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5555");
+        println!("=====================");
+        println!("proxy admin token {:?}", proxy.admin_token);
+        println!("=====================");
+        proxy.new_nodes(Some("0".to_string()));
+        proxy.links(vec![LND_1]);
+
+        let proxy_test_nodes = vec![Image::Lnd(lnd), Image::Proxy(proxy)];
+        internal_nodes.extend_from_slice(&proxy_test_nodes);
+    }
+
     let nodes: Vec<Node> = internal_nodes
         .iter()
         .map(|n| Node::Internal(n.to_owned()))
@@ -174,6 +224,15 @@ fn make_stack() -> Stack {
         jwt_key: JWT_KEY.to_string(),
         ready: false,
     }
+}
+
+fn do_test_proxy() -> bool {
+    if let Ok(test_proxy) = std::env::var("TEST_PROXY") {
+        if test_proxy == String::from("true") {
+            return true;
+        }
+    }
+    false
 }
 
 /*
