@@ -87,6 +87,10 @@ impl ClnImage {
             client_key,
         }
     }
+    pub async fn pre_startup(&self, _docker: &Docker) -> Result<()> {
+        sleep(3).await;
+        Ok(())
+    }
 }
 
 #[async_trait]
