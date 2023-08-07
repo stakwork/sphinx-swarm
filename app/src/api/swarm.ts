@@ -9,7 +9,7 @@ export interface Container {
   ImageID: string;
   State: string;
   Status: string;
-  Names: string[],
+  Names: string[];
   [key: string]: any;
 }
 
@@ -46,7 +46,11 @@ export async function start_container(id: string) {
 }
 
 export async function update_node(id: string, version: string) {
-  return await swarmCmd("UpdateNode", {id, version});
+  return await swarmCmd("UpdateNode", { id, version });
+}
+
+export async function get_container_stat(name?: string) {
+  return await swarmCmd("GetStatistics", name);
 }
 
 export async function login(username, password) {
@@ -70,8 +74,8 @@ export async function update_password(password, old_pass, token) {
       password,
     }),
     headers: {
-      "x-jwt": token
-    }
+      "x-jwt": token,
+    },
   });
 
   const result = await r.json();
@@ -81,8 +85,8 @@ export async function update_password(password, old_pass, token) {
 export async function refresh_token(token) {
   const r = await fetch(`${root}/refresh_jwt`, {
     headers: {
-      "x-jwt": token
-    }
+      "x-jwt": token,
+    },
   });
 
   const result = await r.json();

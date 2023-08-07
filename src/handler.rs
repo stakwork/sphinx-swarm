@@ -129,6 +129,13 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let containers = list_containers(docker).await?;
                 Some(serde_json::to_string(&containers)?)
             }
+            SwarmCmd::GetStatistics(container_name) => {
+                let docker = dockr();
+                println!("Calling GetStatistics with {:?}", &container_name);
+                let containers = get_container_statistics(&docker, container_name).await?;
+                println!("GetStatistics Called");
+                Some(serde_json::to_string(&containers)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

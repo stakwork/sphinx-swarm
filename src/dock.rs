@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+use std::env;
+
 // use crate::utils::user;
 use anyhow::{anyhow, Context, Result};
-use bollard::container::Config;
+use bollard::container::{Config, Stats, StatsOptions};
 use bollard::container::{
     CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
     LogsOptions, RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
@@ -13,7 +16,7 @@ use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
-use std::env;
+use serde::Serialize;
 
 use crate::utils::{domain, sleep_ms};
 
@@ -215,7 +218,7 @@ pub async fn download_from_container(docker: &Docker, id: &str, path: &str) -> R
         }
     }
     if ret.len() == 0 {
-        return Err(anyhow::anyhow!("path {} not found", path));
+        return Err(anyhow!("path {} not found", path));
     }
     Ok(unzip_tar_single_file(ret)?)
 }
@@ -390,4 +393,99 @@ pub async fn try_dl(docker: &Docker, name: &str, path: &str) -> Result<Vec<u8>> 
         "try_dl failed to find {} in {}",
         path, name
     )))
+}
+
+// returns container id
+pub async fn get_container_statistics(
+    docker: &Docker,
+    container_filter: Option<String>,
+) -> Result<Vec<ContainerStat>> {
+    let mut filter = HashMap::new();
+    filter.insert(String::from("status"), vec![String::from("running")]);
+    if let Some(cn) = container_filter {
+        filter.insert(String::from("name"), vec![cn]);
+    }
+    let containers = &docker
+        .list_containers(Some(ListContainersOptions {
+            all: true,
+            filters: filter,
+            ..Default::default()
+        }))
+        .await?;
+
+    if containers.is_empty() {
+        return Err(anyhow::anyhow!("no running containers"));
+    } else {
+        let mut container_stats = Vec::new();
+        for container in containers {
+            let container_id = container.id.as_ref().unwrap();
+            let stream = &mut docker
+                .stats(
+                    container_id,
+                    Some(StatsOptions {
+                        stream: false,
+                        ..Default::default()
+                    }),
+                )
+                .take(1);
+
+            if let Some(Ok(stats)) = stream.next().await {
+                let container_name = sphinx_container(&container.names);
+                if let Some(cont_name) = container_name {
+                    let container_stat =
+                        ContainerStat::new(container_id, cont_name, container.image.clone(), stats);
+                    container_stats.push(container_stat);
+                }
+            }
+        }
+
+        println!("==> {:?}", container_stats);
+        Ok(container_stats)
+    }
+}
+
+// only containers with domains that end in .sphinx
+pub fn sphinx_container(names: &Option<Vec<String>>) -> Option<String> {
+    if let Some(names) = names.clone() {
+        if let Some(name) = names.get(0) {
+            if name.ends_with(".sphinx") {
+                let mut n = name.clone();
+                if n.starts_with("/") {
+                    n.remove(0);
+                }
+                return Some(n);
+            }
+        }
+    };
+    None
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct ContainerStat {
+    container_id: String,
+    container_name: String,
+    container_image: String,
+    cpu_total_usage: u64,
+    system_cpu_usage: u64,
+    memory_usage: u64,
+    memory_max_usage: u64,
+}
+
+impl ContainerStat {
+    pub fn new(
+        container_id: &str,
+        container_name: String,
+        container_image: Option<String>,
+        stats: Stats,
+    ) -> Self {
+        Self {
+            container_id: container_id.to_owned(),
+            container_name: container_name.to_owned(),
+            container_image: container_image.unwrap_or("".to_string()),
+            cpu_total_usage: stats.cpu_stats.cpu_usage.total_usage,
+            system_cpu_usage: stats.cpu_stats.system_cpu_usage.unwrap_or(0),
+            memory_usage: stats.memory_stats.usage.unwrap_or(0),
+            memory_max_usage: stats.memory_stats.max_usage.unwrap_or(0),
+        }
+    }
 }

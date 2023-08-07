@@ -19,12 +19,12 @@
 
 "@esbuild/darwin-arm64@0.16.14":
   version "0.16.14"
-  resolved "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.16.14.tgz"
+  resolved "https://registry.yarnpkg.com/@esbuild/darwin-arm64/-/darwin-arm64-0.16.14.tgz#67f05693c5b097bcb4ff656ba5839459f30f79c2"
   integrity sha512-vrlaP81IuwPaw1fyX8fHCmivP3Gr73ojVEZy+oWJLAiZVcG8o8Phwun/XDnYIFUHxIoUnMFEpg9o38MIvlw8zw==
 
 "@esbuild/darwin-x64@0.16.14":
   version "0.16.14"
-  resolved "https://registry.yarnpkg.com/@esbuild/darwin-x64/-/darwin-x64-0.16.14.tgz#519c9d127c5363d4a1e73b9d954460f798b41d2a"
+  resolved "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.16.14.tgz"
   integrity sha512-KV1E01eC2hGYA2qzFDRCK4wdZCRUvMwCNcobgpiiOzp5QXpJBqFPdxI69j8vvzuU7oxFXDgANwEkXvpeQqyOyg==
 
 "@esbuild/freebsd-arm64@0.16.14":
@@ -130,6 +130,11 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
+"@kurkle/color@^0.3.0":
+  version "0.3.2"
+  resolved "https://registry.npmjs.org/@kurkle/color/-/color-0.3.2.tgz"
+  integrity sha512-fuscdXJ9G1qb7W8VdHi+IwRqij3lBkosAm4ydQtEmbY58OzHXqQhvlxqEkoz0yssNVn38bcpRWgA9PP+OGoisw==
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.npmjs.org/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz"
@@ -165,7 +170,7 @@
 
 "@tsconfig/svelte@^4.0.0":
   version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@tsconfig/svelte/-/svelte-4.0.0.tgz#2fe4c8c88facd5c31762bda2f76289f5ecb35ecc"
+  resolved "https://registry.npmjs.org/@tsconfig/svelte/-/svelte-4.0.0.tgz"
   integrity sha512-NlCBbTpDFz6Outgs8JoqdQls9xAWPJAnjRnkqa60GQymjiAE3gliwNZ5TohZF3w3cZ4x8wpe0Ow5Y9hs1EnDXA==
 
 "@types/node@*":
@@ -244,6 +249,13 @@ carbon-icons-svelte@^11.4.0:
   version "11.4.0"
   resolved "https://registry.npmjs.org/carbon-icons-svelte/-/carbon-icons-svelte-11.4.0.tgz"
   integrity sha512-p/llZde2kP2BI9SOqM+QFKGfQnYrW+4dVxF1rAYriEADXDsjt9EYlh+KpQ5qf4JpXAq+e2+TB/r/lIG1xdUbAQ==
+
+chart.js@^4.3.2:
+  version "4.3.2"
+  resolved "https://registry.npmjs.org/chart.js/-/chart.js-4.3.2.tgz"
+  integrity sha512-pvQNyFOY1QmbmIr8oDORL16/FFivfxj8V26VFpFilMo4cNvkV5WXLJetDio365pd9gKUHGdirUTbqJfw8tr+Dg==
+  dependencies:
+    "@kurkle/color" "^0.3.0"
 
 chokidar@^3.4.1:
   version "3.5.3"
@@ -527,7 +539,7 @@ lodash@^4.17.21:
 
 long@^5.2.1:
   version "5.2.1"
-  resolved "https://registry.yarnpkg.com/long/-/long-5.2.1.tgz#e27595d0083d103d2fa2c20c7699f8e0c92b897f"
+  resolved "https://registry.npmjs.org/long/-/long-5.2.1.tgz"
   integrity sha512-GKSNGeNAtw8IryjjkhZxuKB3JzlcLTwjtiQCHKvqQet81I93kXslhDQruGI/QsddO83mcDToBVy7GqGS/zYf/A==
 
 magic-string@^0.25.7:
@@ -750,6 +762,11 @@ supports-preserve-symlinks-flag@^1.0.0:
   resolved "https://registry.npmjs.org/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz"
   integrity sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==
 
+svelte-chartjs@^3.1.2:
+  version "3.1.2"
+  resolved "https://registry.npmjs.org/svelte-chartjs/-/svelte-chartjs-3.1.2.tgz"
+  integrity sha512-3+6gY2IJ9Ua8R9pk3iS1ypa7Z9OoXCJb9oPwIfTp7caJM+X+RrWnH2CTkGAq7FeSxc2nnmW08tYN88Q8Y+5M+w==
+
 svelte-check@^2.10.0:
   version "2.10.3"
   resolved "https://registry.npmjs.org/svelte-check/-/svelte-check-2.10.3.tgz"
@@ -783,6 +800,11 @@ svelte-infinite-scroll@^2.0.1:
   version "2.0.1"
   resolved "https://registry.npmjs.org/svelte-infinite-scroll/-/svelte-infinite-scroll-2.0.1.tgz"
   integrity sha512-goTHCfOHRDCs8C5MeSuIc6LlAQ8zVQ+M4Y3LyvrDjx5rqSSxSrdCuQwIyWYNcO6j6/mnqRro3QB64ClBzfn+Wg==
+
+svelte-materialify@^0.3.11:
+  version "0.3.11"
+  resolved "https://registry.npmjs.org/svelte-materialify/-/svelte-materialify-0.3.11.tgz"
+  integrity sha512-MLtZtdSOHditOdJOYqlB8s7NxIFRbYKXJzij5s9gz5WVbJFVEqdX2TqOleg4wYeMOujtOCm+/x3RP5YGyzRxIQ==
 
 svelte-preprocess@^4.0.0:
   version "4.10.7"
