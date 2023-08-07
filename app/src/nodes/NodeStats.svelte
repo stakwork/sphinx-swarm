@@ -26,6 +26,7 @@
     system_cpu_usage: 0,
     memory_usage: 0,
   };
+  let max_memory_usage = 0;
   let stats = [{...default_stats}];
   let data = getData();
   let isLoading = false;
@@ -72,18 +73,27 @@
     console.log(">>>>>>$selectedNode  ", $selectedNode)
     if(!$selectedNode){
       for (let i = 0; i < stats.length; i++) {
+        if (stats[i].memory_usage > max_memory_usage) {
+          max_memory_usage = stats[i].memory_usage;
+          console.log("---------  ", max_memory_usage)
+          console.log("--------->  ", stats[i].container_name)
+        }
+      }
+      let arbitrary_memory_usage = max_memory_usage * 0.10 //get 10% of max_memory_usage, then add it to max_memory_usage to form the benchmark
+      max_memory_usage = Number(((max_memory_usage + arbitrary_memory_usage) / 1000000).toFixed(2))
+      for (let i = 0; i < stats.length; i++) {
+        stats[i].memory_usage = Number((stats[i].memory_usage / 1000000).toFixed(2))
+
         doughnut_data.push({
           container_name: stats[i].container_name,
-          labels: ['System CPU Usage', 'Memory Usage', 'CPU Total Usage'],
+          // labels: ['Memory Usage', 'Max Memory Usage'],
           datasets: [
             {
-              data: [stats[i].system_cpu_usage, stats[i].memory_usage, stats[i].cpu_total_usage],
-              // data: [stats.system_cpu_usage, 5324535, 1109028864],
-              backgroundColor: ['#F7464A', '#46BFBD', '#FDB45C'],
+              data: [stats[i].memory_usage, max_memory_usage],
+              backgroundColor: ['#F7464A', '#46BFBD'],
               hoverBackgroundColor: [
                 '#FF5A5E',
                 '#5AD3D1',
-                '#FFC870',
               ],
             },
           ],
@@ -107,7 +117,7 @@
         ],
       });
     }
-    console.log("<<<<>>>>>> >>>>", doughnut_data[0])
+    console.log("<<<<>>>>>> >>>>", doughnut_data)
 
     return doughnut_data;
   }
@@ -157,10 +167,9 @@
             <div class="grid-container">
               {#each data as datum}
                 <div class="doughnut-box">
-                  <div class="stat">Container Name: {datum.container_name || ''}</div>
-                  <div class="stat">System CPU Usage: {datum.datasets[0].data[0] || 0}</div>
-                  <div class="stat">Memory Usage: {datum.datasets[0].data[1] || 0}</div>
-                  <div class="stat">CPU Total Usage: {datum.datasets[0].data[2] || 0}</div>
+                  <div class="stat"><bold> {datum.container_name || ''}</bold></div>
+                  <div class="stat"><p>{datum.datasets[0].data[0] || 0} MB<p></div>
+<!--                  <div class="stat">CPU Total Usage: {datum.datasets[0].data[2] || 0}</div>-->
                   <div class="mini-doughnut"> <Doughnut data={datum} options={{ responsive: true, class: "mini-doughnut" }} /> </div>
                 </div>
               {/each}
@@ -256,6 +265,12 @@
   .doughnut-box {
     margin: 2rem;
     flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
 </style>
