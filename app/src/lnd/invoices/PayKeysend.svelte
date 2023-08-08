@@ -28,7 +28,10 @@
         tag,
         dest,
         convertSatsToMilliSats(amount),
-        window.route_hint
+        window.route_hint,
+        window.feebase,
+        window.feeprop,
+        window.expirydelta
       );
       if (payRes) {
         show_notification = true;

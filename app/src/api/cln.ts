@@ -5,6 +5,9 @@ import type { Cmd } from "./cmd";
 declare global {
   interface Window {
     route_hint: string;
+    feebase: number;
+    feeprop: number;
+    expirydelta: number;
   }
 }
 
@@ -40,13 +43,19 @@ export async function keysend(
   tag: string,
   dest: string,
   amt: number,
-  route_hint?: string
+  route_hint?: string,
+  feebase?: number,
+  feeprop?: number,
+  expirydelta?: number
 ) {
   const bod: { [k: string]: any } = {
     dest,
     amt,
   };
   if (route_hint) bod.route_hint = route_hint;
+  if (feebase) bod.feebase = feebase;
+  if (feeprop) bod.feeprop = feeprop;
+  if (expirydelta) bod.expirydelta = expirydelta;
   return await clnCmd("PayKeysend", tag, bod);
 }
 
