@@ -29,9 +29,8 @@
         dest,
         convertSatsToMilliSats(amount),
         window.route_hint,
-        window.feebase,
-        window.feeprop,
-        window.expirydelta
+        window.maxfeepercent,
+        window.exemptfee
       );
       if (payRes) {
         show_notification = true;

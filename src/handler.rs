@@ -292,9 +292,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                             &i.dest,
                             i.amt as u64,
                             i.route_hint,
-                            i.feebase,
-                            i.feeprop,
-                            i.expirydelta,
+                            i.maxfeepercent,
+                            i.exemptfee,
                         )
                         .await?;
                     Some(serde_json::to_string(&paid)?)

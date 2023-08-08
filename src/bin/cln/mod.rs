@@ -155,10 +155,7 @@ async fn make_new_chan(
         sleep(1000).await;
     }
 
-    match cln1
-        .keysend(peer_pubkey, 1_000_000, None, None, None, None)
-        .await
-    {
+    match cln1.keysend(peer_pubkey, 1_000_000, None, None, None).await {
         Ok(sent_keysend) => println!(
             "=> sent_keysend to {} {:?}",
             peer_pubkey, sent_keysend.status

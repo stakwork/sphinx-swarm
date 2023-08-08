@@ -103,9 +103,8 @@ pub struct PayKeysend {
     pub amt: i64,
     pub dest: String,
     pub route_hint: Option<String>,
-    pub feebase: Option<u64>,
-    pub feeprop: Option<u32>,
-    pub expirydelta: Option<u32>,
+    pub maxfeepercent: Option<f64>,
+    pub exemptfee: Option<u64>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CloseChannel {

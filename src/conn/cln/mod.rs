@@ -157,9 +157,8 @@ impl ClnRPC {
         id: &str,
         amt: u64,
         route_hint: Option<String>,
-        feebase: Option<u64>,
-        feeprop: Option<u32>,
-        expirydelta: Option<u32>,
+        maxfeepercent: Option<f64>,
+        exemptfee: Option<u64>,
     ) -> Result<pb::KeysendResponse> {
         let id = hex::decode(id)?;
         let mut req = pb::KeysendRequest {
@@ -167,6 +166,12 @@ impl ClnRPC {
             amount_msat: Some(amount(amt)),
             ..Default::default()
         };
+        if let Some(mfp) = maxfeepercent {
+            req.maxfeepercent = Some(mfp);
+        }
+        if let Some(ef) = exemptfee {
+            req.exemptfee = Some(amount(ef));
+        }
         if let Some(rh) = route_hint {
             if let Some(pos) = rh.chars().position(|c| c == ':') {
                 let (pk, scid_str) = rh.split_at(pos);
@@ -175,26 +180,18 @@ impl ClnRPC {
                 let mut routehints = pb::RoutehintList { hints: vec![] };
                 let mut hint1 = pb::Routehint { hops: vec![] };
                 let scid = scid_string.parse::<u64>()?;
-                let mut hop1 = pb::RouteHop {
+                let hop1 = pb::RouteHop {
                     id: hex::decode(pk)?,
                     short_channel_id: ShortChannelId(scid).to_string(),
+                    feebase: Some(amount(0)),
                     ..Default::default()
                 };
-                if let Some(fb) = feebase {
-                    hop1.feebase = Some(amount(fb));
-                }
-                if let Some(fp) = feeprop {
-                    hop1.feeprop = fp;
-                }
-                if let Some(ed) = expirydelta {
-                    hop1.expirydelta = ed;
-                }
                 hint1.hops.push(hop1);
                 routehints.hints.push(hint1);
                 req.routehints = Some(routehints);
             }
         }
-        // println!("=======> CLN KEYSEND REQ: {:?}", req);
+        println!("=======> CLN KEYSEND REQ: {:?}", req);
         let response = self.client.key_send(req).await?;
         Ok(response.into_inner())
     }

@@ -5,9 +5,8 @@ import type { Cmd } from "./cmd";
 declare global {
   interface Window {
     route_hint: string;
-    feebase: number;
-    feeprop: number;
-    expirydelta: number;
+    maxfeepercent: number;
+    exemptfee: number;
   }
 }
 
