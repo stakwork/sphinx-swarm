@@ -43,18 +43,16 @@ export async function keysend(
   dest: string,
   amt: number,
   route_hint?: string,
-  feebase?: number,
-  feeprop?: number,
-  expirydelta?: number
+  maxfeepercent?: number,
+  exemptfee?: number
 ) {
   const bod: { [k: string]: any } = {
     dest,
     amt,
   };
   if (route_hint) bod.route_hint = route_hint;
-  if (feebase) bod.feebase = feebase;
-  if (feeprop) bod.feeprop = feeprop;
-  if (expirydelta) bod.expirydelta = expirydelta;
+  if (maxfeepercent) bod.feebase = maxfeepercent;
+  if (exemptfee) bod.feeprop = exemptfee;
   return await clnCmd("PayKeysend", tag, bod);
 }
 
