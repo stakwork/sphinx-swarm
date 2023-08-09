@@ -127,6 +127,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
 const APOC_CONF: &str = r#"
 apoc.import.file.use_neo4j_config=true
 apoc.import.file.enabled=true
+apoc.export.file.enabled=true
 apoc.initializer.neo4j.1=CREATE FULLTEXT INDEX titles_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.show_title, n.episode_title]
 apoc.initializer.neo4j.2=CREATE FULLTEXT INDEX person_full_index IF NOT EXISTS FOR (n:Person) ON EACH [n.name]
 apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.topic]
