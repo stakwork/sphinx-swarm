@@ -183,7 +183,9 @@ impl ClnRPC {
                 let hop1 = pb::RouteHop {
                     id: hex::decode(pk)?,
                     short_channel_id: ShortChannelId(scid).to_string(),
-                    feebase: Some(amount(0)),
+                    feebase: Some(amount(1)),
+                    expirydelta: 40,
+                    feeprop: 10,
                     ..Default::default()
                 };
                 hint1.hops.push(hop1);
