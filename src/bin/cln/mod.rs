@@ -178,7 +178,7 @@ fn make_stack() -> Stack {
 
     let lss = LssImage::new(LSS, "0.0.4", "55551");
 
-    let v = "0.2.4";
+    let v = "0.2.8";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
     // let plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
     // let plugins = vec![ClnPlugin::HsmdBroker];

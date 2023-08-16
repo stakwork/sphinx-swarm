@@ -197,8 +197,16 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         format!("LIGHTNINGD_NETWORK={}", &img.network),
     ];
     log::info!("CLN network: {}", &img.network);
+    let mut alias = format!("sphinx-{}", &img.name);
+    if let Some(host) = img.host.clone() {
+        let parts: Vec<&str> = host.split(".").collect::<Vec<&str>>();
+        // get the second one (cln.swarm13.sphinx.chat)
+        if let Some(mid) = parts.get(1) {
+            alias = format!("sphinx-{}-{}", &img.name, mid);
+        }
+    }
     let mut cmd = vec![
-        format!("--alias=sphinx-{}", &img.name),
+        format!("--alias={}", &alias),
         format!("--addr=0.0.0.0:{}", &img.peer_port),
         format!("--grpc-port={}", &img.grpc_port),
         format!("--network={}", &img.network),
@@ -217,14 +225,14 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd.push(format!(
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker"
         ));
-        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:0.1.1
+        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:0.2.8
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
         // let git_version = "2f1a063-modded";
         let git_version = img
             .git_version
             .clone()
-            .unwrap_or("v23.02.2-50-gd15200c".to_string());
+            .unwrap_or("v23.05.1-56-ge3a4a8a".to_string());
         environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {

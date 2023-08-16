@@ -256,7 +256,7 @@ impl Default for Stack {
                 let lss = LssImage::new("lss", "0.0.4", "55551");
                 internal_nodes.push(Image::Lss(lss));
                 // cln with plugins
-                let mut cln = ClnImage::new("cln", "0.2.4", &network, "9735", "10009");
+                let mut cln = ClnImage::new("cln", "0.2.8", &network, "9735", "10009");
                 cln.links(vec!["bitcoind", "lss"]);
                 let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
                     Some(nsb) => nsb == "true",
