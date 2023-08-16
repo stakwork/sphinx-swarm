@@ -212,7 +212,10 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
         "--bitcoin-rpcport=18443".to_string(),
+        "--log-level=info:gossipd".to_string(),
+        "--log-level=info:channeld".to_string(),
         "--log-level=debug".to_string(),
+        "--log-level=io:plugin-keysend".to_string(),
         "--accept-htlc-tlv-types=133773310".to_string(),
         "--database-upgrade=true".to_string(),
     ];
