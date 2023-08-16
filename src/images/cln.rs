@@ -18,6 +18,7 @@ pub struct ClnImage {
     pub plugins: Vec<ClnPlugin>,
     pub links: Vec<String>,
     pub host: Option<String>,
+    pub git_version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -43,6 +44,7 @@ impl ClnImage {
             plugins: vec![],
             links: vec![],
             host: None,
+            git_version: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -185,7 +187,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let version = "0.2.3";
+    // let version = "0.2.3";
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -219,9 +221,11 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
         // let git_version = "2f1a063-modded";
-        // let git_version = "v23.02.2-50-gd15200c";
-        let git_version = "v23.02.2-52-g2c10e5c";
-        environ.push(format!("GREENLIGHT_VERSION={}", git_version));
+        let git_version = img
+            .git_version
+            .clone()
+            .unwrap_or("v23.02.2-50-gd15200c".to_string());
+        environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {
             let vls_lss = format!("http://{}:{}", &domain(&lss.name), &lss.port);
@@ -259,7 +263,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         }
     };
     let mut c = Config {
-        image: Some(format!("{}:{}", image, version)),
+        image: Some(format!("{}:{}", image, img.version)),
         // image: Some("cln-sphinx:latest".to_string()),
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),
