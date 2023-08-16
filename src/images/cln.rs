@@ -214,6 +214,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--bitcoin-rpcport=18443".to_string(),
         "--log-level=debug".to_string(),
         "--accept-htlc-tlv-types=133773310".to_string(),
+        "--database-upgrade=true".to_string(),
     ];
     if let Some(u) = &btc.user {
         if let Some(p) = &btc.pass {
