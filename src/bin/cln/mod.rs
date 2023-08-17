@@ -28,6 +28,7 @@ pub async fn main() -> Result<()> {
     sphinx_swarm::utils::setup_logs();
 
     let stack = make_stack();
+    log::info!("STACK {:?}", stack);
 
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
     handler::hydrate_stack(stack.clone()).await;
@@ -171,28 +172,35 @@ async fn make_new_chan(
 fn make_stack() -> Stack {
     let network = "regtest".to_string();
 
+    let mut internal_nodes = Vec::new();
+
+    // let cln_plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
+    let cln_plugins = vec![ClnPlugin::HsmdBroker];
+    // let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
+
     // bitcoind
     let v = "v23.0";
     let mut bitcoind = BtcImage::new(BTC, v, &network);
     bitcoind.set_user_password("sphinx", "password");
+    internal_nodes.push(Image::Btc(bitcoind));
 
+    // LSS
     let lss = LssImage::new(LSS, "0.0.4", "55551");
-
-    let v = "0.2.8";
-    let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
-    // let cln_plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
-    let cln_plugins = vec![ClnPlugin::HsmdBroker];
-    // let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
-    cln.plugins(cln_plugins.clone());
-    cln.links(vec![BTC, LSS]);
-
-    let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
-    cln2.links(vec![BTC]);
-
-    let mut internal_nodes = vec![Image::Btc(bitcoind), Image::Cln(cln), Image::Cln(cln2)];
     if cln_plugins.contains(&ClnPlugin::HsmdBroker) {
         internal_nodes.push(Image::Lss(lss));
     }
+
+    // CLN1
+    let v = "0.2.8";
+    let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
+    cln.plugins(cln_plugins.clone());
+    cln.links(vec![BTC, LSS]);
+    internal_nodes.push(Image::Cln(cln));
+
+    // CLN2
+    let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
+    cln2.links(vec![BTC]);
+    internal_nodes.push(Image::Cln(cln2));
 
     if do_test_proxy() {
         let v = "v0.16.2-beta";
