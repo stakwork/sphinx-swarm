@@ -191,7 +191,7 @@ fn make_stack() -> Stack {
     }
 
     // CLN1
-    let v = "0.2.8";
+    let v = "latest";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
     cln.plugins(cln_plugins.clone());
     cln.links(vec![BTC, LSS]);
