@@ -84,8 +84,16 @@ COPY ./lightning-storage-server/target/x86_64-unknown-linux-musl/release/lssd ./
 CMD ["./lssd", "--interface", "0.0.0.0"]
 */
 
-// docker build -t lss .
+/*
 
-// docker tag lss sphinxlightning/sphinx-lss:0.0.2
+docker build -t lss .
 
-// docker push sphinxlightning/sphinx-lss:0.0.2
+docker tag lss sphinxlightning/sphinx-lss:0.0.5
+
+docker push sphinxlightning/sphinx-lss:0.0.5
+
+docker tag lss sphinxlightning/sphinx-lss:latest
+
+docker push sphinxlightning/sphinx-lss:latest
+
+*/
