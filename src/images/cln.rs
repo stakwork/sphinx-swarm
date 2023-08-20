@@ -216,7 +216,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--log-level=info:channeld".to_string(),
         "--log-level=debug".to_string(),
         "--log-level=io:plugin-keysend".to_string(),
-        "--accept-htlc-tlv-types=133773310".to_string(),
+        "--accept-htlc-tlv-type=133773310".to_string(),
         "--database-upgrade=true".to_string(),
     ];
     if let Some(u) = &btc.user {
@@ -229,14 +229,14 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd.push(format!(
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker"
         ));
-        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:0.2.8
+        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:latest
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
         // let git_version = "2f1a063-modded";
         let git_version = img
             .git_version
             .clone()
-            .unwrap_or("v23.05.1-56-ge3a4a8a".to_string());
+            .unwrap_or("v23.08rc3-56-g4475052-modded".to_string());
         environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {
