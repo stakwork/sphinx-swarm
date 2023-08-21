@@ -177,12 +177,12 @@ fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Imag
     neo4j.host(host.clone());
 
     // jarvis
-    v = "v0.0.16";
+    v = "latest";
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
     jarvis.links(vec!["neo4j", "boltwall"]);
 
     // boltwall
-    v = "v0.0.42";
+    v = "latest";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
     if let Some(ext) = external_lnd() {
         bolt.external_lnd(ext);
@@ -193,7 +193,7 @@ fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Imag
     bolt.host(host.clone());
 
     // navfiber
-    v = "v0.1.38";
+    v = "latest";
     let mut nav = NavFiberImage::new("navfiber", v, "8001");
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
@@ -253,7 +253,7 @@ impl Default for Stack {
                 let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
                 external_nodes.push(Node::External(btc));
                 // lightning storage server
-                let lss = LssImage::new("lss", "0.0.4", "55551");
+                let lss = LssImage::new("lss", "latest", "55551");
                 internal_nodes.push(Image::Lss(lss));
                 // cln with plugins
                 let mut cln = ClnImage::new("cln", "latest", &network, "9735", "10009");
@@ -303,13 +303,13 @@ impl Default for Stack {
         }
 
         // proxy
-        let mut v = "0.1.44";
+        let mut v = "latest";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.29";
+        v = "latest";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -327,7 +327,7 @@ impl Default for Stack {
         relay.host(host.clone());
 
         // cache
-        v = "0.1.17";
+        v = "latest";
         let mut cache = CacheImage::new("cache", v, "9000", true);
         cache.links(vec!["tribes"]);
 

@@ -105,3 +105,17 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
         ..Default::default()
     }
 }
+
+/*
+
+docker build -t sphinx-jarvis-backend .
+
+docker tag sphinx-jarvis-backend sphinxlightning/sphinx-jarvis-backend:v0.0.22
+
+docker push sphinxlightning/sphinx-jarvis-backend:v0.0.22
+
+docker tag sphinx-jarvis-backend sphinxlightning/sphinx-jarvis-backend:latest
+
+docker push sphinxlightning/sphinx-jarvis-backend:latest
+
+*/
