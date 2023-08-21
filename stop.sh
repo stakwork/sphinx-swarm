@@ -7,7 +7,8 @@ if  [ $1 == "btc" ] || \
     [ $1 == "boltwall" ] || \
     [ $1 == "neo4j" ] || \
     [ $1 == "navfiber" ] || \
-    [ $1 == "cache" ]
+    [ $1 == "cache" ] || \
+    [ $1 == "lss" ]
 then
     echo "=> stop $1.sphinx"
     docker stop $1.sphinx
