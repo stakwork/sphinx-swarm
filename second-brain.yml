@@ -1,3 +1,5 @@
+# docker-compose -f second-brain.yml up sphinx-swarm -d
+
 version: "2"
 
 services:
