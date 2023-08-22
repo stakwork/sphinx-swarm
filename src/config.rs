@@ -231,7 +231,7 @@ impl Default for Stack {
         }
 
         // choose cln or lnd
-        let mut is_cln = false;
+        let is_cln = std::env::var("CLN_MAINNET_BTC").ok().is_some();
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         // choose only second brain
@@ -270,8 +270,8 @@ impl Default for Stack {
                 cln.plugins(plugins);
                 cln.host(host.clone());
                 internal_nodes.push(Image::Cln(cln));
-                is_cln = true;
             }
+            log::error!("no lightning_provider");
         }
 
         // LND and internal BTC
