@@ -271,7 +271,6 @@ impl Default for Stack {
                 cln.host(host.clone());
                 internal_nodes.push(Image::Cln(cln));
             }
-            log::error!("no lightning_provider");
         }
 
         // LND and internal BTC
