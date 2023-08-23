@@ -29,6 +29,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
         }
     }
 
+    log::info!("=> CMD: {:?}", cmd);
+
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
             SwarmCmd::GetConfig => {
