@@ -66,6 +66,7 @@ pub struct Stack {
     pub users: Vec<User>,
     pub jwt_key: String,
     pub ready: bool,
+    pub ip: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -146,6 +147,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
         ready: false,
+        ip: None,
     }
 }
 
@@ -375,6 +377,7 @@ impl Default for Stack {
             users: vec![Default::default()],
             jwt_key: secrets::random_word(16),
             ready: false,
+            ip: None,
         }
     }
 }
@@ -489,6 +492,7 @@ impl Stack {
             users: vec![],
             jwt_key: "".to_string(),
             ready: self.ready,
+            ip: self.ip.clone(),
         }
     }
 }

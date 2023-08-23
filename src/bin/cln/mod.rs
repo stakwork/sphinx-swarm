@@ -231,6 +231,7 @@ fn make_stack() -> Stack {
         users: vec![Default::default()],
         jwt_key: JWT_KEY.to_string(),
         ready: false,
+        ip: None,
     }
 }
 
