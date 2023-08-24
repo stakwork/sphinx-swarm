@@ -5,6 +5,7 @@ use crate::secrets::hex_secret;
 use crate::utils::docker_domain_tonic;
 use anyhow::{anyhow, Result};
 use cln_grpc::pb;
+use std::collections::HashMap;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 pub use util::*;
 
@@ -159,6 +160,7 @@ impl ClnRPC {
         route_hint: Option<String>,
         maxfeepercent: Option<f64>,
         exemptfee: Option<u64>,
+        extratlvs: Option<HashMap<u64, Vec<u8>>>,
     ) -> Result<pb::KeysendResponse> {
         let id = hex::decode(id)?;
         let mut req = pb::KeysendRequest {
@@ -171,6 +173,13 @@ impl ClnRPC {
         }
         if let Some(ef) = exemptfee {
             req.exemptfee = Some(amount(ef));
+        }
+        if let Some(tlvs) = extratlvs {
+            let mut entries: Vec<pb::TlvEntry> = Vec::new();
+            for (k, value) in tlvs {
+                entries.push(pb::TlvEntry { r#type: k, value })
+            }
+            req.extratlvs = Some(pb::TlvStream { entries });
         }
         if let Some(rh) = route_hint {
             if let Some(pos) = rh.chars().position(|c| c == ':') {

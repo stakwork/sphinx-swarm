@@ -296,6 +296,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                             i.route_hint,
                             i.maxfeepercent,
                             i.exemptfee,
+                            None,
                         )
                         .await?;
                     Some(serde_json::to_string(&paid)?)

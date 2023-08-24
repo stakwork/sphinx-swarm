@@ -71,16 +71,53 @@ pub async fn main() -> Result<()> {
 }
 
 async fn setup_cln_chans(clients: &mut Clients, nodes: &Vec<Node>) -> Result<()> {
-    let cln2 = clients.cln.get_mut(CLN2).unwrap();
-    let cln2_info = cln2.get_info().await?;
-    let cln2_pubkey = hex::encode(cln2_info.id);
-    if let Some(node) = nodes.iter().find(|n| n.clone().name() == CLN2) {
+    let cln2_pubkey = get_pubkey(clients, CLN2).await?;
+    if let Some(node) = nodes.iter().find(|n| n.name() == CLN2) {
         log::info!("CLN2 pubkey {}", &cln2_pubkey);
         let n = node.as_internal()?.as_cln()?;
         make_new_chan(clients, CLN2, &cln2_pubkey, &n.peer_port).await?;
+        // keysend send
+        keysend_from_cln_to(clients, CLN1, &cln2_pubkey, 1_000_000).await?;
+        sleep(1000).await;
+        keysend_from_cln_to(clients, CLN1, &cln2_pubkey, 1_000_000).await?;
+        sleep(1000).await;
+        // keysend receive
+        let cln1_pubkey = get_pubkey(clients, CLN1).await?;
+        keysend_from_cln_to(clients, CLN2, &cln1_pubkey, 500_000).await?;
     } else {
         log::error!("CLN2 not found!");
     }
+    Ok(())
+}
+
+async fn get_pubkey(clients: &mut Clients, node_id: &str) -> Result<String> {
+    let client = clients.cln.get_mut(node_id).unwrap();
+    let info = client.get_info().await?;
+    let pubkey = hex::encode(info.id);
+    Ok(pubkey)
+}
+
+async fn keysend_from_cln_to(
+    clients: &mut Clients,
+    sender_id: &str,
+    recip_pubkey: &str,
+    amt: u64,
+) -> Result<()> {
+    let mut tlvs = std::collections::HashMap::new();
+    tlvs.insert(133773310, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
+    let cln1 = clients.cln.get_mut(sender_id).unwrap();
+    match cln1
+        .keysend(recip_pubkey, amt, None, None, None, Some(tlvs))
+        .await
+    {
+        Ok(sent_keysend) => println!(
+            "=> sent_keysend to {} {:?}",
+            recip_pubkey, sent_keysend.status
+        ),
+        Err(e) => {
+            println!("keysend err {:?}", e)
+        }
+    };
     Ok(())
 }
 
@@ -91,7 +128,7 @@ async fn setup_lnd_chans(clients: &mut Clients, nodes: &Vec<Node>) -> Result<()>
     let lnd1 = clients.lnd.get_mut(LND_1).unwrap();
     let lnd1_info = lnd1.get_info().await?;
     let lnd1_pubkey = lnd1_info.identity_pubkey;
-    if let Some(node) = nodes.iter().find(|n| n.clone().name() == LND_1) {
+    if let Some(node) = nodes.iter().find(|n| n.name() == LND_1) {
         log::info!("LND1 pubkey {}", &lnd1_pubkey);
         let n = node.as_internal()?.as_lnd()?;
         make_new_chan(clients, LND_1, &lnd1_pubkey, &n.peer_port).await?;
@@ -155,16 +192,6 @@ async fn make_new_chan(
         }
         sleep(1000).await;
     }
-
-    match cln1.keysend(peer_pubkey, 1_000_000, None, None, None).await {
-        Ok(sent_keysend) => println!(
-            "=> sent_keysend to {} {:?}",
-            peer_pubkey, sent_keysend.status
-        ),
-        Err(e) => {
-            println!("keysend err {:?}", e)
-        }
-    };
 
     Ok(())
 }
