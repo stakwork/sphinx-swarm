@@ -19,7 +19,8 @@ COPY ./src ./src
 # install proto dep
 RUN apt-get update && \
     apt-get install -y \
-    protobuf-compiler
+    protobuf-compiler \
+    libssl-dev
 
 # Build for release.
 # remove the lib
@@ -31,7 +32,7 @@ RUN cargo build --release
 FROM debian:bullseye-slim
 
 # get root CA certs
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates 
 
 # Copy from the previous build
 COPY --from=build /sphinx-swarm/target/release/stack /usr/src/stack
