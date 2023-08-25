@@ -371,31 +371,21 @@ pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Doc
     let project = proj.to_string();
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                match tokio::time::timeout(Duration::from_secs(2), handle(&project, cmd, &msg.tag, &docker)).await {
-                    Ok(Ok(res)) => {
-                        println!(">>>>>>>> got here >>>>1 {:?}", res);
-                        let _ = msg.reply_tx.send(res);
-                    }
-                    Ok(Err(err)) => {
-                        println!(">>>>>>>> got here >>>>2 {:?}", err);
-                        msg.reply_tx
-                            .send(fmt_err(&err.to_string()))
-                            .expect("couldnt send cmd reply");
-                    }
-                    Err(error) => {
-                        println!(">>>>>>>> got here >>>>3 {:?}", fmt_err(&error.to_string()));
-
-                        msg.reply_tx
-                            .send(fmt_err("Handle operation timed out"))
-                            .expect("couldnt send cmd reply");
-                    }
+            let response = if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
+                match tokio::time::timeout(
+                    Duration::from_secs(2),
+                    handle(&project, cmd, &msg.tag, &docker),
+                )
+                .await
+                {
+                    Ok(Ok(res)) => res,
+                    Ok(Err(err)) => fmt_err(&err.to_string()),
+                    Err(_error) => fmt_err("Handle operation timed out"),
                 }
             } else {
-                msg.reply_tx
-                    .send(fmt_err("Invalid Command"))
-                    .expect("couldnt send cmd reply");
-            }
+                fmt_err("Invalid Command")
+            };
+            let _ = msg.reply_tx.send(response);
         }
     });
 }
