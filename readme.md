@@ -1,3 +1,7 @@
+# sphinx-swarm
+
+![Swarm](https://github.com/stakwork/sphinx-swarm/raw/master/testscripts/sphinx-swarm.png)
+
 ### stack
 
 `cargo run --bin stack`

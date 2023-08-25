@@ -3,6 +3,7 @@ export interface Stack {
   nodes: Node[];
   host?: string;
   ready: boolean;
+  ip?: string;
 }
 
 export interface Node {

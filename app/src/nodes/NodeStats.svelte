@@ -4,8 +4,7 @@
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
-  import {get_container_stat} from "../api/swarm";
-  import { Doughnut } from 'svelte-chartjs';
+  import { Doughnut } from "svelte-chartjs";
   import {
     Chart as ChartJS,
     Title,
@@ -13,8 +12,8 @@
     Legend,
     ArcElement,
     CategoryScale,
-  } from 'chart.js';
-  import {selectedNode} from "../store";
+  } from "chart.js";
+  import { selectedNode } from "../store";
 
   ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale);
 
@@ -27,62 +26,69 @@
     memory_usage: 0,
   };
   let max_memory_usage = 0;
-  let stats = [{...default_stats}];
+  let stats = [{ ...default_stats }];
   let data = getData();
   let isLoading = false;
 
-
   async function getNodeStats() {
     open = true;
-    isLoading =  true;
-    stats = [{...default_stats}];
-    data = []
-    let theStats = []
-    if (!$selectedNode){
-      theStats = await api.swarm.get_container_stat(``);
-      if (theStats.length > 0){
-        stats =[]
+    isLoading = true;
+    stats = [{ ...default_stats }];
+    data = [];
+    let theStats = [];
+    if (!$selectedNode) {
+      theStats = await api.swarm.get_container_stat();
+      if (theStats.length > 0) {
+        stats = [];
         for (let i = 0; i < theStats.length; i++) {
           stats.push({
             container_name: theStats[i].container_name,
             cpu_total_usage: theStats[i].cpu_total_usage,
             system_cpu_usage: theStats[i].system_cpu_usage,
             memory_usage: theStats[i].memory_usage,
-          })
+          });
         }
       }
     } else {
-      theStats = await api.swarm.get_container_stat(`${$selectedNode?.name}.sphinx`);
-      stats = [{
-        container_name: theStats[0].container_name,
-        cpu_total_usage: theStats[0].cpu_total_usage,
-        system_cpu_usage: theStats[0].system_cpu_usage,
-        memory_usage: theStats[0].memory_usage,
-      }];
+      theStats = await api.swarm.get_container_stat(
+        `${$selectedNode?.name}.sphinx`
+      );
+      stats = [
+        {
+          container_name: theStats[0].container_name,
+          cpu_total_usage: theStats[0].cpu_total_usage,
+          system_cpu_usage: theStats[0].system_cpu_usage,
+          memory_usage: theStats[0].memory_usage,
+        },
+      ];
     }
-    console.log(">>>>>> ", theStats)
+    console.log(">>>>>> ", theStats);
 
     data = getData();
-    isLoading =  false;
+    isLoading = false;
 
     // if (theLogs) logs = theLogs.reverse();
   }
 
   function getData() {
-    let doughnut_data = []
-    console.log(">>>>>>$selectedNode  ", $selectedNode)
-    if(!$selectedNode){
+    let doughnut_data = [];
+    console.log(">>>>>>$selectedNode  ", $selectedNode);
+    if (!$selectedNode) {
       for (let i = 0; i < stats.length; i++) {
         if (stats[i].memory_usage > max_memory_usage) {
           max_memory_usage = stats[i].memory_usage;
-          console.log("---------  ", max_memory_usage)
-          console.log("--------->  ", stats[i].container_name)
+          console.log("---------  ", max_memory_usage);
+          console.log("--------->  ", stats[i].container_name);
         }
       }
-      let arbitrary_memory_usage = max_memory_usage * 0.10 //get 10% of max_memory_usage, then add it to max_memory_usage to form the benchmark
-      max_memory_usage = Number(((max_memory_usage + arbitrary_memory_usage) / 1000000).toFixed(2))
+      let arbitrary_memory_usage = max_memory_usage * 0.1; //get 10% of max_memory_usage, then add it to max_memory_usage to form the benchmark
+      max_memory_usage = Number(
+        ((max_memory_usage + arbitrary_memory_usage) / 1000000).toFixed(2)
+      );
       for (let i = 0; i < stats.length; i++) {
-        stats[i].memory_usage = Number((stats[i].memory_usage / 1000000).toFixed(2))
+        stats[i].memory_usage = Number(
+          (stats[i].memory_usage / 1000000).toFixed(2)
+        );
 
         doughnut_data.push({
           container_name: stats[i].container_name,
@@ -90,11 +96,8 @@
           datasets: [
             {
               data: [stats[i].memory_usage, max_memory_usage],
-              backgroundColor: ['#F7464A', '#46BFBD'],
-              hoverBackgroundColor: [
-                '#FF5A5E',
-                '#5AD3D1',
-              ],
+              backgroundColor: ["#F7464A", "#46BFBD"],
+              hoverBackgroundColor: ["#FF5A5E", "#5AD3D1"],
             },
           ],
         });
@@ -102,36 +105,35 @@
     } else {
       doughnut_data.push({
         container_name: stats[0].container_name,
-        labels: ['System CPU Usage', 'Memory Usage', 'CPU Total Usage'],
+        labels: ["System CPU Usage", "Memory Usage", "CPU Total Usage"],
         datasets: [
           {
-            data: [stats[0].system_cpu_usage, stats[0].memory_usage, stats[0].cpu_total_usage],
-            // data: [stats.system_cpu_usage, 5324535, 1109028864],
-            backgroundColor: ['#F7464A', '#46BFBD', '#FDB45C'],
-            hoverBackgroundColor: [
-              '#FF5A5E',
-              '#5AD3D1',
-              '#FFC870',
+            data: [
+              stats[0].system_cpu_usage,
+              stats[0].memory_usage,
+              stats[0].cpu_total_usage,
             ],
+            // data: [stats.system_cpu_usage, 5324535, 1109028864],
+            backgroundColor: ["#F7464A", "#46BFBD", "#FDB45C"],
+            hoverBackgroundColor: ["#FF5A5E", "#5AD3D1", "#FFC870"],
           },
         ],
       });
     }
-    console.log("<<<<>>>>>> >>>>", doughnut_data)
+    console.log("<<<<>>>>>> >>>>", doughnut_data);
 
     return doughnut_data;
   }
 
   onDestroy(() => {
-    stats = [{...default_stats}];
+    stats = [{ ...default_stats }];
   });
 </script>
 
 <!--<section class="get-logs-btn">-->
 <section class="stats_section">
-  <Button
-          size="field" kind="secondary" icon={Logs} on:click={getNodeStats}
-  >Get Stats</Button
+  <Button size="field" kind="secondary" icon={Logs} on:click={getNodeStats}
+    >Get Stats</Button
   >
 
   <!--  <Button-->
@@ -151,26 +153,49 @@
     </section>
     {#if isLoading}
       <div class="loader">
-        <Loading small="true" />
+        <Loading small />
       </div>
     {/if}
     <section class="container">
       <div class="stats">
         {#if stats !== null}
           {#if stats.length === 1}
-            <div class="stat">Container Name: {data[0]?.container_name || ''}</div>
-            <div class="stat">System CPU Usage: {data[0]?.datasets[0].data[0] || 0}</div>
-            <div class="stat">Memory Usage: {data[0]?.datasets[0].data[1] || 0}</div>
-            <div class="stat">CPU Total Usage: {data[0]?.datasets[0].data[2] || 0}</div>
-            <div class="doughnut"> <Doughnut data={data[0]} options={{ responsive: true, class: "log" }} /> </div>
+            <div class="stat">
+              Container Name: {data[0]?.container_name || ""}
+            </div>
+            <div class="stat">
+              System CPU Usage: {data[0]?.datasets[0].data[0] || 0}
+            </div>
+            <div class="stat">
+              Memory Usage: {data[0]?.datasets[0].data[1] || 0}
+            </div>
+            <div class="stat">
+              CPU Total Usage: {data[0]?.datasets[0].data[2] || 0}
+            </div>
+            <div class="doughnut">
+              <Doughnut
+                data={data[0]}
+                options={{ responsive: true, class: "log" }}
+              />
+            </div>
           {:else}
             <div class="grid-container">
               {#each data as datum}
                 <div class="doughnut-box">
-                  <div class="stat"><bold> {datum.container_name || ''}</bold></div>
-                  <div class="stat"><p>{datum.datasets[0].data[0] || 0} MB<p></div>
-<!--                  <div class="stat">CPU Total Usage: {datum.datasets[0].data[2] || 0}</div>-->
-                  <div class="mini-doughnut"> <Doughnut data={datum} options={{ responsive: true, class: "mini-doughnut" }} /> </div>
+                  <div class="stat">
+                    <bold> {datum.container_name || ""}</bold>
+                  </div>
+                  <div class="stat">
+                    <p>{datum.datasets[0].data[0] || 0} MB</p>
+                    <p />
+                  </div>
+                  <!--                  <div class="stat">CPU Total Usage: {datum.datasets[0].data[2] || 0}</div>-->
+                  <div class="mini-doughnut">
+                    <Doughnut
+                      data={datum}
+                      options={{ responsive: true, class: "mini-doughnut" }}
+                    />
+                  </div>
                 </div>
               {/each}
             </div>
@@ -272,5 +297,4 @@
     justify-content: center;
     align-items: center;
   }
-
 </style>

@@ -18,6 +18,7 @@ pub struct ClnImage {
     pub plugins: Vec<ClnPlugin>,
     pub links: Vec<String>,
     pub host: Option<String>,
+    pub git_version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -43,6 +44,7 @@ impl ClnImage {
             plugins: vec![],
             links: vec![],
             host: None,
+            git_version: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -86,6 +88,10 @@ impl ClnImage {
             client_cert,
             client_key,
         }
+    }
+    pub async fn pre_startup(&self, _docker: &Docker) -> Result<()> {
+        sleep(3).await;
+        Ok(())
     }
 }
 
@@ -181,7 +187,7 @@ fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
     let root_vol = "/root/.lightning";
-    let version = "0.2.3";
+    // let version = "0.2.3";
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -191,15 +197,27 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         format!("LIGHTNINGD_NETWORK={}", &img.network),
     ];
     log::info!("CLN network: {}", &img.network);
+    let mut alias = format!("sphinx-{}", &img.name);
+    if let Some(host) = img.host.clone() {
+        let parts: Vec<&str> = host.split(".").collect::<Vec<&str>>();
+        // get the second one (cln.swarm13.sphinx.chat)
+        if let Some(mid) = parts.get(1) {
+            alias = format!("sphinx-{}-{}", &img.name, mid);
+        }
+    }
     let mut cmd = vec![
-        format!("--alias=sphinx-{}", &img.name),
+        format!("--alias={}", &alias),
         format!("--addr=0.0.0.0:{}", &img.peer_port),
         format!("--grpc-port={}", &img.grpc_port),
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
         "--bitcoin-rpcport=18443".to_string(),
+        "--log-level=info:gossipd".to_string(),
+        "--log-level=info:channeld".to_string(),
         "--log-level=debug".to_string(),
-        "--accept-htlc-tlv-types=133773310".to_string(),
+        "--log-level=io:plugin-keysend".to_string(),
+        "--accept-htlc-tlv-type=133773310".to_string(),
+        "--database-upgrade=true".to_string(),
     ];
     if let Some(u) = &btc.user {
         if let Some(p) = &btc.pass {
@@ -211,16 +229,18 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd.push(format!(
             "--subdaemon=hsmd:/usr/local/libexec/c-lightning/sphinx-key-broker"
         ));
-        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:0.1.1
+        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:latest
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
         // lightningd --version
         // let git_version = "2f1a063-modded";
-        // let git_version = "v23.02.2-50-gd15200c";
-        let git_version = "v23.02.2-52-g2c10e5c";
-        environ.push(format!("GREENLIGHT_VERSION={}", git_version));
+        let git_version = img
+            .git_version
+            .clone()
+            .unwrap_or("v23.08-56-g0c8094c-modded".to_string());
+        environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {
-            let vls_lss = format!("http://{}:55551", &domain(&lss.name));
+            let vls_lss = format!("http://{}:{}", &domain(&lss.name), &lss.port);
             log::info!("hook up to LSS {}", &vls_lss);
             environ.push(format!("VLS_LSS={}", &vls_lss));
         }
@@ -255,7 +275,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         }
     };
     let mut c = Config {
-        image: Some(format!("{}:{}", image, version)),
+        image: Some(format!("{}:{}", image, img.version)),
         // image: Some("cln-sphinx:latest".to_string()),
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),

@@ -14,13 +14,15 @@ CLN_MAINNET_BTC=http://evan:thepass@localhost:8332
 pub struct LssImage {
     pub name: String,
     pub version: String,
+    pub port: String,
 }
 
 impl LssImage {
-    pub fn new(name: &str, version: &str) -> Self {
+    pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
+            port: port.to_string(),
         }
     }
 }
@@ -46,13 +48,20 @@ fn lss(node: &LssImage) -> Config<String> {
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/root/";
-    let ports = vec!["55551".to_string()];
-
+    let ports = vec![node.port.clone()];
+    let cmd = vec![
+        format!("./lssd"),
+        format!("--interface"),
+        format!("0.0.0.0"),
+        format!("--port"),
+        format!("{}", &node.port),
+    ];
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&name, ports, root_vol, None),
+        cmd: Some(cmd),
         env: None,
         ..Default::default()
     }
@@ -75,8 +84,16 @@ COPY ./lightning-storage-server/target/x86_64-unknown-linux-musl/release/lssd ./
 CMD ["./lssd", "--interface", "0.0.0.0"]
 */
 
-// docker build -t lss .
+/*
 
-// docker tag lss sphinxlightning/sphinx-lss:0.0.2
+docker build -t lss .
 
-// docker push sphinxlightning/sphinx-lss:0.0.2
+docker tag lss sphinxlightning/sphinx-lss:0.0.5
+
+docker push sphinxlightning/sphinx-lss:0.0.5
+
+docker tag lss sphinxlightning/sphinx-lss:latest
+
+docker push sphinxlightning/sphinx-lss:latest
+
+*/

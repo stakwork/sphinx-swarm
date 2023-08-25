@@ -66,6 +66,7 @@ pub struct Stack {
     pub users: Vec<User>,
     pub jwt_key: String,
     pub ready: bool,
+    pub ip: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -146,6 +147,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
         ready: false,
+        ip: None,
     }
 }
 
@@ -177,12 +179,12 @@ fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Imag
     neo4j.host(host.clone());
 
     // jarvis
-    v = "v0.0.16";
+    v = "latest";
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
     jarvis.links(vec!["neo4j", "boltwall"]);
 
     // boltwall
-    v = "v0.0.42";
+    v = "latest";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
     if let Some(ext) = external_lnd() {
         bolt.external_lnd(ext);
@@ -193,7 +195,7 @@ fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Imag
     bolt.host(host.clone());
 
     // navfiber
-    v = "v0.1.38";
+    v = "latest";
     let mut nav = NavFiberImage::new("navfiber", v, "8001");
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
@@ -231,7 +233,7 @@ impl Default for Stack {
         }
 
         // choose cln or lnd
-        let mut is_cln = false;
+        let is_cln = std::env::var("CLN_MAINNET_BTC").ok().is_some();
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         // choose only second brain
@@ -253,10 +255,10 @@ impl Default for Stack {
                 let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
                 external_nodes.push(Node::External(btc));
                 // lightning storage server
-                let lss = LssImage::new("lss", "0.0.4");
+                let lss = LssImage::new("lss", "latest", "55551");
                 internal_nodes.push(Image::Lss(lss));
                 // cln with plugins
-                let mut cln = ClnImage::new("cln", "0.1.6", &network, "9735", "10009");
+                let mut cln = ClnImage::new("cln", "latest", &network, "9735", "10009");
                 cln.links(vec!["bitcoind", "lss"]);
                 let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
                     Some(nsb) => nsb == "true",
@@ -270,7 +272,6 @@ impl Default for Stack {
                 cln.plugins(plugins);
                 cln.host(host.clone());
                 internal_nodes.push(Image::Cln(cln));
-                is_cln = true;
             }
         }
 
@@ -303,13 +304,13 @@ impl Default for Stack {
         }
 
         // proxy
-        let mut v = "0.1.40";
+        let mut v = "latest";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v0.1.29";
+        v = "latest";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
@@ -327,7 +328,7 @@ impl Default for Stack {
         relay.host(host.clone());
 
         // cache
-        v = "0.1.17";
+        v = "latest";
         let mut cache = CacheImage::new("cache", v, "9000", true);
         cache.links(vec!["tribes"]);
 
@@ -376,6 +377,7 @@ impl Default for Stack {
             users: vec![Default::default()],
             jwt_key: secrets::random_word(16),
             ready: false,
+            ip: None,
         }
     }
 }
@@ -490,6 +492,7 @@ impl Stack {
             users: vec![],
             jwt_key: "".to_string(),
             ready: self.ready,
+            ip: self.ip.clone(),
         }
     }
 }

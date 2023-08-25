@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Tabs, Tab, TabContent, Button } from "carbon-components-svelte";
+  import { Button } from "carbon-components-svelte";
   import AddInvoice from "./invoices/AddInvoice.svelte";
   import PayInvoice from "./invoices/PayInvoice.svelte";
   import PayKeysend from "./invoices/PayKeysend.svelte";

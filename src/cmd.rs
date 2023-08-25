@@ -50,7 +50,7 @@ pub enum SwarmCmd {
     StartContainer(String),
     StopContainer(String),
     UpdateNode(UpdateNode),
-    GetStatistics(String)
+    GetStatistics(Option<String>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -102,6 +102,9 @@ pub struct PayInvoice {
 pub struct PayKeysend {
     pub amt: i64,
     pub dest: String,
+    pub route_hint: Option<String>,
+    pub maxfeepercent: Option<f64>,
+    pub exemptfee: Option<u64>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CloseChannel {

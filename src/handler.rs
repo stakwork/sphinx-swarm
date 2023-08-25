@@ -30,6 +30,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
         }
     }
 
+    log::info!("=> CMD: {:?}", cmd);
+
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
             SwarmCmd::GetConfig => {
@@ -133,7 +135,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::GetStatistics(container_name) => {
                 let docker = dockr();
                 println!("Calling GetStatistics with {:?}", &container_name);
-                let containers = get_container_statistics(&docker, &container_name).await?;
+                let containers = get_container_statistics(&docker, container_name).await?;
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
             }
@@ -288,7 +290,16 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     Some(serde_json::to_string(&paid)?)
                 }
                 ClnCmd::PayKeysend(i) => {
-                    let paid = client.keysend(&i.dest, i.amt as u64).await?;
+                    let paid = client
+                        .keysend(
+                            &i.dest,
+                            i.amt as u64,
+                            i.route_hint,
+                            i.maxfeepercent,
+                            i.exemptfee,
+                            None,
+                        )
+                        .await?;
                     Some(serde_json::to_string(&paid)?)
                 }
                 ClnCmd::CloseChannel(i) => {

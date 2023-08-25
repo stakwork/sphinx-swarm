@@ -3,7 +3,7 @@
   import { defaultPositions } from "./nodes";
   import { chipSVG, type Node, type NodeType, smalls } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
-  import {selectedNode, stack} from "./store";
+  import { selectedNode, stack } from "./store";
 
   $: flow = toSvelvet($stack.nodes, nodeCallback);
 
@@ -67,22 +67,15 @@
     return { nodes, edges };
   }
 
-  const colorz = {
-    Btc: "#D4A74E",
-    Lnd: "#9D61FF",
-    Proxy: "#FF6161",
-    Relay: "#49C998",
-    Tribes: "#618AFF",
-    Meme: "#660066",
-    Mqtt: "#660066",
-    Auth: "#9D61FF",
-    Postgres: "#9D61FF",
-  };
+  function namer(s) {
+    if (s.length < 4) return s.toUpperCase();
+    else return s;
+  }
 
   function content(t: NodeType, remoteHsmd = false) {
     return `<section class='node-html'>
       <img src='swarm/${t.toLowerCase()}.png' class='node-img'></img>
-      <p class="node-text">${t}</p>
+      <p class="node-text">${namer(t)}</p>
       ${
         remoteHsmd
           ? `<div class="remote-hsmd">${chipSVG}</div>`

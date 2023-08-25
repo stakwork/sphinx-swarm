@@ -1,12 +1,20 @@
 <script lang="ts">
   import { stack } from "../store";
+  import type { Stack, Node } from "../nodes";
   import QrCode from "svelte-qrcode";
 
   $: cln_node = $stack && $stack.nodes.find((n) => n.type === "Cln");
-  $: host =
-    $stack.host && cln_node
-      ? `mqtt-${cln_node.name}.${$stack.host}:8883`
-      : `127.0.0.1:1883`;
+
+  function makeHost(s: Stack, n: Node) {
+    if (s.ip) {
+      return `${s.ip}:1883`;
+    } else if (s.host && n) {
+      return `mqtt-${n.name}.${s.host}:8883`;
+    } else {
+      return `127.0.0.1:1883`;
+    }
+  }
+  $: host = makeHost($stack, cln_node);
 
   function makeQR(mqtt: string, network: string) {
     return `sphinx.chat://?action=glyph&mqtt=${mqtt}&network=${network}`;

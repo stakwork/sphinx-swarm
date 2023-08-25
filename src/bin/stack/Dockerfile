@@ -1,5 +1,5 @@
 # Rust as the base image
-FROM rust:latest as build
+FROM rust:1.72-slim-bullseye as build
 
 # Create a new empty shell project
 # RUN USER=root cargo new --lib sphinx-swarm
@@ -19,7 +19,7 @@ COPY ./src ./src
 # install proto dep
 RUN apt-get update && \
     apt-get install -y \
-    protobuf-compiler
+    protobuf-compiler 
 
 # Build for release.
 # remove the lib
@@ -28,10 +28,11 @@ RUN cargo build --release
 
 # The final base image
 # FROM debian:buster-slim
-FROM debian:bullseye-slim
+# FROM debian:bullseye-slim
+FROM debian:11-slim
 
 # get root CA certs
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates 
 
 # Copy from the previous build
 COPY --from=build /sphinx-swarm/target/release/stack /usr/src/stack

@@ -5,6 +5,7 @@ use crate::secrets::hex_secret;
 use crate::utils::docker_domain_tonic;
 use anyhow::{anyhow, Result};
 use cln_grpc::pb;
+use std::collections::HashMap;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 pub use util::*;
 
@@ -152,24 +153,55 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn keysend(&mut self, id: &str, amt: u64) -> Result<pb::KeysendResponse> {
+    pub async fn keysend(
+        &mut self,
+        id: &str,
+        amt: u64,
+        route_hint: Option<String>,
+        maxfeepercent: Option<f64>,
+        exemptfee: Option<u64>,
+        extratlvs: Option<HashMap<u64, Vec<u8>>>,
+    ) -> Result<pb::KeysendResponse> {
         let id = hex::decode(id)?;
-        // let mut routehints = pb::RoutehintList { hints: vec![] };
-        // let mut hint1 = pb::Routehint { hops: vec![] };
-        // let hop1 = pb::RouteHop {
-        //     ..Default::default()
-        // };
-        // hint1.hops.push(hop1);
-        // routehints.hints.push(hint1);
-        let response = self
-            .client
-            .key_send(pb::KeysendRequest {
-                destination: id,
-                amount_msat: Some(amount(amt)),
-                // routehints: Some(routehints),
-                ..Default::default()
-            })
-            .await?;
+        let mut req = pb::KeysendRequest {
+            destination: id,
+            amount_msat: Some(amount(amt)),
+            ..Default::default()
+        };
+        if let Some(mfp) = maxfeepercent {
+            req.maxfeepercent = Some(mfp);
+        }
+        if let Some(ef) = exemptfee {
+            req.exemptfee = Some(amount(ef));
+        }
+        if let Some(tlvs) = extratlvs {
+            let mut entries: Vec<pb::TlvEntry> = Vec::new();
+            for (k, value) in tlvs {
+                entries.push(pb::TlvEntry { r#type: k, value })
+            }
+            req.extratlvs = Some(pb::TlvStream { entries });
+        }
+        if let Some(rh) = route_hint {
+            if let Some(pos) = rh.chars().position(|c| c == ':') {
+                let (pk, scid_str) = rh.split_at(pos);
+                let mut scid_string = scid_str.to_string();
+                scid_string.remove(0); // drop the ":"
+                let mut routehints = pb::RoutehintList { hints: vec![] };
+                let mut hint1 = pb::Routehint { hops: vec![] };
+                let scid = scid_string.parse::<u64>()?;
+                let hop1 = pb::RouteHop {
+                    id: hex::decode(pk)?,
+                    short_channel_id: ShortChannelId(scid).to_string(),
+                    feebase: Some(amount(0)),
+                    ..Default::default()
+                };
+                hint1.hops.push(hop1);
+                routehints.hints.push(hint1);
+                req.routehints = Some(routehints);
+            }
+        }
+        println!("=======> CLN KEYSEND REQ: {:?}", req);
+        let response = self.client.key_send(req).await?;
         Ok(response.into_inner())
     }
 
@@ -276,4 +308,25 @@ fn amount_or_all(msat: u64) -> Option<pb::AmountOrAll> {
 }
 fn amount(msat: u64) -> pb::Amount {
     pb::Amount { msat }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ShortChannelId(pub u64);
+
+impl ToString for ShortChannelId {
+    fn to_string(&self) -> String {
+        format!("{}x{}x{}", self.block(), self.txindex(), self.outnum())
+    }
+}
+
+impl ShortChannelId {
+    pub fn block(&self) -> u32 {
+        (self.0 >> 40) as u32 & 0xFFFFFF
+    }
+    pub fn txindex(&self) -> u32 {
+        (self.0 >> 16) as u32 & 0xFFFFFF
+    }
+    pub fn outnum(&self) -> u16 {
+        self.0 as u16 & 0xFFFF
+    }
 }

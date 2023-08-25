@@ -27,7 +27,10 @@
       const payRes = await CLN.keysend(
         tag,
         dest,
-        convertSatsToMilliSats(amount)
+        convertSatsToMilliSats(amount),
+        window.route_hint,
+        window.maxfeepercent,
+        window.exemptfee
       );
       if (payRes) {
         show_notification = true;
