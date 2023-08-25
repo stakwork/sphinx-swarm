@@ -98,8 +98,8 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
-            format!("NEO4J_dbms_memory_heap_initial__size=512m"),
-            format!("NEO4J_dbms_memory_heap_max__size=2G"),
+            format!("NEO4J_dbms_memory_heap_initial__size=64m"),
+            format!("NEO4J_dbms_memory_heap_max__size=512m"),
             format!("NEO4J_apoc_uuid_enabled=true"),
             format!("NEO4J_dbms_default__listen__address=0.0.0.0"),
             format!(
