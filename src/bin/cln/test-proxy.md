@@ -40,3 +40,9 @@ export ADMIN_TOKEN=X5Wh04zmPB0H
 nvm use 16
 
 yarn test
+
+### lncli
+
+lncli --network=regtest --lnddir=/home/.lnd --rpcserver=127.0.0.1:10011 getinfo
+
+lncli --network=regtest --lnddir=/home/.lnd --rpcserver=127.0.0.1:10011 sendpayment 02c7046d20f62012362ccf835fe5b4d4a1708e518592f216afeefabeadfc20154b 500 --keysend

@@ -236,7 +236,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         let git_version = img
             .git_version
             .clone()
-            .unwrap_or("v23.08-56-g0c8094c-modded".to_string());
+            .unwrap_or("v23.08-57-g420e0c9-modded".to_string());
         environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {

@@ -6,3 +6,5 @@ rm -rf vol/*
 echo "=> deleted vol"
 
 
+
+clear

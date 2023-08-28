@@ -92,8 +92,15 @@ export async function pay_invoice(tag: string, payment_request) {
   return await lndCmd("PayInvoice", tag, { payment_request });
 }
 
-export async function keysend(tag: string, dest: string, amt: number) {
-  return await lndCmd("PayKeysend", tag, { dest, amt });
+export async function keysend(
+  tag: string,
+  dest: string,
+  amt: number,
+  tlvs?: { [k: number]: number[] }
+) {
+  const body: any = { dest, amt };
+  if (tlvs) body.tlvs = tlvs;
+  return await lndCmd("PayKeysend", tag, body);
 }
 
 export async function list_invoices(tag: string) {
