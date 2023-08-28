@@ -1,43 +1,58 @@
 <script lang="ts">
-  import { Button, Loading } from "carbon-components-svelte";
-  import Logs from "carbon-icons-svelte/lib/CloudLogging.svelte";
-  import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import * as api from "../api";
-  import { onDestroy } from "svelte";
-  import { Doughnut } from "svelte-chartjs";
-  import {
-    Chart as ChartJS,
-    Title,
-    Tooltip,
-    Legend,
-    ArcElement,
-    CategoryScale,
-  } from "chart.js";
-  import { selectedNode } from "../store";
 
-  ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale);
+import {Button, Loading, ToastNotification} from "carbon-components-svelte";
+import Logs from "carbon-icons-svelte/lib/CloudLogging.svelte";
+import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
+import * as api from "../api";
+import {onDestroy} from "svelte";
+import {Doughnut} from "svelte-chartjs";
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  CategoryScale,
+} from "chart.js";
+import {selectedNode} from "../store";
 
-  let open = false;
-  export let nodeName = "";
-  let default_stats = {
-    container_name: "",
-    cpu_total_usage: 0,
-    system_cpu_usage: 0,
-    memory_usage: 0,
-  };
-  let max_memory_usage = 0;
-  let stats = [{ ...default_stats }];
-  let data = getData();
-  let isLoading = false;
+ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale);
 
-  async function getNodeStats() {
-    open = true;
-    isLoading = true;
-    stats = [{ ...default_stats }];
-    data = [];
-    let theStats = [];
-    if (!$selectedNode) {
-      theStats = await api.swarm.get_container_stat();
+let open = false;
+let showToast = ""
+let intervalVal;
+export let nodeName = "";
+let default_stats = {
+  container_name: "",
+  cpu_total_usage: 0,
+  system_cpu_usage: 0,
+  memory_usage: 0,
+};
+let max_memory_usage = 0;
+let stats = [{...default_stats}];
+let data = getData();
+let isLoading = false;
+
+
+function handleError(theStats: never) {
+  showToast = theStats;
+  intervalVal = setTimeout(() => {
+    showToast = "";
+    open = false;
+  }, 6000)
+}
+
+async function getNodeStats() {
+  open = true;
+  isLoading = true;
+  stats = [{...default_stats}];
+  data = [];
+  let theStats = [];
+  if (!$selectedNode) {
+    theStats = await api.swarm.get_container_stat();
+    if (typeof theStats == "string") {
+      handleError(theStats);
+    } else {
       if (theStats.length > 0) {
         stats = [];
         for (let i = 0; i < theStats.length; i++) {
@@ -49,10 +64,14 @@
           });
         }
       }
+    }
+  } else {
+    theStats = await api.swarm.get_container_stat(
+            `${$selectedNode?.name}.sphinx`
+    );
+    if (typeof theStats == "string") {
+      handleError(theStats);
     } else {
-      theStats = await api.swarm.get_container_stat(
-        `${$selectedNode?.name}.sphinx`
-      );
       stats = [
         {
           container_name: theStats[0].container_name,
@@ -62,72 +81,74 @@
         },
       ];
     }
-    console.log(">>>>>> ", theStats);
 
-    data = getData();
-    isLoading = false;
-
-    // if (theLogs) logs = theLogs.reverse();
   }
+  console.log(">>>>>> ", theStats);
 
-  function getData() {
-    let doughnut_data = [];
-    console.log(">>>>>>$selectedNode  ", $selectedNode);
-    if (!$selectedNode) {
-      for (let i = 0; i < stats.length; i++) {
-        if (stats[i].memory_usage > max_memory_usage) {
-          max_memory_usage = stats[i].memory_usage;
-          console.log("---------  ", max_memory_usage);
-          console.log("--------->  ", stats[i].container_name);
-        }
+  data = getData();
+  isLoading = false;
+
+  // if (theLogs) logs = theLogs.reverse();
+}
+
+function getData() {
+  let doughnut_data = [];
+  console.log(">>>>>>$selectedNode  ", $selectedNode);
+  if (!$selectedNode) {
+    for (let i = 0; i < stats.length; i++) {
+      if (stats[i].memory_usage > max_memory_usage) {
+        max_memory_usage = stats[i].memory_usage;
+        console.log("---------  ", max_memory_usage);
+        console.log("--------->  ", stats[i].container_name);
       }
-      let arbitrary_memory_usage = max_memory_usage * 0.1; //get 10% of max_memory_usage, then add it to max_memory_usage to form the benchmark
-      max_memory_usage = Number(
-        ((max_memory_usage + arbitrary_memory_usage) / 1000000).toFixed(2)
+    }
+    let arbitrary_memory_usage = max_memory_usage * 0.1; //get 10% of max_memory_usage, then add it to max_memory_usage to form the benchmark
+    max_memory_usage = Number(
+            ((max_memory_usage + arbitrary_memory_usage) / 1000000).toFixed(2)
+    );
+    for (let i = 0; i < stats.length; i++) {
+      stats[i].memory_usage = Number(
+              (stats[i].memory_usage / 1000000).toFixed(2)
       );
-      for (let i = 0; i < stats.length; i++) {
-        stats[i].memory_usage = Number(
-          (stats[i].memory_usage / 1000000).toFixed(2)
-        );
 
-        doughnut_data.push({
-          container_name: stats[i].container_name,
-          // labels: ['Memory Usage', 'Max Memory Usage'],
-          datasets: [
-            {
-              data: [stats[i].memory_usage, max_memory_usage],
-              backgroundColor: ["#F7464A", "#46BFBD"],
-              hoverBackgroundColor: ["#FF5A5E", "#5AD3D1"],
-            },
-          ],
-        });
-      }
-    } else {
       doughnut_data.push({
-        container_name: stats[0].container_name,
-        labels: ["System CPU Usage", "Memory Usage", "CPU Total Usage"],
+        container_name: stats[i].container_name,
+        // labels: ['Memory Usage', 'Max Memory Usage'],
         datasets: [
           {
-            data: [
-              stats[0].system_cpu_usage,
-              stats[0].memory_usage,
-              stats[0].cpu_total_usage,
-            ],
-            // data: [stats.system_cpu_usage, 5324535, 1109028864],
-            backgroundColor: ["#F7464A", "#46BFBD", "#FDB45C"],
-            hoverBackgroundColor: ["#FF5A5E", "#5AD3D1", "#FFC870"],
+            data: [stats[i].memory_usage, max_memory_usage],
+            backgroundColor: ["#F7464A", "#46BFBD"],
+            hoverBackgroundColor: ["#FF5A5E", "#5AD3D1"],
           },
         ],
       });
     }
-    console.log("<<<<>>>>>> >>>>", doughnut_data);
-
-    return doughnut_data;
+  } else {
+    doughnut_data.push({
+      container_name: stats[0].container_name,
+      labels: ["System CPU Usage", "Memory Usage", "CPU Total Usage"],
+      datasets: [
+        {
+          data: [
+            stats[0].system_cpu_usage,
+            stats[0].memory_usage,
+            stats[0].cpu_total_usage,
+          ],
+          // data: [stats.system_cpu_usage, 5324535, 1109028864],
+          backgroundColor: ["#F7464A", "#46BFBD", "#FDB45C"],
+          hoverBackgroundColor: ["#FF5A5E", "#5AD3D1", "#FFC870"],
+        },
+      ],
+    });
   }
+  console.log("<<<<>>>>>> >>>>", doughnut_data);
 
-  onDestroy(() => {
-    stats = [{ ...default_stats }];
-  });
+  return doughnut_data;
+}
+
+onDestroy(() => {
+  stats = [{...default_stats}];
+});
 </script>
 
 <!--<section class="get-logs-btn">-->
@@ -151,6 +172,21 @@
       </button>
       <h4 class="modal-title">{nodeName.toLocaleUpperCase()} Stats</h4>
     </section>
+    {#if showToast}
+      <div class="stat">
+        <ToastNotification
+                title="Error"
+                subtitle={showToast}
+                on:close={(e) => {
+                  e.preventDefault();
+                  showToast = ""
+                  intervalVal = null
+                  open = false
+                }
+              }
+        />
+      </div>
+    {/if}
     {#if isLoading}
       <div class="loader">
         <Loading small />
