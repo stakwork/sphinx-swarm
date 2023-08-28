@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::images::Image;
 use serde::{Deserialize, Serialize};
 
@@ -98,13 +100,14 @@ pub struct AddInvoice {
 pub struct PayInvoice {
     pub payment_request: String,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct PayKeysend {
     pub amt: i64,
     pub dest: String,
     pub route_hint: Option<String>,
     pub maxfeepercent: Option<f64>,
     pub exemptfee: Option<u64>,
+    pub tlvs: Option<HashMap<u64, Vec<u8>>>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CloseChannel {
