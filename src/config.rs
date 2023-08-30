@@ -321,7 +321,7 @@ impl Default for Stack {
         proxy.links(vec![lightning_provider]);
 
         // relay
-        v = "v2.4.0-admin-auth-5";
+        v = "latest";
         let node_env = match host {
             Some(_) => "production",
             None => "development",
