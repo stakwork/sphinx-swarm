@@ -4,7 +4,7 @@ use sphinx_swarm::config::{ExternalNode, ExternalNodeType, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::{cln::ClnImage, Image};
 use sphinx_swarm::rocket_utils::CmdRequest;
-use sphinx_swarm::{builder, handler, logs, routes};
+use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
 
 const BTC: &str = "btc_1";
@@ -27,13 +27,17 @@ pub async fn main() -> Result<()> {
 
     let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
+    let log_txs = Arc::new(Mutex::new(log_txs));
 
     println!("=> spawn handler");
     handler::spawn_handler(proj, rx, docker.clone());
 
     println!("=> launch rocket");
-    let log_txs = Arc::new(Mutex::new(log_txs));
-    let _r = routes::launch_rocket(tx.clone(), log_txs).await?;
+
+    let event_txs = events::new_event_chans();
+    let event_txs = Arc::new(Mutex::new(event_txs));
+
+    let _r = routes::launch_rocket(tx.clone(), log_txs, event_txs).await?;
 
     Ok(())
 }

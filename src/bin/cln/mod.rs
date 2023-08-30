@@ -8,7 +8,7 @@ use sphinx_swarm::images::lss::LssImage;
 use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, lnd::LndImage, proxy::ProxyImage, Image};
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::utils::domain;
-use sphinx_swarm::{builder, handler, logs, routes};
+use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 // docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
@@ -40,8 +40,13 @@ pub async fn main() -> Result<()> {
 
     println!("=> launch rocket");
     let log_txs = Arc::new(Mutex::new(log_txs));
+
+    let event_txs = events::new_event_chans();
+    let event_txs = Arc::new(Mutex::new(event_txs));
     tokio::spawn(async move {
-        let _r = routes::launch_rocket(tx.clone(), log_txs).await.unwrap();
+        let _r = routes::launch_rocket(tx.clone(), log_txs, event_txs)
+            .await
+            .unwrap();
         // ctrl-c shuts down rocket
         builder::shutdown_now();
     });
