@@ -153,7 +153,7 @@ export const finishedOnboarding = derived(
         hasBalance = true;
       }
     }
-    const hasAdmin = $users.find((user) => user.is_admin && user.alias);
+    const hasAdmin = $users?.find((user) => user.is_admin && user.alias);
     if (hasAdmin && $users.length > 1) hasUsers = true;
     return { hasAdmin, hasChannels, hasBalance, hasPeers, hasUsers };
   }

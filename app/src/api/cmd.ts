@@ -32,7 +32,6 @@ export type Cmd =
   | "AddDefaultTribe"
   | "RemoveDefaultTribe"
   | "GetChats"
-  | "CreateTribe"
   | "GetToken"
   | "ListContainers"
   | "StartContainer"

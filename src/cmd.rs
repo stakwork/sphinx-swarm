@@ -63,10 +63,7 @@ pub struct AddUser {
 pub struct DefaultTribe {
     pub id: u16,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CreateTribe {
-    pub name: String,
-}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum RelayCmd {
@@ -75,7 +72,6 @@ pub enum RelayCmd {
     GetChats,
     AddDefaultTribe(DefaultTribe),
     RemoveDefaultTribe(DefaultTribe),
-    CreateTribe(CreateTribe),
     GetToken,
     GetBalance,
 }

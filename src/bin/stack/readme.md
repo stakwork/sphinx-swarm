@@ -22,20 +22,6 @@ pull on the server and `./restart.sh`
 
 # other stuff
 
-### build docker
-
-in app `yarn build`
-
-`docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .`
-
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.35
-
-docker push sphinxlightning/sphinx-swarm:0.3.35
-
-`docker tag sphinx-swarm sphinxlightning/sphinx-swarm:latest`
-
-`docker push sphinxlightning/sphinx-swarm:latest`
-
 ### run prod stack
 
 in the root of sphinx-swarm directory, create a `.env`
@@ -137,3 +123,17 @@ copy the AWS creds into it, and `HOST=xxx`
 ### once bitcoind is synced
 
 `docker stop sphinx-swarm && docker rm sphinx-swarm && docker-compose up sphinx-swarm -d && docker logs sphinx-swarm --follow`
+
+### build docker
+
+in app `yarn build`
+
+docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
+
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.36
+
+docker push sphinxlightning/sphinx-swarm:0.3.36
+
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:latest
+
+docker push sphinxlightning/sphinx-swarm:latest

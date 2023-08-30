@@ -2,10 +2,10 @@ import { send_cmd } from "./cmd";
 import type { Cmd } from "./cmd";
 
 export interface RelayBalance {
-  reserve: number,
-  full_balance: number,
-  balance: number,
-  pending_open_balance: number
+  reserve: number;
+  full_balance: number;
+  balance: number;
+  pending_open_balance: number;
 }
 
 async function relayCmd(cmd: Cmd, tag: string, content?: any) {
@@ -18,10 +18,6 @@ export async function list_users(tag: string) {
 
 export async function get_chats(tag: string) {
   return await relayCmd("GetChats", tag);
-}
-
-export async function create_tribe(tag: string, name: string) {
-  return await relayCmd("CreateTribe", tag, { name });
 }
 
 export async function add_user(tag: string, initial_sats?: number) {

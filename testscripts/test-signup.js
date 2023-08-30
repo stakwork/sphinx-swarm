@@ -1,45 +1,68 @@
 import fetch from "node-fetch";
-import { configuration } from "./config/config.js";
+
+const swarm_ip = "0.0.0.0:8000";
+
+const ip = "localhost:3000";
 
 async function testSignup() {
   try {
-    const qrToken = configuration.qrToken;
-    const arr = qrToken.split("::");
-    const ip = arr[1];
-    const token = decodeToken(arr[2]);
-    const contacts = await getContact(token, ip);
-    const contact = contacts.response.contacts[0];
-    const updatedContact = await updateContact(ip, token, contact.id);
-    if (updatedContact.success) {
+    let hasadmin = false;
+    while (!hasadmin) {
+      const doeshaveadmin = await checkAdmin();
+      if (doeshaveadmin) hasadmin = true;
+    }
+    const pubkey = await initial_admin_pubkey();
+    console.log("initial_admin_pubkey", pubkey);
+    const signedup = await signup("RANDOM", pubkey);
+    console.log("signedup", signedup);
+    if (signedup.success) {
       console.log("====> admin setup successfully <======");
     } else {
       console.log("=====> An error occured <======");
     }
   } catch (error) {
-    console.log(error);
+    console.log("ERROR:", error);
   }
 }
 
-function decodeToken(token) {
-  return Buffer.from(token, "base64").toString("utf8");
+async function checkAdmin() {
+  const res = await fetch(`http://${ip}/has_admin`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const j = await res.json();
+  return j.response || false;
 }
 
-async function getContact(token, ip) {
-  try {
-    const res = await fetch(`http://${ip}/contacts`, {
-      method: "GET",
-      headers: { "x-user-token": token, "Content-Type": "application/json" },
-    });
+async function initial_admin_pubkey() {
+  const res = await fetch(`http://${ip}/initial_admin_pubkey`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const j = await res.json();
+  if (!j.success) {
+    throw j.error;
+  }
+  console.log(j);
+  return j.response.pubkey;
+}
 
-    return await res.json();
+async function signup(token, pubkey) {
+  try {
+    const res = await fetch(`http://${ip}/contacts/tokens`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, pubkey }),
+    });
+    return await res.text();
   } catch (error) {
     console.log(error);
   }
 }
 
-async function updateContact(ip, token, id) {
+async function updateContact(token, id) {
   try {
-    const res = await fetch(`http://${ip}/contacts/${id}`, {
+    const res = await fetch(`http://${ip}/contacts/1`, {
       method: "PUT",
       headers: { "x-user-token": token, "Content-Type": "application/json" },
       body: JSON.stringify({ alias: "admin_user" }),
@@ -51,3 +74,30 @@ async function updateContact(ip, token, id) {
 }
 
 await testSignup();
+
+async function getToken() {
+  const loginRes = await login();
+  if (!loginRes.token) return console.error("failed");
+  const txt = JSON.stringify({
+    type: "GetToken",
+  });
+  const res = await fetch(`http://${swarm_ip}/api/cmd?txt=${txt}&tag=SWARM`, {
+    method: "GET",
+    headers: { "x-jwt": loginRes.token, "Content-Type": "application/json" },
+  });
+  const j = await res.json();
+  console.log(j);
+}
+
+async function login() {
+  const r = await fetch(`http://${swarm_ip}/api/login`, {
+    method: "POST",
+    body: JSON.stringify({
+      username: "admin",
+      password: "password",
+    }),
+  });
+
+  const result = await r.json();
+  return result;
+}

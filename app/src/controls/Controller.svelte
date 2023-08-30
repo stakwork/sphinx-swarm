@@ -36,7 +36,7 @@
     $selectedNode.plugins.includes("HsmdBroker");
 </script>
 
-{#if !$stack.ready}
+{#if $stack.nodes.length && !$stack.ready}
   <div class="main" style="width: 30rem">
     <FirstConnect />
   </div>

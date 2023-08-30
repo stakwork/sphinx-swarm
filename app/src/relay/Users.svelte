@@ -22,9 +22,9 @@
     const userList = await api.relay.list_users(tag);
     if (userList) users.set(userList.users);
   }
-  onMount(async () => {
-    getUsers();
-  });
+  // onMount(async () => {
+  //   getUsers();
+  // });
 
   export function normalUsers(us) {
     return us?.filter((u) => !u.is_admin && !u.deleted) || [];
