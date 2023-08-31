@@ -3,7 +3,13 @@
   import Channels from "./Channels.svelte";
   import Invoices from "./Invoices.svelte";
   import Onchain from "./Onchain.svelte";
-  import { finishedOnboarding, isOnboarding, selectedNode } from "../store";
+  import FirstConnect from "../controls/FirstConnect.svelte";
+  import {
+    finishedOnboarding,
+    isOnboarding,
+    selectedNode,
+    hsmd,
+  } from "../store";
 
   export let tag = "";
   export let type = "";
@@ -37,29 +43,36 @@
   }
 </script>
 
-<div class="lnd-tabs-wrap">
-  <div class="node-url">
-    <span>Peering Address:</span>
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <span on:click={copyAddress} style={`transform:scale(${copied ? 1.1 : 1});`}
-      >{peering_url}</span
-    >
+{#if $hsmd}
+  <div class="hsmd-wrap">
+    <FirstConnect />
   </div>
-  <Tabs bind:selected>
-    <Tab label="Channels" />
-    <Tab label="Invoices" />
-    <Tab label="Onchain" />
-    <svelte:fragment slot="content">
-      <TabContent><Channels {tag} {type} /></TabContent>
-      <TabContent>
-        <Invoices {tag} {type} />
-      </TabContent>
-      <TabContent>
-        <Onchain {tag} {type} />
-      </TabContent>
-    </svelte:fragment>
-  </Tabs>
-</div>
+{:else}
+  <div class="lnd-tabs-wrap">
+    <div class="node-url">
+      <span>Peering Address:</span>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <span
+        on:click={copyAddress}
+        style={`transform:scale(${copied ? 1.1 : 1});`}>{peering_url}</span
+      >
+    </div>
+    <Tabs bind:selected>
+      <Tab label="Channels" />
+      <Tab label="Invoices" />
+      <Tab label="Onchain" />
+      <svelte:fragment slot="content">
+        <TabContent><Channels {tag} {type} /></TabContent>
+        <TabContent>
+          <Invoices {tag} {type} />
+        </TabContent>
+        <TabContent>
+          <Onchain {tag} {type} />
+        </TabContent>
+      </svelte:fragment>
+    </Tabs>
+  </div>
+{/if}
 
 <style>
   .node-url {
@@ -81,5 +94,8 @@
   }
   .node-url span:last-child:hover {
     color: white;
+  }
+  .hsmd-wrap {
+    width: 100%;
   }
 </style>

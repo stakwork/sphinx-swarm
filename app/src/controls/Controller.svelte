@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode, node_state, stack } from "../store";
+  import { selectedNode, node_state, stack, hsmd } from "../store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
@@ -25,9 +25,10 @@
   }
 
   function openHsmdUI() {
-    if (IS_DEV) {
-      window.open("http://localhost:8080", "_blank");
-    }
+    hsmd.update((h) => !h);
+    // if (IS_DEV) {
+    // window.open("http://localhost:8080", "_blank");
+    // }
   }
 
   $: hasHsmd =
@@ -38,6 +39,7 @@
 
 {#if $stack.nodes.length && !$stack.ready}
   <div class="main" style="width: 30rem">
+    <div style="height:2rem;width:1px;" />
     <FirstConnect />
   </div>
 {:else if ctrls}
@@ -167,5 +169,8 @@
     align-items: center;
     justify-content: center;
     margin-left: 0.85rem;
+  }
+  .hsmd-wrap:hover {
+    transform: scale(1.2, 1.2);
   }
 </style>
