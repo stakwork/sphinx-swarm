@@ -8,6 +8,7 @@
   import { formatSatsNumbers } from "../helpers";
   import { getTransactionStatus, getBlockTip } from "../helpers/bitcoin";
   import Exit from "carbon-icons-svelte/lib/Exit.svelte";
+  import { onDestroy, onMount } from "svelte";
 
   export let tag = "";
   export let onclose = (id: string, dest: string) => {};
@@ -58,17 +59,22 @@
   }
 
   async function getConfirmation(chan) {
-    const channel_point_arr = chan.channel_point.split(":");
-    if (channel_point_arr.length < 2) {
+    try {
+      const channel_point_arr = chan.channel_point.split(":");
+      if (channel_point_arr.length < 2) {
+        return 0;
+      }
+      let tx_id = channel_point_arr[0];
+      const transaction_status = await getTransactionStatus(tx_id);
+      if (!transaction_status.confirmed) {
+        return 0;
+      }
+      const currentBlockHeight = await getBlockTip();
+      return currentBlockHeight - transaction_status.block_height + 1;
+    } catch (e) {
+      console.warn(e);
       return 0;
     }
-    let tx_id = channel_point_arr[0];
-    const transaction_status = await getTransactionStatus(tx_id);
-    if (!transaction_status.confirmed) {
-      return 0;
-    }
-    const currentBlockHeight = await getBlockTip();
-    return currentBlockHeight - transaction_status.block_height + 1;
   }
 
   async function getChannelsConfirmation() {
@@ -85,8 +91,17 @@
       channel_arr = [...new_channel];
     }
   }
-  getChannelsConfirmation();
-  setInterval(getChannelsConfirmation, 50000);
+
+  let chanInterval;
+
+  onMount(() => {
+    getChannelsConfirmation();
+    chanInterval = setInterval(getChannelsConfirmation, 50000);
+  });
+
+  onDestroy(() => {
+    if (chanInterval) clearInterval(chanInterval);
+  });
 </script>
 
 <div class="lnd-table-wrap">
