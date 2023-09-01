@@ -30,10 +30,9 @@ async fn main() -> Result<()> {
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
     log::info!("🚀 => http://localhost:{}", port);
 
-    let event_txs = events::new_event_chans();
-    let event_txs = Arc::new(Mutex::new(event_txs));
+    let event_tx = events::new_event_chan();
 
-    let _r = routes::launch_rocket(tx.clone(), log_txs, event_txs).await?;
+    let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx).await?;
 
     Ok(())
 }

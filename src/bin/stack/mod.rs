@@ -27,8 +27,7 @@ async fn main() -> Result<()> {
     let log_txs = logs::new_log_chans();
     let log_txs = Arc::new(Mutex::new(log_txs));
 
-    let event_txs = events::new_event_chans();
-    let event_txs = Arc::new(Mutex::new(event_txs));
+    let event_txs = events::new_event_chan();
 
     println!("=> launch rocket");
     tokio::spawn(async move {

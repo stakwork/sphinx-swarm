@@ -34,10 +34,9 @@ pub async fn main() -> Result<()> {
 
     println!("=> launch rocket");
 
-    let event_txs = events::new_event_chans();
-    let event_txs = Arc::new(Mutex::new(event_txs));
+    let event_tx = events::new_event_chan();
 
-    let _r = routes::launch_rocket(tx.clone(), log_txs, event_txs).await?;
+    let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx).await?;
 
     Ok(())
 }

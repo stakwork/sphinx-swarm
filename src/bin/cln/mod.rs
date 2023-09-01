@@ -41,10 +41,10 @@ pub async fn main() -> Result<()> {
     println!("=> launch rocket");
     let log_txs = Arc::new(Mutex::new(log_txs));
 
-    let event_txs = events::new_event_chans();
-    let event_txs = Arc::new(Mutex::new(event_txs));
+    let event_tx = events::new_event_chan();
+
     tokio::spawn(async move {
-        let _r = routes::launch_rocket(tx.clone(), log_txs, event_txs)
+        let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx)
             .await
             .unwrap();
         // ctrl-c shuts down rocket
