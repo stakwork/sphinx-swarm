@@ -369,8 +369,8 @@ pub async fn hydrate_clients(clients: Clients) {
 
 pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Docker) {
     let project = proj.to_string();
-    let timeout_duration = std::env::var("REQUEST_TIMEOUT_DURATION_IN_SEC")
-        .unwrap_or_else(|_| "60".to_string());
+    let timeout_duration =
+        std::env::var("REQUEST_TIMEOUT_DURATION_IN_SEC").unwrap_or_else(|_| "60".to_string());
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             let response = if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
