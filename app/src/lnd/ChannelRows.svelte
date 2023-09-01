@@ -12,7 +12,6 @@
   export let tag = "";
   export let onclose = (id: string, dest: string) => {};
 
-  $: console.log("Channels", $channels[tag]);
   let channel_arr = $channels[tag];
 
   function getBarCalculation(chan) {
