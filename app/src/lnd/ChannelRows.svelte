@@ -39,7 +39,6 @@
   let forceCloseDestination = "";
 
   function clickRow(chan) {
-    console.log(chan);
     if (!chan.active) return;
     if (selectedChannelParter === chan.remote_pubkey) {
       selectedChannelParter = "";

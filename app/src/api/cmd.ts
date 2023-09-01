@@ -43,7 +43,8 @@ export type Cmd =
   | "ListInvoices"
   | "ListPays"
   | "ListPayments"
-  | "GetStatistics";
+  | "GetStatistics"
+  | "ListPendingChannels";
 
 interface CmdData {
   cmd: Cmd;

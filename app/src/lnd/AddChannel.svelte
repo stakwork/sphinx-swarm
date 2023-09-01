@@ -7,12 +7,7 @@
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import {
-    create_channel,
-    get_balance,
-    list_channels,
-    list_peers,
-  } from "../api/lnd";
+  import { create_channel, get_balance, list_peers } from "../api/lnd";
   import * as CLN from "../api/cln";
   import { onMount } from "svelte";
   import {
@@ -23,6 +18,7 @@
   } from "../store";
   import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
   import { parseClnListFunds, parseClnListPeerRes } from "../helpers/cln";
+  import { getLndPendingAndActiveChannels } from "../helpers/lnd";
 
   export let activeKey: string = null;
 
@@ -85,7 +81,7 @@
         amount = 0;
         sats = 0;
         setTimeout(async () => {
-          const channelsData = await list_channels(tag);
+          const channelsData = await getLndPendingAndActiveChannels(tag);
           channels.update((chans) => {
             return { ...chans, [tag]: channelsData };
           });

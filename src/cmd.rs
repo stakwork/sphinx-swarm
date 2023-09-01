@@ -148,6 +148,7 @@ pub enum LndCmd {
     PayKeysend(PayKeysend),
     ListPayments,
     ListInvoices,
+    ListPendingChannels,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

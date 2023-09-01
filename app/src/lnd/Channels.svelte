@@ -14,6 +14,7 @@
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
   import { parseClnGetInfo, parseClnListPeerRes } from "../helpers/cln";
+  import { getLndPendingAndActiveChannels } from "../helpers/lnd";
 
   import * as LND from "../api/lnd";
   import * as CLN from "../api/cln";
@@ -61,8 +62,7 @@
   }
 
   async function listChannels() {
-    if ($channels[tag] && $channels[tag].length) return;
-    const channelsData = await LND.list_channels(tag);
+    const channelsData = await getLndPendingAndActiveChannels(tag);
 
     channels.update((chans) => {
       return { ...chans, [tag]: channelsData };
@@ -162,7 +162,7 @@
       const parsedRes = await parseClnListPeerRes(peersData);
       newChannels = parsedRes.channels;
     } else {
-      const channelsData = await LND.list_channels(tag);
+      const channelsData = await getLndPendingAndActiveChannels(tag);
       newChannels = channelsData;
     }
     if (JSON.stringify(newChannels) !== JSON.stringify($channels[tag])) {

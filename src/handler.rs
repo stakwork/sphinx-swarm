@@ -236,6 +236,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     let invoices = client.list_invoices().await?;
                     Some(serde_json::to_string(&invoices)?)
                 }
+                LndCmd::ListPendingChannels => {
+                    let pending_channel_list = client.list_pending_channels().await?;
+                    Some(serde_json::to_string(
+                        &pending_channel_list.pending_open_channels,
+                    )?)
+                }
             }
         }
         Cmd::Cln(c) => {
