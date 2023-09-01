@@ -147,7 +147,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
         ready: false,
-        ip: None,
+        ip: std::env::var("IP").ok(),
     }
 }
 
@@ -394,7 +394,7 @@ impl Default for Stack {
             users: vec![Default::default()],
             jwt_key: secrets::random_word(16),
             ready: false,
-            ip: None,
+            ip: std::env::var("IP").ok(),
         }
     }
 }
