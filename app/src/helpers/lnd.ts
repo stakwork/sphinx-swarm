@@ -1,4 +1,5 @@
 import { parseDate, shortTransactionId } from "./";
+import * as LND from "../api/lnd";
 
 export function parseLndInvoices(transactions) {
   const parsedInvoices = transactions.invoices;
@@ -38,4 +39,20 @@ export function parseLndPayments(transactions) {
   } else {
     return [];
   }
+}
+
+export async function getLndPendingAndActiveChannels(tag: string) {
+  const channelsData = await LND.list_channels(tag);
+  const pendingChannels = await LND.list_pending_channels(tag);
+
+  for (let i = 0; i < pendingChannels.length; i++) {
+    const channel = pendingChannels[i].channel;
+    channelsData.push({
+      ...channel,
+      active: false,
+      remote_pubkey: channel.remote_node_pub,
+    });
+  }
+
+  return channelsData;
 }

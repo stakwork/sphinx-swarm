@@ -71,6 +71,10 @@ export async function get_balance(tag: string) {
   return await lndCmd("GetBalance", tag);
 }
 
+export async function list_pending_channels(tag: string) {
+  return await lndCmd("ListPendingChannels", tag);
+}
+
 export async function create_channel(
   tag: string,
   pubkey: string,

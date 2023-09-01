@@ -179,6 +179,16 @@ impl LndRPC {
 
         Ok(response.into_inner())
     }
+
+    pub async fn list_pending_channels(&mut self) -> Result<PendingChannelsResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .pending_channels(PendingChannelsRequest {
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
 }
 
 pub async fn sleep_ms(n: u64) {

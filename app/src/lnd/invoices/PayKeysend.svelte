@@ -10,6 +10,7 @@
   import * as CLN from "../../api/cln";
   import { parseClnListPeerRes } from "../../helpers/cln";
   import { convertSatsToMilliSats } from "../../helpers";
+  import { getLndPendingAndActiveChannels } from "../../helpers/lnd";
 
   export let tag = "";
   export let type = "";
@@ -68,7 +69,7 @@
          * After successfully invoice payment fetch the new channels
          * To update the balance
          */
-        const channelsData = await LND.list_channels(tag);
+        const channelsData = await getLndPendingAndActiveChannels(tag);
         channels.update((chans) => {
           return { ...chans, [tag]: channelsData };
         });
