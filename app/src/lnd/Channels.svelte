@@ -18,7 +18,7 @@
 
   import * as LND from "../api/lnd";
   import * as CLN from "../api/cln";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
   export let tag = "";
   export let type = "";
@@ -50,6 +50,8 @@
   let lndData: LND.LndInfo;
 
   let activePeer: LND.LndPeer = null;
+
+  let chanInterval;
 
   async function getLndInfo() {
     const lndRes = await LND.get_info(tag);
@@ -145,16 +147,6 @@
     }
   }
 
-  async function checkingChannels() {
-    setInterval(async () => {
-      try {
-        await getChannels();
-      } catch (error) {
-        console.log(error);
-      }
-    }, 10000);
-  }
-
   async function getChannels() {
     let newChannels = [];
     if (type === "Cln") {
@@ -177,7 +169,11 @@
     getChannels();
 
     //pulling for new channel
-    checkingChannels();
+    chanInterval = setInterval(getChannels, 10000);
+  });
+
+  onDestroy(() => {
+    if (chanInterval) clearInterval(chanInterval);
   });
 </script>
 

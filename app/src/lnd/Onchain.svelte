@@ -12,7 +12,7 @@
     lndBalances,
     unconfirmedBalance,
   } from "../store";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import {
     parseClnListFunds,
     parseUnconfirmedClnBalance,
@@ -20,6 +20,8 @@
 
   export let tag = "";
   export let type = "";
+
+  let balInterval;
 
   async function newAddress() {
     let new_addy;
@@ -37,22 +39,16 @@
     });
   }
 
-  onMount(async () => {
+  onMount(() => {
     getBalance();
 
     //Polling Get Balance
-    pollGetBalance();
+    balInterval = setInterval(getBalance, 20000);
   });
 
-  function pollGetBalance() {
-    try {
-      setInterval(async () => {
-        await getBalance();
-      }, 20000);
-    } catch (error) {
-      console.log(error);
-    }
-  }
+  onDestroy(() => {
+    if (balInterval) clearInterval(balInterval);
+  });
 
   async function getBalance() {
     if (type === "Lnd") {

@@ -9,7 +9,7 @@
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import { create_channel, get_balance, list_peers } from "../api/lnd";
   import * as CLN from "../api/cln";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import {
     lndBalances,
     peers as peersStore,
@@ -36,6 +36,8 @@
   $: peers = $peersStore && $peersStore[tag];
 
   let show_notification = false;
+
+  let peerInterval;
 
   // Check for length to avoid map error
   $: peerData = peers?.length
@@ -115,16 +117,6 @@
     });
   }
 
-  async function checkingNewPeer() {
-    setInterval(async () => {
-      try {
-        await getPeers();
-      } catch (error) {
-        console.log(error);
-      }
-    }, 10000);
-  }
-
   async function getPeers() {
     let newPeers = [];
     if (type === "Cln") {
@@ -147,12 +139,17 @@
     getPeers();
 
     //pulling for new peer
-    checkingNewPeer();
+    peerInterval = setInterval(getPeers, 10000);
+
     if (type === "Cln") {
       listClnFunds();
     } else {
       getBalance();
     }
+  });
+
+  onDestroy(() => {
+    if (peerInterval) clearInterval(peerInterval);
   });
 
   export let back = () => {};
