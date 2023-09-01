@@ -61,6 +61,7 @@ services:
     restart: on-failure
     environment:
       - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
+      - IP=$IP
       - ONLY_NODE=$ONLY_NODE # only start this node
       - BTC_PASS=$BTC_PASS # for starting after bitcoind sync
       - DOCKER_RUN=true # client use sphinx-swarm network

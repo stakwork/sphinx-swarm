@@ -130,9 +130,9 @@ in app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.41
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.42
 
-docker push sphinxlightning/sphinx-swarm:0.3.41
+docker push sphinxlightning/sphinx-swarm:0.3.42
 
 docker tag sphinx-swarm sphinxlightning/sphinx-swarm:latest
 

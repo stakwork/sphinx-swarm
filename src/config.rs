@@ -147,7 +147,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
         ready: false,
-        ip: std::env::var("IP").ok(),
+        ip: env_no_empty("IP"),
     }
 }
 
@@ -387,6 +387,8 @@ impl Default for Stack {
         // final nodes array
         nodes.extend(external_nodes);
 
+        let mut ip = None;
+
         Stack {
             network,
             nodes,
@@ -394,7 +396,7 @@ impl Default for Stack {
             users: vec![Default::default()],
             jwt_key: secrets::random_word(16),
             ready: false,
-            ip: std::env::var("IP").ok(),
+            ip: env_no_empty("IP"),
         }
     }
 }
