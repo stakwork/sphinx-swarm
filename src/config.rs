@@ -387,7 +387,7 @@ impl Default for Stack {
         // final nodes array
         nodes.extend(external_nodes);
 
-        let mut ip = None;
+        let mut ip: Option<String> = None;
 
         Stack {
             network,
