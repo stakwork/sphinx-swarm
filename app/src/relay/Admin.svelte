@@ -12,6 +12,7 @@
   } from "../store";
   import QrCode from "svelte-qrcode";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
+  import { Chat } from "carbon-icons-svelte";
 
   $: adminUnconnected = $users?.find((u) => u.is_admin && !u.alias);
 
@@ -44,7 +45,7 @@
 
   async function refreshTribes() {
     const chats = await api.relay.get_chats(tag);
-    if (chats?.length) {
+    if (Array.isArray(chats)) {
       myChats = chats;
     }
     return chats;
