@@ -11,7 +11,7 @@
   } from "../store";
   import Peers from "./Peers.svelte";
   import AddChannel from "./AddChannel.svelte";
-  import { formatSatsNumbers } from "../helpers";
+  import { formatSatsNumbers, formatPubkey } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
   import { parseClnGetInfo, parseClnListPeerRes } from "../helpers/cln";
   import { getLndPendingAndActiveChannels } from "../helpers/lnd";
@@ -120,10 +120,6 @@
     } else {
       page = "add_channel";
     }
-  }
-
-  function formatPubkey(pk: string) {
-    return `${pk.substring(0, 6)}...${pk.substring(pk.length - 6)}`;
   }
 
   let copied = false;
