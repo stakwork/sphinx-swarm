@@ -59,3 +59,7 @@ export function parseDate(date: number): string {
 export function shortTransactionId(id: string): string {
   return `${id.substring(0, 4)}...${id.substring(id.length - 4, id.length)}`;
 }
+
+export function formatPubkey(pk: string) {
+  return `${pk.substring(0, 6)}...${pk.substring(pk.length - 6)}`;
+}
