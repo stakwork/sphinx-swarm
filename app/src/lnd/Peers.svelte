@@ -16,8 +16,7 @@
   } from "../store";
   import { parseClnListPeerRes } from "../helpers/cln";
 
-  $: pubkey = "";
-  $: host = "";
+  $: connection_string = "";
   $: $finishedOnboarding, addDefaultPeer();
 
   export let back = () => {};
@@ -28,27 +27,35 @@
   $: peers = $peersStore && $peersStore[tag];
 
   let show_notification = false;
+  let error_notification = false;
 
   async function addPeer() {
+    const connection_array = connection_string && connection_string.split("@");
+    if (connection_array.length !== 2) {
+      error_notification = true;
+      return;
+    }
+    const pubkey = connection_array[0];
+    const host = connection_array[1];
+
     if (type === "Cln") {
       const peer = await CLN.add_peer(tag, pubkey, host);
       if (peer) {
+        connection_string = "";
         show_notification = true;
-        pubkey = "";
-        host = "";
         const peersData = await CLN.list_peers(tag);
         const parsedRes = await parseClnListPeerRes(peersData);
         peersStore.update((peer) => {
           return { ...peer, [tag]: parsedRes.peers };
         });
         createdPeerForOnboarding.update(() => true);
+      } else {
+        error_notification = true;
       }
     } else {
       if (await add_peer(tag, pubkey, host)) {
+        connection_string = "";
         show_notification = true;
-        pubkey = "";
-        host = "";
-
         setTimeout(async () => {
           const peersData = await list_peers(tag);
           peersStore.update((ps) => {
@@ -56,6 +63,8 @@
           });
           createdPeerForOnboarding.update(() => true);
         }, 1000);
+      } else {
+        error_notification = true;
       }
     }
   }
@@ -66,15 +75,14 @@
       $finishedOnboarding.hasBalance &&
       !$finishedOnboarding.hasPeers
     ) {
-      pubkey =
-        "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f";
-      host = "54.159.193.149:9735";
+      connection_string =
+        "023d70f2f76d283c6c4e58109ee3a2816eb9d8feb40b23d62469060a2b2867b77f@54.159.193.149:9735";
     }
   }
 
   $: peersLength = peers && peers.length ? peers.length : "No";
   $: peersLabel = peers && peers.length <= 1 ? "peer" : "peers";
-  $: addDisabled = !pubkey || !host;
+  $: addDisabled = !connection_string;
 </script>
 
 <section class="peer-wrap">
@@ -111,18 +119,25 @@
       }}
     />
   {/if}
+  {#if error_notification}
+    <InlineNotification
+      lowContrast
+      kind="error"
+      title="Error:"
+      subtitle="Error connecting to peer."
+      timeout={3000}
+      on:close={(e) => {
+        e.preventDefault();
+        error_notification = false;
+      }}
+    />
+  {/if}
   <section class="new-peer-form">
     <div class="spacer" />
     <TextInput
-      labelText={"Pubkey"}
-      placeholder={"New node pubkey"}
-      bind:value={pubkey}
-    />
-    <div class="spacer" />
-    <TextInput
-      labelText={"Address"}
-      placeholder={"New node address"}
-      bind:value={host}
+      labelText={"Connection String"}
+      placeholder={"pubkey@host"}
+      bind:value={connection_string}
     />
     <div class="spacer" />
     <center
