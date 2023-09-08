@@ -12,6 +12,7 @@ pub enum Cmd {
     Lnd(LndCmd),
     Cln(ClnCmd),
     Proxy(ProxyCmd),
+    Hsmd(HsmdCmd),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -168,6 +169,12 @@ pub enum ClnCmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum ProxyCmd {
     GetBalance,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", content = "content")]
+pub enum HsmdCmd {
+    GetClients,
 }
 
 impl Cmd {

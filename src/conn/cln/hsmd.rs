@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
-pub struct ClnAPI {
+pub struct Hsmd {
     pub client: reqwest::Client,
     pub url: String,
 }
@@ -15,7 +15,7 @@ pub struct Clients {
     balances: HashMap<String, u32>,
 }
 
-impl ClnAPI {
+impl Hsmd {
     pub async fn new(cln: &ClnImage) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(20))

@@ -346,6 +346,15 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 }
             }
         }
+        Cmd::Hsmd(c) => {
+            let client = state.clients.hsmd.get(tag).context("no cln client")?;
+            match c {
+                HsmdCmd::GetClients => {
+                    let clients = client.get_clients().await?;
+                    Some(serde_json::to_string(&clients)?)
+                }
+            }
+        }
     };
 
     if must_save_stack {
