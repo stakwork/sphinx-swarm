@@ -10,6 +10,8 @@
     selectedNode,
     hsmd,
   } from "../store";
+  import { onMount } from "svelte";
+  import { get_clients } from "../api/hsmd";
 
   export let tag = "";
   export let type = "";
@@ -41,6 +43,13 @@
     copied = true;
     setTimeout(() => (copied = false), 150);
   }
+
+  onMount(async () => {
+    if (type === "Cln") {
+      const clients = await get_clients(tag);
+      console.log(clients);
+    }
+  });
 </script>
 
 {#if $hsmd}
