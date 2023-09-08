@@ -1,4 +1,5 @@
 pub mod util;
+pub mod api;
 
 use crate::images::cln::ClnImage;
 use crate::secrets::hex_secret;

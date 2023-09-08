@@ -29,7 +29,7 @@ impl ClnAPI {
         })
     }
 
-    pub async fn get_clients(&self) -> Result<> {
+    pub async fn get_clients(&self) -> Result<i32> {
         let route = format!("http://{}/clients", self.url);
 
         let res = self
@@ -39,7 +39,7 @@ impl ClnAPI {
             .await?;
 
         let clients = res.json().await?;
-        println!("{:?}",clients)
-        Ok()
+        println!("{:?}",clients);
+        Ok(10)
     }
 }

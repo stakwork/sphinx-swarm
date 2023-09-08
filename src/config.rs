@@ -1,5 +1,6 @@
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::conn::cln::ClnRPC;
+use crate::conn::cln::api::ClnAPI;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
@@ -43,6 +44,7 @@ pub struct Clients {
     pub cln: HashMap<String, ClnRPC>,
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,
+    pub cln_api: HashMap<String, ClnAPI>,
 }
 
 impl Default for Clients {
@@ -53,6 +55,7 @@ impl Default for Clients {
             cln: HashMap::new(),
             proxy: HashMap::new(),
             relay: HashMap::new(),
+            cln_api: HashMap::new(),
         }
     }
 }
