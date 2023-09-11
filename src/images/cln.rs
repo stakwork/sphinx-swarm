@@ -2,6 +2,7 @@ use super::traefik::{cln_traefik_labels, traefik_labels};
 use super::*;
 use crate::config::{Clients, ExternalNodeType, Node};
 use crate::conn::cln::setup as setup_cln;
+use crate::conn::cln::hsmd::Hsmd;
 use crate::conn::lnd::setup::test_mine_if_needed;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{anyhow, Context, Result};
@@ -75,6 +76,12 @@ impl ClnImage {
             test_mine_if_needed(test_mine_addy, &internal_btc.name, clients);
         }
         clients.cln.insert(self.name.clone(), client);
+        match Hsmd::new(self).await {
+            Ok(client) => {
+                clients.hsmd.insert(self.name.clone(), client);
+            }
+            Err(e) => log::warn!("Hsmd error: {:?}", e),
+        };
         Ok(())
     }
     pub fn credentials_paths(&self, root_dir: &str) -> ClnCreds {
