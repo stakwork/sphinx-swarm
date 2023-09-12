@@ -254,3 +254,11 @@ export async function sleep(ms) {
 }
 
 export const hsmd = writable<boolean>(false);
+
+export interface HsmdClients {
+  pubkey?: string;
+  current?: string;
+  clients: { [k: string]: any };
+}
+
+export const hsmdClients = writable<HsmdClients>();

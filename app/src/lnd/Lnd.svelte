@@ -9,6 +9,7 @@
     isOnboarding,
     selectedNode,
     hsmd,
+    hsmdClients,
   } from "../store";
   import { onMount } from "svelte";
   import { get_clients } from "../api/hsmd";
@@ -47,7 +48,7 @@
   onMount(async () => {
     if (type === "Cln") {
       const clients = await get_clients(tag);
-      console.log(clients);
+      if (clients) hsmdClients.set(clients);
     }
   });
 </script>

@@ -347,7 +347,11 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
         }
         Cmd::Hsmd(c) => {
-            let client = state.clients.hsmd.get_mut(tag).context("no cln for hsmd client")?;
+            let client = state
+                .clients
+                .hsmd
+                .get_mut(tag)
+                .context("no cln for hsmd client")?;
             match c {
                 HsmdCmd::GetClients => {
                     let clients = client.get_clients().await?;

@@ -1,21 +1,22 @@
-use crate::images::cln::ClnImage;
+use crate::images::cln::{hsmd_broker_ports, ClnImage};
 use crate::utils::docker_domain;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
-pub struct Hsmd {
+pub struct HsmdClient {
     pub client: reqwest::Client,
     pub url: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Clients {
-    total: u128,
-    balances: HashMap<String, u32>,
+pub struct Connections {
+    pub pubkey: Option<String>,
+    pub clients: HashMap<String, bool>,
+    pub current: Option<String>,
 }
 
-impl Hsmd {
+impl HsmdClient {
     pub async fn new(cln: &ClnImage) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(20))
@@ -23,23 +24,20 @@ impl Hsmd {
             .build()
             .expect("couldnt build proxy reqwest client");
         let host = docker_domain(&cln.name);
+        let ps = hsmd_broker_ports(&cln.peer_port)?;
         Ok(Self {
-            url: format!("{}:8010", &host),
-            client
+            url: format!("{}:{}", &host, &ps.http_port),
+            client,
         })
     }
 
-    pub async fn get_clients(&self) -> Result<i32> {
-        let route = format!("http://{}/clients", self.url);
+    pub async fn get_clients(&self) -> Result<Connections> {
+        let route = format!("http://{}/api/clients", self.url);
 
-        let res = self
-            .client
-            .get(route.as_str())
-            .send()
-            .await?;
+        let res = self.client.get(route.as_str()).send().await?;
 
-        let clients = res.json().await?;
-        println!("{:?}",clients);
-        Ok(10)
+        let conns = res.json().await?;
+        println!("{:?}", conns);
+        Ok(conns)
     }
 }

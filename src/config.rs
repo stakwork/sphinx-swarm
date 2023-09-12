@@ -1,6 +1,6 @@
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
+use crate::conn::cln::hsmd::HsmdClient;
 use crate::conn::cln::ClnRPC;
-use crate::conn::cln::hsmd::Hsmd;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
@@ -44,7 +44,7 @@ pub struct Clients {
     pub cln: HashMap<String, ClnRPC>,
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,
-    pub hsmd: HashMap<String, Hsmd>,
+    pub hsmd: HashMap<String, HsmdClient>,
 }
 
 impl Default for Clients {
@@ -383,8 +383,6 @@ impl Default for Stack {
 
         // final nodes array
         nodes.extend(external_nodes);
-
-        let mut ip: Option<String> = None;
 
         Stack {
             network,

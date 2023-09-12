@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode, node_state, stack, hsmd } from "../store";
+  import { selectedNode, node_state, stack, hsmd, hsmdClients } from "../store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
@@ -35,6 +35,8 @@
     $selectedNode &&
     $selectedNode.plugins &&
     $selectedNode.plugins.includes("HsmdBroker");
+
+  $: hsmdConnected = $hsmdClients && $hsmdClients.current;
 </script>
 
 {#if $stack.nodes.length && !$stack.ready}
@@ -62,7 +64,13 @@
       {$selectedNode.name}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       {#if hasHsmd}
-        <div class="hsmd-wrap" on:click={openHsmdUI}>{@html chipSVG}</div>
+        <div
+          class="hsmd-wrap"
+          style={`opacity:${hsmdConnected ? 1 : 0.2}`}
+          on:click={openHsmdUI}
+        >
+          {@html chipSVG}
+        </div>
       {/if}
     </header>
     <div class="ctrls">
