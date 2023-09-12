@@ -8,7 +8,14 @@ if (IS_DEV) {
   // root = "https://app.swarm9.sphinx.chat/api";
 }
 
-type CmdType = "Swarm" | "Relay" | "Bitcoind" | "Lnd" | "Cln" | "Proxy";
+type CmdType =
+  | "Swarm"
+  | "Relay"
+  | "Bitcoind"
+  | "Lnd"
+  | "Cln"
+  | "Proxy"
+  | "Hsmd";
 
 export type Cmd =
   | "GetConfig"
@@ -43,7 +50,8 @@ export type Cmd =
   | "ListPays"
   | "ListPayments"
   | "GetStatistics"
-  | "ListPendingChannels";
+  | "ListPendingChannels"
+  | "GetClients";
 
 interface CmdData {
   cmd: Cmd;
