@@ -16,6 +16,4 @@ sudo apt update
 
 sudo apt install git
 
-git clone https://github.com/stakwork/sphinx-swarm.git
-
 docker network create sphinx-swarm
