@@ -19,6 +19,7 @@ pub struct ProxyImage {
     pub admin_token: Option<String>,
     pub store_key: Option<String>,
     pub new_nodes: Option<String>, // for relay
+    pub channel_cap: Option<String>,
     pub links: Links,
 }
 
@@ -33,11 +34,15 @@ impl ProxyImage {
             admin_token: Some(secrets::random_word(12)),
             store_key: Some(secrets::hex_secret()),
             new_nodes: None,
+            channel_cap: None,
             links: vec![],
         }
     }
     pub fn new_nodes(&mut self, new_nodes: Option<String>) {
         self.new_nodes = new_nodes;
+    }
+    pub fn channel_cap(&mut self, channel_cap: Option<String>) {
+        self.channel_cap = channel_cap;
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
@@ -149,6 +154,9 @@ fn proxy(
     }
     if let Some(sk) = &proxy.store_key {
         cmd.push(format!("--store-key={}", &sk));
+    }
+    if let Some(cc) = &proxy.channel_cap {
+        cmd.push(format!("--channel-cap={}", cc))
     }
     // add in extra cmds from lnd/cln
     extra_cmd.iter().for_each(|c| {

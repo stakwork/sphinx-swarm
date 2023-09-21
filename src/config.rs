@@ -321,6 +321,7 @@ impl Default for Stack {
         let mut v = "latest";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
+        // proxy.channel_cap(Some("100000000".to_string()));
         proxy.links(vec![lightning_provider]);
 
         // relay
