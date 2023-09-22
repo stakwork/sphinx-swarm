@@ -9,7 +9,7 @@ use bollard::container::{
     LogsOptions, RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
-use bollard::image::CreateImageOptions;
+use bollard::image::{CreateImageOptions, RemoveImageOptions};
 use bollard::network::CreateNetworkOptions;
 use bollard::service::{ContainerSummary, VolumeListResponse};
 use bollard::volume::CreateVolumeOptions;
@@ -488,4 +488,20 @@ impl ContainerStat {
             memory_max_usage: stats.memory_stats.max_usage.unwrap_or(0),
         }
     }
+}
+
+pub async fn remove_image(docker: &Docker, id: &str) -> Result<()> {
+    let remove_options = Some(RemoveImageOptions {
+        force: true,
+        ..Default::default()
+    });
+
+    docker
+        .remove_image(
+            id,
+            remove_options,
+            None
+        )
+        .await?;
+    Ok(())
 }

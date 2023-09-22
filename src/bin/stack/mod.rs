@@ -1,12 +1,16 @@
 use anyhow::Result;
 use rocket::tokio;
-use sphinx_swarm::builder;
+use sphinx_swarm::{builder, config};
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
 use sphinx_swarm::routes;
 use sphinx_swarm::{dock::*, logs, rocket_utils::CmdRequest};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use std::thread;
+use std::time::Duration;
+use sphinx_swarm::cmd::UpdateNode;
+
 
 #[rocket::main]
 async fn main() -> Result<()> {
@@ -42,6 +46,22 @@ async fn main() -> Result<()> {
     let clients = builder::build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
 
+    tokio::spawn(async move {
+        loop {
+            let duration_until_next = Duration::from_secs(40);
+            let mut state = config::STATE.lock().await;
+            println!("Waiting for {:?}", duration_until_next);
+
+            builder::update_image(proj, &docker, &mut state).await;
+
+
+            thread::sleep(duration_until_next);
+
+        }
+    });
+
+
+
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
 
@@ -51,3 +71,5 @@ async fn main() -> Result<()> {
 
     Ok(())
 }
+
+

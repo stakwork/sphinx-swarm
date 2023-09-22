@@ -7,6 +7,7 @@ use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
 use std::sync::atomic::{AtomicBool, Ordering};
+use crate::dock;
 
 pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);
 
@@ -127,4 +128,50 @@ pub async fn update_node(
     theimg.post_client(&mut state.clients).await?;
 
     Ok(())
+}
+
+pub async fn update_image(
+    proj: &str,
+    docker: &Docker,
+    state: &mut State,
+    // clients: &mut Clients,
+) -> Result<()> {
+
+    let mut image_list: Vec<String> = Vec::new();
+
+    let containers = dock::list_containers(&docker).await?;
+
+    for container in containers {
+        if let Some(image) = container.image {
+            if is_sphinx_image(&image) {
+                println!(">>>>>><<<<<2 {:?}", &image);
+                if let Some(image_name) = image.split(':').next() {
+                    // remove_image
+                    remove_image(docker, image_name).await?;
+                    image_list.push(image_name.to_string());
+                }
+            }
+        } else {
+            println!("None Image");
+        }
+    }
+    println!(">>>>>><<<<<3 {:?}", image_list);
+
+    for image in image_list {
+        let un = UpdateNode {
+            id: image,
+            version: "latest".to_owned(),
+        };
+        update_node(proj, &docker, &un, state);
+    }
+
+
+    Ok(())
+}
+
+
+fn is_sphinx_image(img_tag: &str) -> bool {
+    img_tag.contains("sphinx-")
+        || img_tag.contains("-sphinx")
+        || img_tag.contains("cln-htlc-interceptor")
 }
