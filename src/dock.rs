@@ -24,10 +24,8 @@ pub fn dockr() -> Docker {
     Docker::connect_with_unix_defaults().unwrap()
 }
 
-fn is_sphinx_image(img_tag: &str) -> bool {
-    img_tag.contains("sphinx-")
-        || img_tag.contains("-sphinx")
-        || img_tag.contains("cln-htlc-interceptor")
+fn is_local_sphinx_image(img_tag: &str) -> bool {
+    !img_tag.contains("/") && (img_tag.contains("sphinx-") || img_tag.contains("-sphinx"))
 }
 
 pub async fn create_and_init(
@@ -58,7 +56,7 @@ pub async fn create_and_init(
 
     let img_tag = c.image.clone().context("expected image")?;
     // if it contains a "/" its from the registry
-    let local_sphinx_image = is_sphinx_image(&img_tag) && !img_tag.contains("/");
+    let local_sphinx_image = is_local_sphinx_image(&img_tag);
     if !local_sphinx_image {
         create_image(&docker, &c).await?;
     }

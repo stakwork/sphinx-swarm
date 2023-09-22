@@ -70,6 +70,7 @@ pub struct Stack {
     pub jwt_key: String,
     pub ready: bool,
     pub ip: Option<String>,
+    pub auto_update: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -151,6 +152,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         jwt_key: secrets::random_word(16),
         ready: false,
         ip: env_no_empty("IP"),
+        auto_update: None,
     }
 }
 
@@ -393,6 +395,7 @@ impl Default for Stack {
             jwt_key: secrets::random_word(16),
             ready: false,
             ip: env_no_empty("IP"),
+            auto_update: None,
         }
     }
 }
@@ -508,6 +511,7 @@ impl Stack {
             jwt_key: "".to_string(),
             ready: self.ready,
             ip: self.ip.clone(),
+            auto_update: self.auto_update.clone(),
         }
     }
 }

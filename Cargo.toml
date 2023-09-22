@@ -42,6 +42,7 @@ async-trait = "0.1.64"
 tonic = { version = "0.8", features = ["tls", "transport"] }
 cln-grpc = { git = "https://github.com/stakwork/lightning", branch = "cln-grpc-serde" }
 serde_yaml = "0.9"
+tokio-cron-scheduler = "*"
 
 [lib]
 name = "sphinx_swarm"

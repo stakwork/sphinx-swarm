@@ -51,8 +51,10 @@ pub async fn main() -> Result<()> {
         builder::shutdown_now();
     });
 
+    let proj = "cln_test";
+
     println!("=> spawn handler");
-    handler::spawn_handler("cln_test", rx, docker.clone());
+    handler::spawn_handler(proj, rx, docker.clone());
 
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 
@@ -69,6 +71,10 @@ pub async fn main() -> Result<()> {
 
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
+
+    if let Some(nn) = stack.auto_update {
+        let _cron_handler = builder::auto_updater(proj, docker, nn).await?;
+    }
 
     tokio::signal::ctrl_c().await?;
 
@@ -324,6 +330,8 @@ fn make_stack() -> Stack {
         jwt_key: JWT_KEY.to_string(),
         ready: false,
         ip: None,
+        // test cln2 updating
+        auto_update: Some(vec![CLN2.to_string()]),
     }
 }
 
