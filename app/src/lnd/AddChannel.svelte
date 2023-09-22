@@ -7,14 +7,9 @@
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
-  import {
-    create_channel,
-    get_balance,
-    list_channels,
-    list_peers,
-  } from "../api/lnd";
+  import { create_channel, get_balance, list_peers } from "../api/lnd";
   import * as CLN from "../api/cln";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import {
     lndBalances,
     peers as peersStore,
@@ -23,6 +18,7 @@
   } from "../store";
   import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
   import { parseClnListFunds, parseClnListPeerRes } from "../helpers/cln";
+  import { getLndPendingAndActiveChannels } from "../helpers/lnd";
 
   export let activeKey: string = null;
 
@@ -40,6 +36,8 @@
   $: peers = $peersStore && $peersStore[tag];
 
   let show_notification = false;
+
+  let peerInterval;
 
   // Check for length to avoid map error
   $: peerData = peers?.length
@@ -85,7 +83,7 @@
         amount = 0;
         sats = 0;
         setTimeout(async () => {
-          const channelsData = await list_channels(tag);
+          const channelsData = await getLndPendingAndActiveChannels(tag);
           channels.update((chans) => {
             return { ...chans, [tag]: channelsData };
           });
@@ -119,16 +117,6 @@
     });
   }
 
-  async function checkingNewPeer() {
-    setInterval(async () => {
-      try {
-        await getPeers();
-      } catch (error) {
-        console.log(error);
-      }
-    }, 10000);
-  }
-
   async function getPeers() {
     let newPeers = [];
     if (type === "Cln") {
@@ -151,12 +139,17 @@
     getPeers();
 
     //pulling for new peer
-    checkingNewPeer();
+    peerInterval = setInterval(getPeers, 10000);
+
     if (type === "Cln") {
       listClnFunds();
     } else {
       getBalance();
     }
+  });
+
+  onDestroy(() => {
+    if (peerInterval) clearInterval(peerInterval);
   });
 
   export let back = () => {};

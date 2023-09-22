@@ -14,10 +14,11 @@
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
   import { parseClnGetInfo, parseClnListPeerRes } from "../helpers/cln";
+  import { getLndPendingAndActiveChannels } from "../helpers/lnd";
 
   import * as LND from "../api/lnd";
   import * as CLN from "../api/cln";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
   export let tag = "";
   export let type = "";
@@ -50,6 +51,8 @@
 
   let activePeer: LND.LndPeer = null;
 
+  let chanInterval;
+
   async function getLndInfo() {
     const lndRes = await LND.get_info(tag);
     lndData = lndRes;
@@ -61,8 +64,7 @@
   }
 
   async function listChannels() {
-    if ($channels[tag] && $channels[tag].length) return;
-    const channelsData = await LND.list_channels(tag);
+    const channelsData = await getLndPendingAndActiveChannels(tag);
 
     channels.update((chans) => {
       return { ...chans, [tag]: channelsData };
@@ -145,16 +147,6 @@
     }
   }
 
-  async function checkingChannels() {
-    setInterval(async () => {
-      try {
-        await getChannels();
-      } catch (error) {
-        console.log(error);
-      }
-    }, 10000);
-  }
-
   async function getChannels() {
     let newChannels = [];
     if (type === "Cln") {
@@ -162,7 +154,7 @@
       const parsedRes = await parseClnListPeerRes(peersData);
       newChannels = parsedRes.channels;
     } else {
-      const channelsData = await LND.list_channels(tag);
+      const channelsData = await getLndPendingAndActiveChannels(tag);
       newChannels = channelsData;
     }
     if (JSON.stringify(newChannels) !== JSON.stringify($channels[tag])) {
@@ -177,7 +169,11 @@
     getChannels();
 
     //pulling for new channel
-    checkingChannels();
+    chanInterval = setInterval(getChannels, 10000);
+  });
+
+  onDestroy(() => {
+    if (chanInterval) clearInterval(chanInterval);
   });
 </script>
 

@@ -7,6 +7,7 @@ declare global {
     route_hint: string;
     maxfeepercent: number;
     exemptfee: number;
+    tlvs: { [k: number]: number[] };
   }
 }
 

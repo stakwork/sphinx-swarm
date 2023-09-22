@@ -1,6 +1,7 @@
 use super::traefik::{cln_traefik_labels, traefik_labels};
 use super::*;
 use crate::config::{Clients, ExternalNodeType, Node};
+use crate::conn::cln::hsmd::HsmdClient;
 use crate::conn::cln::setup as setup_cln;
 use crate::conn::lnd::setup::test_mine_if_needed;
 use crate::utils::{domain, exposed_ports, host_config};
@@ -75,6 +76,14 @@ impl ClnImage {
             test_mine_if_needed(test_mine_addy, &internal_btc.name, clients);
         }
         clients.cln.insert(self.name.clone(), client);
+        if self.plugins.contains(&ClnPlugin::HtlcInterceptor) {
+            match HsmdClient::new(self).await {
+                Ok(client) => {
+                    clients.hsmd.insert(self.name.clone(), client);
+                }
+                Err(e) => log::warn!("Hsmd client error: {:?}", e),
+            };
+        }
         Ok(())
     }
     pub fn credentials_paths(&self, root_dir: &str) -> ClnCreds {
@@ -163,12 +172,12 @@ impl ClnBtcArgs {
     }
 }
 
-struct HsmdBrokerPorts {
-    http_port: String,
-    mqtt_port: String,
-    ws_port: String,
+pub struct HsmdBrokerPorts {
+    pub http_port: String,
+    pub mqtt_port: String,
+    pub ws_port: String,
 }
-fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
+pub fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
     let pp = peer_port.parse::<u16>()?;
     if pp > 8876 {
         let mqtt_port = pp - 7852; // 1883
@@ -236,7 +245,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         let git_version = img
             .git_version
             .clone()
-            .unwrap_or("v23.08-56-g0c8094c-modded".to_string());
+            .unwrap_or("v23.08-57-g420e0c9-modded".to_string());
         environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {

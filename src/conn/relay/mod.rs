@@ -89,27 +89,11 @@ pub struct Chat {
 pub type ChatsRes = Vec<Chat>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CreateTribe {
-    name: String,
-    is_tribe: bool,
-    unlisted: bool,
-}
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetBalance {
     reserve: u128,
     full_balance: u128,
     balance: u128,
     pending_open_balance: u128,
-}
-
-impl Default for CreateTribe {
-    fn default() -> Self {
-        Self {
-            name: "".to_string(),
-            is_tribe: true,
-            unlisted: true,
-        }
-    }
 }
 
 impl RelayAPI {
@@ -177,8 +161,8 @@ impl RelayAPI {
         }
     }
 
-    pub async fn claim_user(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {
-        let route = format!("http://{}/contacts/tokens", self.url);
+    pub async fn claim_admin(&self, pubkey: &str, token: &str) -> Result<RelayRes<ClaimRes>> {
+        let route = format!("http://{}/swarm_admin_register", self.url);
         let body = ClaimBody {
             pubkey: pubkey.to_string(),
             token: token.to_string(),
@@ -235,14 +219,14 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        // let hm = res.text().await?;
-        // println!("HM {:?}", &hm);
-        // Ok(serde_json::from_str(&hm)?)
-        Ok(res.json().await?)
+        let hm = res.text().await?;
+        println!("HM {:?}", &hm);
+        Ok(serde_json::from_str(&hm)?)
+        // Ok(res.json().await?)
     }
 
     pub async fn get_chats(&self) -> Result<RelayRes<ChatsRes>> {
-        let route = format!("http://{}/chats", self.url);
+        let route = format!("http://{}/tribes", self.url);
         let res = self
             .client
             .get(route.as_str())
@@ -255,27 +239,8 @@ impl RelayAPI {
         Ok(res.json().await?)
     }
 
-    pub async fn create_tribe(&self, name: &str) -> Result<RelayRes<Chat>> {
-        let ct = CreateTribe {
-            name: name.to_string(),
-            ..Default::default()
-        };
-        let route = format!("http://{}/group", self.url);
-        let res = self
-            .client
-            .post(route.as_str())
-            .json(&ct)
-            .header("x-admin-token", self.token.clone())
-            .send()
-            .await?;
-        // let hm = res.text().await?;
-        // println!("CREATED CHAT {:?}", &hm);
-        // Ok(serde_json::from_str(&hm)?)
-        Ok(res.json().await?)
-    }
-
     pub async fn get_balance(&self) -> Result<RelayRes<GetBalance>> {
-        let route = format!("http://{}/balance", self.url);
+        let route = format!("http://{}/admin_balance", self.url);
         let res = self
             .client
             .get(route.as_str())

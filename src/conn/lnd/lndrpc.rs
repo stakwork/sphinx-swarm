@@ -131,24 +131,30 @@ impl LndRPC {
 
         let rando_str = hex_secret_32();
         let preimage = hex::decode(rando_str)?;
+
         let mut hasher = Sha256::new();
-
         hasher.update(preimage.clone());
-
         let payment_hash = hasher.finalize().to_vec();
 
         let mut dest_custom_records = HashMap::new();
         dest_custom_records.insert(LND_KEYSEND_KEY, preimage.clone());
 
-        let response = lnd
-            .send_payment_sync(SendRequest {
-                dest: hex::decode(keysend.dest)?,
-                amt: keysend.amt,
-                payment_hash,
-                dest_custom_records,
-                ..Default::default()
-            })
-            .await?;
+        if let Some(tlvs) = keysend.tlvs {
+            for (k, v) in tlvs {
+                dest_custom_records.insert(k, v);
+            }
+        }
+
+        let sr = SendRequest {
+            dest: hex::decode(keysend.dest)?,
+            amt: keysend.amt,
+            payment_hash,
+            dest_custom_records,
+            ..Default::default()
+        };
+        log::info!("SendRequest {:?}", sr);
+
+        let response = lnd.send_payment_sync(sr).await?;
         Ok(response.into_inner())
     }
 
@@ -171,6 +177,16 @@ impl LndRPC {
             })
             .await?;
 
+        Ok(response.into_inner())
+    }
+
+    pub async fn list_pending_channels(&mut self) -> Result<PendingChannelsResponse> {
+        let lnd = self.0.lightning();
+        let response = lnd
+            .pending_channels(PendingChannelsRequest {
+                ..Default::default()
+            })
+            .await?;
         Ok(response.into_inner())
     }
 }

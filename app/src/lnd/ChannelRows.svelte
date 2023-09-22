@@ -6,10 +6,14 @@
   import Dot from "../components/Dot.svelte";
   import { channels } from "../store";
   import { formatSatsNumbers } from "../helpers";
+  import { getTransactionStatus, getBlockTip } from "../helpers/bitcoin";
   import Exit from "carbon-icons-svelte/lib/Exit.svelte";
+  import { onDestroy, onMount } from "svelte";
 
   export let tag = "";
   export let onclose = (id: string, dest: string) => {};
+
+  let channel_arr = $channels[tag];
 
   function getBarCalculation(chan) {
     const remote_balance = Number(chan.remote_balance);
@@ -36,7 +40,6 @@
   let forceCloseDestination = "";
 
   function clickRow(chan) {
-    console.log(chan);
     if (!chan.active) return;
     if (selectedChannelParter === chan.remote_pubkey) {
       selectedChannelParter = "";
@@ -54,6 +57,51 @@
     await onclose(selectedChannelParter, forceCloseDestination);
     closing = false;
   }
+
+  async function getConfirmation(chan) {
+    try {
+      const channel_point_arr = chan.channel_point.split(":");
+      if (channel_point_arr.length < 2) {
+        return 0;
+      }
+      let tx_id = channel_point_arr[0];
+      const transaction_status = await getTransactionStatus(tx_id);
+      if (!transaction_status.confirmed) {
+        return 0;
+      }
+      const currentBlockHeight = await getBlockTip();
+      return currentBlockHeight - transaction_status.block_height + 1;
+    } catch (e) {
+      console.warn(e);
+      return 0;
+    }
+  }
+
+  async function getChannelsConfirmation() {
+    let new_channel = [];
+    let notActiveExist = false;
+    for (const chan of channel_arr) {
+      if (!chan.active) {
+        notActiveExist = true;
+        const confirmation = await getConfirmation(chan);
+        new_channel.push({ ...chan, confirmation });
+      }
+    }
+    if (notActiveExist) {
+      channel_arr = [...new_channel];
+    }
+  }
+
+  let chanInterval;
+
+  onMount(() => {
+    getChannelsConfirmation();
+    chanInterval = setInterval(getChannelsConfirmation, 50000);
+  });
+
+  onDestroy(() => {
+    if (chanInterval) clearInterval(chanInterval);
+  });
 </script>
 
 <div class="lnd-table-wrap">
@@ -65,7 +113,7 @@
   </section>
 
   <section class="table-body">
-    {#each $channels[tag].map(getBarCalculation) as chan}
+    {#each channel_arr.map(getBarCalculation) as chan}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <section
         class={`${
@@ -99,7 +147,11 @@
             </div>
             <div class="td">{formatSatsNumbers(chan.remote_balance)}</div>
           {:else}
-            <div class="inactive">Channel Not Active</div>
+            <div class="inactive">
+              Channel Not Active <span class="">
+                ({chan["confirmation"] || 0}/6)</span
+              >
+            </div>
           {/if}
           <div class="td">
             <span class="pubkey">{chan.remote_pubkey}</span>

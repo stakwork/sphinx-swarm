@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedNode, node_state, stack } from "../store";
+  import { selectedNode, node_state, stack, hsmd, hsmdClients } from "../store";
   import Controls from "./Controls.svelte";
   import { controls } from "./controls";
   import RelayControls from "../relay/RelayControls.svelte";
@@ -25,19 +25,23 @@
   }
 
   function openHsmdUI() {
-    if (IS_DEV) {
-      window.open("http://localhost:8080", "_blank");
-    }
+    hsmd.update((h) => !h);
+    // if (IS_DEV) {
+    // window.open("http://localhost:8080", "_blank");
+    // }
   }
 
   $: hasHsmd =
     $selectedNode &&
     $selectedNode.plugins &&
     $selectedNode.plugins.includes("HsmdBroker");
+
+  $: hsmdConnected = $hsmdClients && $hsmdClients.current;
 </script>
 
-{#if !$stack.ready}
+{#if $stack.nodes.length && !$stack.ready}
   <div class="main" style="width: 30rem">
+    <div style="height:2rem;width:1px;" />
     <FirstConnect />
   </div>
 {:else if ctrls}
@@ -60,7 +64,13 @@
       {$selectedNode.name}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       {#if hasHsmd}
-        <div class="hsmd-wrap" on:click={openHsmdUI}>{@html chipSVG}</div>
+        <div
+          class="hsmd-wrap"
+          style={`opacity:${hsmdConnected ? 1 : 0.2}`}
+          on:click={openHsmdUI}
+        >
+          {@html chipSVG}
+        </div>
       {/if}
     </header>
     <div class="ctrls">
@@ -167,5 +177,8 @@
     align-items: center;
     justify-content: center;
     margin-left: 0.85rem;
+  }
+  .hsmd-wrap:hover {
+    transform: scale(1.2, 1.2);
   }
 </style>

@@ -153,7 +153,7 @@ export const finishedOnboarding = derived(
         hasBalance = true;
       }
     }
-    const hasAdmin = $users.find((user) => user.is_admin && user.alias);
+    const hasAdmin = $users?.find((user) => user.is_admin && user.alias);
     if (hasAdmin && $users.length > 1) hasUsers = true;
     return { hasAdmin, hasChannels, hasBalance, hasPeers, hasUsers };
   }
@@ -190,6 +190,8 @@ export const node_state: Readable<NodeState> = derived(
   ([$selectedNode, $containers]) => {
     if (!$selectedNode) return;
     if ($selectedNode.place === "External") return;
+    if (!$containers) return;
+    if (!Array.isArray($containers)) return;
     const con = $containers?.find((n) =>
       n.Names.includes(`/${$selectedNode.name}.sphinx`)
     );
@@ -250,3 +252,13 @@ saveUserToStore();
 export async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export const hsmd = writable<boolean>(false);
+
+export interface HsmdClients {
+  pubkey?: string;
+  current?: string;
+  clients: { [k: string]: any };
+}
+
+export const hsmdClients = writable<HsmdClients>();

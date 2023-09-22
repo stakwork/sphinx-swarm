@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Dropdown, Button } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import * as api from "../api";
   import {
     users,
@@ -12,6 +12,7 @@
   } from "../store";
   import QrCode from "svelte-qrcode";
   import CopyIcon from "carbon-icons-svelte/lib/Copy.svelte";
+  import { Chat } from "carbon-icons-svelte";
 
   $: adminUnconnected = $users?.find((u) => u.is_admin && !u.alias);
 
@@ -19,10 +20,16 @@
 
   let myChats: api.tribes.TribeData[] = [];
 
+  let fetchUsersInterval;
+
   onMount(async () => {
     if (!tag) return;
     const chats = await refreshTribes();
     getUsers();
+  });
+
+  onDestroy(() => {
+    if (fetchUsersInterval) clearInterval(fetchUsersInterval);
   });
 
   $: items = myChats
@@ -38,7 +45,7 @@
 
   async function refreshTribes() {
     const chats = await api.relay.get_chats(tag);
-    if (chats?.length) {
+    if (Array.isArray(chats)) {
       myChats = chats;
     }
     return chats;
@@ -56,36 +63,27 @@
   }
 
   async function getUsers() {
-    const interval = setInterval(async () => {
-      const userList = await api.relay.list_users(tag);
-      const adminIsSetup = userList.users?.find((u) => u.is_admin && u.alias);
-      if (adminIsSetup) {
-        users.set(userList.users);
-        adminIsCreatedForOnboarding.update(() => true);
-        clearInterval(interval);
-      }
-    }, 60000);
+    const userList = await api.relay.list_users(tag);
+    const theAdmin = userList.users?.find((u) => u.is_admin);
+    if (theAdmin?.public_key) {
+      admin_pubkey = theAdmin.public_key;
+    }
+    users.set(userList.users);
+    adminIsCreatedForOnboarding.set(true);
   }
 
   let showQr = false;
 
-  let admin_token = "";
-  let qr_toggle_disabled = false;
+  let admin_pubkey = "";
   async function toggleQr() {
     showQr = !showQr;
-    if (showQr && !admin_token) {
-      qr_toggle_disabled = true;
-      const t = await api.relay.get_auth_token(tag);
-      if (t?.token) admin_token = t.token;
-      qr_toggle_disabled = false;
-    }
   }
 
   function copyToClipboard(value) {
     navigator.clipboard.writeText(value);
   }
 
-  $: qrString = `claim::${$node_host}::${admin_token}`;
+  $: qrString = `connect::${$node_host}::${admin_pubkey}`;
   $: $finishedOnboarding, determineToShowQr();
   function determineToShowQr() {
     if (
@@ -118,7 +116,7 @@
         >
       </div>
     </section>
-    {#if showQr && admin_token}
+    {#if showQr && admin_pubkey}
       <div class="qr-wrap">
         <QrCode padding={1.5} value={qrString} />
       </div>

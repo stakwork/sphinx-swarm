@@ -6,7 +6,7 @@ use rocket::tokio;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::routes;
 use sphinx_swarm::utils;
-use sphinx_swarm::{logs, rocket_utils::CmdRequest};
+use sphinx_swarm::{events, logs, rocket_utils::CmdRequest};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -22,14 +22,17 @@ async fn main() -> Result<()> {
 
     let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
+    let log_txs = Arc::new(Mutex::new(log_txs));
 
     spawn_super_handler(project, rx);
 
     // launch rocket
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
     log::info!("🚀 => http://localhost:{}", port);
-    let log_txs = Arc::new(Mutex::new(log_txs));
-    let _r = routes::launch_rocket(tx.clone(), log_txs).await?;
+
+    let event_tx = events::new_event_chan();
+
+    let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx).await?;
 
     Ok(())
 }

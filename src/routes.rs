@@ -1,5 +1,6 @@
 use crate::auth;
 use crate::cmd::{ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
+use crate::events::{get_event_tx, EventChan};
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use crate::rocket_utils::{CmdRequest, Error, Result, CORS};
 use fs::{relative, FileServer};
@@ -15,6 +16,7 @@ use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 pub async fn launch_rocket(
     tx: mpsc::Sender<CmdRequest>,
     log_txs: Arc<Mutex<LogChans>>,
+    event_tx: Arc<Mutex<EventChan>>,
 ) -> Result<Rocket<Ignite>> {
     Ok(rocket::build()
         .mount("/", FileServer::from(relative!("app/dist")))
@@ -27,12 +29,14 @@ pub async fn launch_rocket(
                 login,
                 refresh_jwt,
                 all_options,
-                update_password
+                update_password,
+                events
             ],
         )
         .attach(CORS)
         .manage(tx)
         .manage(log_txs)
+        .manage(event_tx)
         .launch()
         .await?)
 }
@@ -53,6 +57,26 @@ pub async fn cmd(
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     Ok(reply)
+}
+
+#[get("/events")]
+pub async fn events(event_tx: &State<Arc<Mutex<EventChan>>>, mut end: Shutdown) -> EventStream![] {
+    let event_tx = get_event_tx(event_tx).await;
+    let mut rx = event_tx.subscribe();
+    EventStream! {
+        loop {
+            let msg = tokio::select! {
+                msg = rx.recv() => match msg {
+                    Ok(lo) => lo,
+                    Err(RecvError::Closed) => break,
+                    Err(RecvError::Lagged(_)) => continue,
+                },
+                _ = &mut end => break,
+            };
+
+            yield Event::json(&msg);
+        }
+    }
 }
 
 #[get("/logs?<tag>")]

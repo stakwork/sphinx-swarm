@@ -1,23 +1,17 @@
 ### docker images
 
-sphinxlightning/sphinx-proxy:0.1.44
+sphinxlightning/sphinx-proxy:latest
 
-sphinxlightning/sphinx-boltwall:v0.0.45
+sphinxlightning/sphinx-boltwall:latest
 
-sphinxlightning/cln-sphinx:0.2.8
+sphinxlightning/cln-sphinx:latest
 
-sphinxlightning/sphinx-relay-swarm:v0.1.29
+sphinxlightning/sphinx-relay-swarm:latest
 
-sphinxlightning/sphinx-jarvis-backend:v0.0.21
+sphinxlightning/sphinx-jarvis-backend:latest
 
-sphinxlightning/sphinx-cache:0.1.17
+sphinxlightning/sphinx-cache:latest
 
-sphinxlightning/sphinx-lss:0.0.4
+sphinxlightning/sphinx-lss:latest
 
-sphinxlightning/sphinx-nav-fiber:v0.1.50
-
-docker pull sphinxlightning/sphinx-lss:0.0.4
-
-docker tag sphinxlightning/sphinx-lss:0.0.4 sphinxlightning/sphinx-lss:latest
-
-docker push sphinxlightning/sphinx-lss:latest
+sphinxlightning/sphinx-nav-fiber:latest

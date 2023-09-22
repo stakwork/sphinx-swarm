@@ -152,7 +152,6 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 RelayCmd::RemoveDefaultTribe(t) => {
                     Some(client.remove_default_tribe(t.id).await?.to_string()?)
                 }
-                RelayCmd::CreateTribe(t) => Some(client.create_tribe(&t.name).await?.to_string()?),
                 RelayCmd::GetToken => {
                     let secs = secrets::load_secrets(proj).await;
                     let token = secs.get(tag).context("no relay token")?;
@@ -235,6 +234,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 LndCmd::ListInvoices => {
                     let invoices = client.list_invoices().await?;
                     Some(serde_json::to_string(&invoices)?)
+                }
+                LndCmd::ListPendingChannels => {
+                    let pending_channel_list = client.list_pending_channels().await?;
+                    Some(serde_json::to_string(
+                        &pending_channel_list.pending_open_channels,
+                    )?)
                 }
             }
         }
@@ -341,6 +346,19 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 }
             }
         }
+        Cmd::Hsmd(c) => {
+            let client = state
+                .clients
+                .hsmd
+                .get_mut(tag)
+                .context("no cln for hsmd client")?;
+            match c {
+                HsmdCmd::GetClients => {
+                    let clients = client.get_clients().await?;
+                    Some(serde_json::to_string(&clients)?)
+                }
+            }
+        }
     };
 
     if must_save_stack {
@@ -369,8 +387,8 @@ pub async fn hydrate_clients(clients: Clients) {
 
 pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Docker) {
     let project = proj.to_string();
-    let timeout_duration = std::env::var("REQUEST_TIMEOUT_DURATION_IN_SEC")
-        .unwrap_or_else(|_| "60".to_string());
+    let timeout_duration =
+        std::env::var("REQUEST_TIMEOUT_DURATION_IN_SEC").unwrap_or_else(|_| "60".to_string());
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             let response = if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {

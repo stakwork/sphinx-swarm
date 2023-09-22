@@ -5,7 +5,7 @@
 
   $: cln_node = $stack && $stack.nodes.find((n) => n.type === "Cln");
 
-  function makeHost(s: Stack, n: Node) {
+  function makeMqttHost(s: Stack, n: Node) {
     if (s.ip) {
       return `${s.ip}:1883`;
     } else if (s.host && n) {
@@ -14,10 +14,25 @@
       return `127.0.0.1:1883`;
     }
   }
-  $: host = makeHost($stack, cln_node);
+  $: mqttHost = makeMqttHost($stack, cln_node);
+
+  $: relay_node = $stack && $stack.nodes.find((n) => n.type === "Relay");
+  function makeRelayHost(s: Stack, n: Node) {
+    if (s.host && n) {
+      return `${n.name}.${s.host}`;
+    } else {
+      return `127.0.0.1:3000`;
+    }
+  }
+  $: relayHost = makeRelayHost($stack, relay_node);
 
   function makeQR(mqtt: string, network: string) {
-    return `sphinx.chat://?action=glyph&mqtt=${mqtt}&network=${network}`;
+    return `sphinx.chat://?action=glyph&mqtt=${mqtt}&network=${network}&relay=${relayHost}`;
+  }
+
+  function copyQR() {
+    const qr = makeQR(mqttHost, $stack.network);
+    navigator.clipboard.writeText(qr);
   }
 </script>
 
@@ -30,12 +45,13 @@
         <span>Network:</span>
       </div>
       <div class="label-section">
-        <span>{host}</span>
+        <span>{mqttHost}</span>
         <span>{$stack.network}</span>
       </div>
     </div>
-    <div class="qr-wrap">
-      <QrCode size={256} padding={4} value={makeQR(host, $stack.network)} />
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div class="qr-wrap" on:click={copyQR}>
+      <QrCode size={256} padding={4} value={makeQR(mqttHost, $stack.network)} />
     </div>
   </div>
 </div>
@@ -43,7 +59,7 @@
 <style>
   .wrap {
     width: 100%;
-    padding: 2rem;
+    padding: 0 2rem;
   }
   .head {
     height: 4rem;

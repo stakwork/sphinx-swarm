@@ -1,4 +1,5 @@
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
+use crate::conn::cln::hsmd::HsmdClient;
 use crate::conn::cln::ClnRPC;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
@@ -43,6 +44,7 @@ pub struct Clients {
     pub cln: HashMap<String, ClnRPC>,
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,
+    pub hsmd: HashMap<String, HsmdClient>,
 }
 
 impl Default for Clients {
@@ -53,6 +55,7 @@ impl Default for Clients {
             cln: HashMap::new(),
             proxy: HashMap::new(),
             relay: HashMap::new(),
+            hsmd: HashMap::new(),
         }
     }
 }
@@ -147,7 +150,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
         ready: false,
-        ip: None,
+        ip: env_no_empty("IP"),
     }
 }
 
@@ -232,8 +235,12 @@ impl Default for Stack {
             host = None
         }
 
+        let use_lnd = match std::env::var("USE_LND").ok() {
+            Some(sbo) => sbo == "true",
+            None => false,
+        };
         // choose cln or lnd
-        let is_cln = std::env::var("CLN_MAINNET_BTC").ok().is_some();
+        let is_cln = !use_lnd;
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         // choose only second brain
@@ -248,37 +255,23 @@ impl Default for Stack {
         let mut internal_nodes = vec![];
         let mut external_nodes = vec![];
 
+        let mut external_btc = false;
         // CLN and external BTC
         if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
             // check the BTC url is ok
             if let Ok(_) = url::Url::parse(&ebtc) {
                 let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
                 external_nodes.push(Node::External(btc));
-                // lightning storage server
-                let lss = LssImage::new("lss", "latest", "55551");
-                internal_nodes.push(Image::Lss(lss));
-                // cln with plugins
-                let mut cln = ClnImage::new("cln", "latest", &network, "9735", "10009");
-                cln.links(vec!["bitcoind", "lss"]);
-                let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
-                    Some(nsb) => nsb == "true",
-                    None => false,
-                };
-                let plugins = if skip_remote_signer {
-                    vec![ClnPlugin::HtlcInterceptor]
-                } else {
-                    vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor]
-                };
-                cln.plugins(plugins);
-                cln.host(host.clone());
-                internal_nodes.push(Image::Cln(cln));
+                external_btc = true;
+            }
+        } else {
+            if network == "bitcoin" {
+                panic!("CLN_MAINNET_BTC required for mainnet");
             }
         }
 
-        // LND and internal BTC
-        if !is_cln {
-            // bitcoind
-            let mut v = "v23.0";
+        if !external_btc {
+            let v = "v23.0";
             let mut bitcoind = BtcImage::new("bitcoind", v, &network);
             // connect to already running BTC node
             if let Ok(btc_pass) = std::env::var("BTC_PASS") {
@@ -292,9 +285,30 @@ impl Default for Stack {
                 bitcoind.set_user_password("sphinx", &secrets::random_word(12));
             }
             internal_nodes.push(Image::Btc(bitcoind));
+        }
 
+        if is_cln {
+            // lightning storage server
+            let lss = LssImage::new("lss", "latest", "55551");
+            internal_nodes.push(Image::Lss(lss));
+            // cln with plugins
+            let mut cln = ClnImage::new("cln", "latest", &network, "9735", "10009");
+            cln.links(vec!["bitcoind", "lss"]);
+            let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
+                Some(nsb) => nsb == "true",
+                None => false,
+            };
+            let plugins = if skip_remote_signer {
+                vec![ClnPlugin::HtlcInterceptor]
+            } else {
+                vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor]
+            };
+            cln.plugins(plugins);
+            cln.host(host.clone());
+            internal_nodes.push(Image::Cln(cln));
+        } else {
             // lnd
-            v = "v0.16.2-beta";
+            let v = "v0.16.2-beta";
             let mut lnd = LndImage::new("lnd", v, &network, "10009", "9735");
             lnd.http_port = Some("8881".to_string());
             lnd.links(vec!["bitcoind"]);
@@ -307,6 +321,7 @@ impl Default for Stack {
         let mut v = "latest";
         let mut proxy = ProxyImage::new("proxy", v, &network, "11111", "5050");
         proxy.new_nodes(Some("0".to_string()));
+        // proxy.channel_cap(Some("100000000".to_string()));
         proxy.links(vec![lightning_provider]);
 
         // relay
@@ -377,7 +392,7 @@ impl Default for Stack {
             users: vec![Default::default()],
             jwt_key: secrets::random_word(16),
             ready: false,
-            ip: None,
+            ip: env_no_empty("IP"),
         }
     }
 }

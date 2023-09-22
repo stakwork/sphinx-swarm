@@ -10,6 +10,7 @@
   import * as CLN from "../../api/cln";
   import { parseClnListPeerRes } from "../../helpers/cln";
   import { convertSatsToMilliSats } from "../../helpers";
+  import { getLndPendingAndActiveChannels } from "../../helpers/lnd";
 
   export let tag = "";
   export let type = "";
@@ -21,6 +22,7 @@
   $: invDisabled = !dest || !amount || (dest && dest.length !== 66);
 
   let show_notification = false;
+  let payment_error = "";
 
   async function payKeysend() {
     if (type === "Cln") {
@@ -34,6 +36,7 @@
       );
       if (payRes) {
         show_notification = true;
+        payment_error = "";
         dest = "";
         amount = 0;
 
@@ -45,10 +48,20 @@
             return { ...chans, [tag]: parsedRes.channels };
           });
         }, 2000);
+      } else {
+        show_notification = true;
+        payment_error = "keysend was declined";
       }
     } else {
-      const payRes = await LND.keysend(tag, dest, amount);
+      // window.tlvs = {133773310:Array(320).fill(9)}
+      const payRes = await LND.keysend(tag, dest, amount, window.tlvs);
       if (payRes) {
+        console.log(payRes);
+        if (payRes.payment_error) {
+          payment_error = payRes.payment_error;
+        } else {
+          payment_error = "";
+        }
         show_notification = true;
         dest = "";
         amount = 0;
@@ -56,7 +69,7 @@
          * After successfully invoice payment fetch the new channels
          * To update the balance
          */
-        const channelsData = await LND.list_channels(tag);
+        const channelsData = await getLndPendingAndActiveChannels(tag);
         channels.update((chans) => {
           return { ...chans, [tag]: channelsData };
         });
@@ -70,10 +83,10 @@
     {#if show_notification}
       <InlineNotification
         lowContrast
-        kind="success"
-        title="Success:"
-        subtitle="Keysend payment has been made."
-        timeout={3000}
+        kind={payment_error ? "error" : "success"}
+        title={payment_error ? "Failure:" : "Success:"}
+        subtitle={payment_error || "Keysend payment has been made."}
+        timeout={4000}
         on:close={(e) => {
           e.preventDefault();
           show_notification = false;

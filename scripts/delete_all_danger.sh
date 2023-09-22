@@ -51,3 +51,6 @@ docker volume rm lnd.sphinx
 
 docker volume rm $(docker volume ls -q)
 
+docker volume rm cln.sphinx
+
+

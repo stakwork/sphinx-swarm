@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::images::Image;
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +12,7 @@ pub enum Cmd {
     Lnd(LndCmd),
     Cln(ClnCmd),
     Proxy(ProxyCmd),
+    Hsmd(HsmdCmd),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -61,10 +64,7 @@ pub struct AddUser {
 pub struct DefaultTribe {
     pub id: u16,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CreateTribe {
-    pub name: String,
-}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum RelayCmd {
@@ -73,7 +73,6 @@ pub enum RelayCmd {
     GetChats,
     AddDefaultTribe(DefaultTribe),
     RemoveDefaultTribe(DefaultTribe),
-    CreateTribe(CreateTribe),
     GetToken,
     GetBalance,
 }
@@ -98,13 +97,14 @@ pub struct AddInvoice {
 pub struct PayInvoice {
     pub payment_request: String,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct PayKeysend {
     pub amt: i64,
     pub dest: String,
     pub route_hint: Option<String>,
     pub maxfeepercent: Option<f64>,
     pub exemptfee: Option<u64>,
+    pub tlvs: Option<HashMap<u64, Vec<u8>>>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CloseChannel {
@@ -145,6 +145,7 @@ pub enum LndCmd {
     PayKeysend(PayKeysend),
     ListPayments,
     ListInvoices,
+    ListPendingChannels,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -168,6 +169,12 @@ pub enum ClnCmd {
 #[serde(tag = "cmd", content = "content")]
 pub enum ProxyCmd {
     GetBalance,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", content = "content")]
+pub enum HsmdCmd {
+    GetClients,
 }
 
 impl Cmd {
