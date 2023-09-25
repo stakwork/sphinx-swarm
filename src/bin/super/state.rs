@@ -14,8 +14,9 @@ pub struct Super {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct RemoteStack {
     pub host: String,
-    pub user: String,
-    pub pass: String,
+    pub note: Option<String>,
+    pub user: Option<String>,
+    pub pass: Option<String>,
 }
 
 impl Default for Super {
@@ -38,7 +39,7 @@ pub async fn hydrate(sup: Super) {
 
 fn default_superuser() -> User {
     let username = "super";
-    let default_password = "superpass123";
+    let default_password = "superpass";
     let pass_hash = bcrypt::hash(default_password, bcrypt::DEFAULT_COST).expect("failed to bcrypt");
     User {
         id: 1,
@@ -54,8 +55,9 @@ impl Super {
             .iter()
             .map(|n| RemoteStack {
                 host: n.host.clone(),
-                user: "".to_string(),
-                pass: "".to_string(),
+                note: n.note.clone(),
+                user: None,
+                pass: None,
             })
             .collect();
         Super {

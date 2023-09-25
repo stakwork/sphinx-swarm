@@ -59,6 +59,9 @@ impl ClnImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
+    pub fn remove_client(&self, clients: &mut Clients) {
+        clients.cln.remove(&self.name);
+    }
     pub async fn connect_client<Canceller>(
         &self,
         clients: &mut Clients,

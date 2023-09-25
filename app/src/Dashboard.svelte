@@ -15,7 +15,6 @@
   } from "carbon-components-svelte";
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
-  import AddNode from "./nodes/AddNode.svelte";
   import NodeLogs from "./nodes/NodeLogs.svelte";
   import NodeStats from "./nodes/NodeStats.svelte";
   import NodeAction from "./nodes/NodeAction.svelte";
@@ -118,10 +117,6 @@
       </div>
 
       <section class="header-btn-wrap">
-        {#if $selectedNode}
-          <NodeUpdate />
-        {/if}
-
         {#if $selectedNode && $selectedNode.place === "Internal"}
           <NodeLogs nodeName={$selectedNode.name} />
 
@@ -129,15 +124,17 @@
             on:stop_message={addStopClass}
             on:start_message={removeStopClass}
           />
+
+          <NodeUpdate />
         {/if}
       </section>
     </div>
     <div class="head_section">
       {#if $stack.ready}
-        <Onboarding />
+        <!-- <Onboarding /> -->
         <NodeStats />
       {/if}
-      <AddNode />
+      <!-- <AddNode /> -->
       <section class="menu-btn">
         <OverflowMenu icon={User} flipped>
           <OverflowMenuItem

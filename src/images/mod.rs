@@ -117,6 +117,16 @@ impl Image {
             _ => (),
         })
     }
+    pub fn remove_client(&self, clients: &mut config::Clients) {
+        match self {
+            Image::Btc(n) => n.remove_client(clients),
+            Image::Lnd(n) => n.remove_client(clients),
+            Image::Cln(n) => n.remove_client(clients),
+            Image::Proxy(n) => n.remove_client(clients),
+            Image::Relay(n) => n.remove_client(clients),
+            _ => (),
+        }
+    }
     pub async fn connect_client<Canceller>(
         &self,
         proj: &str,

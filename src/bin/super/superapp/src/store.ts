@@ -4,28 +4,13 @@ import * as api from "../../../../../app/src/api";
 import { decode } from "js-base64";
 
 export interface Remote {
-  root: string;
-  admin: string;
+  host: string;
+  note: string;
 }
 
-const initialRemotes = [
-  {
-    root: "swarm4.sphinx.chat",
-    admin: "kevkevin",
-  },
-  {
-    root: "swarm5.sphinx.chat",
-    admin: "Paul",
-  },
-  {
-    root: "swarm7.sphinx.chat",
-    admin: "Sam",
-  },
-];
+export const remotes = writable<Remote[]>([]);
 
-export const remotes = writable<Remote[]>(initialRemotes);
-
-export const activeUser = writable<string>("_");
+export const activeUser = writable<string>();
 
 export const saveUserToStore = async (user: string = "") => {
   if (user) {
@@ -49,6 +34,8 @@ export const saveUserToStore = async (user: string = "") => {
     }
   }
 };
+
+saveUserToStore();
 
 export const logoutUser = () => {
   localStorage.setItem(userKey, "");

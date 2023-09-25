@@ -1,8 +1,10 @@
-<script>
+<script lang="ts">
   import { Button, TextInput, Loading, Form } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "../api";
-  import { saveUserToStore } from "../store";
+  // import { saveUserToStore } from "../store";
+
+  export let saveUserToStore = (_a: string) => {};
 
   $: username = "";
   $: password = "";

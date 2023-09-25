@@ -45,8 +45,8 @@ export async function start_container(id: string) {
   return await swarmCmd("StartContainer", id);
 }
 
-export async function update_node(id: string, version: string) {
-  return await swarmCmd("UpdateNode", { id, version });
+export async function update_node(id: string) {
+  return await swarmCmd("UpdateNode", { id, version: "latest" });
 }
 
 export async function get_container_stat(name?: string) {

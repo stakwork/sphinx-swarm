@@ -219,10 +219,10 @@ impl RelayAPI {
             .header("x-admin-token", self.token.clone())
             .send()
             .await?;
-        let hm = res.text().await?;
-        println!("HM {:?}", &hm);
-        Ok(serde_json::from_str(&hm)?)
-        // Ok(res.json().await?)
+        // let hm = res.text().await?;
+        // println!("HM {:?}", &hm);
+        // Ok(serde_json::from_str(&hm)?)
+        Ok(res.json().await?)
     }
 
     pub async fn get_chats(&self) -> Result<RelayRes<ChatsRes>> {

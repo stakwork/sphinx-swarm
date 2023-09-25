@@ -57,8 +57,10 @@ pub async fn auto_updater(
     let sched = JobScheduler::new().await?;
     // every day at 2 am
     // 0 2 * * *
+    // every 6 hours
+    // 0 */6 * * *
     sched
-        .add(Job::new_async("0 2 * * *", |_uuid, _l| {
+        .add(Job::new_async("0 0 1/6 * * *", |_uuid, _l| {
             Box::pin(async move {
                 if !AUTO_UPDATE.load(Ordering::Relaxed) {
                     AUTO_UPDATE.store(true, Ordering::Relaxed);
@@ -77,11 +79,9 @@ pub async fn auto_updater(
             let go = AUTO_UPDATE.load(Ordering::Relaxed);
             if go {
                 for nn in &node_names_ {
-                    let mut state = STATE.lock().await;
-                    if let Err(e) = update_node(&proj, &docker, nn, &mut state).await {
-                        log::error!("FAILED TO UPDATE {:?}", e);
+                    if let Err(e) = update_node_from_state(&proj, &docker, nn).await {
+                        log::error!("{:?}", e);
                     }
-                    // done
                 }
                 AUTO_UPDATE.store(false, Ordering::Relaxed);
             }
@@ -90,6 +90,48 @@ pub async fn auto_updater(
     });
 
     Ok(sched)
+}
+
+pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str) -> Result<()> {
+    let mut state = STATE.lock().await;
+    let nodes = state.stack.nodes.clone();
+    let img = find_img(node_name, &nodes)?;
+    img.remove_client(&mut state.clients);
+    drop(state);
+    match update_node(proj, docker, node_name, &nodes, &img).await {
+        Ok(()) => {
+            let mut state = STATE.lock().await;
+            // FIXME if this never returns then STATE will deadlock
+            // for example new CLN does spin up GRPC until remote signer is connected
+            let oy = match make_client(proj, docker, &img, &mut state).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+            };
+            drop(state);
+            oy
+        }
+        Err(e) => Err(anyhow!("FAILED TO UPDATE NODE {:?}", e)),
+    }
+}
+
+pub async fn update_node_and_make_client(
+    proj: &str,
+    docker: &Docker,
+    node_name: &str,
+    state: &mut State,
+) -> Result<()> {
+    let img = find_img(node_name, &state.stack.nodes)?;
+    img.remove_client(&mut state.clients);
+    match update_node(proj, docker, node_name, &state.stack.nodes, &img).await {
+        Ok(_) => {
+            let oy = match make_client(proj, docker, &img, state).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+            };
+            oy
+        }
+        Err(e) => Err(anyhow!("FAILED TO UPDATE NODE {:?}", e)),
+    }
 }
 
 pub async fn add_node(
@@ -135,32 +177,43 @@ pub fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<Image
         .as_internal()?)
 }
 
-pub async fn update_node(
-    proj: &str,
-    docker: &Docker,
-    node_name: &str,
-    state: &mut State,
-) -> Result<()> {
-    // let State { clients, stack } = state;
-    let pos = state.stack.nodes.iter().position(|n| n.name() == node_name);
-    let hostname = domain(&node_name);
+pub fn find_img(node_name: &str, nodes: &Vec<Node>) -> Result<Image> {
+    let pos = nodes.iter().position(|n| n.name() == node_name);
     if let None = pos {
         return Err(anyhow!("cannot find node in stack"));
     }
     let pos = pos.unwrap();
+
+    let theimg = nodes[pos].as_internal()?;
+
+    Ok(theimg)
+}
+
+pub async fn update_node(
+    proj: &str,
+    docker: &Docker,
+    node_name: &str,
+    nodes: &Vec<Node>,
+    theimg: &Image,
+) -> Result<()> {
+    let hostname = domain(&node_name);
 
     // stop the node
     stop_and_remove(docker, &hostname).await?;
 
     // nodes[pos].set_version(&un.version)?;
 
-    let theimg = state.stack.nodes[pos].as_internal()?;
-    let theconfig = theimg.make_config(&state.stack.nodes, docker).await?;
+    let theconfig = theimg.make_config(&nodes, docker).await?;
 
     create_and_start(docker, theconfig, false).await?;
 
     // post-startup steps (LND unlock)
     theimg.post_startup(proj, docker).await?;
+
+    Ok(())
+}
+
+async fn make_client(proj: &str, docker: &Docker, theimg: &Image, state: &mut State) -> Result<()> {
     // create and connect client
     theimg
         .connect_client(
@@ -173,6 +226,5 @@ pub async fn update_node(
         .await?;
     // post-client connection steps (BTC load wallet)
     theimg.post_client(&mut state.clients).await?;
-
     Ok(())
 }

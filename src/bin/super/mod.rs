@@ -6,7 +6,8 @@ use rocket::tokio;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::routes;
 use sphinx_swarm::utils;
-use sphinx_swarm::{events, logs, rocket_utils::CmdRequest};
+use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -49,25 +50,79 @@ pub async fn put_config_file(project: &str, rs: &Super) {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type", content = "data")]
+pub enum Cmd {
+    Swarm(SwarmCmd),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LoginInfo {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangePasswordInfo {
+    pub user_id: u32,
+    pub old_pass: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
-pub enum SuperCmd {
-    GetConfigs,
+pub enum SwarmCmd {
+    GetConfig,
+    Login(LoginInfo),
+    ChangePassword(ChangePasswordInfo),
 }
 
 // tag is the service name
-pub async fn super_handle(proj: &str, cmd: SuperCmd, tag: &str) -> Result<String> {
+pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
     // conf can be mutated in place
     let mut state = state::STATE.lock().await;
     // println!("STACK {:?}", stack);
 
     let mut must_save_stack = false;
 
-    let ret: Option<String> = match cmd {
-        SuperCmd::GetConfigs => {
-            let res = &state.remove_tokens();
-            Some(serde_json::to_string(&res)?)
-        }
+    let ret = match cmd {
+        Cmd::Swarm(swarm_cmd) => match swarm_cmd {
+            SwarmCmd::GetConfig => {
+                let res = &state.remove_tokens();
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::Login(ld) => match state.users.iter().find(|u| u.username == ld.username) {
+                Some(user) => {
+                    if !bcrypt::verify(&ld.password, &user.pass_hash)? {
+                        Some("".to_string())
+                    } else {
+                        let mut hm = HashMap::new();
+                        hm.insert("token", auth::make_jwt(user.id)?);
+                        Some(serde_json::to_string(&hm)?)
+                    }
+                }
+                None => Some("".to_string()),
+            },
+            SwarmCmd::ChangePassword(cp) => {
+                match state.users.iter().position(|u| u.id == cp.user_id) {
+                    Some(ui) => {
+                        let old_pass_hash = &state.users[ui].pass_hash;
+                        if bcrypt::verify(&cp.old_pass, old_pass_hash)? {
+                            state.users[ui].pass_hash =
+                                bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
+                            must_save_stack = true;
+                            let mut hm = HashMap::new();
+                            hm.insert("success", true);
+                            Some(serde_json::to_string(&hm)?)
+                        } else {
+                            Some("".to_string())
+                        }
+                    }
+                    None => Some("".to_string()),
+                }
+            }
+        },
     };
+
     if must_save_stack {
         put_config_file(proj, &state).await;
     }
@@ -78,7 +133,7 @@ pub fn spawn_super_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>) {
     let project = proj.to_string();
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            if let Ok(cmd) = serde_json::from_str::<SuperCmd>(&msg.message) {
+            if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
                 match super_handle(&project, cmd, &msg.tag).await {
                     Ok(res) => {
                         let _ = msg.reply_tx.send(res);

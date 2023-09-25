@@ -50,7 +50,10 @@ async fn main() -> Result<()> {
     handler::hydrate_clients(clients).await;
 
     if let Some(nn) = stack.auto_update {
-        let _cron_handler = builder::auto_updater(proj, docker, nn).await?;
+        let cron_handler_res = builder::auto_updater(proj, docker, nn).await;
+        if let Err(e) = cron_handler_res {
+            log::error!("CRON failed {:?}", e);
+        }
     }
 
     tokio::signal::ctrl_c().await?;

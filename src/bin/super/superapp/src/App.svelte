@@ -1,18 +1,25 @@
 <script lang="ts">
   import Remotes from "./Remotes.svelte";
   import Login from "../../../../../app/src/auth/Login.svelte";
-  import { activeUser } from "./store";
+  import { activeUser, saveUserToStore, logoutUser } from "./store";
+  import User from "carbon-icons-svelte/lib/User.svelte";
+  import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
 </script>
 
 <main>
   {#if !$activeUser}
-    <Login />
+    <Login {saveUserToStore} />
   {:else}
     <header>
       <div class="lefty logo-wrap">
         <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
         <span class="stack-title">Sphinx Superadmin</span>
       </div>
+      <section class="menu-btn">
+        <OverflowMenu icon={User} flipped>
+          <OverflowMenuItem on:click={logoutUser} text="Logout" />
+        </OverflowMenu>
+      </section>
     </header>
     <div class="body">
       <Remotes />
@@ -31,8 +38,10 @@
     height: 4.2rem;
     min-height: 4.2rem;
     display: flex;
+    width: 100%;
     background: #1a242e;
     align-items: center;
+    justify-content: space-between;
     border-bottom: 1px solid #101317;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
@@ -54,5 +63,8 @@
     color: white;
     margin-left: 0.5rem;
     font-size: 1.2rem;
+  }
+  .menu-btn {
+    margin-right: 2rem;
   }
 </style>

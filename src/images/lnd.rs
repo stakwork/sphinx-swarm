@@ -59,6 +59,9 @@ impl LndImage {
         try_unlock_lnd(&cert, proj, &self).await?;
         Ok(())
     }
+    pub fn remove_client(&self, clients: &mut Clients) {
+        clients.lnd.remove(&self.name);
+    }
     pub async fn connect_client(
         &self,
         clients: &mut Clients,

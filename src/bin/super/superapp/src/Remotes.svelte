@@ -8,25 +8,39 @@
     ToolbarMenu,
     ToolbarMenuItem,
   } from "carbon-components-svelte";
+  import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
+  import * as api from "../../../../../app/src/api";
   import { remotes, type Remote } from "./store";
+  import { onMount } from "svelte";
 
   let selectedRowIds = [];
+
+  async function getConfig() {
+    const conf = await api.swarm.get_config();
+    if (conf && conf.stacks && conf.stacks.length) {
+      remotes.set(conf.stacks);
+    }
+  }
+  onMount(() => {
+    getConfig();
+  });
 
   function something() {
     console.log("something");
   }
 
   function remoterow(r: Remote) {
-    return { ...r, id: r.root };
+    return { ...r, id: r.host };
   }
 </script>
 
 <main>
   <DataTable
     headers={[
-      { key: "root", value: "Root Domain" },
-      { key: "admin", value: "Admin Name" },
+      { key: "host", value: "Host" },
+      { key: "note", value: "Description" },
+      { key: "health", value: "Health" },
     ]}
     rows={$remotes.map(remoterow)}
     selectable
@@ -45,6 +59,13 @@
         </Button>
       </ToolbarContent>
     </Toolbar>
+    <svelte:fragment slot="cell" let:row let:cell>
+      {#if cell.key === "health"}
+        <Healthcheck host={row.id} />
+      {:else}
+        {cell.value}
+      {/if}
+    </svelte:fragment>
   </DataTable>
 </main>
 
