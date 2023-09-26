@@ -57,7 +57,9 @@ impl Super {
             .map(|n| RemoteStack {
                 host: n.host.clone(),
                 note: n.note.clone(),
-                ..Default::default()
+                ec2: n.ec2.clone(),
+                user: None,
+                pass: None,
             })
             .collect();
         Super {
