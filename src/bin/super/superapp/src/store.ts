@@ -5,7 +5,8 @@ import { decode } from "js-base64";
 
 export interface Remote {
   host: string;
-  note: string;
+  note?: string;
+  ec2?: string;
 }
 
 export const remotes = writable<Remote[]>([]);

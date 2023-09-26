@@ -1,4 +1,4 @@
-# docker-compose -f second-brain.yml up sphinx-swarm -d
+# docker-compose -f superadmin.yml up sphinx-swarm-superadmin -d
 
 version: "2"
 
@@ -9,13 +9,12 @@ services:
     networks:
       - sphinx-swarm
     command:
-      # - "--log.level=DEBUG"
+      - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.mqttsecure.address=:8883"
       - "--certificatesresolvers.myresolver.acme.email=evanfeenstra@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
@@ -28,7 +27,6 @@ services:
       - 8080:8080
       # entrypoints
       - 443:443
-      - 8883:8883
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock

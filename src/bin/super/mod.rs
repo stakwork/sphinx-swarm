@@ -13,9 +13,11 @@ use tokio::sync::{mpsc, Mutex};
 
 #[rocket::main]
 async fn main() -> Result<()> {
+    sphinx_swarm::utils::setup_logs();
+
     let project = "super";
     let s: state::Super = load_config_file(project).await.expect("YAML CONFIG FAIL");
-    println!("SUPER! {:?}", s);
+    println!("SUPER!!! {:?}", s);
 
     sphinx_swarm::auth::set_jwt_key(&s.jwt_key);
 

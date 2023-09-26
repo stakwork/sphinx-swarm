@@ -40,6 +40,7 @@
     headers={[
       { key: "host", value: "Host" },
       { key: "note", value: "Description" },
+      { key: "ec2", value: "Instance" },
       { key: "health", value: "Health" },
     ]}
     rows={$remotes.map(remoterow)}

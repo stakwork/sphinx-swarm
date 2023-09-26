@@ -11,10 +11,11 @@ pub struct Super {
     pub jwt_key: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
 pub struct RemoteStack {
     pub host: String,
     pub note: Option<String>,
+    pub ec2: Option<String>,
     pub user: Option<String>,
     pub pass: Option<String>,
 }
@@ -56,8 +57,7 @@ impl Super {
             .map(|n| RemoteStack {
                 host: n.host.clone(),
                 note: n.note.clone(),
-                user: None,
-                pass: None,
+                ..Default::default()
             })
             .collect();
         Super {
