@@ -8,6 +8,12 @@ if (IS_DEV) {
   // root = "https://app.swarm9.sphinx.chat/api";
 }
 
+const mode = import.meta.env.MODE;
+
+if (mode === "super") {
+  root = "https://app.superadmin.sphinx.chat/api";
+}
+
 type CmdType =
   | "Swarm"
   | "Relay"
