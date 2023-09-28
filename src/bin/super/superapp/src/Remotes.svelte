@@ -10,10 +10,12 @@
   } from "carbon-components-svelte";
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
+  import Tribes from "./Tribes.svelte";
   import * as api from "../../../../../app/src/api";
   import { remotes, tribes } from "./store";
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
+  import { splitHost } from "./utils/index";
 
   let selectedRowIds = [];
 
@@ -45,17 +47,6 @@
     return await getAllTribeFromTribeHost(hostPrefixes.join());
   }
 
-  function splitHost(hostFullPath: string) {
-    if (hostFullPath) {
-      const arr = hostFullPath.split(".");
-      if (arr[0]) {
-        return arr[0];
-      }
-      return "";
-    }
-    return "";
-  }
-
   async function getAllTribeFromTribeHost(swarms) {
     try {
       const r = await fetch(
@@ -82,6 +73,7 @@
       { key: "note", value: "Description" },
       { key: "ec2", value: "Instance" },
       { key: "health", value: "Health" },
+      { key: "tribes", value: "Tribes" },
     ]}
     rows={$remotes.map(remoterow)}
     selectable
@@ -103,6 +95,8 @@
     <svelte:fragment slot="cell" let:row let:cell>
       {#if cell.key === "health"}
         <Healthcheck host={row.id} />
+      {:else if cell.key === "tribes"}
+        <Tribes host={row.id} />
       {:else}
         {cell.value}
       {/if}
