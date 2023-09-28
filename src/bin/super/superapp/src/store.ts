@@ -2,16 +2,13 @@ import { writable } from "svelte/store";
 import { userKey, type TokenData } from "../../../../../app/src/api/cmd";
 import * as api from "../../../../../app/src/api";
 import { decode } from "js-base64";
-
-export interface Remote {
-  host: string;
-  note?: string;
-  ec2?: string;
-}
+import type { Tribe, Remote } from "./types/types";
 
 export const remotes = writable<Remote[]>([]);
 
 export const activeUser = writable<string>();
+
+export const tribes = writable<{ [k: string]: Tribe[] }>({});
 
 export const saveUserToStore = async (user: string = "") => {
   if (user) {
