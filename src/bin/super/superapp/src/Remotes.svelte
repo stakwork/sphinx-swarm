@@ -11,8 +11,9 @@
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import * as api from "../../../../../app/src/api";
-  import { remotes, type Remote } from "./store";
+  import { remotes, tribes } from "./store";
   import { onMount } from "svelte";
+  import type { Remote } from "./types/types";
 
   let selectedRowIds = [];
 
@@ -20,7 +21,8 @@
     const conf = await api.swarm.get_config();
     if (conf && conf.stacks && conf.stacks.length) {
       remotes.set(conf.stacks);
-      await getTribes(conf.stacks);
+      const serverTribes = await getTribes(conf.stacks);
+      tribes.set(serverTribes);
     }
   }
   onMount(() => {
@@ -40,8 +42,7 @@
       }
     }
     //Get all tribes that belong to Swarm
-    const tribes = await getAllTribeFromTribeHost(hostPrefixes.join());
-    console.log(tribes);
+    return await getAllTribeFromTribeHost(hostPrefixes.join());
   }
 
   function splitHost(hostFullPath: string) {
