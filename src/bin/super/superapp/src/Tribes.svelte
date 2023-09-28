@@ -6,12 +6,14 @@
   export let host = "";
 
   $: hostTribe = $tribes[splitHost(host)];
+
+  $: text = hostTribe && hostTribe.length ? `${hostTribe.length} Tribes` : "";
 </script>
 
 <main>
-  <OverflowMenu flipped style="width: auto;">
+  <OverflowMenu flipped style="width: auto;" disabled={hostTribe.length == 0}>
     <div slot="menu" style="padding: 1rem; color:white;">
-      {(hostTribe && hostTribe.length) || 0} Tribes
+      {text}
     </div>
     {#each hostTribe as tribe}
       <OverflowMenuItem>
