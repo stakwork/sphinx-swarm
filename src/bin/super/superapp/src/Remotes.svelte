@@ -20,6 +20,7 @@
     const conf = await api.swarm.get_config();
     if (conf && conf.stacks && conf.stacks.length) {
       remotes.set(conf.stacks);
+      await getTribes(conf.stacks);
     }
   }
   onMount(() => {
@@ -28,6 +29,44 @@
 
   function something() {
     console.log("something");
+  }
+
+  async function getTribes(r: Remote[]) {
+    const hostPrefixes = [];
+    for (let i = 0; i < r.length; i++) {
+      const hostPrefix = splitHost(r[i].host);
+      if (hostPrefix) {
+        hostPrefixes.push(hostPrefix);
+      }
+    }
+    //Get all tribes that belong to Swarm
+    const tribes = await getAllTribeFromTribeHost(hostPrefixes.join());
+    console.log(tribes);
+  }
+
+  function splitHost(hostFullPath: string) {
+    if (hostFullPath) {
+      const arr = hostFullPath.split(".");
+      if (arr[0]) {
+        return arr[0];
+      }
+      return "";
+    }
+    return "";
+  }
+
+  async function getAllTribeFromTribeHost(swarms) {
+    try {
+      const r = await fetch(
+        `https://tribes.sphinx.chat/tribes/app_urls/${swarms}`
+      );
+      const j = await r.json();
+      console.log(j);
+      return j;
+    } catch (e) {
+      console.warn(e);
+      return {};
+    }
   }
 
   function remoterow(r: Remote) {
