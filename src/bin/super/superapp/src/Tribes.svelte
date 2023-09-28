@@ -7,11 +7,13 @@
 
   $: hostTribe = $tribes[splitHost(host)];
 
-  $: text = hostTribe && hostTribe.length ? `${hostTribe.length} Tribes` : "";
+  $: tribesLen = (hostTribe && hostTribe.length) || 0;
+
+  $: text = tribesLen ? `${tribesLen} Tribes` : "";
 </script>
 
 <main>
-  <OverflowMenu flipped style="width: auto;" disabled={hostTribe.length == 0}>
+  <OverflowMenu flipped style="width: auto;" disabled={tribesLen == 0}>
     <div slot="menu" style="padding: 1rem; color:white;">
       {text}
     </div>
