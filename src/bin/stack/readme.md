@@ -137,3 +137,9 @@ docker push sphinxlightning/sphinx-swarm:0.3.48
 docker tag sphinx-swarm sphinxlightning/sphinx-swarm:latest
 
 docker push sphinxlightning/sphinx-swarm:latest
+
+### proxy
+
+Lh2VltPgdAdA
+
+curl http://localhost:5050/balance/022ef942dda604ee2db8607319c35dd3d789f98042485c2ed4f820d5e03ee06fee -H "x-admin-token: Lh2VltPgdAdA"

@@ -399,7 +399,10 @@ pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Doc
                 .await
                 {
                     Ok(Ok(res)) => res,
-                    Ok(Err(err)) => fmt_err(&err.to_string()),
+                    Ok(Err(err)) => {
+                        log::warn!("handle ERR {:?}", err);
+                        fmt_err(&err.to_string())
+                    }
                     Err(_error) => fmt_err("Handle operation timed out"),
                 }
             } else {

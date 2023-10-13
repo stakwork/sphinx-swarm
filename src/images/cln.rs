@@ -20,6 +20,7 @@ pub struct ClnImage {
     pub links: Vec<String>,
     pub host: Option<String>,
     pub git_version: Option<String>,
+    pub frontend: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -46,6 +47,7 @@ impl ClnImage {
             links: vec![],
             host: None,
             git_version: None,
+            frontend: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -58,6 +60,9 @@ impl ClnImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub fn broker_frontend(&mut self) {
+        self.frontend = Some(true);
     }
     pub fn remove_client(&self, clients: &mut Clients) {
         clients.cln.remove(&self.name);
@@ -173,6 +178,14 @@ impl ClnBtcArgs {
         log::info!("CLN: connect to external BTC: {}", &fullhost);
         Ok(Self::new(&fullhost, &username, &password))
     }
+    pub fn to_url(&self) -> String {
+        if let Some(u) = &self.user {
+            if let Some(p) = &self.pass {
+                return format!("https://{}:{}@{}", u, p, &self.rpcconnect);
+            }
+        }
+        format!("https://{}", &self.rpcconnect)
+    }
 }
 
 pub struct HsmdBrokerPorts {
@@ -271,6 +284,11 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
             ports.push(hbp.ws_port);
         }
         environ.push(format!("BROKER_NETWORK={}", img.network));
+
+        if img.frontend.unwrap_or(false) {
+            let rpc_url = btc.to_url();
+            environ.push(format!("BITCOIND_RPC_URL={}", rpc_url));
+        }
     }
     // add the interceptor at grpc port + 200
     if img.plugins.contains(&ClnPlugin::HtlcInterceptor) {

@@ -1,5 +1,5 @@
-pub mod util;
 pub mod hsmd;
+pub mod util;
 
 use crate::images::cln::ClnImage;
 use crate::secrets::hex_secret;
@@ -203,7 +203,9 @@ impl ClnRPC {
         }
         println!("=======> CLN KEYSEND REQ: {:?}", req);
         let response = self.client.key_send(req).await?;
-        Ok(response.into_inner())
+        let res = response.into_inner();
+        println!("=====> KEYSEND RES: {:?}", res);
+        Ok(res)
     }
 
     pub async fn create_invoice(&mut self, amt: u64) -> Result<pb::InvoiceResponse> {

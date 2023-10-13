@@ -290,19 +290,23 @@ impl Default for Stack {
         }
 
         if is_cln {
-            // lightning storage server
-            let lss = LssImage::new("lss", "latest", "55551");
-            internal_nodes.push(Image::Lss(lss));
-            // cln with plugins
-            let mut cln = ClnImage::new("cln", "latest", &network, "9735", "10009");
-            cln.links(vec!["bitcoind", "lss"]);
             let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
                 Some(nsb) => nsb == "true",
                 None => false,
             };
+            if !skip_remote_signer {
+                // lightning storage server
+                let lss = LssImage::new("lss", "latest", "55551");
+                internal_nodes.push(Image::Lss(lss));
+            }
+            // cln with plugins
+            let mut cln = ClnImage::new("cln", "latest", &network, "9735", "10009");
+            cln.links(vec!["bitcoind", "lss"]);
+
             let plugins = if skip_remote_signer {
                 vec![ClnPlugin::HtlcInterceptor]
             } else {
+                cln.broker_frontend(); // broker parses bitcoind blocks
                 vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor]
             };
             cln.plugins(plugins);
