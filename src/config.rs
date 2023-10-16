@@ -5,8 +5,10 @@ use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
+use crate::images::broker::BrokerImage;
 use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::jarvis::JarvisImage;
+use crate::images::mixer::MixerImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::{
@@ -140,6 +142,28 @@ impl Default for User {
     }
 }
 
+fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
+    let mut broker = BrokerImage::new("broker", "latest", "8883", None);
+    broker.host(host.clone());
+
+    let mut mixer = MixerImage::new("mixer", "latest", "8800");
+    mixer.links(vec!["broker"]);
+
+    Stack {
+        network: network.to_string(),
+        nodes: vec![Image::Broker(broker), Image::Mixer(mixer)]
+            .iter()
+            .map(|n| Node::Internal(n.to_owned()))
+            .collect(),
+        host,
+        users: vec![Default::default()],
+        jwt_key: secrets::random_word(16),
+        ready: false,
+        ip: env_no_empty("IP"),
+        auto_update: None,
+    }
+}
+
 fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &str) -> Stack {
     Stack {
         network: network.to_string(),
@@ -235,6 +259,15 @@ impl Default for Stack {
         }
         if !host.clone().unwrap_or(".".to_string()).contains(".") {
             host = None
+        }
+
+        // choose only second brain
+        let sphinxv1 = match std::env::var("SPHINXV1").ok() {
+            Some(sbo) => sbo == "true",
+            None => false,
+        };
+        if sphinxv1 {
+            return sphinxv1_only(&network, host);
         }
 
         let use_lnd = match std::env::var("USE_LND").ok() {
@@ -505,6 +538,11 @@ impl Stack {
                     Node::Internal(Image::BoltWall(b))
                 }
                 Image::Lss(l) => Node::Internal(Image::Lss(l)),
+                Image::Broker(mut b) => {
+                    b.seed = "".to_string();
+                    Node::Internal(Image::Broker(b))
+                }
+                Image::Mixer(m) => Node::Internal(Image::Mixer(m)),
             },
         });
         Stack {
