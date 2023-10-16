@@ -208,6 +208,56 @@ pub fn cln_traefik_labels(
     to_labels(def)
 }
 
+pub fn broker_traefik_labels(
+    name: &str,
+    host: &str,
+    mqtt_port: &str,
+    ws_port: Option<&str>,
+) -> HashMap<String, String> {
+    let mqtt_name = format!("{}-mqtt", name);
+    let mqtt_host = format!("mqtt-{}", host);
+    let mut def = vec![
+        "traefik.enable=true".to_string(),
+        // mqtt service (HostSNI and mqttsecure entrypoint)
+        format!("traefik.tcp.routers.{}.service={}", mqtt_name, mqtt_name),
+        format!(
+            "traefik.tcp.services.{}.loadbalancer.server.port={}",
+            mqtt_name, mqtt_port
+        ),
+        format!(
+            "traefik.tcp.routers.{}.rule=HostSNI(`{}`)",
+            mqtt_name, mqtt_host
+        ),
+        format!("traefik.tcp.routers.{}.tls=true", mqtt_name),
+        format!(
+            "traefik.tcp.routers.{}.tls.certresolver=myresolver",
+            mqtt_name
+        ),
+        format!("traefik.tcp.routers.{}.entrypoints=mqttsecure", mqtt_name),
+    ];
+    // ctrl service
+    if let Some(wsp) = ws_port {
+        let ws_name = name;
+        let ws_host = host;
+        let more = vec![
+            format!("traefik.http.routers.{}.service={}", ws_name, ws_host),
+            format!(
+                "traefik.http.services.{}.loadbalancer.server.port={}",
+                ws_name, wsp
+            ),
+            format!("traefik.http.routers.{}.rule=Host(`{}`)", ws_name, ws_host),
+            format!("traefik.http.routers.{}.tls=true", ws_name),
+            format!(
+                "traefik.http.routers.{}.tls.certresolver=myresolver",
+                ws_name
+            ),
+            format!("traefik.http.routers.{}.entrypoints=websecure", ws_name),
+        ];
+        def.extend_from_slice(&more);
+    }
+    to_labels(def)
+}
+
 pub fn neo4j_labels(
     name: &str,
     host: &str,

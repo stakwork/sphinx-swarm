@@ -1,10 +1,12 @@
 pub mod boltwall;
+pub mod broker;
 pub mod btc;
 pub mod cache;
 pub mod cln;
 pub mod jarvis;
 pub mod lnd;
 pub mod lss;
+pub mod mixer;
 pub mod navfiber;
 pub mod neo4j;
 pub mod postgres;
@@ -33,6 +35,8 @@ pub enum Image {
     BoltWall(boltwall::BoltwallImage),
     Jarvis(jarvis::JarvisImage),
     Lss(lss::LssImage),
+    Broker(broker::BrokerImage),
+    Mixer(mixer::MixerImage),
 }
 
 pub struct Repository {
@@ -69,6 +73,8 @@ impl Image {
             Image::Jarvis(n) => n.name.clone(),
             Image::BoltWall(n) => n.name.clone(),
             Image::Lss(n) => n.name.clone(),
+            Image::Broker(n) => n.name.clone(),
+            Image::Mixer(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -84,6 +90,8 @@ impl Image {
             Image::Jarvis(_n) => "JarvisBackend",
             Image::BoltWall(_n) => "BoltWall",
             Image::Lss(_n) => "LSS",
+            Image::Broker(_n) => "Broker",
+            Image::Mixer(_n) => "Mixer",
         }
         .to_string()
     }
@@ -100,6 +108,8 @@ impl Image {
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
             Image::Lss(n) => n.version = version.to_string(),
+            Image::Broker(n) => n.version = version.to_string(),
+            Image::Mixer(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -175,6 +185,8 @@ impl DockerConfig for Image {
             Image::Jarvis(n) => n.make_config(nodes, docker).await,
             Image::BoltWall(n) => n.make_config(nodes, docker).await,
             Image::Lss(n) => n.make_config(nodes, docker).await,
+            Image::Broker(n) => n.make_config(nodes, docker).await,
+            Image::Mixer(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -193,6 +205,8 @@ impl DockerHubImage for Image {
             Image::Jarvis(n) => n.repo(),
             Image::BoltWall(n) => n.repo(),
             Image::Lss(n) => n.repo(),
+            Image::Broker(n) => n.repo(),
+            Image::Mixer(n) => n.repo(),
         }
     }
 }
@@ -276,6 +290,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_broker(&self) -> Option<broker::BrokerImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_broker() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -343,6 +365,12 @@ impl Image {
         match self {
             Image::Lss(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not LSS".to_string())),
+        }
+    }
+    pub fn as_broker(&self) -> anyhow::Result<broker::BrokerImage> {
+        match self {
+            Image::Broker(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Broker".to_string())),
         }
     }
 }
