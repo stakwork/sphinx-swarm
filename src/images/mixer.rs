@@ -69,12 +69,14 @@ fn mixer(img: &MixerImage, broker: &BrokerImage) -> Config<String> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
-    let root_vol = "/usr/src/data";
+    let root_vol = "/home";
 
     let ports = vec![img.port.clone()];
 
     let mut env = vec![
         format!("SEED={}", broker.seed),
+        format!("DB_PATH=/home/data"),
+        format!("BROKER_URL={}:1883", domain(&broker.name)),
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
     ];

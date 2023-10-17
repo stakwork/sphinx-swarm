@@ -60,7 +60,7 @@ fn broker(img: &BrokerImage) -> Config<String> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
-    let root_vol = "/usr/src/data";
+    let root_vol = "/root/.broker";
 
     let mut ports = vec![img.mqtt_port.clone()];
     if let Some(wsp) = &img.ws_port {
