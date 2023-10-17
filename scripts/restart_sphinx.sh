@@ -4,6 +4,6 @@ docker pull sphinxlightning/sphinx-mixer:latest
 
 docker stop swarm.sphinx && docker rm swarm.sphinx
 
-docker-compose up -f sphinx.yml swarm.sphinx -d
+docker-compose -f sphinx.yml up swarm.sphinx -d
 
 docker logs swarm.sphinx --follow
