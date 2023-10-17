@@ -2,7 +2,7 @@ docker stop mixer.sphinx
 docker rm mixer.sphinx
 
 docker stop broker.sphinx
-docker stop broker.sphinx
+docker rm broker.sphinx
 
 docker stop swarm.sphinx
 docker rm swarm.sphinx
