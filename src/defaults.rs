@@ -16,7 +16,7 @@ fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
     let mut broker = BrokerImage::new("broker", "latest", "1883", None);
     broker.host(host.clone());
 
-    let mut mixer = MixerImage::new("mixer", "latest", "8000");
+    let mut mixer = MixerImage::new("mixer", "latest", "8800");
     mixer.set_no_lightning();
     mixer.links(vec!["broker"]);
 
