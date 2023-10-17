@@ -14,6 +14,7 @@ pub struct BrokerImage {
     pub seed: String,
     pub mqtt_port: String,
     pub ws_port: Option<String>,
+    pub verbose: Option<bool>,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -28,6 +29,7 @@ impl BrokerImage {
             ws_port: ws_port,
             links: vec![],
             host: None,
+            verbose: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -37,6 +39,9 @@ impl BrokerImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub fn set_verbose(&mut self) {
+        self.verbose = Some(true)
     }
 }
 
