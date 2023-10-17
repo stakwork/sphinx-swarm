@@ -3,9 +3,9 @@
 version: "2"
 
 services:
-  load_balancer:
+  reverse-proxy:
     image: traefik:v2.2.1
-    container_name: load_balancer
+    container_name: traefik.sphinx
     networks:
       - sphinx-swarm
     command:
@@ -43,11 +43,11 @@ services:
 
   sphinx-swarm:
     image: sphinxlightning/sphinx-swarm
-    container_name: sphinx-swarm
+    container_name: swarm.sphinx
     networks:
       - sphinx-swarm
     depends_on:
-      - load_balancer
+      - reverse-proxy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/vol:/vol
