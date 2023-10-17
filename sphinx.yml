@@ -1,4 +1,4 @@
-# docker-compose -f sphinx.yml up sphinx-swarm -d
+# docker-compose -f sphinx.yml up -d
 
 version: "2"
 
