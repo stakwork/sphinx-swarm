@@ -69,7 +69,7 @@ fn mixer(img: &MixerImage, broker: &BrokerImage) -> Config<String> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
-    let root_vol = "/usr/src";
+    let root_vol = "/usr/src/data";
 
     let ports = vec![img.port.clone()];
 
