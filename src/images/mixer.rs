@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct MixerImage {
     pub name: String,
     pub version: String,
+    pub network: String,
     pub port: String,
     pub no_lightning: Option<bool>,
     pub no_mqtt: Option<bool>,
@@ -20,10 +21,11 @@ pub struct MixerImage {
 }
 
 impl MixerImage {
-    pub fn new(name: &str, version: &str, port: &str) -> Self {
+    pub fn new(name: &str, version: &str, network: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
+            network: network.to_string(),
             port: port.to_string(),
             no_lightning: None,
             no_mqtt: None,

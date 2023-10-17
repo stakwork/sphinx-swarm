@@ -13,11 +13,11 @@ use crate::images::{
 use crate::secrets;
 
 fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
-    let mut broker = BrokerImage::new("broker", "latest", "1883", None);
+    let mut broker = BrokerImage::new("broker", "latest", network, "1883", None);
     broker.set_verbose();
     broker.host(host.clone());
 
-    let mut mixer = MixerImage::new("mixer", "latest", "8800");
+    let mut mixer = MixerImage::new("mixer", "latest", network, "8800");
     mixer.set_no_lightning();
     mixer.links(vec!["broker"]);
     mixer.host(host.clone());

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 pub struct BrokerImage {
     pub name: String,
     pub version: String,
+    pub network: String,
     pub seed: String,
     pub mqtt_port: String,
     pub ws_port: Option<String>,
@@ -20,10 +21,17 @@ pub struct BrokerImage {
 }
 
 impl BrokerImage {
-    pub fn new(name: &str, version: &str, mqtt_port: &str, ws_port: Option<String>) -> Self {
+    pub fn new(
+        name: &str,
+        version: &str,
+        network: &str,
+        mqtt_port: &str,
+        ws_port: Option<String>,
+    ) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
+            network: network.to_string(),
             seed: crate::secrets::hex_secret_32(),
             mqtt_port: mqtt_port.to_string(),
             ws_port: ws_port,
