@@ -119,7 +119,13 @@ impl DockerConfig for ClnImage {
         let lss = li.find_lss();
         if let Some(btc) = li.find_btc() {
             // internal BTC node
-            let args = ClnBtcArgs::new(&domain(&btc.name), &btc.user, &btc.pass);
+            let args = ClnBtcArgs::new(
+                &domain(&btc.name),
+                &btc.user,
+                &btc.pass,
+                &None,
+                &Some("http".to_string()),
+            );
             Ok(cln(self, args, lss))
         } else {
             // external BTC node
@@ -152,13 +158,23 @@ pub struct ClnBtcArgs {
     rpcconnect: String,
     user: Option<String>,
     pass: Option<String>,
+    port: Option<u16>,
+    scheme: Option<String>,
 }
 impl ClnBtcArgs {
-    pub fn new(rpcconnect: &str, user: &Option<String>, pass: &Option<String>) -> Self {
+    pub fn new(
+        rpcconnect: &str,
+        user: &Option<String>,
+        pass: &Option<String>,
+        port: &Option<u16>,
+        scheme: &Option<String>,
+    ) -> Self {
         Self {
             rpcconnect: rpcconnect.to_string(),
             user: user.clone(),
             pass: pass.clone(),
+            port: port.clone(),
+            scheme: scheme.clone(),
         }
     }
     pub fn from_url(btcurl: &str) -> Result<Self> {
@@ -175,16 +191,31 @@ impl ClnBtcArgs {
         } else {
             None
         };
+        let port = p.port();
+        let scheme = p.scheme();
         log::info!("CLN: connect to external BTC: {}", &fullhost);
-        Ok(Self::new(&fullhost, &username, &password))
+        Ok(Self::new(
+            &fullhost,
+            &username,
+            &password,
+            &port,
+            &Some(scheme.to_string()),
+        ))
     }
     pub fn to_url(&self) -> String {
+        let scheme = self.scheme.clone().unwrap_or("https".to_string());
         if let Some(u) = &self.user {
             if let Some(p) = &self.pass {
-                return format!("https://{}:{}@{}", u, p, &self.rpcconnect);
+                return match self.port {
+                    Some(port) => format!("{}://{}:{}@{}:{}", scheme, u, p, &self.rpcconnect, port),
+                    None => format!("{}://{}:{}@{}", scheme, u, p, &self.rpcconnect),
+                };
             }
         }
-        format!("https://{}", &self.rpcconnect)
+        match self.port {
+            Some(port) => format!("{}://{}:{}", scheme, &self.rpcconnect, port),
+            None => format!("{}://{}", scheme, &self.rpcconnect),
+        }
     }
 }
 
@@ -287,6 +318,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
 
         if img.frontend.unwrap_or(false) {
             let rpc_url = btc.to_url();
+            log::info!("CLN BITCOIND_RPC_URL {}", &rpc_url);
             environ.push(format!("BITCOIND_RPC_URL={}", rpc_url));
         }
     }
