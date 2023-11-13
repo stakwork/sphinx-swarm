@@ -82,6 +82,9 @@ fn broker(img: &BrokerImage) -> Config<String> {
         ports.push(wsp.clone());
         env.push(format!("BROKER_WS_PORT={}", wsp));
     }
+    if let Some(bl) = &img.logs {
+        env.push(format!("BROKER_LOGS={}", bl));
+    }
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
