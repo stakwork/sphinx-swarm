@@ -87,3 +87,7 @@ path = "src/bin/cln_mainnet_test.rs"
 [[bin]]
 name = "super"
 path = "src/bin/super/mod.rs"
+
+[[bin]]
+name = "sphinx"
+path = "src/bin/v1/mod.rs"

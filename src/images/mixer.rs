@@ -2,7 +2,8 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::broker::BrokerImage;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::images::cln::ClnImage;
+use crate::utils::{domain, exposed_ports, host_config, volume_string};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -54,7 +55,8 @@ impl DockerConfig for MixerImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let broker = li.find_broker().context("Mixer: No Broker")?;
-        Ok(mixer(self, &broker))
+        let cln = li.find_cln();
+        Ok(mixer(self, &broker, &cln)?)
     }
 }
 
@@ -67,7 +69,7 @@ impl DockerHubImage for MixerImage {
     }
 }
 
-fn mixer(img: &MixerImage, broker: &BrokerImage) -> Config<String> {
+fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Result<Config<String>> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -78,19 +80,34 @@ fn mixer(img: &MixerImage, broker: &BrokerImage) -> Config<String> {
     let mut env = vec![
         format!("SEED={}", broker.seed),
         format!("DB_PATH=/home/data"),
-        format!("BROKER_URL={}:1883", domain(&broker.name)),
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
     ];
-    if let Some(nl) = img.no_lightning {
-        if nl {
-            env.push("NO_LIGHTNING=true".to_string());
-        }
+
+    let mut extra_vols = Vec::new();
+    if bool_arg(&img.no_lightning) {
+        env.push("NO_LIGHTNING=true".to_string());
+    } else if let Some(c) = cln {
+        env.push(format!("GATEWAY_IP={}", domain(&c.name)));
+        // gateway grpc port is the normal grpc port + 200
+        let grpc_port: u16 = c.grpc_port.parse::<u16>()?;
+        env.push(format!("GATEWAY_PORT={}", grpc_port + 200));
+
+        let cln_vol = volume_string(&c.name, "/cln");
+        extra_vols.push(cln_vol);
+        let creds = c.credentials_paths("cln");
+        env.push(format!("CA_PEM={}", creds.ca_cert));
+        env.push(format!("CLIENT_PEM={}", creds.client_cert));
+        env.push(format!("KEY_PEM={}", creds.client_key));
+        env.push(format!("CLN_IP={}", domain(&c.name)));
+        env.push(format!("CLN_PORT={}", &c.grpc_port));
     }
-    if let Some(nl) = img.no_mqtt {
-        if nl {
-            env.push("NO_MQTT=true".to_string());
-        }
+
+    if bool_arg(&img.no_mqtt) {
+        env.push("NO_MQTT=true".to_string());
+    } else {
+        let bu = format!("{}:{}", domain(&broker.name), broker.mqtt_port);
+        env.push(format!("BROKER_URL={}", bu));
     }
 
     let mut c = Config {
@@ -104,5 +121,13 @@ fn mixer(img: &MixerImage, broker: &BrokerImage) -> Config<String> {
     if let Some(host) = &img.host {
         c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
     }
-    c
+    Ok(c)
+}
+
+fn bool_arg(arg: &Option<bool>) -> bool {
+    if let Some(nl) = arg {
+        return nl.clone();
+    } else {
+        false
+    }
 }
