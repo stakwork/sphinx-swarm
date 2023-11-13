@@ -14,7 +14,6 @@ use crate::secrets;
 
 fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
     let mut broker = BrokerImage::new("broker", "latest", network, "1883", None);
-    broker.set_verbose();
     broker.host(host.clone());
 
     let mut mixer = MixerImage::new("mixer", "latest", network, "8800");

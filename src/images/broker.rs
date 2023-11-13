@@ -15,7 +15,7 @@ pub struct BrokerImage {
     pub seed: String,
     pub mqtt_port: String,
     pub ws_port: Option<String>,
-    pub verbose: Option<bool>,
+    pub logs: Option<String>,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -37,7 +37,7 @@ impl BrokerImage {
             ws_port: ws_port,
             links: vec![],
             host: None,
-            verbose: None,
+            logs: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -48,8 +48,8 @@ impl BrokerImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
-    pub fn set_verbose(&mut self) {
-        self.verbose = Some(true)
+    pub fn set_logs(&mut self, logs_string: &str) {
+        self.logs = Some(logs_string.to_string())
     }
 }
 
@@ -75,12 +75,13 @@ fn broker(img: &BrokerImage) -> Config<String> {
 
     let root_vol = "/root/.broker";
 
+    let mut env = vec![format!("SEED={}", img.seed)];
+
     let mut ports = vec![img.mqtt_port.clone()];
     if let Some(wsp) = &img.ws_port {
         ports.push(wsp.clone());
+        env.push(format!("BROKER_WS_PORT={}", wsp));
     }
-
-    let env = vec![format!("SEED={}", img.seed)];
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
