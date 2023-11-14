@@ -21,6 +21,7 @@ pub struct ClnImage {
     pub host: Option<String>,
     pub git_version: Option<String>,
     pub frontend: Option<bool>,
+    pub seed: Option<[u8; 32]>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -48,6 +49,7 @@ impl ClnImage {
             host: None,
             git_version: None,
             frontend: None,
+            seed: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -63,6 +65,9 @@ impl ClnImage {
     }
     pub fn broker_frontend(&mut self) {
         self.frontend = Some(true);
+    }
+    pub fn set_seed(&mut self, hsms: [u8; 32]) {
+        self.seed = Some(hsms);
     }
     pub fn remove_client(&self, clients: &mut Clients) {
         clients.cln.remove(&self.name);
@@ -275,6 +280,12 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--database-upgrade=true".to_string(),
     ];
+    if let Some(hsms) = img.seed {
+        // cmd.push(format!("--developer=1")); // 23.11
+        cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));
+        let privkey = privkey_from_seed(&hsms);
+        cmd.push(format!("--dev-force-privkey={}", privkey));
+    }
     if let Some(u) = &btc.user {
         if let Some(p) = &btc.pass {
             cmd.push(format!("--bitcoin-rpcuser={}", u));
@@ -367,4 +378,18 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
 
 async fn sleep(n: u64) {
     rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
+}
+
+fn privkey_from_seed(seed: &[u8; 32]) -> String {
+    use sphinx::derive::{self, KeyDerivationStyle};
+    use sphinx::{secp256k1, Network};
+
+    let secp_ctx = secp256k1::Secp256k1::new();
+    let network = Network::Bitcoin;
+    let key_derivation_style = KeyDerivationStyle::Native;
+
+    let key_derive = derive::key_derive(key_derivation_style, network);
+    let (_, node_secret) = key_derive.node_keys(seed, &secp_ctx);
+
+    hex::encode(node_secret.secret_bytes())
 }

@@ -14,4 +14,5 @@ pub mod rocket_utils;
 pub mod routes;
 pub mod rsa;
 pub mod secrets;
+pub mod setup;
 pub mod utils;

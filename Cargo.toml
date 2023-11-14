@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+sphinx = { git = "https://github.com/stakwork/sphinx", rev = "a477b6237bca238e265a9408859a8cfbf474f526" }
 bollard = "0.13"
 bollard-stubs = "1.42.0-rc.3"
 futures-core = "0.3"

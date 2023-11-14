@@ -1226,6 +1226,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "348108ab3fba42ec82ff6e9564fc4ca0247bdccdc68dd8af9764bbc79c3c8ffb"
 
 [[package]]
+name = "lightning"
+version = "0.0.118"
+source = "git+https://github.com/Evanfeenstra/rust-lightning?rev=8a552b3a56cbda063941d71e03b160e8fcfadbfe#8a552b3a56cbda063941d71e03b160e8fcfadbfe"
+dependencies = [
+ "bitcoin 0.29.2",
+ "musig2",
+]
+
+[[package]]
 name = "link-cplusplus"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1350,6 +1359,14 @@ name = "multimap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
+
+[[package]]
+name = "musig2"
+version = "0.1.0"
+source = "git+https://github.com/arik-so/rust-musig2?rev=27797d7#27797d78cf64e8974e38d7f31ebb11e455015a9e"
+dependencies = [
+ "bitcoin 0.29.2",
+]
 
 [[package]]
 name = "nom"
@@ -2326,6 +2343,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "sphinx"
+version = "0.1.0"
+source = "git+https://github.com/stakwork/sphinx?rev=a477b6237bca238e265a9408859a8cfbf474f526#a477b6237bca238e265a9408859a8cfbf474f526"
+dependencies = [
+ "anyhow",
+ "bitcoin 0.29.2",
+ "hex",
+ "lightning",
+ "log",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "sphinx_swarm"
 version = "0.1.0"
 dependencies = [
@@ -2360,6 +2391,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "simple_logger",
+ "sphinx",
  "tar",
  "thiserror",
  "tokio-cron-scheduler",

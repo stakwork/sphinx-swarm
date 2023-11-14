@@ -7,11 +7,16 @@ use sphinx_swarm::images::{
     broker::BrokerImage, btc::BtcImage, cln::ClnImage, mixer::MixerImage, Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
+use sphinx_swarm::setup::setup_cln_chans;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
 // cd /var/lib/docker/volumes/
+
+// docker cp sphinx.yml cln_1.sphinx:/root/.lightning/regtest/sphinx.yml
+
+// docker exec -it cln_1.sphinx sh
 
 const BTC: &str = "btc_1";
 const CLN1: &str = "cln_1";
@@ -54,7 +59,17 @@ pub async fn main() -> Result<()> {
     println!("=> spawn handler");
     handler::spawn_handler(proj, rx, docker.clone());
 
-    let clients = builder::build_stack(proj, &docker, &stack).await?;
+    let mut clients = builder::build_stack(proj, &docker, &stack).await?;
+
+    let mut skip_setup = false;
+    if let Ok(clnskip) = std::env::var("CLN_SKIP_SETUP") {
+        if clnskip == "true" {
+            skip_setup = true;
+        }
+    }
+    if !skip_setup {
+        setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
+    }
 
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
@@ -80,13 +95,16 @@ fn make_stack() -> Stack {
     nodes.push(Image::Btc(bitcoind));
 
     // CLN1
+    let seed1 = [0x11; 32];
     let v = "latest";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
+    cln.set_seed(seed1);
     cln.plugins(cln_plugins.clone());
     cln.links(vec![BTC]);
     nodes.push(Image::Cln(cln));
 
-    let broker = BrokerImage::new(BROKER1, v, &network, "1883", None);
+    let mut broker = BrokerImage::new(BROKER1, v, &network, "1883", None);
+    broker.set_seed(&hex::encode(&seed1));
     nodes.push(Image::Broker(broker));
 
     let mut mixer = MixerImage::new(MIXER1, v, &network, "8080");
@@ -94,12 +112,15 @@ fn make_stack() -> Stack {
     nodes.push(Image::Mixer(mixer));
 
     // CLN2
+    let seed2 = [2; 32];
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
+    cln2.set_seed(seed2);
     cln2.plugins(cln_plugins.clone());
     cln2.links(vec![BTC]);
     nodes.push(Image::Cln(cln2));
 
-    let broker2 = BrokerImage::new(BROKER2, v, &network, "1884", None);
+    let mut broker2 = BrokerImage::new(BROKER2, v, &network, "1884", None);
+    broker2.set_seed(&hex::encode(&seed2));
     nodes.push(Image::Broker(broker2));
 
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");

@@ -114,7 +114,6 @@ impl Image {
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
         Ok(match self {
-            // unlock LND
             Image::Cln(n) => n.pre_startup(docker).await?,
             Image::Neo4j(n) => n.pre_startup(docker).await?,
             _ => (),

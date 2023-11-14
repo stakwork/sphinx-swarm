@@ -1,16 +1,16 @@
 use anyhow::Result;
 use rocket::tokio;
-use sphinx_swarm::cmd::PayKeysend;
-use sphinx_swarm::config::{Clients, Node, Stack};
+use sphinx_swarm::config::{Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::lss::LssImage;
 use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, lnd::LndImage, proxy::ProxyImage, Image};
 use sphinx_swarm::rocket_utils::CmdRequest;
-use sphinx_swarm::utils::domain;
+use sphinx_swarm::setup::*;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+
 // docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
 
 // cd /var/lib/docker/volumes/
@@ -21,8 +21,6 @@ const CLN2: &str = "cln_2";
 const LSS: &str = "lss_1";
 const JWT_KEY: &str = "e8int45s0pofgtye";
 const LND_1: &str = "lnd_1";
-
-const LND_TLV_LEN: usize = 1944;
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -65,8 +63,10 @@ pub async fn main() -> Result<()> {
         }
     }
     if !skip_setup {
-        setup_cln_chans(&mut clients, &stack.nodes).await?;
-        setup_lnd_chans(&mut clients, &stack.nodes).await?;
+        setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
+        if do_test_proxy() {
+            setup_lnd_chans(&mut clients, &stack.nodes, CLN1, LND_1, BTC).await?;
+        }
     }
 
     println!("hydrate clients now!");
@@ -80,190 +80,6 @@ pub async fn main() -> Result<()> {
 
     builder::shutdown_now();
 
-    Ok(())
-}
-
-async fn get_pubkey_cln(clients: &mut Clients, node_id: &str) -> Result<String> {
-    let client = clients.cln.get_mut(node_id).unwrap();
-    let info = client.get_info().await?;
-    let pubkey = hex::encode(info.id);
-    Ok(pubkey)
-}
-
-async fn get_pubkey_lnd(clients: &mut Clients, node_id: &str) -> Result<String> {
-    let lnd1 = clients.lnd.get_mut(node_id).unwrap();
-    let lnd1_info = lnd1.get_info().await?;
-    Ok(lnd1_info.identity_pubkey)
-}
-
-async fn setup_cln_chans(clients: &mut Clients, nodes: &Vec<Node>) -> Result<()> {
-    let cln2_pubkey = get_pubkey_cln(clients, CLN2).await?;
-    if let Some(node) = nodes.iter().find(|n| n.name() == CLN2) {
-        log::info!("CLN2 pubkey {}", &cln2_pubkey);
-        let n = node.as_internal()?.as_cln()?;
-        new_chan_from_cln1(clients, CLN2, &cln2_pubkey, &n.peer_port).await?;
-        // keysend send
-        cln_keysend_to(clients, CLN1, &cln2_pubkey, 1_000_000, false).await?;
-        sleep(1000).await;
-        cln_keysend_to(clients, CLN1, &cln2_pubkey, 1_000_000, false).await?;
-        sleep(1000).await;
-        // keysend receive
-        let cln1_pubkey = get_pubkey_cln(clients, CLN1).await?;
-        cln_keysend_to(clients, CLN2, &cln1_pubkey, 500_000, true).await?;
-    } else {
-        log::error!("CLN2 not found!");
-    }
-    Ok(())
-}
-
-async fn setup_lnd_chans(clients: &mut Clients, nodes: &Vec<Node>) -> Result<()> {
-    if !do_test_proxy() {
-        return Ok(());
-    }
-    let lnd1_pubkey = get_pubkey_lnd(clients, LND_1).await?;
-    if let Some(node) = nodes.iter().find(|n| n.name() == LND_1) {
-        log::info!("LND1 pubkey {}", &lnd1_pubkey);
-        let n = node.as_internal()?.as_lnd()?;
-        new_chan_from_cln1(clients, LND_1, &lnd1_pubkey, &n.peer_port).await?;
-        // keysend send
-        cln_keysend_to(clients, CLN1, &lnd1_pubkey, 1_000_000, false).await?;
-        sleep(1000).await;
-        // keysend send
-        cln_keysend_to(clients, CLN1, &lnd1_pubkey, 1_000_000, false).await?;
-        sleep(59000).await;
-        // keysend receive
-        let cln1_pubkey = get_pubkey_cln(clients, CLN1).await?;
-        log::info!("lnd send 1");
-        lnd_keysend_to(clients, LND_1, &cln1_pubkey, 500_000, false).await?;
-        log::info!("lnd send 2");
-        lnd_keysend_to(clients, LND_1, &cln1_pubkey, 500_000, true).await?;
-    }
-    Ok(())
-}
-
-async fn new_chan_from_cln1(
-    clients: &mut Clients,
-    peer_name: &str,
-    peer_pubkey: &str,
-    peer_port: &str,
-) -> Result<()> {
-    let cln1 = clients.cln.get_mut(CLN1).unwrap();
-
-    // skip if already have a chan
-    let peers = cln1.list_peers().await?;
-    for p in peers
-        .peers
-        .iter()
-        .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
-    {
-        if p.channels.len() > 0 {
-            log::info!("skipping new channel setup");
-            return Ok(());
-        }
-    }
-
-    let connected = cln1
-        .connect_peer(peer_pubkey, &domain(peer_name), peer_port)
-        .await?;
-    let channel = hex::encode(connected.id);
-    log::info!("CLN1 connected to {}: {}", peer_name, channel);
-    let funded = cln1.try_fund_channel(&channel, 100_000_000, None).await?;
-    log::info!("funded {:?}", hex::encode(funded.tx));
-    let addr = cln1.new_addr().await?;
-
-    let btcrpc = clients.bitcoind.get(BTC).unwrap();
-    let address = addr.bech32.unwrap();
-    btcrpc.test_mine(6, Some(address.clone()))?;
-    log::info!("mined 6 blocks to {:?}", address);
-
-    let mut ok = false;
-    log::info!("wait for channel to confirm...");
-    while !ok {
-        let peers = cln1.list_peers().await?;
-        for p in peers
-            .peers
-            .into_iter()
-            .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
-        {
-            for c in p.channels {
-                // println!("{:?}", c.status);
-                if let Some(status) = c.status.get(0) {
-                    if status.starts_with("CHANNELD_NORMAL") {
-                        log::info!("channel confirmed!!!");
-                        ok = true;
-                    }
-                }
-            }
-        }
-        sleep(1000).await;
-    }
-
-    Ok(())
-}
-
-async fn cln_keysend_to(
-    clients: &mut Clients,
-    sender_id: &str,
-    recip_pubkey: &str,
-    amt: u64,
-    do_tlv: bool,
-) -> Result<()> {
-    let tlv_opt = if do_tlv {
-        let mut tlvs = std::collections::HashMap::new();
-        tlvs.insert(133773310, [9u8; 1124].to_vec()); // (1207 ok, 1208 not) 603 bytes max
-        Some(tlvs)
-    } else {
-        None
-    };
-
-    let cln1 = clients.cln.get_mut(sender_id).unwrap();
-    match cln1
-        .keysend(recip_pubkey, amt, None, None, None, tlv_opt)
-        .await
-    {
-        Ok(sent_keysend) => println!(
-            "[CLN] => sent_keysend to {} {:?}",
-            recip_pubkey, sent_keysend.status
-        ),
-        Err(e) => {
-            println!("[CLN] keysend err {:?}", e)
-        }
-    };
-    Ok(())
-}
-
-async fn lnd_keysend_to(
-    clients: &mut Clients,
-    sender_id: &str,
-    recip_pubkey: &str,
-    amt: u64,
-    do_tlv: bool,
-) -> Result<()> {
-    let tlv_opt = if do_tlv {
-        let mut tlvs = std::collections::HashMap::new();
-        tlvs.insert(133773310, [9u8; LND_TLV_LEN].to_vec()); // (1124 ok, 1224 not)
-        Some(tlvs)
-    } else {
-        None
-    };
-
-    let pk = PayKeysend {
-        dest: recip_pubkey.to_string(),
-        amt: (amt / 1000) as i64,
-        tlvs: tlv_opt,
-        ..Default::default()
-    };
-    log::info!("pk {:?}", &pk);
-    let lnd1 = clients.lnd.get_mut(sender_id).unwrap();
-    match lnd1.pay_keysend(pk).await {
-        Ok(sent_keysend) => println!(
-            "[LND] => sent_keysend to {} {:?}",
-            recip_pubkey, sent_keysend
-        ),
-        Err(e) => {
-            println!("[LND] keysend err {:?}", e)
-        }
-    };
     Ok(())
 }
 

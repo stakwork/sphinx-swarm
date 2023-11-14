@@ -51,6 +51,9 @@ impl BrokerImage {
     pub fn set_logs(&mut self, logs_string: &str) {
         self.logs = Some(logs_string.to_string())
     }
+    pub fn set_seed(&mut self, seed: &str) {
+        self.seed = seed.to_string();
+    }
 }
 
 #[async_trait]
