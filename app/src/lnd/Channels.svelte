@@ -65,7 +65,7 @@
 
   async function listChannels() {
     const channelsData = await getLndPendingAndActiveChannels(tag);
-
+    // console.log(channelsData);
     channels.update((chans) => {
       return { ...chans, [tag]: channelsData };
     });
@@ -85,6 +85,7 @@
     console.log("peersData:", peersData);
     if (!peersData) return;
     const parsedRes = await parseClnListPeerRes(peersData);
+    console.log("parsed channel data", parsedRes);
     peersStore.update((peer) => {
       return { ...peer, [tag]: parsedRes.peers };
     });
