@@ -56,7 +56,7 @@
   }
   .body {
     display: flex;
-    height: 100%;
+    height: calc(100vh - 4.2rem);
     width: 100%;
   }
   .stack-title {

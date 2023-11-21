@@ -381,15 +381,47 @@ async fn sleep(n: u64) {
 }
 
 fn privkey_from_seed(seed: &[u8; 32]) -> String {
-    use sphinx::derive::{self, KeyDerivationStyle};
-    use sphinx::{secp256k1, Network};
-
     let secp_ctx = secp256k1::Secp256k1::new();
-    let network = Network::Bitcoin;
-    let key_derivation_style = KeyDerivationStyle::Native;
-
-    let key_derive = derive::key_derive(key_derivation_style, network);
-    let (_, node_secret) = key_derive.node_keys(seed, &secp_ctx);
-
+    let (_, node_secret) = cln_node_keys(seed, &secp_ctx);
     hex::encode(node_secret.secret_bytes())
+}
+
+use bitcoin::hashes::sha256::Hash as BitcoinSha256;
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine};
+use bitcoin::secp256k1;
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
+
+fn cln_node_keys(seed: &[u8], secp_ctx: &Secp256k1<secp256k1::All>) -> (PublicKey, SecretKey) {
+    let node_private_bytes = hkdf_sha256(seed, "nodeid".as_bytes(), &[]);
+    let node_secret_key = SecretKey::from_slice(&node_private_bytes).unwrap();
+    let node_id = PublicKey::from_secret_key(&secp_ctx, &node_secret_key);
+    (node_id, node_secret_key)
+}
+
+fn hkdf_extract_expand(salt: &[u8], secret: &[u8], info: &[u8], output: &mut [u8]) {
+    let mut hmac = HmacEngine::<BitcoinSha256>::new(salt);
+    hmac.input(secret);
+    let prk = Hmac::from_engine(hmac).into_inner();
+
+    let mut t = [0; 32];
+    let mut n: u8 = 0;
+
+    for chunk in output.chunks_mut(32) {
+        let mut hmac = HmacEngine::<BitcoinSha256>::new(&prk[..]);
+        n = n.checked_add(1).expect("HKDF size limit exceeded.");
+        if n != 1 {
+            hmac.input(&t);
+        }
+        hmac.input(&info);
+        hmac.input(&[n]);
+        t = Hmac::from_engine(hmac).into_inner();
+        chunk.copy_from_slice(&t);
+    }
+}
+
+/// derive a secret from another secret using HKDF-SHA256
+pub fn hkdf_sha256(secret: &[u8], info: &[u8], salt: &[u8]) -> [u8; 32] {
+    let mut result = [0u8; 32];
+    hkdf_extract_expand(salt, secret, info, &mut result);
+    result
 }
