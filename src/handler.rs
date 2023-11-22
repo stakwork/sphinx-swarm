@@ -128,6 +128,25 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     None => Some("".to_string()),
                 }
             }
+            SwarmCmd::ChangeAdmin(cp) => {
+                match state.stack.users.iter().position(|u| u.id == cp.user_id) {
+                    Some(ui) => {
+                        let old_pass_hash = &state.stack.users[ui].pass_hash;
+                        if bcrypt::verify(&cp.old_pass, old_pass_hash)? {
+                            state.stack.users[ui].pass_hash =
+                                bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
+                            state.stack.users[ui].username = cp.email.clone();
+                            must_save_stack = true;
+                            let mut hm = HashMap::new();
+                            hm.insert("success", true);
+                            Some(serde_json::to_string(&hm)?)
+                        } else {
+                            Some("".to_string())
+                        }
+                    }
+                    None => Some("".to_string()),
+                }
+            }
             SwarmCmd::ListContainers => {
                 let containers = list_containers(docker).await?;
                 Some(serde_json::to_string(&containers)?)
