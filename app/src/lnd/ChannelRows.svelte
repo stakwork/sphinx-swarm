@@ -15,6 +15,10 @@
 
   let channel_arr = $channels[tag];
 
+  function copyText(txt: string) {
+    navigator.clipboard.writeText(txt);
+  }
+
   function getBarCalculation(chan) {
     const remote_balance = Number(chan.remote_balance);
     const local_balance = Number(chan.local_balance);
@@ -159,6 +163,12 @@
         </div>
         {#if selectedChannelParter === chan.remote_pubkey}
           <div class="row-bottom">
+            <div
+              class="row-bottom-scid"
+              on:click|stopPropagation={() => copyText(chan.chan_id)}
+            >
+              {chan.chan_id}
+            </div>
             <div class="row-bottom-text">
               <TextInput
                 size="sm"
@@ -263,6 +273,14 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-around;
+  }
+
+  .lnd-table-wrap .table-body .row .row-bottom-scid {
+    font-size: 0.8rem;
+    max-width: 5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .lnd-table-wrap .table-body .row .row-bottom-text {

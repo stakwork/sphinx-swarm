@@ -82,7 +82,7 @@
 
   async function clnListPeersandChannels() {
     const peersData = await CLN.list_peers(tag);
-    console.log("peersData:", peersData);
+    // console.log("peersData:", peersData);
     if (!peersData) return;
     const parsedRes = await parseClnListPeerRes(peersData);
     console.log("parsed channel data", parsedRes);
@@ -142,7 +142,7 @@
   async function onCloseChannel(id: string, dest: string) {
     if (type === "Cln") {
       const clnRes = await CLN.close_channel(tag, id, dest);
-      console.log(clnRes);
+      console.log("-> closechannel", clnRes);
     } else {
       console.log("ERROR: lnd does not support close yet");
     }
