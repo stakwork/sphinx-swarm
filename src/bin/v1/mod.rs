@@ -105,6 +105,7 @@ fn make_stack() -> Stack {
 
     let mut broker = BrokerImage::new(BROKER1, v, &network, "1883", None);
     broker.set_seed(&hex::encode(&seed1));
+    broker.set_logs("login,pubsub");
     nodes.push(Image::Broker(broker));
 
     let mut mixer = MixerImage::new(MIXER1, v, &network, "8080");
@@ -121,6 +122,7 @@ fn make_stack() -> Stack {
 
     let mut broker2 = BrokerImage::new(BROKER2, v, &network, "1884", None);
     broker2.set_seed(&hex::encode(&seed2));
+    broker2.set_logs("login,pubsub");
     nodes.push(Image::Broker(broker2));
 
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");

@@ -81,6 +81,7 @@ fn broker(img: &BrokerImage) -> Config<String> {
     let mut env = vec![format!("SEED={}", img.seed)];
 
     let mut ports = vec![img.mqtt_port.clone()];
+    env.push(format!("BROKER_MQTT_PORT={}", &img.mqtt_port));
     if let Some(wsp) = &img.ws_port {
         ports.push(wsp.clone());
         env.push(format!("BROKER_WS_PORT={}", wsp));
