@@ -95,7 +95,7 @@ fn make_stack() -> Stack {
     nodes.push(Image::Btc(bitcoind));
 
     // CLN1
-    let seed1 = [0x11; 32];
+    let seed1 = [43; 32];
     let v = "latest";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
     cln.set_seed(seed1);
@@ -113,7 +113,7 @@ fn make_stack() -> Stack {
     nodes.push(Image::Mixer(mixer));
 
     // CLN2
-    let seed2 = [2; 32];
+    let seed2 = [44; 32];
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
     cln2.set_seed(seed2);
     cln2.plugins(cln_plugins.clone());

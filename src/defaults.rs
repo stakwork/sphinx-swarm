@@ -48,7 +48,11 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
         jwt_key: secrets::random_word(16),
         ready: false,
         ip: env_no_empty("IP"),
-        auto_update: None,
+        auto_update: Some(vec![
+            "jarvis".to_string(),
+            "boltwall".to_string(),
+            "navfiber".to_string(),
+        ]),
     }
 }
 

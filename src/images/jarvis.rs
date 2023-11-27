@@ -96,8 +96,11 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
     if let Ok(aws_region) = std::env::var("AWS_S3_REGION_NAME") {
         env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
     }
-    if let Ok(tweet_by_author_workflow_id) = std::env::var("TWEET_BY_AUTOR_WORKFLOW_ID") {
-        env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tweet_by_author_workflow_id));
+    if let Ok(tbawid) = std::env::var("TWEET_BY_AUTOR_WORKFLOW_ID") {
+        env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tbawid));
+    }
+    if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
+        env.push(format!("TWITTER_BEARER={}", twitter_bearer));
     }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
