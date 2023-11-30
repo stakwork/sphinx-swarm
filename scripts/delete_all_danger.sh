@@ -10,6 +10,10 @@ docker stop neo4j.sphinx
 docker rm neo4j.sphinx
 docker volume rm neo4j.sphinx
 
+docker stop elastic.sphinx
+docker rm elastic.sphinx
+docker volume rm elastic.sphinx
+
 docker stop cln.sphinx
 docker rm cln.sphinx
 docker volume rm cln.sphinx

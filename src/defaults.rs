@@ -6,6 +6,7 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::mixer::MixerImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::elastic::ElasticImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
     relay::RelayImage, Image,
@@ -83,10 +84,15 @@ fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Imag
     let mut neo4j = Neo4jImage::new("neo4j", v);
     neo4j.host(host.clone());
 
+    // elastic
+    let mut v = "8.11.1";
+    let mut elastic = ElasticImage::new("elastic", v);
+    elastic.host(host.clone());
+
     // jarvis
     v = "latest";
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
-    jarvis.links(vec!["neo4j", "boltwall"]);
+    jarvis.links(vec!["neo4j", "elastic", "boltwall"]);
 
     // boltwall
     v = "latest";
@@ -108,6 +114,7 @@ fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Imag
     vec![
         Image::NavFiber(nav),
         Image::Neo4j(neo4j),
+        Image::Elastic(elastic),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),
     ]
