@@ -2,11 +2,11 @@ use crate::config::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
 use crate::images::broker::BrokerImage;
 use crate::images::cln::{ClnImage, ClnPlugin};
+use crate::images::elastic::ElasticImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::mixer::MixerImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
-use crate::images::elastic::ElasticImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
     relay::RelayImage, Image,
@@ -80,7 +80,7 @@ fn external_lnd() -> Option<ExternalLnd> {
 
 fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Image> {
     // neo4j
-    let mut v = "4.4.9";
+    let v = "4.4.9";
     let mut neo4j = Neo4jImage::new("neo4j", v);
     neo4j.host(host.clone());
 

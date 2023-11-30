@@ -1,4 +1,3 @@
-// use super::traefik::{neo4j_labels, traefik_labels};
 use super::*;
 use crate::config::Node;
 use crate::dock::exec;
@@ -37,7 +36,7 @@ impl ElasticImage {
         self.links = strarr(links)
     }
 
-    pub async fn post_startup(&self, proj: &str, docker: &Docker) -> Result<()> {
+    pub async fn post_startup(&self, _proj: &str, docker: &Docker) -> Result<()> {
         let command = "/usr/share/elasticsearch/bin/elasticsearch-plugin install analysis-phonetic";
 
         log::info!("=> running command {}...", command);
@@ -91,19 +90,3 @@ fn elastic(node: &ElasticImage) -> Config<String> {
     };
     c
 }
-
-async fn sleep(n: u64) {
-    rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
-}
-
-const APOC_CONF: &str = r#"
-apoc.import.file.use_neo4j_config=true
-apoc.import.file.enabled=true
-apoc.export.file.enabled=true
-apoc.initializer.neo4j.1=CREATE FULLTEXT INDEX titles_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.show_title, n.episode_title]
-apoc.initializer.neo4j.2=CREATE FULLTEXT INDEX person_full_index IF NOT EXISTS FOR (n:Person) ON EACH [n.name]
-apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.topic]
-apoc.initializer.neo4j.4=CREATE FULLTEXT INDEX text_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.text]
-apoc.initializer.neo4j.5=CREATE FULLTEXT INDEX data_bank_full_index IF NOT EXISTS FOR (n:Data_Bank) ON EACH [n.Data_Bank]
-apoc.initializer.neo4j.6=MATCH (n) WHERE NOT EXISTS(n.namespace) OR n.namespace = '' SET n.namespace = 'default'
-"#;
