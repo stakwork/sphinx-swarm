@@ -9,6 +9,7 @@ pub mod lss;
 pub mod mixer;
 pub mod navfiber;
 pub mod neo4j;
+pub mod elastic;
 pub mod postgres;
 pub mod proxy;
 pub mod relay;
@@ -31,6 +32,7 @@ pub enum Image {
     Proxy(proxy::ProxyImage),
     Cache(cache::CacheImage),
     Neo4j(neo4j::Neo4jImage),
+    Elastic(elastic::ElasticImage),
     NavFiber(navfiber::NavFiberImage),
     BoltWall(boltwall::BoltwallImage),
     Jarvis(jarvis::JarvisImage),
@@ -69,6 +71,7 @@ impl Image {
             Image::Proxy(n) => n.name.clone(),
             Image::Cache(n) => n.name.clone(),
             Image::Neo4j(n) => n.name.clone(),
+            Image::Elastic(n) => n.name.clone(),
             Image::NavFiber(n) => n.name.clone(),
             Image::Jarvis(n) => n.name.clone(),
             Image::BoltWall(n) => n.name.clone(),
@@ -86,6 +89,7 @@ impl Image {
             Image::Proxy(_n) => "Proxy",
             Image::Cache(_n) => "Cache",
             Image::Neo4j(_n) => "Neo4j",
+            Image::Elastic(_n) => "Elastic",
             Image::NavFiber(_n) => "NavFiber",
             Image::Jarvis(_n) => "JarvisBackend",
             Image::BoltWall(_n) => "BoltWall",
@@ -104,6 +108,7 @@ impl Image {
             Image::Proxy(n) => n.version = version.to_string(),
             Image::Cache(n) => n.version = version.to_string(),
             Image::Neo4j(n) => n.version = version.to_string(),
+            Image::Elastic(n) => n.version = version.to_string(),
             Image::NavFiber(n) => n.version = version.to_string(),
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
@@ -123,6 +128,7 @@ impl Image {
         Ok(match self {
             // unlock LND
             Image::Lnd(n) => n.post_startup(proj, docker).await?,
+            Image::Elastic(n) => n.post_startup(proj, docker).await?,
             _ => (),
         })
     }
@@ -180,6 +186,7 @@ impl DockerConfig for Image {
             Image::Proxy(n) => n.make_config(nodes, docker).await,
             Image::Cache(n) => n.make_config(nodes, docker).await,
             Image::Neo4j(n) => n.make_config(nodes, docker).await,
+            Image::Elastic(n) => n.make_config(nodes, docker).await,
             Image::NavFiber(n) => n.make_config(nodes, docker).await,
             Image::Jarvis(n) => n.make_config(nodes, docker).await,
             Image::BoltWall(n) => n.make_config(nodes, docker).await,
@@ -200,6 +207,7 @@ impl DockerHubImage for Image {
             Image::Proxy(n) => n.repo(),
             Image::Cache(n) => n.repo(),
             Image::Neo4j(n) => n.repo(),
+            Image::Elastic(n) => n.repo(),
             Image::NavFiber(n) => n.repo(),
             Image::Jarvis(n) => n.repo(),
             Image::BoltWall(n) => n.repo(),
@@ -260,6 +268,14 @@ impl LinkedImages {
     pub fn find_neo4j(&self) -> Option<neo4j::Neo4jImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_neo4j() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_elastic(&self) -> Option<elastic::ElasticImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_elastic() {
                 return Some(i);
             }
         }
@@ -328,6 +344,12 @@ impl Image {
         match self {
             Image::Neo4j(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not NEO4J".to_string())),
+        }
+    }
+    pub fn as_elastic(&self) -> anyhow::Result<elastic::ElasticImage> {
+        match self {
+            Image::Elastic(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Elastic".to_string())),
         }
     }
     pub fn as_navfiber(&self) -> anyhow::Result<navfiber::NavFiberImage> {

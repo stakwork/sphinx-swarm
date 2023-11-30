@@ -34,6 +34,7 @@ export type NodeType =
   | "Jarvis"
   | "BoltWall"
   | "Neo4j"
+  | "Elastic"
   | "NavFiber"
   | "Cln";
 
@@ -51,6 +52,7 @@ export const allNodeTypes: NodeType[] = [
   "Cache",
   "BoltWall",
   "Neo4j",
+  "Elastic",
   "NavFiber",
   "Jarvis",
 ];
@@ -171,11 +173,12 @@ const defpos = {
   jarvis: [750, 475],
   boltwall: [770, 380],
   neo4j: [540, 425],
+  elastic: [320, 625],
   navfiber: [1150, 475],
   lss: [400, 270],
 };
 
-export const smalls = ["lss", "boltwall", "neo4j", "cache", "lss_1"];
+export const smalls = ["lss", "boltwall", "neo4j", "elastic", "cache", "lss_1"];
 
 export { stack, defaultPositions };
 

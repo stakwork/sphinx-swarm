@@ -225,6 +225,7 @@ impl Stack {
                 Image::Relay(r) => Node::Internal(Image::Relay(r)),
                 Image::Cache(c) => Node::Internal(Image::Cache(c)),
                 Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
+                Image::Elastic(n) => Node::Internal(Image::Elastic(n)),
                 Image::NavFiber(nf) => Node::Internal(Image::NavFiber(nf)),
                 Image::Jarvis(j) => Node::Internal(Image::Jarvis(j)),
                 Image::BoltWall(mut b) => {

@@ -48,6 +48,7 @@ add `--env ONLY_NODE=lnd`
 ### remove one volume to reset data
 
 `docker volume rm neo4j.sphinx`
+`docker volume rm elastic.sphinx`
 
 ### update one instance
 
@@ -59,6 +60,7 @@ update the version
 
 `docker stop jarvis.sphinx && docker rm jarvis.sphinx`
 `docker stop neo4j.sphinx && docker rm neo4j.sphinx`
+`docker stop elastic.sphinx && docker rm elastic.sphinx`
 
 `docker-compose up sphinx-swarm -d`
 

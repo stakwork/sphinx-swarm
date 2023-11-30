@@ -1,4 +1,4 @@
-use super::{boltwall::BoltwallImage, neo4j::Neo4jImage, *};
+use super::{boltwall::BoltwallImage, neo4j::Neo4jImage, elastic::ElasticImage, *};
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
@@ -35,8 +35,9 @@ impl DockerConfig for JarvisImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let neo4j_node = li.find_neo4j().context("Jarvis: No Neo4j")?;
+        let elastic_node = li.find_elastic().context("Jarvis: No Elastic")?;
         let boltwall_node = li.find_boltwall().context("Jarvis: No Boltwall")?;
-        Ok(jarvis(&self, &neo4j_node, &boltwall_node))
+        Ok(jarvis(&self, &neo4j_node, &boltwall_node, &elastic_node))
     }
 }
 
@@ -49,7 +50,7 @@ impl DockerHubImage for JarvisImage {
     }
 }
 
-fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> Config<String> {
+fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage, elastic: &ElasticImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
@@ -60,6 +61,10 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
         format!(
             "NEO4J_URI=neo4j://{}:{}",
             domain(&neo4j.name), neo4j.bolt_port
+        ),
+        format!(
+            "ELASTIC_URI=http://{}:{}",
+            domain(&elastic.name), elastic.http_port
         ),
         format!("NEO4J_USER=neo4j"),
         format!("NEO4J_PASS=test"),
