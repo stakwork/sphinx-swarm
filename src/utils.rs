@@ -31,6 +31,9 @@ pub fn host_config(
             name: Some(RestartPolicyNameEnum::ON_FAILURE),
             maximum_retry_count: Some(100),
         }),
+        memory: Some(512),
+        cpu_period: Some(50000),
+        cpu_quota: Some(25000),
         ..Default::default()
     })
 }
