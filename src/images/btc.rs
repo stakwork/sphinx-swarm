@@ -121,7 +121,7 @@ pub fn btc(node: &BtcImage) -> Config<String> {
         hostname: Some(domain(&node.name)),
         // user: user(),
         cmd: Some(cmd),
-        host_config: host_config(&node.name, ports, root_vol, None),
+        host_config: host_config(&node.name, ports, root_vol, None, None),
         ..Default::default()
     };
     if let Some(host) = node.host.clone() {

@@ -158,7 +158,7 @@ fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         image: Some(format!("{}:{}", img, lnd.version).to_string()),
         hostname: Some(domain(&lnd.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&lnd.name, ports, root_vol, None),
+        host_config: host_config(&lnd.name, ports, root_vol, None, None),
         ..Default::default()
     };
     if let Ok(_) = std::env::var("DEBUG") {

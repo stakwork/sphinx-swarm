@@ -169,7 +169,7 @@ fn proxy(
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&proxy.name, ports, root_vol, Some(extra_vols)),
+        host_config: host_config(&proxy.name, ports, root_vol, Some(extra_vols), None),
         cmd: Some(cmd),
         ..Default::default()
     }

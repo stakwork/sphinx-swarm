@@ -17,12 +17,13 @@ pub fn host_config(
     ports: Vec<String>,
     root_vol: &str,
     extra_vols: Option<Vec<String>>,
+    mem_limit: Option<i64>,
 ) -> Option<HostConfig> {
     let mut dvols = vec![volume_string(name, root_vol)];
     if let Some(evs) = extra_vols {
         dvols.extend(evs);
     }
-    Some(HostConfig {
+    let mut hc = HostConfig {
         binds: Some(dvols),
         port_bindings: host_port(ports),
         extra_hosts: extra_hosts(),
@@ -32,7 +33,11 @@ pub fn host_config(
             maximum_retry_count: Some(100),
         }),
         ..Default::default()
-    })
+    };
+    if let Some(ml) = mem_limit {
+        hc.memory = Some(ml);
+    }
+    Some(hc)
 }
 
 pub fn manual_host_config(

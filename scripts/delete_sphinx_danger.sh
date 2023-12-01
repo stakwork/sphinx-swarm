@@ -17,6 +17,5 @@ sudo rm -rf $HOME/vol/stack
 
 docker volume rm $(docker volume ls -q)
 
-docker volume rm cln.sphinx
 
 

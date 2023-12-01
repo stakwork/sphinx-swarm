@@ -94,7 +94,7 @@ fn broker(img: &BrokerImage) -> Config<String> {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&img.name, ports, root_vol, None),
+        host_config: host_config(&img.name, ports, root_vol, None, None),
         env: Some(env),
         ..Default::default()
     };

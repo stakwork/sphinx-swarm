@@ -74,7 +74,7 @@ fn elastic(node: &ElasticImage) -> Config<String> {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None),
+        host_config: host_config(&name, ports, root_vol, None, None),
         env: Some(vec![
             format!("node.name=elastic"),
             format!("bootstrap.memory_lock=true"),

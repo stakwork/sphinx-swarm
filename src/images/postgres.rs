@@ -8,7 +8,7 @@ pub fn postgres() -> Config<String> {
         image: Some("postgres".to_string()),
         hostname: Some(domain(name)),
         user: user(),
-        host_config: host_config(name, vec![], root_vol, None),
+        host_config: host_config(name, vec![], root_vol, None, None),
         ..Default::default()
     }
 }

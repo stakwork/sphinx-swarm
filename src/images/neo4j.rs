@@ -16,6 +16,7 @@ pub struct Neo4jImage {
     pub bolt_port: String,
     pub links: Links,
     pub host: Option<String>,
+    pub mem_limit: Option<i64>,
 }
 
 impl Neo4jImage {
@@ -29,6 +30,7 @@ impl Neo4jImage {
             bolt_port: "7687".to_string(),
             links: vec![],
             host: None,
+            mem_limit: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -91,7 +93,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None),
+        host_config: host_config(&name, ports, root_vol, None, node.mem_limit),
         env: Some(vec![
             // format!("NEO4J_URI=neo4j://neo4j:{}", &node.bolt_port),
             format!("NEO4J_AUTH=neo4j/test"),

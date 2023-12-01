@@ -355,7 +355,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd: Some(cmd),
         exposed_ports: exposed_ports(ports.clone()),
         env: Some(environ),
-        host_config: host_config(&img.name, ports, root_vol, None),
+        host_config: host_config(&img.name, ports, root_vol, None, None),
         ..Default::default()
     };
     if let Some(host) = img.host.clone() {

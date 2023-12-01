@@ -114,7 +114,7 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&img.name, ports, root_vol, Some(extra_vols)),
+        host_config: host_config(&img.name, ports, root_vol, Some(extra_vols), None),
         env: Some(env),
         ..Default::default()
     };

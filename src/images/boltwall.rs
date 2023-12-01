@@ -184,7 +184,7 @@ fn boltwall(
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, extra_vols),
+        host_config: host_config(&name, ports, root_vol, extra_vols, None),
         env: Some(env),
         ..Default::default()
     };

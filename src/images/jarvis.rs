@@ -13,6 +13,7 @@ pub struct JarvisImage {
     pub port: String,
     pub self_generating: bool,
     pub links: Links,
+    pub mem_limit: Option<i64>,
 }
 
 impl JarvisImage {
@@ -23,6 +24,7 @@ impl JarvisImage {
             port: port.to_string(),
             self_generating: self_generating,
             links: vec![],
+            mem_limit: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -119,7 +121,7 @@ fn jarvis(
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None),
+        host_config: host_config(&name, ports, root_vol, None, node.mem_limit),
         env: Some(env),
         ..Default::default()
     }
