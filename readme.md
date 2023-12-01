@@ -17,3 +17,13 @@ login with `admin`/`password`
 ### pull nodes down
 
 `./clear.sh`
+
+
+### Restart Swarm
+If swarm goes down.
+
+1. Find ec2 instance on aws (ex. sphinx-swarm-19) and reboot instance
+2. ssh into instance
+3. `cd sphinx-swarm`
+4. `./stop jarvis-backend` (optional if restarting just jarvis-backend)
+5. `./restart.sh`
