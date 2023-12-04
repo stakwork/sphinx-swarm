@@ -30,7 +30,7 @@ pub fn host_config(
         network_mode: Some(dock::DEFAULT_NETWORK.to_string()),
         restart_policy: Some(RestartPolicy {
             name: Some(RestartPolicyNameEnum::ON_FAILURE),
-            maximum_retry_count: Some(100),
+            maximum_retry_count: None,
         }),
         ..Default::default()
     };
