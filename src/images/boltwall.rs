@@ -19,6 +19,7 @@ pub struct BoltwallImage {
     pub session_secret: String,
     pub external_lnd: Option<ExternalLnd>,
     pub links: Links,
+    pub admin_token: Option<String>,
 }
 
 impl BoltwallImage {
@@ -31,6 +32,7 @@ impl BoltwallImage {
             session_secret: secrets::random_word(32),
             external_lnd: None,
             links: vec![],
+            admin_token: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -38,6 +40,9 @@ impl BoltwallImage {
     }
     pub fn external_lnd(&mut self, external_lnd: ExternalLnd) {
         self.external_lnd = Some(external_lnd);
+    }
+    pub fn set_admin_token(&mut self, at: &str) {
+        self.admin_token = Some(at.to_string());
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
@@ -179,6 +184,10 @@ fn boltwall(
     // the webhook url "callback"
     if let Some(h) = &node.host {
         env.push(format!("HOST_URL=https://{}", h));
+    }
+    // admin token for setting admin pubkey
+    if let Some(at) = &node.admin_token {
+        env.push(format!("ADMIN_TOKEN={}", at));
     }
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),

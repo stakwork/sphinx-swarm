@@ -9,7 +9,7 @@ use crate::dock::*;
 use crate::images::DockerHubImage;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
 use rocket::tokio;
 use rocket::tokio::time::Duration;
@@ -26,7 +26,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
 
     if !state.stack.ready {
         if !cmd.can_run_before_ready() {
-            return Err(anyhow::anyhow!("cant run this command yet..."));
+            return Err(anyhow!("cant run this command yet..."));
         }
     }
 
@@ -157,6 +157,20 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let containers = get_container_statistics(&docker, container_name).await?;
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
+            }
+            SwarmCmd::AddBoltwallAdminPubkey(apk) => {
+                log::info!("AddBoltwallAdminPubkey -> {}", apk);
+                let mut boltwall_opt = None;
+                for img in state.stack.nodes.iter() {
+                    if let Ok(ii) = img.as_internal() {
+                        if let Ok(boltwall) = ii.as_boltwall() {
+                            boltwall_opt = Some(boltwall);
+                        }
+                    }
+                }
+                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                crate::conn::boltwall::add_admin_pubkey(&boltwall, &apk).await?;
+                Some(serde_json::to_string("{}")?)
             }
         },
         Cmd::Relay(c) => {

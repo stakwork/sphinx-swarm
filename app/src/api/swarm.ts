@@ -53,6 +53,10 @@ export async function get_container_stat(name?: string) {
   return await swarmCmd("GetStatistics", name);
 }
 
+export async function add_boltwall_admin_pubkey(pk: string) {
+  return await swarmCmd("AddBoltwallAdminPubkey", pk);
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

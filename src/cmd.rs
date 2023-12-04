@@ -63,6 +63,7 @@ pub enum SwarmCmd {
     StopContainer(String),
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
+    AddBoltwallAdminPubkey(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
