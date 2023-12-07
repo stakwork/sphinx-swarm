@@ -208,6 +208,56 @@ pub fn cln_traefik_labels(
     to_labels(def)
 }
 
+pub fn broker_traefik_labels(
+    name: &str,
+    host: &str,
+    mqtt_port: &str,
+    ws_port: Option<&str>,
+) -> HashMap<String, String> {
+    let mqtt_name = format!("{}-mqtt", name);
+    let mqtt_host = format!("mqtt-{}", host);
+    let mut def = vec![
+        "traefik.enable=true".to_string(),
+        // mqtt service (HostSNI and mqttsecure entrypoint)
+        format!("traefik.tcp.routers.{}.service={}", mqtt_name, mqtt_name),
+        format!(
+            "traefik.tcp.services.{}.loadbalancer.server.port={}",
+            mqtt_name, mqtt_port
+        ),
+        format!(
+            "traefik.tcp.routers.{}.rule=HostSNI(`{}`)",
+            mqtt_name, mqtt_host
+        ),
+        format!("traefik.tcp.routers.{}.tls=true", mqtt_name),
+        format!(
+            "traefik.tcp.routers.{}.tls.certresolver=myresolver",
+            mqtt_name
+        ),
+        format!("traefik.tcp.routers.{}.entrypoints=mqttsecure", mqtt_name),
+    ];
+    // ctrl service
+    if let Some(wsp) = ws_port {
+        let ws_name = name;
+        let ws_host = host;
+        let more = vec![
+            format!("traefik.http.routers.{}.service={}", ws_name, ws_host),
+            format!(
+                "traefik.http.services.{}.loadbalancer.server.port={}",
+                ws_name, wsp
+            ),
+            format!("traefik.http.routers.{}.rule=Host(`{}`)", ws_name, ws_host),
+            format!("traefik.http.routers.{}.tls=true", ws_name),
+            format!(
+                "traefik.http.routers.{}.tls.certresolver=myresolver",
+                ws_name
+            ),
+            format!("traefik.http.routers.{}.entrypoints=websecure", ws_name),
+        ];
+        def.extend_from_slice(&more);
+    }
+    to_labels(def)
+}
+
 pub fn neo4j_labels(
     name: &str,
     host: &str,
@@ -236,13 +286,35 @@ pub fn neo4j_labels(
         format!("traefik.http.services.{}-bolt.loadbalancer.server.port={}", name, bolt_port),
         format!("traefik.http.middlewares.sslheader2.headers.customrequestheaders.X-Forwarded-Proto=https,wss"),
         format!("traefik.http.routers.{}-bolt.middlewares=sslheader2", name),
-        // 
+        //
         format!("traefik.tcp.routers.{}-bolt.rule=HostSNI(`{}`)", name, host),
         format!("traefik.tcp.routers.{}-bolt.tls=true", name),
         format!("traefik.tcp.routers.{}-bolt.entrypoints=websecure", name),
         format!("traefik.tcp.routers.{}-bolt.tls.certresolver=myresolver", name),
         format!("traefik.tcp.routers.{}-bolt.service={}-bolt", name, name),
         format!("traefik.tcp.services.{}-bolt.loadbalancer.server.port={}", name, bolt_port),
+    ];
+    to_labels(def)
+}
+
+pub fn elastic_labels(
+    name: &str,
+    host: &str,
+    http_port: &str,
+) -> HashMap<String, String> {
+    let auth_user = "elastic:test";
+    let def = vec![
+        "traefik.enable=true".to_string(),
+        //
+        format!("traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/elastic`)", name, host),
+        format!("traefik.http.routers.{}.tls=true", name),
+        format!("traefik.http.routers.{}.entrypoints=websecure", name),
+        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        format!("traefik.http.routers.{}.service={}", name, name),
+        format!("traefik.http.routers.{}.middlewares=elastic-auth,elastic-prefix", name),
+        format!("traefik.http.services.{}.loadbalancer.server.port={}", name, http_port),
+        format!("traefik.http.middlewares.elastic-auth.basicauth.users={}", auth_user),
+        format!("traefik.http.middlewares.elastic-prefix.stripprefix.prefixes=/elastic"),
     ];
     to_labels(def)
 }

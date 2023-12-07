@@ -69,6 +69,13 @@ async fn main() -> Result<()> {
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
 
+    if let Some(nn) = stack.auto_update {
+        let cron_handler_res = builder::auto_updater(proj, docker, nn).await;
+        if let Err(e) = cron_handler_res {
+            log::error!("CRON failed {:?}", e);
+        }
+    }
+
     tokio::signal::ctrl_c().await?;
 
     builder::shutdown_now();

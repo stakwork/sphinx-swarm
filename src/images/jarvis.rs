@@ -1,4 +1,4 @@
-use super::{boltwall::BoltwallImage, neo4j::Neo4jImage, *};
+use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, *};
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
@@ -13,6 +13,7 @@ pub struct JarvisImage {
     pub port: String,
     pub self_generating: bool,
     pub links: Links,
+    pub mem_limit: Option<i64>,
 }
 
 impl JarvisImage {
@@ -23,6 +24,7 @@ impl JarvisImage {
             port: port.to_string(),
             self_generating: self_generating,
             links: vec![],
+            mem_limit: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -36,7 +38,8 @@ impl DockerConfig for JarvisImage {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let neo4j_node = li.find_neo4j().context("Jarvis: No Neo4j")?;
         let boltwall_node = li.find_boltwall().context("Jarvis: No Boltwall")?;
-        Ok(jarvis(&self, &neo4j_node, &boltwall_node))
+        let elastic_node = li.find_elastic();
+        Ok(jarvis(&self, &neo4j_node, &boltwall_node, &elastic_node))
     }
 }
 
@@ -49,7 +52,12 @@ impl DockerHubImage for JarvisImage {
     }
 }
 
-fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> Config<String> {
+fn jarvis(
+    node: &JarvisImage,
+    neo4j: &Neo4jImage,
+    boltwall: &BoltwallImage,
+    elastic: &Option<ElasticImage>,
+) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
@@ -73,6 +81,13 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
         format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_JOB=1"),
     ];
+    if let Some(elastic) = elastic {
+        env.push(format!(
+            "ELASTIC_URI=http://{}:{}",
+            domain(&elastic.name),
+            elastic.http_port
+        ));
+    }
     if node.self_generating {
         env.push(format!("SELF_GENERATING_GRAPH=1"));
     }
@@ -96,11 +111,17 @@ fn jarvis(node: &JarvisImage, neo4j: &Neo4jImage, boltwall: &BoltwallImage) -> C
     if let Ok(aws_region) = std::env::var("AWS_S3_REGION_NAME") {
         env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
     }
+    if let Ok(tbawid) = std::env::var("TWEET_BY_AUTOR_WORKFLOW_ID") {
+        env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tbawid));
+    }
+    if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
+        env.push(format!("TWITTER_BEARER={}", twitter_bearer));
+    }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None),
+        host_config: host_config(&name, ports, root_vol, None, node.mem_limit),
         env: Some(env),
         ..Default::default()
     }

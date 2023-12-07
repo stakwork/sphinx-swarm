@@ -77,6 +77,7 @@ services:
       - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
       - NO_REMOTE_SIGNER=$NO_REMOTE_SIGNER
       - NO_SECOND_BRAIN=$NO_SECOND_BRAIN
+      - SPHINXV1=$SPHINXV1
 
 networks:
   sphinx-swarm:

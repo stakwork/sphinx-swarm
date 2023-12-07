@@ -85,7 +85,7 @@ fn cache(node: &CacheImage, meme_host: &str, mqtt_host: &str, mqtt_port: &str) -
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None),
+        host_config: host_config(&name, ports, root_vol, None, None),
         env: Some(vec![
             format!("PRIVATE_KEY={}", node.priv_key),
             format!("MQTT_HOST={}", mqtt_host),

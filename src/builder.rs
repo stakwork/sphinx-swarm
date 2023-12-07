@@ -1,5 +1,4 @@
-use crate::cmd::UpdateNode;
-use crate::config::{Clients, Node, Stack, State};
+use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::dock::*;
 use crate::dock::{create_and_start, stop_and_remove};
 use crate::images::{DockerConfig, Image};
@@ -10,6 +9,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::dock;
 
 pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);
+
+pub static AUTO_UPDATE: AtomicBool = AtomicBool::new(false);
 
 pub fn is_shutdown() -> bool {
     SHUTDOWN.load(Ordering::Relaxed)
@@ -42,7 +43,96 @@ pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<C
             log::error!("add_node failed: {:?}", e);
         };
     }
+
     Ok(clients)
+}
+
+use tokio_cron_scheduler::{Job, JobScheduler};
+pub async fn auto_updater(
+    proj: &str,
+    docker: Docker,
+    node_names: Vec<String>,
+) -> Result<JobScheduler> {
+    use rocket::tokio;
+    log::info!(":auto_updater");
+    let sched = JobScheduler::new().await?;
+    // every day at 2 am
+    // 0 2 * * *
+    // every 6 hours
+    // 0 */6 * * *
+    sched
+        .add(Job::new_async("0 0 1/6 * * *", |_uuid, _l| {
+            Box::pin(async move {
+                if !AUTO_UPDATE.load(Ordering::Relaxed) {
+                    AUTO_UPDATE.store(true, Ordering::Relaxed);
+                }
+            })
+        })?)
+        .await?;
+
+    sched.start().await?;
+
+    let proj = proj.to_string();
+    // let node_names = node_names.clone();
+    tokio::spawn(async move {
+        let node_names_ = node_names.clone();
+        loop {
+            let go = AUTO_UPDATE.load(Ordering::Relaxed);
+            if go {
+                for nn in &node_names_ {
+                    if let Err(e) = update_node_from_state(&proj, &docker, nn).await {
+                        log::error!("{:?}", e);
+                    }
+                }
+                AUTO_UPDATE.store(false, Ordering::Relaxed);
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        }
+    });
+
+    Ok(sched)
+}
+
+pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str) -> Result<()> {
+    let mut state = STATE.lock().await;
+    let nodes = state.stack.nodes.clone();
+    let img = find_img(node_name, &nodes)?;
+    img.remove_client(&mut state.clients);
+    drop(state);
+    match update_node(proj, docker, node_name, &nodes, &img).await {
+        Ok(()) => {
+            let mut state = STATE.lock().await;
+            // FIXME if this never returns then STATE will deadlock
+            // for example new CLN does spin up GRPC until remote signer is connected
+            let oy = match make_client(proj, docker, &img, &mut state).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+            };
+            drop(state);
+            oy
+        }
+        Err(e) => Err(anyhow!("FAILED TO UPDATE NODE {:?}", e)),
+    }
+}
+
+pub async fn update_node_and_make_client(
+    proj: &str,
+    docker: &Docker,
+    node_name: &str,
+    state: &mut State,
+) -> Result<()> {
+    let img = find_img(node_name, &state.stack.nodes)?;
+    img.remove_client(&mut state.clients);
+    match update_node(proj, docker, node_name, &state.stack.nodes, &img).await {
+        Ok(_) => {
+            let oy = match make_client(proj, docker, &img, state).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+            };
+            oy
+        }
+        Err(e) => Err(anyhow!("FAILED TO UPDATE NODE {:?}", e)),
+    }
 }
 
 pub async fn add_node(
@@ -88,32 +178,43 @@ pub fn find_image_by_hostname(nodes: &Vec<Node>, hostname: &str) -> Result<Image
         .as_internal()?)
 }
 
-pub async fn update_node(
-    proj: &str,
-    docker: &Docker,
-    un: &UpdateNode,
-    state: &mut State,
-    // clients: &mut Clients,
-) -> Result<()> {
-    let pos = state.stack.nodes.iter().position(|n| n.name() == un.id);
-    let hostname = domain(&un.id);
+pub fn find_img(node_name: &str, nodes: &Vec<Node>) -> Result<Image> {
+    let pos = nodes.iter().position(|n| n.name() == node_name);
     if let None = pos {
         return Err(anyhow!("cannot find node in stack"));
     }
     let pos = pos.unwrap();
 
+    let theimg = nodes[pos].as_internal()?;
+
+    Ok(theimg)
+}
+
+pub async fn update_node(
+    proj: &str,
+    docker: &Docker,
+    node_name: &str,
+    nodes: &Vec<Node>,
+    theimg: &Image,
+) -> Result<()> {
+    let hostname = domain(&node_name);
+
     // stop the node
     stop_and_remove(docker, &hostname).await?;
 
-    state.stack.nodes[pos].set_version(&un.version)?;
+    // nodes[pos].set_version(&un.version)?;
 
-    let theimg = state.stack.nodes[pos].as_internal()?;
-    let theconfig = theimg.make_config(&state.stack.nodes, docker).await?;
+    let theconfig = theimg.make_config(&nodes, docker).await?;
 
     create_and_start(docker, theconfig, false).await?;
 
     // post-startup steps (LND unlock)
     theimg.post_startup(proj, docker).await?;
+
+    Ok(())
+}
+
+async fn make_client(proj: &str, docker: &Docker, theimg: &Image, state: &mut State) -> Result<()> {
     // create and connect client
     theimg
         .connect_client(
@@ -126,7 +227,6 @@ pub async fn update_node(
         .await?;
     // post-client connection steps (BTC load wallet)
     theimg.post_client(&mut state.clients).await?;
-
     Ok(())
 }
 

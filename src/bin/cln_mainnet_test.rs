@@ -67,5 +67,6 @@ fn make_stack() -> Stack {
         jwt_key: sphinx_swarm::secrets::random_word(16),
         ready: false,
         ip: None,
+        auto_update: None,
     }
 }

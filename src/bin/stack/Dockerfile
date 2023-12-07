@@ -24,7 +24,7 @@ RUN apt-get update && \
 # Build for release.
 # remove the lib
 # RUN rm ./target/release/deps/sphinx_swarm*
-RUN cargo build --release
+RUN cargo build --release --bin stack
 
 # The final base image
 # FROM debian:buster-slim

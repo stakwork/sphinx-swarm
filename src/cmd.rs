@@ -35,6 +35,14 @@ pub struct ChangePasswordInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangeAdminInfo {
+    pub user_id: u32,
+    pub old_pass: String,
+    pub password: String,
+    pub email: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateNode {
     pub id: String,
     pub version: String,
@@ -49,11 +57,13 @@ pub enum SwarmCmd {
     ListVersions(ImageRequest),
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
+    ChangeAdmin(ChangeAdminInfo),
     ListContainers,
     StartContainer(String),
     StopContainer(String),
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
+    AddBoltwallAdminPubkey(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

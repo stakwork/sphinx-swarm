@@ -48,6 +48,7 @@ add `--env ONLY_NODE=lnd`
 ### remove one volume to reset data
 
 `docker volume rm neo4j.sphinx`
+`docker volume rm elastic.sphinx`
 
 ### update one instance
 
@@ -59,6 +60,7 @@ update the version
 
 `docker stop jarvis.sphinx && docker rm jarvis.sphinx`
 `docker stop neo4j.sphinx && docker rm neo4j.sphinx`
+`docker stop elastic.sphinx && docker rm elastic.sphinx`
 
 `docker-compose up sphinx-swarm -d`
 
@@ -130,10 +132,16 @@ in app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm .
 
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.45
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.64
 
-docker push sphinxlightning/sphinx-swarm:0.3.45
+docker push sphinxlightning/sphinx-swarm:0.3.64
 
 docker tag sphinx-swarm sphinxlightning/sphinx-swarm:latest
 
 docker push sphinxlightning/sphinx-swarm:latest
+
+### proxy
+
+Lh2VltPgdAdA
+
+curl http://localhost:5050/balance/022ef942dda604ee2db8607319c35dd3d789f98042485c2ed4f820d5e03ee06fee -H "x-admin-token: Lh2VltPgdAdA"

@@ -49,6 +49,9 @@ impl RelayImage {
     pub fn dont_ping_hub(&mut self) {
         self.dont_ping_hub = Some(true);
     }
+    pub fn remove_client(&self, clients: &mut Clients) {
+        clients.relay.remove(&self.name);
+    }
     pub async fn connect_client(&self, proj: &str, clients: &mut Clients) -> Result<()> {
         match relay_client(proj, self).await {
             Ok(client) => {
@@ -135,6 +138,7 @@ fn relay(
             vec![relay.port.clone()],
             root_vol,
             Some(extra_vols),
+            None,
         ),
         env: Some(relay_conf),
         ..Default::default()

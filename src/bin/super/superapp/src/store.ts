@@ -2,30 +2,13 @@ import { writable } from "svelte/store";
 import { userKey, type TokenData } from "../../../../../app/src/api/cmd";
 import * as api from "../../../../../app/src/api";
 import { decode } from "js-base64";
+import type { Tribe, Remote } from "./types/types";
 
-export interface Remote {
-  root: string;
-  admin: string;
-}
+export const remotes = writable<Remote[]>([]);
 
-const initialRemotes = [
-  {
-    root: "swarm4.sphinx.chat",
-    admin: "kevkevin",
-  },
-  {
-    root: "swarm5.sphinx.chat",
-    admin: "Paul",
-  },
-  {
-    root: "swarm7.sphinx.chat",
-    admin: "Sam",
-  },
-];
+export const activeUser = writable<string>();
 
-export const remotes = writable<Remote[]>(initialRemotes);
-
-export const activeUser = writable<string>("_");
+export const tribes = writable<{ [k: string]: Tribe[] }>({});
 
 export const saveUserToStore = async (user: string = "") => {
   if (user) {
@@ -49,6 +32,8 @@ export const saveUserToStore = async (user: string = "") => {
     }
   }
 };
+
+saveUserToStore();
 
 export const logoutUser = () => {
   localStorage.setItem(userKey, "");

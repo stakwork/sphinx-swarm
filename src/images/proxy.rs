@@ -47,6 +47,9 @@ impl ProxyImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
+    pub fn remove_client(&self, clients: &mut Clients) {
+        clients.proxy.remove(&self.name);
+    }
     pub async fn connect_client(&self, clients: &mut Clients) -> Result<()> {
         match ProxyAPI::new(self).await {
             Ok(client) => {
@@ -166,7 +169,7 @@ fn proxy(
         image: Some(format!("{}:{}", img, version)),
         hostname: Some(domain(&proxy.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&proxy.name, ports, root_vol, Some(extra_vols)),
+        host_config: host_config(&proxy.name, ports, root_vol, Some(extra_vols), None),
         cmd: Some(cmd),
         ..Default::default()
     }

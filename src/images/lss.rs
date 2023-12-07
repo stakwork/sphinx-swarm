@@ -60,7 +60,7 @@ fn lss(node: &LssImage) -> Config<String> {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None),
+        host_config: host_config(&name, ports, root_vol, None, None),
         cmd: Some(cmd),
         env: None,
         ..Default::default()

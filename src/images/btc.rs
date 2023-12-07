@@ -49,6 +49,9 @@ impl BtcImage {
         client.load_wallet()?;
         Ok(())
     }
+    pub fn remove_client(&self, clients: &mut Clients) {
+        clients.bitcoind.remove(&self.name);
+    }
     pub async fn connect_client(&self, clients: &mut Clients) {
         let btc_rpc_url = format!("http://{}", docker_domain_127(&self.name));
         match BitcoinRPC::new_and_create_wallet(&self, &btc_rpc_url, RPC_PORT).await {
@@ -118,7 +121,7 @@ pub fn btc(node: &BtcImage) -> Config<String> {
         hostname: Some(domain(&node.name)),
         // user: user(),
         cmd: Some(cmd),
-        host_config: host_config(&node.name, ports, root_vol, None),
+        host_config: host_config(&node.name, ports, root_vol, None, None),
         ..Default::default()
     };
     if let Some(host) = node.host.clone() {

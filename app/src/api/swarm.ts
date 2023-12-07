@@ -45,12 +45,16 @@ export async function start_container(id: string) {
   return await swarmCmd("StartContainer", id);
 }
 
-export async function update_node(id: string, version: string) {
-  return await swarmCmd("UpdateNode", { id, version });
+export async function update_node(id: string) {
+  return await swarmCmd("UpdateNode", { id, version: "latest" });
 }
 
 export async function get_container_stat(name?: string) {
   return await swarmCmd("GetStatistics", name);
+}
+
+export async function add_boltwall_admin_pubkey(pk: string) {
+  return await swarmCmd("AddBoltwallAdminPubkey", pk);
 }
 
 export async function login(username, password) {

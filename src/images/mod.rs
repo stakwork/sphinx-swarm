@@ -1,12 +1,15 @@
 pub mod boltwall;
+pub mod broker;
 pub mod btc;
 pub mod cache;
 pub mod cln;
 pub mod jarvis;
 pub mod lnd;
 pub mod lss;
+pub mod mixer;
 pub mod navfiber;
 pub mod neo4j;
+pub mod elastic;
 pub mod postgres;
 pub mod proxy;
 pub mod relay;
@@ -29,10 +32,13 @@ pub enum Image {
     Proxy(proxy::ProxyImage),
     Cache(cache::CacheImage),
     Neo4j(neo4j::Neo4jImage),
+    Elastic(elastic::ElasticImage),
     NavFiber(navfiber::NavFiberImage),
     BoltWall(boltwall::BoltwallImage),
     Jarvis(jarvis::JarvisImage),
     Lss(lss::LssImage),
+    Broker(broker::BrokerImage),
+    Mixer(mixer::MixerImage),
 }
 
 pub struct Repository {
@@ -65,10 +71,13 @@ impl Image {
             Image::Proxy(n) => n.name.clone(),
             Image::Cache(n) => n.name.clone(),
             Image::Neo4j(n) => n.name.clone(),
+            Image::Elastic(n) => n.name.clone(),
             Image::NavFiber(n) => n.name.clone(),
             Image::Jarvis(n) => n.name.clone(),
             Image::BoltWall(n) => n.name.clone(),
             Image::Lss(n) => n.name.clone(),
+            Image::Broker(n) => n.name.clone(),
+            Image::Mixer(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -80,10 +89,13 @@ impl Image {
             Image::Proxy(_n) => "Proxy",
             Image::Cache(_n) => "Cache",
             Image::Neo4j(_n) => "Neo4j",
+            Image::Elastic(_n) => "Elastic",
             Image::NavFiber(_n) => "NavFiber",
             Image::Jarvis(_n) => "JarvisBackend",
             Image::BoltWall(_n) => "BoltWall",
             Image::Lss(_n) => "LSS",
+            Image::Broker(_n) => "Broker",
+            Image::Mixer(_n) => "Mixer",
         }
         .to_string()
     }
@@ -96,15 +108,17 @@ impl Image {
             Image::Proxy(n) => n.version = version.to_string(),
             Image::Cache(n) => n.version = version.to_string(),
             Image::Neo4j(n) => n.version = version.to_string(),
+            Image::Elastic(n) => n.version = version.to_string(),
             Image::NavFiber(n) => n.version = version.to_string(),
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
             Image::Lss(n) => n.version = version.to_string(),
+            Image::Broker(n) => n.version = version.to_string(),
+            Image::Mixer(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
         Ok(match self {
-            // unlock LND
             Image::Cln(n) => n.pre_startup(docker).await?,
             Image::Neo4j(n) => n.pre_startup(docker).await?,
             _ => (),
@@ -114,8 +128,19 @@ impl Image {
         Ok(match self {
             // unlock LND
             Image::Lnd(n) => n.post_startup(proj, docker).await?,
+            Image::Elastic(n) => n.post_startup(proj, docker).await?,
             _ => (),
         })
+    }
+    pub fn remove_client(&self, clients: &mut config::Clients) {
+        match self {
+            Image::Btc(n) => n.remove_client(clients),
+            Image::Lnd(n) => n.remove_client(clients),
+            Image::Cln(n) => n.remove_client(clients),
+            Image::Proxy(n) => n.remove_client(clients),
+            Image::Relay(n) => n.remove_client(clients),
+            _ => (),
+        }
     }
     pub async fn connect_client<Canceller>(
         &self,
@@ -161,10 +186,13 @@ impl DockerConfig for Image {
             Image::Proxy(n) => n.make_config(nodes, docker).await,
             Image::Cache(n) => n.make_config(nodes, docker).await,
             Image::Neo4j(n) => n.make_config(nodes, docker).await,
+            Image::Elastic(n) => n.make_config(nodes, docker).await,
             Image::NavFiber(n) => n.make_config(nodes, docker).await,
             Image::Jarvis(n) => n.make_config(nodes, docker).await,
             Image::BoltWall(n) => n.make_config(nodes, docker).await,
             Image::Lss(n) => n.make_config(nodes, docker).await,
+            Image::Broker(n) => n.make_config(nodes, docker).await,
+            Image::Mixer(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -179,10 +207,13 @@ impl DockerHubImage for Image {
             Image::Proxy(n) => n.repo(),
             Image::Cache(n) => n.repo(),
             Image::Neo4j(n) => n.repo(),
+            Image::Elastic(n) => n.repo(),
             Image::NavFiber(n) => n.repo(),
             Image::Jarvis(n) => n.repo(),
             Image::BoltWall(n) => n.repo(),
             Image::Lss(n) => n.repo(),
+            Image::Broker(n) => n.repo(),
+            Image::Mixer(n) => n.repo(),
         }
     }
 }
@@ -242,6 +273,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_elastic(&self) -> Option<elastic::ElasticImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_elastic() {
+                return Some(i);
+            }
+        }
+        None
+    }
     pub fn find_jarvis(&self) -> Option<jarvis::JarvisImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_jarvis() {
@@ -261,6 +300,14 @@ impl LinkedImages {
     pub fn find_lss(&self) -> Option<lss::LssImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_lss() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_broker(&self) -> Option<broker::BrokerImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_broker() {
                 return Some(i);
             }
         }
@@ -299,6 +346,12 @@ impl Image {
             _ => Err(anyhow::anyhow!("Not NEO4J".to_string())),
         }
     }
+    pub fn as_elastic(&self) -> anyhow::Result<elastic::ElasticImage> {
+        match self {
+            Image::Elastic(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Elastic".to_string())),
+        }
+    }
     pub fn as_navfiber(&self) -> anyhow::Result<navfiber::NavFiberImage> {
         match self {
             Image::NavFiber(i) => Ok(i.clone()),
@@ -333,6 +386,12 @@ impl Image {
         match self {
             Image::Lss(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not LSS".to_string())),
+        }
+    }
+    pub fn as_broker(&self) -> anyhow::Result<broker::BrokerImage> {
+        match self {
+            Image::Broker(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Broker".to_string())),
         }
     }
 }

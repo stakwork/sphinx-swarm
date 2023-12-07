@@ -20,6 +20,8 @@ pub struct ClnImage {
     pub links: Vec<String>,
     pub host: Option<String>,
     pub git_version: Option<String>,
+    pub frontend: Option<bool>,
+    pub seed: Option<[u8; 32]>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -46,6 +48,8 @@ impl ClnImage {
             links: vec![],
             host: None,
             git_version: None,
+            frontend: None,
+            seed: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -58,6 +62,15 @@ impl ClnImage {
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
+    }
+    pub fn broker_frontend(&mut self) {
+        self.frontend = Some(true);
+    }
+    pub fn set_seed(&mut self, hsms: [u8; 32]) {
+        self.seed = Some(hsms);
+    }
+    pub fn remove_client(&self, clients: &mut Clients) {
+        clients.cln.remove(&self.name);
     }
     pub async fn connect_client<Canceller>(
         &self,
@@ -111,7 +124,13 @@ impl DockerConfig for ClnImage {
         let lss = li.find_lss();
         if let Some(btc) = li.find_btc() {
             // internal BTC node
-            let args = ClnBtcArgs::new(&domain(&btc.name), &btc.user, &btc.pass);
+            let args = ClnBtcArgs::new(
+                &domain(&btc.name),
+                &btc.user,
+                &btc.pass,
+                &None,
+                &Some("http".to_string()),
+            );
             Ok(cln(self, args, lss))
         } else {
             // external BTC node
@@ -144,13 +163,23 @@ pub struct ClnBtcArgs {
     rpcconnect: String,
     user: Option<String>,
     pass: Option<String>,
+    port: Option<u16>,
+    scheme: Option<String>,
 }
 impl ClnBtcArgs {
-    pub fn new(rpcconnect: &str, user: &Option<String>, pass: &Option<String>) -> Self {
+    pub fn new(
+        rpcconnect: &str,
+        user: &Option<String>,
+        pass: &Option<String>,
+        port: &Option<u16>,
+        scheme: &Option<String>,
+    ) -> Self {
         Self {
             rpcconnect: rpcconnect.to_string(),
             user: user.clone(),
             pass: pass.clone(),
+            port: port.clone(),
+            scheme: scheme.clone(),
         }
     }
     pub fn from_url(btcurl: &str) -> Result<Self> {
@@ -167,8 +196,31 @@ impl ClnBtcArgs {
         } else {
             None
         };
+        let port = p.port();
+        let scheme = p.scheme();
         log::info!("CLN: connect to external BTC: {}", &fullhost);
-        Ok(Self::new(&fullhost, &username, &password))
+        Ok(Self::new(
+            &fullhost,
+            &username,
+            &password,
+            &port,
+            &Some(scheme.to_string()),
+        ))
+    }
+    pub fn to_url(&self) -> String {
+        let scheme = self.scheme.clone().unwrap_or("https".to_string());
+        if let Some(u) = &self.user {
+            if let Some(p) = &self.pass {
+                return match self.port {
+                    Some(port) => format!("{}://{}:{}@{}:{}", scheme, u, p, &self.rpcconnect, port),
+                    None => format!("{}://{}:{}@{}", scheme, u, p, &self.rpcconnect),
+                };
+            }
+        }
+        match self.port {
+            Some(port) => format!("{}://{}:{}", scheme, &self.rpcconnect, port),
+            None => format!("{}://{}", scheme, &self.rpcconnect),
+        }
     }
 }
 
@@ -228,6 +280,12 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--database-upgrade=true".to_string(),
     ];
+    if let Some(hsms) = img.seed {
+        // cmd.push(format!("--developer=1")); // 23.11
+        cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));
+        let privkey = privkey_from_seed(&hsms);
+        cmd.push(format!("--dev-force-privkey={}", privkey));
+    }
     if let Some(u) = &btc.user {
         if let Some(p) = &btc.pass {
             cmd.push(format!("--bitcoin-rpcuser={}", u));
@@ -245,7 +303,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         let git_version = img
             .git_version
             .clone()
-            .unwrap_or("v23.08-57-g420e0c9-modded".to_string());
+            .unwrap_or("v23.08.1-modded".to_string());
         environ.push(format!("GREENLIGHT_VERSION={}", &git_version));
         // lss server (default to host.docker.internal)
         if let Some(lss) = lss {
@@ -268,6 +326,12 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
             ports.push(hbp.ws_port);
         }
         environ.push(format!("BROKER_NETWORK={}", img.network));
+
+        if img.frontend.unwrap_or(false) {
+            let rpc_url = btc.to_url();
+            log::info!("CLN BITCOIND_RPC_URL {}", &rpc_url);
+            environ.push(format!("BITCOIND_RPC_URL={}", rpc_url));
+        }
     }
     // add the interceptor at grpc port + 200
     if img.plugins.contains(&ClnPlugin::HtlcInterceptor) {
@@ -291,7 +355,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd: Some(cmd),
         exposed_ports: exposed_ports(ports.clone()),
         env: Some(environ),
-        host_config: host_config(&img.name, ports, root_vol, None),
+        host_config: host_config(&img.name, ports, root_vol, None, None),
         ..Default::default()
     };
     if let Some(host) = img.host.clone() {
@@ -314,4 +378,50 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
 
 async fn sleep(n: u64) {
     rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
+}
+
+fn privkey_from_seed(seed: &[u8; 32]) -> String {
+    let secp_ctx = secp256k1::Secp256k1::new();
+    let (_, node_secret) = cln_node_keys(seed, &secp_ctx);
+    hex::encode(node_secret.secret_bytes())
+}
+
+use bitcoin::hashes::sha256::Hash as BitcoinSha256;
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine};
+use bitcoin::secp256k1;
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
+
+fn cln_node_keys(seed: &[u8], secp_ctx: &Secp256k1<secp256k1::All>) -> (PublicKey, SecretKey) {
+    let node_private_bytes = hkdf_sha256(seed, "nodeid".as_bytes(), &[]);
+    let node_secret_key = SecretKey::from_slice(&node_private_bytes).unwrap();
+    let node_id = PublicKey::from_secret_key(&secp_ctx, &node_secret_key);
+    (node_id, node_secret_key)
+}
+
+fn hkdf_extract_expand(salt: &[u8], secret: &[u8], info: &[u8], output: &mut [u8]) {
+    let mut hmac = HmacEngine::<BitcoinSha256>::new(salt);
+    hmac.input(secret);
+    let prk = Hmac::from_engine(hmac).into_inner();
+
+    let mut t = [0; 32];
+    let mut n: u8 = 0;
+
+    for chunk in output.chunks_mut(32) {
+        let mut hmac = HmacEngine::<BitcoinSha256>::new(&prk[..]);
+        n = n.checked_add(1).expect("HKDF size limit exceeded.");
+        if n != 1 {
+            hmac.input(&t);
+        }
+        hmac.input(&info);
+        hmac.input(&[n]);
+        t = Hmac::from_engine(hmac).into_inner();
+        chunk.copy_from_slice(&t);
+    }
+}
+
+/// derive a secret from another secret using HKDF-SHA256
+pub fn hkdf_sha256(secret: &[u8], info: &[u8], salt: &[u8]) -> [u8; 32] {
+    let mut result = [0u8; 32];
+    hkdf_extract_expand(salt, secret, info, &mut result);
+    result
 }
