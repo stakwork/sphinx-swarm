@@ -169,8 +169,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     }
                 }
                 let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
-                crate::conn::boltwall::add_admin_pubkey(&boltwall, &apk).await?;
-                Some(serde_json::to_string("{}")?)
+                let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &apk).await?;
+                Some(serde_json::to_string(&response)?)
             }
         },
         Cmd::Relay(c) => {

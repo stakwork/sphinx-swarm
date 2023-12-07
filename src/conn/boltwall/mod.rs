@@ -9,7 +9,7 @@ pub struct SetAdminPubkeyBody {
     pub pubkey: String,
 }
 
-pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<()> {
+pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
     let client = reqwest::Client::builder()
@@ -24,12 +24,14 @@ pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<()> {
     let body = SetAdminPubkeyBody {
         pubkey: pubkey.to_string(),
     };
-    client
+    let response = client
         .post(route.as_str())
         .header("x-admin-token", admin_token)
         .json(&body)
         .send()
         .await?;
 
-    Ok(())
+    let response_text = response.text().await?;
+
+    Ok(response_text)
 }
