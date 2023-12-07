@@ -94,6 +94,7 @@ fn jarvis(
     if let Some(h) = &boltwall.host {
         env.push(format!("RADAR_TWEET_WEBHOOK=https://{}/v1/tweet", h));
         env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}/v1/tweet", h));
+        env.push(format!("TLDR_WEBHOOK=https://{}/v1/tldr", h));
     }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = std::env::var("STAKWORK_ADD_NODE_TOKEN") {
