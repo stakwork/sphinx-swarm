@@ -19,7 +19,7 @@ pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<()> {
         .expect("couldnt build boltwall reqwest client");
     let host = docker_domain(&img.name);
 
-    let route = format!("http://{}/set_admin_pubkey", host);
+    let route = format!("http://{}:{}/set_admin_pubkey", host, img.port);
 
     let body = SetAdminPubkeyBody {
         pubkey: pubkey.to_string(),

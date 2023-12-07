@@ -32,7 +32,7 @@ impl BoltwallImage {
             session_secret: secrets::random_word(32),
             external_lnd: None,
             links: vec![],
-            admin_token: None,
+            admin_token: Some(secrets::random_word(32)),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
