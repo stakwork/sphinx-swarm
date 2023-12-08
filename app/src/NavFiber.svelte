@@ -5,7 +5,11 @@
     InlineLoading,
     InlineNotification,
   } from "carbon-components-svelte";
-  import { add_boltwall_admin_pubkey, get_super_admin } from "./api/swarm";
+  import {
+    add_boltwall_admin_pubkey,
+    get_super_admin,
+    add_boltwall_sub_admin_pubkey,
+  } from "./api/swarm";
   import { onMount } from "svelte";
 
   export let host = "";
@@ -15,16 +19,36 @@
   $: show_notification = false;
   $: success = false;
   $: message = "";
-  $: superAdminExist = "";
+  $: superAdminExist = false;
+  $: superAdminPubkey = "";
 
   async function setSuperAdmin() {
-    loading = true;
     const result = await add_boltwall_admin_pubkey(pubkey);
+    const parsedResult = JSON.parse(result);
+    success = parsedResult.success || false;
+    message = parsedResult.message;
+    superAdminExist = true;
+    show_notification = true;
+    superAdminPubkey = pubkey;
+    pubkey = "";
+  }
+
+  async function setSubAdmin() {
+    const result = await add_boltwall_sub_admin_pubkey(pubkey);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;
     show_notification = true;
     pubkey = "";
+  }
+
+  async function handleSubmit() {
+    loading = true;
+    if (!superAdminExist) {
+      await setSuperAdmin();
+    } else {
+      await setSubAdmin();
+    }
     loading = false;
   }
 
@@ -32,9 +56,8 @@
     const result = await get_super_admin();
     const parsedResult = JSON.parse(result);
     if (parsedResult?.success) {
-      superAdminExist = parsedResult.data.pubkey;
-    } else {
-      superAdminExist = "";
+      superAdminExist = true;
+      superAdminPubkey = parsedResult.data.pubkey;
     }
   }
 
@@ -45,41 +68,47 @@
 
 <div class="nav-wrapper">
   <Button target="_blank" href={link}>Open Second Brain</Button>
-  {#if !superAdminExist}
-    <div class="super-admin-container">
-      {#if show_notification}
-        <InlineNotification
-          lowContrast
-          kind={success ? "success" : "error"}
-          title={success ? "Success:" : "Error:"}
-          subtitle={message}
-          timeout={3000}
-          on:close={(e) => {
-            e.preventDefault();
-            show_notification = false;
-          }}
-        />
-      {/if}
-      <TextInput
-        labelText="Super Admin Pubkey"
-        placeholder="Enter super admin pubkey..."
-        bind:value={pubkey}
-      />
-      <div class="set-super-admin-btn-container">
-        <Button on:click={setSuperAdmin} disabled={!pubkey || loading}>
-          {#if loading}
-            <InlineLoading />
-          {:else}
-            Set Super Admin
-          {/if}
-        </Button>
+  <div class="super-admin-container">
+    {#if superAdminExist}
+      <div class="update_super_admin_container">
+        <button class="update_super_admin_btn">Update Super Admin pubkey</button
+        >
       </div>
+    {/if}
+    {#if show_notification}
+      <InlineNotification
+        lowContrast
+        kind={success ? "success" : "error"}
+        title={success ? "Success:" : "Error:"}
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+        }}
+      />
+    {/if}
+    <TextInput
+      labelText={`${
+        superAdminExist ? "Sub Admin Pubkey" : "Super Admin Pubkey"
+      }`}
+      placeholder={`${
+        superAdminExist
+          ? "Enter sub admin pubkey..."
+          : "Enter super admin pubkey..."
+      }`}
+      bind:value={pubkey}
+    />
+    <div class="set-super-admin-btn-container">
+      <Button on:click={handleSubmit} disabled={!pubkey || loading}>
+        {#if loading}
+          <InlineLoading />
+        {:else}
+          Submit
+        {/if}
+      </Button>
     </div>
-  {:else}
-    <div>
-      <div><p>Update Super Admin pubkey</p></div>
-    </div>
-  {/if}
+  </div>
 </div>
 
 <style>
@@ -94,5 +123,18 @@
 
   .set-super-admin-btn-container {
     margin-top: 0.5rem;
+  }
+
+  .update_super_admin_container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 2rem;
+  }
+
+  .update_super_admin_btn {
+    border: none;
+    padding: 0.7rem 1rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
   }
 </style>

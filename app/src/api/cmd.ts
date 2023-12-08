@@ -59,7 +59,8 @@ export type Cmd =
   | "ListPendingChannels"
   | "GetClients"
   | "AddBoltwallAdminPubkey"
-  | "GetBoltwallSuperAdmin";
+  | "GetBoltwallSuperAdmin"
+  | "AddBoltwallSubAdminPubkey";
 
 interface CmdData {
   cmd: Cmd;
