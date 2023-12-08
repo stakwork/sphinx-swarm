@@ -64,7 +64,8 @@ pub enum SwarmCmd {
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
     AddBoltwallAdminPubkey(String),
-    GetBoltwallSuperAdmin
+    GetBoltwallSuperAdmin,
+    AddBoltwallSubAdminPubkey(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
