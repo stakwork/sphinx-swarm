@@ -5,7 +5,8 @@
     InlineLoading,
     InlineNotification,
   } from "carbon-components-svelte";
-  import { add_boltwall_admin_pubkey } from "./api/swarm";
+  import { add_boltwall_admin_pubkey, get_super_admin } from "./api/swarm";
+  import { onMount } from "svelte";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -14,6 +15,7 @@
   $: show_notification = false;
   $: success = false;
   $: message = "";
+  $: superAdminExist = "";
 
   async function setSuperAdmin() {
     loading = true;
@@ -25,39 +27,59 @@
     pubkey = "";
     loading = false;
   }
+
+  async function checkSuperAdminExist() {
+    const result = await get_super_admin();
+    const parsedResult = JSON.parse(result);
+    if (parsedResult?.success) {
+      superAdminExist = parsedResult.data.pubkey;
+    } else {
+      superAdminExist = "";
+    }
+  }
+
+  onMount(() => {
+    checkSuperAdminExist();
+  });
 </script>
 
 <div class="nav-wrapper">
   <Button target="_blank" href={link}>Open Second Brain</Button>
-  <div class="super-admin-container">
-    {#if show_notification}
-      <InlineNotification
-        lowContrast
-        kind={success ? "success" : "error"}
-        title={success ? "Success:" : "Error:"}
-        subtitle={message}
-        timeout={3000}
-        on:close={(e) => {
-          e.preventDefault();
-          show_notification = false;
-        }}
+  {#if !superAdminExist}
+    <div class="super-admin-container">
+      {#if show_notification}
+        <InlineNotification
+          lowContrast
+          kind={success ? "success" : "error"}
+          title={success ? "Success:" : "Error:"}
+          subtitle={message}
+          timeout={3000}
+          on:close={(e) => {
+            e.preventDefault();
+            show_notification = false;
+          }}
+        />
+      {/if}
+      <TextInput
+        labelText="Super Admin Pubkey"
+        placeholder="Enter super admin pubkey..."
+        bind:value={pubkey}
       />
-    {/if}
-    <TextInput
-      labelText="Super Admin Pubkey"
-      placeholder="Enter super admin pubkey..."
-      bind:value={pubkey}
-    />
-    <div class="set-super-admin-btn-container">
-      <Button on:click={setSuperAdmin} disabled={!pubkey || loading}>
-        {#if loading}
-          <InlineLoading />
-        {:else}
-          Set Super Admin
-        {/if}
-      </Button>
+      <div class="set-super-admin-btn-container">
+        <Button on:click={setSuperAdmin} disabled={!pubkey || loading}>
+          {#if loading}
+            <InlineLoading />
+          {:else}
+            Set Super Admin
+          {/if}
+        </Button>
+      </div>
     </div>
-  </div>
+  {:else}
+    <div>
+      <div><p>Update Super Admin pubkey</p></div>
+    </div>
+  {/if}
 </div>
 
 <style>
