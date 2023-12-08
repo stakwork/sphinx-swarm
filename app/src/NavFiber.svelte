@@ -61,6 +61,10 @@
     }
   }
 
+  function toggleAdmin() {
+    superAdminExist = !superAdminExist;
+  }
+
   onMount(() => {
     checkSuperAdminExist();
   });
@@ -69,9 +73,14 @@
 <div class="nav-wrapper">
   <Button target="_blank" href={link}>Open Second Brain</Button>
   <div class="super-admin-container">
-    {#if superAdminExist}
+    {#if superAdminPubkey}
       <div class="update_super_admin_container">
-        <button class="update_super_admin_btn">Update Super Admin pubkey</button
+        <button class="update_super_admin_btn" on:click={toggleAdmin}>
+          {#if !superAdminExist && superAdminPubkey}
+            Add Sub Admin
+          {:else}
+            Update Super Admin pubkey
+          {/if}</button
         >
       </div>
     {/if}
@@ -136,5 +145,9 @@
     padding: 0.7rem 1rem;
     border-radius: 0.3rem;
     cursor: pointer;
+  }
+
+  .update_super_admin_btn:hover {
+    background-color: #f5f5dc;
   }
 </style>
