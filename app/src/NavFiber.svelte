@@ -55,7 +55,10 @@
   async function checkSuperAdminExist() {
     const result = await get_super_admin();
     const parsedResult = JSON.parse(result);
-    if (parsedResult?.success) {
+    if (
+      parsedResult?.success &&
+      parsedResult.message === "super admin record"
+    ) {
       superAdminExist = true;
       superAdminPubkey = parsedResult.data.pubkey;
     }
