@@ -110,6 +110,7 @@ fn make_stack() -> Stack {
 
     let mut mixer = MixerImage::new(MIXER1, v, &network, "8080");
     mixer.links(vec![CLN1, BROKER1]);
+    mixer.set_log_level("debug");
     nodes.push(Image::Mixer(mixer));
 
     // CLN2
@@ -127,6 +128,7 @@ fn make_stack() -> Stack {
 
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");
     mixer2.links(vec![CLN2, BROKER2]);
+    mixer2.set_log_level("debug");
     nodes.push(Image::Mixer(mixer2));
 
     let ns: Vec<Node> = nodes.iter().map(|n| Node::Internal(n.to_owned())).collect();
