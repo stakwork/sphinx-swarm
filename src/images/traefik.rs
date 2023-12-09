@@ -297,23 +297,31 @@ pub fn neo4j_labels(
     to_labels(def)
 }
 
-pub fn elastic_labels(
-    name: &str,
-    host: &str,
-    http_port: &str,
-) -> HashMap<String, String> {
+pub fn elastic_labels(name: &str, host: &str, http_port: &str) -> HashMap<String, String> {
     let auth_user = "elastic:test";
     let def = vec![
         "traefik.enable=true".to_string(),
         //
-        format!("traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/elastic`)", name, host),
+        format!(
+            "traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/elastic`)",
+            name, host
+        ),
         format!("traefik.http.routers.{}.tls=true", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.service={}", name, name),
-        format!("traefik.http.routers.{}.middlewares=elastic-auth,elastic-prefix", name),
-        format!("traefik.http.services.{}.loadbalancer.server.port={}", name, http_port),
-        format!("traefik.http.middlewares.elastic-auth.basicauth.users={}", auth_user),
+        format!(
+            "traefik.http.routers.{}.middlewares=elastic-auth,elastic-prefix",
+            name
+        ),
+        format!(
+            "traefik.http.services.{}.loadbalancer.server.port={}",
+            name, http_port
+        ),
+        format!(
+            "traefik.http.middlewares.elastic-auth.basicauth.users={}",
+            auth_user
+        ),
         format!("traefik.http.middlewares.elastic-prefix.stripprefix.prefixes=/elastic"),
     ];
     to_labels(def)
