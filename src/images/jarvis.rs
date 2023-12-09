@@ -77,7 +77,6 @@ fn jarvis(
         format!("PUBLIC_GRAPH_RESULT_LIMIT=10"),
         format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images"),
         format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"),
-        format!("RADAR_SCHEDULER_TIME_IN_SEC=86400"),
         format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_JOB=1"),
     ];
@@ -117,6 +116,18 @@ fn jarvis(
     }
     if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
         env.push(format!("TWITTER_BEARER={}", twitter_bearer));
+    }
+    if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
+        env.push(format!("RADAR_SCHEDULER_TIME_IN_SEC={}", radar_scheduler_time_in_sec));
+    }
+    if let Ok(second_brain_graph_url) = std::env::var("SECOND_BRAIN_GRAPH_URL") {
+        env.push(format!("SECOND_BRAIN_GRAPH_URL={}", second_brain_graph_url));
+    }
+    if let Ok(radar_youtube_scheduler_time_in_sec) = std::env::var("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC") {
+        env.push(format!("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC={}", radar_youtube_scheduler_time_in_sec));
+    }
+    if let Ok(radar_twitter_scheduler_time_in_sec) = std::env::var("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC") {
+        env.push(format!("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC={}", radar_twitter_scheduler_time_in_sec));
     }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
