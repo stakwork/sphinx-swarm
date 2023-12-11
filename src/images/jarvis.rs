@@ -117,11 +117,11 @@ fn jarvis(
     if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
         env.push(format!("TWITTER_BEARER={}", twitter_bearer));
     }
-    if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!("RADAR_SCHEDULER_TIME_IN_SEC={}", radar_scheduler_time_in_sec));
-    }
     if let Ok(second_brain_graph_url) = std::env::var("SECOND_BRAIN_GRAPH_URL") {
         env.push(format!("SECOND_BRAIN_GRAPH_URL={}", second_brain_graph_url));
+    }
+    if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
+        env.push(format!("RADAR_SCHEDULER_TIME_IN_SEC={}", radar_scheduler_time_in_sec));
     }
     if let Ok(radar_youtube_scheduler_time_in_sec) = std::env::var("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC") {
         env.push(format!("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC={}", radar_youtube_scheduler_time_in_sec));
