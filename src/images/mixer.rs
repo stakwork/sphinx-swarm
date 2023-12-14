@@ -19,6 +19,7 @@ pub struct MixerImage {
     pub no_mqtt: Option<bool>,
     pub host: Option<String>,
     pub links: Links,
+    pub log_level: Option<String>,
 }
 
 impl MixerImage {
@@ -32,6 +33,7 @@ impl MixerImage {
             no_mqtt: None,
             links: vec![],
             host: None,
+            log_level: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -47,6 +49,9 @@ impl MixerImage {
     }
     pub fn set_no_mqtt(&mut self) {
         self.no_mqtt = Some(true)
+    }
+    pub fn set_log_level(&mut self, log_level: &str) {
+        self.log_level = Some(log_level.to_string())
     }
 }
 
@@ -108,6 +113,10 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
     } else {
         let bu = format!("{}:{}", domain(&broker.name), broker.mqtt_port);
         env.push(format!("BROKER_URL={}", bu));
+    }
+
+    if let Some(ll) = &img.log_level {
+        env.push(format!("RUST_LOG={}", ll));
     }
 
     let mut c = Config {
