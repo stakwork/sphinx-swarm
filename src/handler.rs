@@ -200,6 +200,34 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let response = crate::conn::boltwall::add_subadmin_pubkey(&boltwall, &apk).await?;
                 Some(serde_json::to_string(&response)?)
             }
+            SwarmCmd::ListAdmins => {
+                log::info!("ListAdmins ==> ");
+                let mut boltwall_opt = None;
+                for img in state.stack.nodes.iter() {
+                    if let Ok(ii) = img.as_internal() {
+                        if let Ok(boltwall) = ii.as_boltwall() {
+                            boltwall_opt = Some(boltwall);
+                        }
+                    }
+                }
+                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let response = crate::conn::boltwall::list_admins(&boltwall).await?;
+                Some(serde_json::to_string(&response)?)
+            }
+            SwarmCmd::DeleteSubAdmin(apk) => {
+                log::info!("DeleteSubAdmin -> {}", apk);
+                let mut boltwall_opt = None;
+                for img in state.stack.nodes.iter() {
+                    if let Ok(ii) = img.as_internal() {
+                        if let Ok(boltwall) = ii.as_boltwall() {
+                            boltwall_opt = Some(boltwall);
+                        }
+                    }
+                }
+                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let response = crate::conn::boltwall::delete_sub_admin(&boltwall, &apk).await?;
+                Some(serde_json::to_string(&response)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

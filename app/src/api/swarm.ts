@@ -65,6 +65,14 @@ export async function add_boltwall_sub_admin_pubkey(pk: string) {
   return await swarmCmd("AddBoltwallSubAdminPubkey", pk);
 }
 
+export async function list_admins() {
+  return await swarmCmd("ListAdmins");
+}
+
+export async function delete_sub_admin(pk: string) {
+  return await swarmCmd("DeleteSubAdmin", pk);
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

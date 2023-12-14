@@ -122,13 +122,26 @@ fn jarvis(
         env.push(format!("SECOND_BRAIN_GRAPH_URL={}", second_brain_graph_url));
     }
     if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!("RADAR_SCHEDULER_TIME_IN_SEC={}", radar_scheduler_time_in_sec));
+        env.push(format!(
+            "RADAR_SCHEDULER_TIME_IN_SEC={}",
+            radar_scheduler_time_in_sec
+        ));
     }
-    if let Ok(radar_youtube_scheduler_time_in_sec) = std::env::var("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC={}", radar_youtube_scheduler_time_in_sec));
+    if let Ok(radar_youtube_scheduler_time_in_sec) =
+        std::env::var("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC")
+    {
+        env.push(format!(
+            "RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC={}",
+            radar_youtube_scheduler_time_in_sec
+        ));
     }
-    if let Ok(radar_twitter_scheduler_time_in_sec) = std::env::var("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC={}", radar_twitter_scheduler_time_in_sec));
+    if let Ok(radar_twitter_scheduler_time_in_sec) =
+        std::env::var("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC")
+    {
+        env.push(format!(
+            "RADAR_TWITTER_SCHEDULER_TIME_IN_SEC={}",
+            radar_twitter_scheduler_time_in_sec
+        ));
     }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
