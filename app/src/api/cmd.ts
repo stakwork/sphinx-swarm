@@ -61,7 +61,8 @@ export type Cmd =
   | "AddBoltwallAdminPubkey"
   | "GetBoltwallSuperAdmin"
   | "AddBoltwallSubAdminPubkey"
-  | "ListAdmins";
+  | "ListAdmins"
+  | "DeleteSubAdmin";
 
 interface CmdData {
   cmd: Cmd;

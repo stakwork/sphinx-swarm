@@ -69,6 +69,10 @@ export async function list_admins() {
   return await swarmCmd("ListAdmins");
 }
 
+export async function delete_sub_admin(pk: string) {
+  return await swarmCmd("DeleteSubAdmin", pk);
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

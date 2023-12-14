@@ -11,6 +11,7 @@
     get_super_admin,
     add_boltwall_sub_admin_pubkey,
     list_admins,
+    delete_sub_admin,
   } from "./api/swarm";
   import { onMount } from "svelte";
   import { shortPubkey } from "./helpers";
@@ -87,6 +88,21 @@
     }
   }
 
+  async function deleteSubAdmin(pubkey) {
+    const result = await delete_sub_admin(pubkey);
+    const parsedResult = JSON.parse(result);
+    if (parsedResult.success) {
+      if (parsedResult.message === "sub admin deleted successfully") {
+        success = true;
+      } else {
+        success = false;
+      }
+      message = parsedResult.message;
+      show_notification = true;
+      await getAdmins();
+    }
+  }
+
   function toggleAdmin() {
     superAdminExist = !superAdminExist;
   }
@@ -159,7 +175,10 @@
         <svelte:fragment slot="cell" let:row let:cell>
           {#if cell.key === "action"}
             {#if row.role !== "Admin"}
-              <button class="deleteButton">Delete</button>
+              <button
+                on:click={() => deleteSubAdmin(row.id)}
+                class="deleteButton">Delete</button
+              >
             {/if}
           {:else}
             {cell.value}
