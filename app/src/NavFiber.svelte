@@ -4,13 +4,16 @@
     TextInput,
     InlineLoading,
     InlineNotification,
+    DataTable,
   } from "carbon-components-svelte";
   import {
     add_boltwall_admin_pubkey,
     get_super_admin,
     add_boltwall_sub_admin_pubkey,
+    list_admins,
   } from "./api/swarm";
   import { onMount } from "svelte";
+  import { shortPubkey } from "./helpers";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -21,6 +24,7 @@
   $: message = "";
   $: superAdminExist = false;
   $: superAdminPubkey = "";
+  $: admins = [];
 
   async function setSuperAdmin() {
     const result = await add_boltwall_admin_pubkey(pubkey);
@@ -31,6 +35,7 @@
     show_notification = true;
     superAdminPubkey = pubkey;
     pubkey = "";
+    await getAdmins();
   }
 
   async function setSubAdmin() {
@@ -40,6 +45,7 @@
     message = parsedResult.message;
     show_notification = true;
     pubkey = "";
+    await getAdmins();
   }
 
   async function handleSubmit() {
@@ -64,12 +70,30 @@
     }
   }
 
+  async function getAdmins() {
+    const result = await list_admins();
+    const parsedResult = JSON.parse(result);
+    if (parsedResult.success) {
+      const newAdmin = [];
+      for (let i = 0; i < parsedResult.data.length; i++) {
+        const admin = parsedResult.data[i];
+        newAdmin.push({
+          id: admin.pubkey,
+          pubkey: shortPubkey(admin.pubkey),
+          role: admin.role === "admin" ? "Admin" : "Sub Admin",
+        });
+      }
+      admins = [...newAdmin];
+    }
+  }
+
   function toggleAdmin() {
     superAdminExist = !superAdminExist;
   }
 
-  onMount(() => {
-    checkSuperAdminExist();
+  onMount(async () => {
+    await checkSuperAdminExist();
+    await getAdmins();
   });
 </script>
 
@@ -121,6 +145,29 @@
       </Button>
     </div>
   </div>
+  <div class="data_table_container">
+    {#if superAdminExist}
+      <DataTable
+        zebra
+        headers={[
+          { key: "pubkey", value: "Public Key" },
+          { key: "role", value: "Role" },
+          { key: "action", value: "" },
+        ]}
+        rows={admins}
+      >
+        <svelte:fragment slot="cell" let:row let:cell>
+          {#if cell.key === "action"}
+            {#if row.role !== "Admin"}
+              <button class="deleteButton">Delete</button>
+            {/if}
+          {:else}
+            {cell.value}
+          {/if}
+        </svelte:fragment>
+      </DataTable>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -152,5 +199,19 @@
 
   .update_super_admin_btn:hover {
     background-color: #f5f5dc;
+  }
+
+  .data_table_container {
+    margin-top: 1.5rem;
+  }
+
+  .deleteButton {
+    /* background-color: #313342; */
+    background-color: #161616;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    color: white;
+    border: none;
+    cursor: pointer;
   }
 </style>
