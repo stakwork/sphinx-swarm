@@ -1,3 +1,5 @@
+use crate::images::lnd::LndImage;
+use crate::utils::docker_domain;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -34,17 +36,19 @@ pub struct GenSeedResponse {
 }
 
 impl LndUnlocker {
-    pub async fn new(port: &str, cert_path: &str) -> Result<Self> {
-        let cont = std::fs::read(cert_path)?;
-        let cert = reqwest::Certificate::from_pem(&cont)?;
+    pub async fn new(lnd_node: &LndImage, cert_pem: &str) -> Result<Self> {
+        // let cont = std::fs::read(cert_path)?;
+        let cert = reqwest::Certificate::from_pem(cert_pem.as_bytes())?;
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
             .add_root_certificate(cert)
             .danger_accept_invalid_certs(true)
             .build()
             .expect("couldnt build reqwest client");
+        let port = lnd_node.http_port.clone().unwrap_or("8881".to_string());
+        let host = docker_domain(&lnd_node.name);
         Ok(Self {
-            url: format!("localhost:{}", port),
+            url: format!("{}:{}", host, port),
             client,
         })
     }
