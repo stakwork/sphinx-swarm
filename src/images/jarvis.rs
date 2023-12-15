@@ -95,6 +95,7 @@ fn jarvis(
         env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}/v1/tweet", h));
         env.push(format!("RADAR_YOUTUBE_WEBHOOK=https://{}/v2/addnode", h));
         env.push(format!("TLDR_WEBHOOK=https://{}/v1/tldr", h));
+        env.push(format!("SECOND_BRAIN_GRAPH_URL=https://{}/get_named_entities", h));
     }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = std::env::var("STAKWORK_ADD_NODE_TOKEN") {
@@ -117,9 +118,6 @@ fn jarvis(
     }
     if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
         env.push(format!("TWITTER_BEARER={}", twitter_bearer));
-    }
-    if let Ok(second_brain_graph_url) = std::env::var("SECOND_BRAIN_GRAPH_URL") {
-        env.push(format!("SECOND_BRAIN_GRAPH_URL={}", second_brain_graph_url));
     }
     if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
