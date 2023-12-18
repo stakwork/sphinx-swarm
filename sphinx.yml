@@ -68,6 +68,7 @@ services:
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - SPHINXV1=true
+      - TESTING_ONLY_ADD_TO_SENDER=$TESTING_ONLY_ADD_TO_SENDER # mixer testing
 
 networks:
   sphinx-swarm:

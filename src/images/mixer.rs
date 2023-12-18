@@ -119,6 +119,12 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
         env.push(format!("RUST_LOG={}", ll));
     }
 
+    if let Ok(toats) = std::env::var("TESTING_ONLY_ADD_TO_SENDER") {
+        if toats == "1" {
+            env.push(format!("TESTING_ONLY_ADD_TO_SENDER=1"));
+        }
+    }
+
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
