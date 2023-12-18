@@ -118,6 +118,9 @@ fn jarvis(
     if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
         env.push(format!("TWITTER_BEARER={}", twitter_bearer));
     }
+    if let Ok(youtube_api_token) = std::env::var("YOUTUBE_API_TOKEN") {
+        env.push(format!("YOUTUBE_API_TOKEN={}", youtube_api_token));
+    }
     if let Ok(second_brain_graph_url) = std::env::var("SECOND_BRAIN_GRAPH_URL") {
         env.push(format!("SECOND_BRAIN_GRAPH_URL={}", second_brain_graph_url));
     }
