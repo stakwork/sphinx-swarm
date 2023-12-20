@@ -119,6 +119,9 @@ fn jarvis(
     if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
         env.push(format!("TWITTER_BEARER={}", twitter_bearer));
     }
+    if let Ok(youtube_api_token) = std::env::var("YOUTUBE_API_TOKEN") {
+        env.push(format!("YOUTUBE_API_TOKEN={}", youtube_api_token));
+    }
     if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
             "RADAR_SCHEDULER_TIME_IN_SEC={}",
