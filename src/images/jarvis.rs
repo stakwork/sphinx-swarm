@@ -95,7 +95,7 @@ fn jarvis(
         env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}/v1/tweet", h));
         env.push(format!("RADAR_YOUTUBE_WEBHOOK=https://{}/v2/addnode", h));
         env.push(format!("TLDR_WEBHOOK=https://{}/v1/tldr", h));
-        env.push(format!("SECOND_BRAIN_GRAPH_URL=https://{}/get_named_entities", h));
+        env.push(format!("SECOND_BRAIN_GRAPH_URL=https://{}/get_elasticsearch_entities", h));
     }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = std::env::var("STAKWORK_ADD_NODE_TOKEN") {
