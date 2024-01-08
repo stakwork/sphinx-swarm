@@ -5,21 +5,16 @@
     InlineLoading,
     InlineNotification,
     DataTable,
-    Tabs,
-    Tab,
-    TabContent,
   } from "carbon-components-svelte";
-
   import {
     add_boltwall_admin_pubkey,
     get_super_admin,
     add_boltwall_sub_admin_pubkey,
     list_admins,
     delete_sub_admin,
-  } from "./api/swarm";
+  } from "../api/swarm";
   import { onMount } from "svelte";
-  import { shortPubkey } from "./helpers";
-  import SetupAdmin from "./components/NavFiberAdmin.svelte";
+  import { shortPubkey } from "../helpers";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -119,18 +114,77 @@
 </script>
 
 <div class="nav-wrapper">
-  <Button target="_blank" href={link}>Open Second Brain</Button>
-  <div class="tab-container">
-    <Tabs>
-      <Tab label="Setup Admin"></Tab>
-      <Tab label="Endpoint Permissions"></Tab>
-      <svelte:fragment slot="content">
-        <TabContent>
-          <SetupAdmin></SetupAdmin>
-        </TabContent>
-        <TabContent>Content 2</TabContent>
-      </svelte:fragment>
-    </Tabs>
+  <div class="super-admin-container">
+    {#if superAdminPubkey}
+      <div class="update_super_admin_container">
+        <button class="update_super_admin_btn" on:click={toggleAdmin}>
+          {#if !superAdminExist && superAdminPubkey}
+            Add Sub Admin
+          {:else}
+            Update Super Admin pubkey
+          {/if}</button
+        >
+      </div>
+    {/if}
+    {#if show_notification}
+      <InlineNotification
+        lowContrast
+        kind={success ? "success" : "error"}
+        title={success ? "Success:" : "Error:"}
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+        }}
+      />
+    {/if}
+    <TextInput
+      labelText={`${
+        superAdminExist ? "Sub Admin Pubkey" : "Super Admin Pubkey"
+      }`}
+      placeholder={`${
+        superAdminExist
+          ? "Enter sub admin pubkey..."
+          : "Enter super admin pubkey..."
+      }`}
+      bind:value={pubkey}
+    />
+    <div class="set-super-admin-btn-container">
+      <Button on:click={handleSubmit} disabled={!pubkey || loading}>
+        {#if loading}
+          <InlineLoading />
+        {:else}
+          Submit
+        {/if}
+      </Button>
+    </div>
+  </div>
+  <div class="data_table_container">
+    {#if superAdminExist}
+      <DataTable
+        zebra
+        headers={[
+          { key: "pubkey", value: "Public Key" },
+          { key: "role", value: "Role" },
+          { key: "action", value: "" },
+        ]}
+        rows={admins}
+      >
+        <svelte:fragment slot="cell" let:row let:cell>
+          {#if cell.key === "action"}
+            {#if row.role !== "Admin"}
+              <button
+                on:click={() => deleteSubAdmin(row.id)}
+                class="deleteButton">Delete</button
+              >
+            {/if}
+          {:else}
+            {cell.value}
+          {/if}
+        </svelte:fragment>
+      </DataTable>
+    {/if}
   </div>
 </div>
 
@@ -138,10 +192,44 @@
   .nav-wrapper {
     padding: 0px 25px;
   }
-
-  .tab-container {
+  .super-admin-container {
+    display: flex;
+    flex-direction: column;
     margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
-    width: 100%;
+  }
+
+  .set-super-admin-btn-container {
+    margin-top: 0.5rem;
+  }
+
+  .update_super_admin_container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 2rem;
+  }
+
+  .update_super_admin_btn {
+    border: none;
+    padding: 0.7rem 1rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+  }
+
+  .update_super_admin_btn:hover {
+    background-color: #f5f5dc;
+  }
+
+  .data_table_container {
+    margin-top: 1.5rem;
+  }
+
+  .deleteButton {
+    /* background-color: #313342; */
+    background-color: #161616;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    color: white;
+    border: none;
+    cursor: pointer;
   }
 </style>

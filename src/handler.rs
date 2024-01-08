@@ -229,7 +229,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListPaidEndpoint => {
-                log::info!("ListPaidEndpoint ===> ")
+                log::info!("ListPaidEndpoint ===> ");
                 let mut boltwall_opt = None;
                 for img in state.stack.nodes.iter() {
                     if let Ok(ii) = img.as_internal() {
@@ -240,6 +240,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 }
                 let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
                 let response = crate::conn::boltwall::list_paid_endpoint(&boltwall).await?;
+                Some(serde_json::to_string(&response)?)
             }
         },
         Cmd::Relay(c) => {
