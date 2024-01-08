@@ -33,6 +33,10 @@ http
     }
     if (req.method === "POST") {
       if (url === "/restart") {
+        const body = await readBody(req);
+        if (body.password !== process.env.PASSWORD) {
+          return failure(res, "wrong password");
+        }
         const scripts = [`docker stop sphinx-swarm`, `docker rm sphinx-swarm`];
         if (is2b()) {
           scripts.push(`docker-compose -f second-brain.yml up sphinx-swarm -d`);
@@ -98,5 +102,6 @@ curl http://localhost:3003/yo
 
 curl --header "Content-Type: application/json" \
   --request POST \
+  --data '{"password":"123"}' \
   http://localhost:3003/restart
 */
