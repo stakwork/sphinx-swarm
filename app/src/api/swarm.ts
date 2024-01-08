@@ -73,6 +73,10 @@ export async function delete_sub_admin(pk: string) {
   return await swarmCmd("DeleteSubAdmin", pk);
 }
 
+export async function list_all_paid_endpoint() {
+  return await swarmCmd("ListPaidEndpoint");
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

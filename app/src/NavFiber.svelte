@@ -1,121 +1,13 @@
 <script>
-  import {
-    Button,
-    TextInput,
-    InlineLoading,
-    InlineNotification,
-    DataTable,
-    Tabs,
-    Tab,
-    TabContent,
-  } from "carbon-components-svelte";
-
-  import {
-    add_boltwall_admin_pubkey,
-    get_super_admin,
-    add_boltwall_sub_admin_pubkey,
-    list_admins,
-    delete_sub_admin,
-  } from "./api/swarm";
+  import { Button, Tabs, Tab, TabContent } from "carbon-components-svelte";
   import { onMount } from "svelte";
-  import { shortPubkey } from "./helpers";
   import SetupAdmin from "./components/NavFiberAdmin.svelte";
+  import EnpointPermission from "./components/EnpointPermission.svelte";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
-  $: pubkey = "";
-  $: loading = false;
-  $: show_notification = false;
-  $: success = false;
-  $: message = "";
-  $: superAdminExist = false;
-  $: superAdminPubkey = "";
-  $: admins = [];
 
-  async function setSuperAdmin() {
-    const result = await add_boltwall_admin_pubkey(pubkey);
-    const parsedResult = JSON.parse(result);
-    success = parsedResult.success || false;
-    message = parsedResult.message;
-    superAdminExist = true;
-    show_notification = true;
-    superAdminPubkey = pubkey;
-    pubkey = "";
-    await getAdmins();
-  }
-
-  async function setSubAdmin() {
-    const result = await add_boltwall_sub_admin_pubkey(pubkey);
-    const parsedResult = JSON.parse(result);
-    success = parsedResult.success || false;
-    message = parsedResult.message;
-    show_notification = true;
-    pubkey = "";
-    await getAdmins();
-  }
-
-  async function handleSubmit() {
-    loading = true;
-    if (!superAdminExist) {
-      await setSuperAdmin();
-    } else {
-      await setSubAdmin();
-    }
-    loading = false;
-  }
-
-  async function checkSuperAdminExist() {
-    const result = await get_super_admin();
-    const parsedResult = JSON.parse(result);
-    if (
-      parsedResult?.success &&
-      parsedResult.message === "super admin record"
-    ) {
-      superAdminExist = true;
-      superAdminPubkey = parsedResult.data.pubkey;
-    }
-  }
-
-  async function getAdmins() {
-    const result = await list_admins();
-    const parsedResult = JSON.parse(result);
-    if (parsedResult.success) {
-      const newAdmin = [];
-      for (let i = 0; i < parsedResult.data.length; i++) {
-        const admin = parsedResult.data[i];
-        newAdmin.push({
-          id: admin.pubkey,
-          pubkey: shortPubkey(admin.pubkey),
-          role: admin.role === "admin" ? "Admin" : "Sub Admin",
-        });
-      }
-      admins = [...newAdmin];
-    }
-  }
-
-  async function deleteSubAdmin(pubkey) {
-    const result = await delete_sub_admin(pubkey);
-    const parsedResult = JSON.parse(result);
-    if (parsedResult.success) {
-      if (parsedResult.message === "sub admin deleted successfully") {
-        success = true;
-      } else {
-        success = false;
-      }
-      message = parsedResult.message;
-      show_notification = true;
-      await getAdmins();
-    }
-  }
-
-  function toggleAdmin() {
-    superAdminExist = !superAdminExist;
-  }
-
-  onMount(async () => {
-    await checkSuperAdminExist();
-    await getAdmins();
-  });
+  onMount(async () => {});
 </script>
 
 <div class="nav-wrapper">
@@ -128,7 +20,9 @@
         <TabContent>
           <SetupAdmin></SetupAdmin>
         </TabContent>
-        <TabContent>Content 2</TabContent>
+        <TabContent>
+          <EnpointPermission />
+        </TabContent>
       </svelte:fragment>
     </Tabs>
   </div>

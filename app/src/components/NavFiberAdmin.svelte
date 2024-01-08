@@ -16,8 +16,6 @@
   import { onMount } from "svelte";
   import { shortPubkey } from "../helpers";
 
-  export let host = "";
-  let link = host ? `https://${host}` : "http://localhost:8001";
   $: pubkey = "";
   $: loading = false;
   $: show_notification = false;
