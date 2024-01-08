@@ -1,11 +1,4 @@
 <script>
-  import {
-    Button,
-    TextInput,
-    InlineLoading,
-    InlineNotification,
-    DataTable,
-  } from "carbon-components-svelte";
   import { onMount } from "svelte";
   import { list_all_paid_endpoint } from "../api/swarm";
   import Endpoint from "./Endpoint.svelte";
@@ -30,7 +23,7 @@
     <Endpoint
       description={endpoint.route_description}
       toggled={endpoint.status}
-      id={endpoint.status}
+      id={endpoint.id}
     />
   {/each}
 </div>

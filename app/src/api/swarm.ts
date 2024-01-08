@@ -77,6 +77,10 @@ export async function list_all_paid_endpoint() {
   return await swarmCmd("ListPaidEndpoint");
 }
 
+export async function update_paid_endpoint(id: number, status: boolean) {
+  return await swarmCmd("UpdatePaidEndpoint", { id, status });
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",
