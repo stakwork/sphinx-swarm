@@ -131,3 +131,26 @@ pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<Strin
 
     Ok(response_text)
 }
+
+pub async fn list_paid_endpoint(img: &BoltwallImage) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build boltwall reqwest client");
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/endpointsList", host, img.port);
+
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
