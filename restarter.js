@@ -9,6 +9,12 @@ async function yo(_req, res) {
 const hostname = "0.0.0.0";
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3003;
 
+function is2b() {
+  return (
+    process.env.SECOND_BRAIN === "true" || process.env.SECOND_BRAIN === "1"
+  );
+}
+
 http
   .createServer(async (req, res) => {
     if (req.method === "OPTIONS") {
@@ -28,7 +34,7 @@ http
     if (req.method === "POST") {
       if (url === "/restart") {
         const scripts = [`docker stop sphinx-swarm`, `docker rm sphinx-swarm`];
-        if (process.env.SECOND_BRAIN) {
+        if (is2b()) {
           scripts.push(`docker-compose -f second-brain.yml up sphinx-swarm -d`);
         } else {
           scripts.push(`docker-compose up sphinx-swarm -d`);
