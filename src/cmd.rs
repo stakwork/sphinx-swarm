@@ -49,6 +49,12 @@ pub struct UpdateNode {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdatePaidEndpointRequest {
+    pub id: u64,
+    pub status: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -68,7 +74,8 @@ pub enum SwarmCmd {
     AddBoltwallSubAdminPubkey(String),
     ListAdmins,
     DeleteSubAdmin(String),
-    ListPaidEndpoint
+    ListPaidEndpoint,
+    UpdatePaidEndpoint(UpdatePaidEndpointRequest)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

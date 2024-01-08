@@ -242,6 +242,20 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let response = crate::conn::boltwall::list_paid_endpoint(&boltwall).await?;
                 Some(serde_json::to_string(&response)?)
             }
+            SwarmCmd::UpdatePaidEndpoint(details) => {
+                log::info!("UpdatePaidEndpoint -> Status:{} ID:{}", details.status, details.id);
+                let mut boltwall_opt = None;
+                for img in state.stack.nodes.iter() {
+                    if let Ok(ii) = img.as_internal() {
+                        if let Ok(boltwall) = ii.as_boltwall() {
+                            boltwall_opt = Some(boltwall);
+                        }
+                    }
+                }
+                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let response = crate::conn::boltwall::update_paid_endpoint(&boltwall, details.id, details.status).await?;
+                Some(serde_json::to_string(&response)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;
