@@ -4,7 +4,7 @@ use crate::auth;
 use crate::builder;
 use crate::cmd::*;
 use crate::config;
-use crate::config::{Clients, Stack, State, STATE};
+use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::dock::*;
 use crate::images::DockerHubImage;
 use crate::rocket_utils::CmdRequest;
@@ -160,72 +160,53 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
             SwarmCmd::AddBoltwallAdminPubkey(apk) => {
                 log::info!("AddBoltwallAdminPubkey -> {}", apk);
-                let mut boltwall_opt = None;
-                for img in state.stack.nodes.iter() {
-                    if let Ok(ii) = img.as_internal() {
-                        if let Ok(boltwall) = ii.as_boltwall() {
-                            boltwall_opt = Some(boltwall);
-                        }
-                    }
-                }
-                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let boltwall = find_boltwall(&state.stack.nodes)?;
                 let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &apk).await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::GetBoltwallSuperAdmin => {
                 log::info!("GetBoltwallSuperAdmin");
-                let mut boltwall_opt = None;
-                for img in state.stack.nodes.iter() {
-                    if let Ok(ii) = img.as_internal() {
-                        if let Ok(boltwall) = ii.as_boltwall() {
-                            boltwall_opt = Some(boltwall);
-                        }
-                    }
-                }
-                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let boltwall = find_boltwall(&state.stack.nodes)?;
                 let response = crate::conn::boltwall::get_super_admin(&boltwall).await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::AddBoltwallSubAdminPubkey(apk) => {
                 log::info!("AddBoltwallSubAdminPubkey -> {}", apk);
-                let mut boltwall_opt = None;
-                for img in state.stack.nodes.iter() {
-                    if let Ok(ii) = img.as_internal() {
-                        if let Ok(boltwall) = ii.as_boltwall() {
-                            boltwall_opt = Some(boltwall);
-                        }
-                    }
-                }
-                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let boltwall = find_boltwall(&state.stack.nodes)?;
                 let response = crate::conn::boltwall::add_subadmin_pubkey(&boltwall, &apk).await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListAdmins => {
                 log::info!("ListAdmins ==> ");
-                let mut boltwall_opt = None;
-                for img in state.stack.nodes.iter() {
-                    if let Ok(ii) = img.as_internal() {
-                        if let Ok(boltwall) = ii.as_boltwall() {
-                            boltwall_opt = Some(boltwall);
-                        }
-                    }
-                }
-                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let boltwall = find_boltwall(&state.stack.nodes)?;
                 let response = crate::conn::boltwall::list_admins(&boltwall).await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::DeleteSubAdmin(apk) => {
                 log::info!("DeleteSubAdmin -> {}", apk);
-                let mut boltwall_opt = None;
-                for img in state.stack.nodes.iter() {
-                    if let Ok(ii) = img.as_internal() {
-                        if let Ok(boltwall) = ii.as_boltwall() {
-                            boltwall_opt = Some(boltwall);
-                        }
-                    }
-                }
-                let boltwall = boltwall_opt.context(anyhow!("no boltwall image"))?;
+                let boltwall = find_boltwall(&state.stack.nodes)?;
                 let response = crate::conn::boltwall::delete_sub_admin(&boltwall, &apk).await?;
+                Some(serde_json::to_string(&response)?)
+            }
+            SwarmCmd::ListPaidEndpoint => {
+                log::info!("ListPaidEndpoint ===> ");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = crate::conn::boltwall::list_paid_endpoint(&boltwall).await?;
+                Some(serde_json::to_string(&response)?)
+            }
+            SwarmCmd::UpdatePaidEndpoint(details) => {
+                log::info!(
+                    "UpdatePaidEndpoint -> Status:{} ID:{}",
+                    details.status,
+                    details.id
+                );
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = crate::conn::boltwall::update_paid_endpoint(
+                    &boltwall,
+                    details.id,
+                    details.status,
+                )
+                .await?;
                 Some(serde_json::to_string(&response)?)
             }
         },
@@ -454,6 +435,19 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
         config::put_config_file(proj, &state.stack).await;
     }
     Ok(ret.context("internal error")?)
+}
+
+use crate::images::boltwall::BoltwallImage;
+fn find_boltwall(nodes: &Vec<Node>) -> Result<BoltwallImage> {
+    let mut boltwall_opt = None;
+    for img in nodes.iter() {
+        if let Ok(ii) = img.as_internal() {
+            if let Ok(boltwall) = ii.as_boltwall() {
+                boltwall_opt = Some(boltwall);
+            }
+        }
+    }
+    Ok(boltwall_opt.context(anyhow!("no boltwall image"))?)
 }
 
 pub async fn hydrate(mut stack: Stack, clients: Clients) {
