@@ -138,15 +138,53 @@ pub fn traefik_labels(
     let mut def = vec![
         "traefik.enable=true".to_string(),
         format!("{}={}", lb, port),
-        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
         format!("traefik.http.routers.{}.tls=true", name),
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
+    if nav_boltwall_shared_host().is_some() && is_nav_or_boltwall(name) {
+        let shared_host = nav_boltwall_shared_host().unwrap();
+        if name == "nav" {
+            def.push(format!(
+                "traefik.http.routers.{}.rule=Host(`{}`) && Path(`/`)",
+                name, shared_host
+            ));
+            def.push(format!("traefik.http.routers.{}.priority=2", name));
+        } else {
+            def.push(format!(
+                "traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/`)",
+                name, shared_host
+            ));
+            def.push(format!("traefik.http.routers.{}.priority=1", name));
+        }
+    } else {
+        def.push(format!(
+            "traefik.http.routers.{}.rule=Host(`{}`)",
+            name, host
+        ));
+    }
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string())
     }
     to_labels(def)
+}
+
+fn is_nav_or_boltwall(name: &str) -> bool {
+    name == "nav" || name == "boltwall"
+}
+fn nav_boltwall_shared_host() -> Option<String> {
+    let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();
+    match sh {
+        Some(h) => {
+            // remove empty string
+            if h.len() > 0 {
+                Some(h)
+            } else {
+                None
+            }
+        }
+        None => None,
+    }
 }
 
 pub fn cln_traefik_labels(
