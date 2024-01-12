@@ -144,7 +144,7 @@ pub fn traefik_labels(
     ];
     if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
         let shared_host = navfiber_boltwall_shared_host().unwrap();
-        if name == "nav" {
+        if name == "navfiber" {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`) && Path(`/`)",
                 name, shared_host
