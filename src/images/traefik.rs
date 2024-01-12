@@ -142,8 +142,8 @@ pub fn traefik_labels(
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
-    if nav_boltwall_shared_host().is_some() && is_nav_or_boltwall(name) {
-        let shared_host = nav_boltwall_shared_host().unwrap();
+    if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
+        let shared_host = navfiber_boltwall_shared_host().unwrap();
         if name == "nav" {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`) && Path(`/`)",
@@ -169,10 +169,10 @@ pub fn traefik_labels(
     to_labels(def)
 }
 
-fn is_nav_or_boltwall(name: &str) -> bool {
-    name == "nav" || name == "boltwall"
+fn is_navfiber_or_boltwall(name: &str) -> bool {
+    name == "navfiber" || name == "boltwall"
 }
-fn nav_boltwall_shared_host() -> Option<String> {
+fn navfiber_boltwall_shared_host() -> Option<String> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();
     match sh {
         Some(h) => {
