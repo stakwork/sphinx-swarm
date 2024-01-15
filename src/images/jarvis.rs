@@ -94,6 +94,7 @@ fn jarvis(
         env.push(format!("RADAR_TWEET_WEBHOOK=https://{}/v1/tweet", h));
         env.push(format!("RADAR_TOPIC_WEBHOOK=https://{}/v1/tweet", h));
         env.push(format!("RADAR_YOUTUBE_WEBHOOK=https://{}/v2/addnode", h));
+        env.push(format!("RADAR_RSS_WEBHOOK=https://{}/v2/addnode", h));
         env.push(format!("TLDR_WEBHOOK=https://{}/v1/tldr", h));
         env.push(format!("SECOND_BRAIN_GRAPH_URL=https://{}/get_elasticsearch_entities", h));
     }
