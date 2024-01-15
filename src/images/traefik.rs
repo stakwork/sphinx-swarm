@@ -145,17 +145,19 @@ pub fn traefik_labels(
     if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
         let shared_host = navfiber_boltwall_shared_host().unwrap();
         if name == "navfiber" {
+            // anything except /api (local resources)
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`) && Path(`/`)",
                 name, shared_host
             ));
-            def.push(format!("traefik.http.routers.{}.priority=2", name));
+            def.push(format!("traefik.http.routers.{}.priority=1", name));
         } else {
+            // if /api then all should go here
             def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/`)",
+                "traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/api`)",
                 name, shared_host
             ));
-            def.push(format!("traefik.http.routers.{}.priority=1", name));
+            def.push(format!("traefik.http.routers.{}.priority=2", name));
         }
     } else {
         def.push(format!(
