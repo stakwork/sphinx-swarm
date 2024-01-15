@@ -153,6 +153,7 @@ fn boltwall(
             jarvis.port
         ),
         format!("SESSION_SECRET={}", node.session_secret),
+        format!("NODE_ENV=swarm"),
     ];
     let mut extra_vols = None;
 
