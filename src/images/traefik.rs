@@ -154,7 +154,7 @@ pub fn traefik_labels(
         } else {
             // if /api then all should go here
             def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`) && PathPrefix(`/api`)",
+                "traefik.http.routers.{}.rule=Host(`{}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
                 name, shared_host
             ));
             def.push(format!("traefik.http.routers.{}.priority=2", name));
