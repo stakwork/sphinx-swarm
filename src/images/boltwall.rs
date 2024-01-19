@@ -48,10 +48,13 @@ impl BoltwallImage {
         if let Some(h) = eh {
             self.host = Some(format!("boltwall.{}", h));
         }
-        // boltwall host is on the vanity address /api
+    }
+    // boltwall host is on the vanity address /api
+    pub fn get_host(&self) -> Option<String> {
         if let Some(sh) = navfiber_boltwall_shared_host() {
-            self.host = Some(format!("{}/api", sh))
+            return Some(format!("{}/api", sh));
         }
+        self.host.clone()
     }
 }
 
@@ -187,7 +190,7 @@ fn boltwall(
         env.push(format!("CLN_URI={}:{}", domain(&cln.name), cln.grpc_port));
     }
     // the webhook url "callback"
-    if let Some(h) = &node.host {
+    if let Some(h) = &node.get_host() {
         env.push(format!("HOST_URL=https://{}", h));
     }
     // admin token for setting admin pubkey
