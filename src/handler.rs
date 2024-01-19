@@ -194,6 +194,11 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let response = crate::conn::boltwall::list_paid_endpoint(&boltwall).await?;
                 Some(serde_json::to_string(&response)?)
             }
+            SwarmCmd::UpdateSwarm => {
+                log::info!("Updating Swarm ===>");
+                let response = crate::conn::swarm::update_swarm().await?;
+                Some(serde_json::to_string(&response)?)
+            }
             SwarmCmd::UpdatePaidEndpoint(details) => {
                 log::info!(
                     "UpdatePaidEndpoint -> Status:{} ID:{}",

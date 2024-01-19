@@ -64,7 +64,8 @@ export type Cmd =
   | "ListAdmins"
   | "DeleteSubAdmin"
   | "ListPaidEndpoint"
-  | "UpdatePaidEndpoint";
+  | "UpdatePaidEndpoint"
+  | "UpdateSwarm";
 
 interface CmdData {
   cmd: Cmd;

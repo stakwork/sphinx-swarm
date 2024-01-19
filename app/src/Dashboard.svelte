@@ -25,7 +25,6 @@
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
   import type { Container } from "./api/swarm";
-  import Onboarding from "./onboarding/Onboarding.svelte";
   let selectedName = "";
 
   async function pollConfig() {
@@ -64,6 +63,10 @@
   }
   function toChangePassword() {
     page = "change_password";
+  }
+
+  async function updateSwarm() {
+    await api.swarm.update_swarm();
   }
 
   let body;
@@ -142,6 +145,7 @@
             text="Change Password"
           />
           <OverflowMenuItem on:click={logoutUser} text="Logout" />
+          <OverflowMenuItem on:click={updateSwarm} text="Update" />
         </OverflowMenu>
       </section>
     </div>
