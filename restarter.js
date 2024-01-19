@@ -33,11 +33,7 @@ http
     }
     if (req.method === "POST") {
       if (url === "/restart") {
-        console.log("WE GOT HERE:");
         const body = await readBody(req);
-        console.log("REQUEST BODY:", body);
-        console.log("PASSWORD FROM REQUEST BODY:", body.password);
-        console.log("THIS IS THE PASSWORD FROM ENV:", process.env.PASSWORD);
         if (body.password !== process.env.PASSWORD) {
           return failure(res, "wrong password");
         }
