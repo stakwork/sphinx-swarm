@@ -14,6 +14,7 @@ pub mod postgres;
 pub mod proxy;
 pub mod relay;
 pub mod traefik;
+pub mod tribes;
 
 use crate::config;
 use anyhow::Result;
@@ -39,6 +40,7 @@ pub enum Image {
     Lss(lss::LssImage),
     Broker(broker::BrokerImage),
     Mixer(mixer::MixerImage),
+    Tribes(tribes::TribesImage),
 }
 
 pub struct Repository {
@@ -78,6 +80,7 @@ impl Image {
             Image::Lss(n) => n.name.clone(),
             Image::Broker(n) => n.name.clone(),
             Image::Mixer(n) => n.name.clone(),
+            Image::Tribes(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -96,6 +99,7 @@ impl Image {
             Image::Lss(_n) => "LSS",
             Image::Broker(_n) => "Broker",
             Image::Mixer(_n) => "Mixer",
+            Image::Tribes(_n) => "Tribes",
         }
         .to_string()
     }
@@ -115,6 +119,7 @@ impl Image {
             Image::Lss(n) => n.version = version.to_string(),
             Image::Broker(n) => n.version = version.to_string(),
             Image::Mixer(n) => n.version = version.to_string(),
+            Image::Tribes(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -193,6 +198,7 @@ impl DockerConfig for Image {
             Image::Lss(n) => n.make_config(nodes, docker).await,
             Image::Broker(n) => n.make_config(nodes, docker).await,
             Image::Mixer(n) => n.make_config(nodes, docker).await,
+            Image::Tribes(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -214,6 +220,7 @@ impl DockerHubImage for Image {
             Image::Lss(n) => n.repo(),
             Image::Broker(n) => n.repo(),
             Image::Mixer(n) => n.repo(),
+            Image::Tribes(n) => n.repo(),
         }
     }
 }

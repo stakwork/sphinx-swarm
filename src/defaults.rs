@@ -7,6 +7,7 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::mixer::MixerImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::tribes::TribesImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
     relay::RelayImage, Image,
@@ -22,12 +23,20 @@ fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
     mixer.links(vec!["broker"]);
     mixer.host(host.clone());
 
+    let mut tribes = TribesImage::new("tribes", "latest", network, "8801");
+    tribes.links(vec!["broker"]);
+    tribes.host(host.clone());
+
     Stack {
         network: network.to_string(),
-        nodes: vec![Image::Broker(broker), Image::Mixer(mixer)]
-            .iter()
-            .map(|n| Node::Internal(n.to_owned()))
-            .collect(),
+        nodes: vec![
+            Image::Broker(broker),
+            Image::Mixer(mixer),
+            Image::Tribes(tribes),
+        ]
+        .iter()
+        .map(|n| Node::Internal(n.to_owned()))
+        .collect(),
         host,
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),

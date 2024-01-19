@@ -238,6 +238,7 @@ impl Stack {
                     Node::Internal(Image::Broker(b))
                 }
                 Image::Mixer(m) => Node::Internal(Image::Mixer(m)),
+                Image::Tribes(t) => Node::Internal(Image::Tribes(t)),
             },
         });
         Stack {
