@@ -1,4 +1,4 @@
-use super::traefik::traefik_labels;
+use super::traefik::{navfiber_boltwall_shared_host, traefik_labels};
 use super::*;
 use crate::config::Node;
 use crate::conn::lnd::utils::{dl_cert_to_base64, dl_macaroon};
@@ -47,6 +47,10 @@ impl BoltwallImage {
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
             self.host = Some(format!("boltwall.{}", h));
+        }
+        // boltwall host is on the vanity address /api
+        if let Some(sh) = navfiber_boltwall_shared_host() {
+            self.host = Some(format!("{}/api", sh))
         }
     }
 }

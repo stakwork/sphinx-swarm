@@ -174,7 +174,7 @@ pub fn traefik_labels(
 fn is_navfiber_or_boltwall(name: &str) -> bool {
     name == "navfiber" || name == "boltwall"
 }
-fn navfiber_boltwall_shared_host() -> Option<String> {
+pub fn navfiber_boltwall_shared_host() -> Option<String> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();
     match sh {
         Some(h) => {
