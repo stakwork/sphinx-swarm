@@ -16,7 +16,7 @@ pub async fn update_swarm() -> Result<String> {
         .build()
         .expect("couldnt build swarm updater reqwest client");
 
-    let route = format!("http://localhost:3003/restart");
+    let route = format!("http://172.17.0.1:3003/restart");
 
     let body = UpdateSwarmBody {
         password: password.to_string(),
