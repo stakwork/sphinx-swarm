@@ -71,6 +71,7 @@ services:
       - ROCKET_PORT=8000
       - SPHINXV1=true
       - TESTING_ONLY_ADD_TO_SENDER=$TESTING_ONLY_ADD_TO_SENDER # mixer testing
+      - SWARM_UPDATER_PASSWORD=$SWARM_UPDATER_PASSWORD
 
 networks:
   sphinx-swarm:
