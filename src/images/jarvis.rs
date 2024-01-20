@@ -1,7 +1,7 @@
 use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, *};
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
@@ -102,47 +102,43 @@ fn jarvis(
         ));
     }
     // from the stack-prod.yml
-    if let Ok(stakwork_key) = std::env::var("STAKWORK_ADD_NODE_TOKEN") {
+    if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
     }
-    if let Ok(stakwork_radar_token) = std::env::var("STAKWORK_RADAR_REQUEST_TOKEN") {
+    if let Ok(stakwork_radar_token) = getenv("STAKWORK_RADAR_REQUEST_TOKEN") {
         env.push(format!("RADAR_REQUEST_TOKEN={}", stakwork_radar_token));
     }
-    if let Ok(aws_key_id) = std::env::var("AWS_ACCESS_KEY_ID") {
+    if let Ok(aws_key_id) = getenv("AWS_ACCESS_KEY_ID") {
         env.push(format!("AWS_ACCESS_KEY_ID={}", aws_key_id));
     }
-    if let Ok(aws_secret) = std::env::var("AWS_SECRET_ACCESS_KEY") {
+    if let Ok(aws_secret) = getenv("AWS_SECRET_ACCESS_KEY") {
         env.push(format!("AWS_SECRET_ACCESS_KEY={}", aws_secret));
     }
-    if let Ok(aws_region) = std::env::var("AWS_S3_REGION_NAME") {
+    if let Ok(aws_region) = getenv("AWS_S3_REGION_NAME") {
         env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
     }
-    if let Ok(tbawid) = std::env::var("TWEET_BY_AUTOR_WORKFLOW_ID") {
+    if let Ok(tbawid) = getenv("TWEET_BY_AUTOR_WORKFLOW_ID") {
         env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tbawid));
     }
-    if let Ok(twitter_bearer) = std::env::var("TWITTER_BEARER") {
+    if let Ok(twitter_bearer) = getenv("TWITTER_BEARER") {
         env.push(format!("TWITTER_BEARER={}", twitter_bearer));
     }
-    if let Ok(youtube_api_token) = std::env::var("YOUTUBE_API_TOKEN") {
+    if let Ok(youtube_api_token) = getenv("YOUTUBE_API_TOKEN") {
         env.push(format!("YOUTUBE_API_TOKEN={}", youtube_api_token));
     }
-    if let Ok(radar_scheduler_time_in_sec) = std::env::var("RADAR_SCHEDULER_TIME_IN_SEC") {
+    if let Ok(radar_scheduler_time_in_sec) = getenv("RADAR_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
             "RADAR_SCHEDULER_TIME_IN_SEC={}",
             radar_scheduler_time_in_sec
         ));
     }
-    if let Ok(radar_youtube_scheduler_time_in_sec) =
-        std::env::var("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC")
-    {
+    if let Ok(radar_youtube_scheduler_time_in_sec) = getenv("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
             "RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC={}",
             radar_youtube_scheduler_time_in_sec
         ));
     }
-    if let Ok(radar_twitter_scheduler_time_in_sec) =
-        std::env::var("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC")
-    {
+    if let Ok(radar_twitter_scheduler_time_in_sec) = getenv("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
             "RADAR_TWITTER_SCHEDULER_TIME_IN_SEC={}",
             radar_twitter_scheduler_time_in_sec
@@ -171,3 +167,13 @@ docker tag sphinx-jarvis-backend sphinxlightning/sphinx-jarvis-backend:latest
 docker push sphinxlightning/sphinx-jarvis-backend:latest
 
 */
+
+fn getenv(envname: &str) -> Result<String> {
+    let sh = std::env::var(envname)?;
+    // remove empty string
+    if sh.len() > 0 {
+        Ok(sh)
+    } else {
+        Err(anyhow!("{} is empty", envname))
+    }
+}
