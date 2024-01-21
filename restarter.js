@@ -37,7 +37,11 @@ http
         if (body.password !== process.env.PASSWORD) {
           return failure(res, "wrong password");
         }
-        const scripts = [`docker stop sphinx-swarm`, `docker rm sphinx-swarm`];
+        const scripts = [
+          `docker pull sphinxlightning/sphinx-swarm:latest`,
+          `docker stop sphinx-swarm`,
+          `docker rm sphinx-swarm`,
+        ];
         if (is2b()) {
           scripts.push(`docker-compose -f second-brain.yml up sphinx-swarm -d`);
         } else {
