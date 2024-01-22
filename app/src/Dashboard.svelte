@@ -140,12 +140,12 @@
       <!-- <AddNode /> -->
       <section class="menu-btn">
         <OverflowMenu icon={User} flipped>
+          <OverflowMenuItem on:click={updateSwarm} text="Update" />
           <OverflowMenuItem
             on:click={toChangePassword}
             text="Change Password"
           />
           <OverflowMenuItem on:click={logoutUser} text="Logout" />
-          <OverflowMenuItem on:click={updateSwarm} text="Update" />
         </OverflowMenu>
       </section>
     </div>
