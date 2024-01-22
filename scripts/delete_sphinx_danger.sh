@@ -7,6 +7,10 @@ docker stop mixer.sphinx
 docker rm mixer.sphinx
 docker volume rm mixer.sphinx
 
+docker stop tribes.sphinx
+docker rm tribes.sphinx
+docker volume rm tribes.sphinx
+
 docker stop swarm.sphinx
 docker rm swarm.sphinx
 
