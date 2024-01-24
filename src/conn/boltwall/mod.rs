@@ -10,6 +10,12 @@ pub struct SetAdminPubkeyBody {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddUserBody {
+    pubkey: String,
+    role: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdatePaidEndpointBody {
     id: u64,
     status: bool,
@@ -70,7 +76,7 @@ pub async fn get_super_admin(img: &BoltwallImage) -> Result<String> {
     Ok(response_text)
 }
 
-pub async fn add_subadmin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<String> {
+pub async fn add_user(img: &BoltwallImage, pubkey: &str, role: u32) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
     let client = reqwest::Client::builder()
@@ -80,10 +86,11 @@ pub async fn add_subadmin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<St
         .expect("couldnt build boltwall reqwest client");
     let host = docker_domain(&img.name);
 
-    let route = format!("http://{}:{}/set_subadmin_pubkey", host, img.port);
+    let route = format!("http://{}:{}/set_user_role", host, img.port);
 
-    let body = SetAdminPubkeyBody {
+    let body = AddUserBody {
         pubkey: pubkey.to_string(),
+        role: role,
     };
     let response = client
         .post(route.as_str())
