@@ -12,7 +12,7 @@ pub struct SetAdminPubkeyBody {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdatePaidEndpointBody {
     id: u64,
-    status: bool
+    status: bool,
 }
 
 pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<String> {
@@ -175,7 +175,7 @@ pub async fn update_paid_endpoint(img: &BoltwallImage, id: u64, status: bool) ->
 
     let body = UpdatePaidEndpointBody {
         id: id,
-        status: status
+        status: status,
     };
     let response = client
         .put(route.as_str())

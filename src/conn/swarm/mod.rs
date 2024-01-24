@@ -1,4 +1,4 @@
-use anyhow::{ Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -21,11 +21,7 @@ pub async fn update_swarm() -> Result<String> {
     let body = UpdateSwarmBody {
         password: password.to_string(),
     };
-    let response = client
-        .post(route.as_str())
-        .json(&body)
-        .send()
-        .await?;
+    let response = client.post(route.as_str()).json(&body).send().await?;
 
     let response_text = response.text().await?;
 

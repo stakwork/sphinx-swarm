@@ -76,7 +76,7 @@ pub enum SwarmCmd {
     DeleteSubAdmin(String),
     ListPaidEndpoint,
     UpdatePaidEndpoint(UpdatePaidEndpointRequest),
-    UpdateSwarm
+    UpdateSwarm,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
