@@ -10,7 +10,10 @@
   import { onMount } from "svelte";
   import SetupAdmin from "./components/NavFiberAdmin.svelte";
   import EnpointPermission from "./components/EnpointPermission.svelte";
-  import { update_graph_accesibility } from "./api/swarm";
+  import {
+    update_graph_accessibility,
+    get_graph_accessibility,
+  } from "./api/swarm";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -20,10 +23,14 @@
   $: show_notification = false;
   $: message = "";
   $: success = false;
+  $: firstTime = false;
 
   async function toggleGraphStatus(state) {
+    if (firstTime) {
+      return;
+    }
     disabled = true;
-    const result = await update_graph_accesibility(state.toggled);
+    const result = await update_graph_accessibility(state.toggled);
     const parsedResult = JSON.parse(result);
     message = parsedResult.message;
     success = parsedResult.success;
@@ -33,6 +40,15 @@
 
   onMount(async () => {
     //get graph state
+    const result = await get_graph_accessibility();
+    const parsedResult = JSON.parse(result);
+    if (parsedResult.success) {
+      firstTime = true;
+      toggled = parsedResult.data.isPublic;
+    }
+    setTimeout(() => {
+      firstTime = false;
+    }, 500);
   });
 </script>
 

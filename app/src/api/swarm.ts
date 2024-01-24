@@ -85,8 +85,12 @@ export async function update_swarm() {
   return await swarmCmd("UpdateSwarm");
 }
 
-export async function update_graph_accesibility(status: boolean) {
+export async function update_graph_accessibility(status: boolean) {
   return await swarmCmd("UpdateBoltwallAccessibility", status);
+}
+
+export async function get_graph_accessibility() {
+  return await swarmCmd("GetBoltwallAccessibility");
 }
 
 export async function login(username, password) {

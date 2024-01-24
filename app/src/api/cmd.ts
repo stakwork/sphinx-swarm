@@ -66,7 +66,8 @@ export type Cmd =
   | "ListPaidEndpoint"
   | "UpdatePaidEndpoint"
   | "UpdateSwarm"
-  | "UpdateBoltwallAccessibility";
+  | "UpdateBoltwallAccessibility"
+  | "GetBoltwallAccessibility";
 
 interface CmdData {
   cmd: Cmd;
