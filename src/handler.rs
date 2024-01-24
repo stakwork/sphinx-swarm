@@ -222,6 +222,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                         .await?;
                 Some(serde_json::to_string(&response)?)
             }
+            SwarmCmd::GetBoltwallAccessibility => {
+                log::info!("Get Boltwall Accessibility ===>");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = crate::conn::boltwall::get_boltwall_accessibility(&boltwall).await?;
+                Some(serde_json::to_string(&response)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

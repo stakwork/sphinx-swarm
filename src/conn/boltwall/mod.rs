@@ -220,3 +220,20 @@ pub async fn update_boltwall_accessibility(img: &BoltwallImage, is_public: bool)
 
     Ok(response_text)
 }
+
+pub async fn get_boltwall_accessibility(img: &BoltwallImage) -> Result<String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build boltwall reqwest client");
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/getPublicPrivate", host, img.port);
+
+    let response = client.get(route.as_str()).send().await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
