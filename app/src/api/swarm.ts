@@ -85,6 +85,10 @@ export async function update_swarm() {
   return await swarmCmd("UpdateSwarm");
 }
 
+export async function update_graph_accesibility(status: boolean) {
+  return await swarmCmd("UpdateBoltwallAccessibility", status);
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

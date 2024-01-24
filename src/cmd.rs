@@ -77,7 +77,7 @@ pub enum SwarmCmd {
     ListPaidEndpoint,
     UpdatePaidEndpoint(UpdatePaidEndpointRequest),
     UpdateSwarm,
-    UpdateBoltwallAccessibility(bool)
+    UpdateBoltwallAccessibility(bool),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
