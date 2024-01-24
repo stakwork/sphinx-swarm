@@ -12,6 +12,7 @@ if  [ $1 == "btc" ] || \
     [ $1 == "lss" ] || \
     [ $1 == "mixer" ] || \
     [ $1 == "broker" ] || \
+    [ $1 == "tribes" ] || \
     [ $1 == "traefik" ] || \
     [ $1 == "swarm" ]
 then

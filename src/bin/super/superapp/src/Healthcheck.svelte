@@ -11,7 +11,13 @@
 
   async function checkStatus() {
     try {
-      const r = await fetch(`https://boltwall.${host}/stats`);
+      let url = `https://boltwall.${host}/stats`;
+      // custom URLs
+      if (!url.includes("swarm")) {
+        url = `https://${host}/api/stats`;
+      }
+      console.log("URL", url);
+      const r = await fetch(url);
       const j = await r.json();
       status = "ok";
     } catch (e) {
