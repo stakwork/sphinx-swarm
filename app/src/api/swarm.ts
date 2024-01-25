@@ -61,8 +61,8 @@ export async function get_super_admin() {
   return await swarmCmd("GetBoltwallSuperAdmin");
 }
 
-export async function add_boltwall_sub_admin_pubkey(pk: string) {
-  return await swarmCmd("AddBoltwallSubAdminPubkey", pk);
+export async function add_user(pubkey: string, role: number) {
+  return await swarmCmd("AddBoltwallUser", { pubkey, role });
 }
 
 export async function list_admins() {
@@ -83,6 +83,14 @@ export async function update_paid_endpoint(id: number, status: boolean) {
 
 export async function update_swarm() {
   return await swarmCmd("UpdateSwarm");
+}
+
+export async function update_graph_accessibility(status: boolean) {
+  return await swarmCmd("UpdateBoltwallAccessibility", status);
+}
+
+export async function get_graph_accessibility() {
+  return await swarmCmd("GetBoltwallAccessibility");
 }
 
 export async function login(username, password) {
