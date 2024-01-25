@@ -268,7 +268,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
     }
     let mut cmd = vec![
         format!("--alias={}", &alias),
-        format!("--addr=0.0.0.0:{}", &img.peer_port),
+        format!("--bind-addr=0.0.0.0:{}", &img.peer_port),
         format!("--grpc-port={}", &img.grpc_port),
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
@@ -279,6 +279,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--log-level=io:plugin-keysend".to_string(),
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--database-upgrade=true".to_string(),
+        "--announce-addr=44.203.243.145".to_string(),
     ];
     if let Some(hsms) = img.seed {
         // cmd.push(format!("--developer=1")); // 23.11
