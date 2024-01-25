@@ -168,7 +168,7 @@ docker push sphinxlightning/sphinx-jarvis-backend:latest
 
 */
 
-fn getenv(envname: &str) -> Result<String> {
+pub fn getenv(envname: &str) -> Result<String> {
     let sh = std::env::var(envname)?;
     // remove empty string
     if sh.len() > 0 {

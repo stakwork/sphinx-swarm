@@ -268,7 +268,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
     }
     let mut cmd = vec![
         format!("--alias={}", &alias),
-        format!("--addr=0.0.0.0:{}", &img.peer_port),
+        format!("--bind-addr=0.0.0.0:{}", &img.peer_port),
         format!("--grpc-port={}", &img.grpc_port),
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
@@ -280,6 +280,9 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--database-upgrade=true".to_string(),
     ];
+    if let Ok(eba) = jarvis::getenv("ANNOUNCE_ADDRESS") {
+        cmd.push(format!("--announce-addr={}", eba));
+    }
     if let Some(hsms) = img.seed {
         // cmd.push(format!("--developer=1")); // 23.11
         cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));
