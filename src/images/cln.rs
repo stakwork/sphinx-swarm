@@ -279,8 +279,10 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--log-level=io:plugin-keysend".to_string(),
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--database-upgrade=true".to_string(),
-        "--announce-addr=44.203.243.145".to_string(),
     ];
+    if let Ok(eba) = jarvis::getenv("ANNOUNCE_ADDRESS") {
+        cmd.push(format!("--announce-addr={}", eba));
+    }
     if let Some(hsms) = img.seed {
         // cmd.push(format!("--developer=1")); // 23.11
         cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));

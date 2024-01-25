@@ -80,6 +80,7 @@ services:
       - NO_REMOTE_SIGNER=$NO_REMOTE_SIGNER
       - NO_SECOND_BRAIN=$NO_SECOND_BRAIN
       - SPHINXV1=$SPHINXV1
+      - ANNOUNCE_ADDRESS=$ANNOUNCE_ADDRESS
 
 networks:
   sphinx-swarm:
