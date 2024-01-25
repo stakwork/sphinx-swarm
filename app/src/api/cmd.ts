@@ -60,7 +60,7 @@ export type Cmd =
   | "GetClients"
   | "AddBoltwallAdminPubkey"
   | "GetBoltwallSuperAdmin"
-  | "AddBoltwallSubAdminPubkey"
+  | "AddBoltwallUser"
   | "ListAdmins"
   | "DeleteSubAdmin"
   | "ListPaidEndpoint"

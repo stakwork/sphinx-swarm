@@ -61,8 +61,8 @@ export async function get_super_admin() {
   return await swarmCmd("GetBoltwallSuperAdmin");
 }
 
-export async function add_boltwall_sub_admin_pubkey(pk: string) {
-  return await swarmCmd("AddBoltwallSubAdminPubkey", pk);
+export async function add_user(pubkey: string, role: number) {
+  return await swarmCmd("AddBoltwallUser", { pubkey, role });
 }
 
 export async function list_admins() {

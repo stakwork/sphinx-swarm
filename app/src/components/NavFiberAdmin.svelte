@@ -5,11 +5,12 @@
     InlineLoading,
     InlineNotification,
     DataTable,
+    Dropdown,
   } from "carbon-components-svelte";
   import {
     add_boltwall_admin_pubkey,
     get_super_admin,
-    add_boltwall_sub_admin_pubkey,
+    add_user,
     list_admins,
     delete_sub_admin,
   } from "../api/swarm";
@@ -25,6 +26,14 @@
   $: superAdminPubkey = "";
   $: admins = [];
 
+  let selected_role = "1";
+
+  const items = [
+    { id: "1", text: "Select Role" },
+    { id: "2", text: "Sub Admin" },
+    { id: "3", text: "Member" },
+  ];
+
   async function setSuperAdmin() {
     const result = await add_boltwall_admin_pubkey(pubkey);
     const parsedResult = JSON.parse(result);
@@ -37,13 +46,14 @@
     await getAdmins();
   }
 
-  async function setSubAdmin() {
-    const result = await add_boltwall_sub_admin_pubkey(pubkey);
+  async function addUser() {
+    const result = await add_user(pubkey, Number(selected_role));
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;
     show_notification = true;
     pubkey = "";
+    selected_role = "1";
     await getAdmins();
   }
 
@@ -52,7 +62,7 @@
     if (!superAdminExist) {
       await setSuperAdmin();
     } else {
-      await setSubAdmin();
+      await addUser();
     }
     loading = false;
   }
@@ -117,7 +127,7 @@
       <div class="update_super_admin_container">
         <button class="update_super_admin_btn" on:click={toggleAdmin}>
           {#if !superAdminExist && superAdminPubkey}
-            Add Sub Admin
+            Add User
           {:else}
             Update Super Admin pubkey
           {/if}</button
@@ -139,17 +149,27 @@
     {/if}
     <TextInput
       labelText={`${
-        superAdminExist ? "Sub Admin Pubkey" : "Super Admin Pubkey"
+        superAdminExist ? "Add User Pubkey" : "Super Admin Pubkey"
       }`}
       placeholder={`${
-        superAdminExist
-          ? "Enter sub admin pubkey..."
-          : "Enter super admin pubkey..."
+        superAdminExist ? "Enter user pubkey..." : "Enter super admin pubkey..."
       }`}
       bind:value={pubkey}
     />
+    {#if superAdminExist}
+      <Dropdown
+        titleText="Primary contact"
+        bind:selectedId={selected_role}
+        {items}
+      />
+    {/if}
     <div class="set-super-admin-btn-container">
-      <Button on:click={handleSubmit} disabled={!pubkey || loading}>
+      <Button
+        on:click={handleSubmit}
+        disabled={!pubkey ||
+          loading ||
+          (superAdminExist && selected_role === "1")}
+      >
         {#if loading}
           <InlineLoading />
         {:else}
