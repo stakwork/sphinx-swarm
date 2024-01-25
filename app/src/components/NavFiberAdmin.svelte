@@ -89,7 +89,7 @@
         newAdmin.push({
           id: admin.pubkey,
           pubkey: shortPubkey(admin.pubkey),
-          role: admin.role === "admin" ? "Admin" : "Sub Admin",
+          role: formatRoles(admin.role),
         });
       }
       admins = [...newAdmin];
@@ -113,6 +113,18 @@
 
   function toggleAdmin() {
     superAdminExist = !superAdminExist;
+  }
+
+  function formatRoles(role) {
+    if (role === "admin") {
+      return "Admin";
+    } else if (role === "sub_admin") {
+      return "Sub Admin";
+    } else if (role === "member") {
+      return "Member";
+    } else {
+      return role;
+    }
   }
 
   onMount(async () => {
