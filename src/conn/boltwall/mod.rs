@@ -22,8 +22,9 @@ pub struct UpdatePaidEndpointBody {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateBoltwallAccessibility {
-    isPublic: bool,
+    is_public: bool,
 }
 
 pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<String> {
@@ -213,9 +214,7 @@ pub async fn update_boltwall_accessibility(img: &BoltwallImage, is_public: bool)
 
     let route = format!("http://{}:{}/setPublicPrivate", host, img.port);
 
-    let body = UpdateBoltwallAccessibility {
-        isPublic: is_public,
-    };
+    let body = UpdateBoltwallAccessibility { is_public };
     let response = client
         .post(route.as_str())
         .header("x-admin-token", admin_token)
