@@ -148,6 +148,7 @@ fn make_stack() -> Stack {
         ip: None,
         // test cln2 updating
         auto_update: Some(vec![CLN2.to_string()]),
+        custom_2b_domain: None,
     }
 }
 

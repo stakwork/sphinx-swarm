@@ -43,6 +43,7 @@ fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
         ready: false,
         ip: env_no_empty("IP"),
         auto_update: None,
+        custom_2b_domain: None,
     }
 }
 
@@ -63,6 +64,7 @@ fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &s
             "boltwall".to_string(),
             "navfiber".to_string(),
         ]),
+        custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
     }
 }
 
@@ -325,6 +327,7 @@ impl Default for Stack {
             ready: false,
             ip: env_no_empty("IP"),
             auto_update: None,
+            custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         }
     }
 }

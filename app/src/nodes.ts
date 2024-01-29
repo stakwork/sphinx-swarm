@@ -4,6 +4,7 @@ export interface Stack {
   host?: string;
   ready: boolean;
   ip?: string;
+  custom_2b_domain?: string;
 }
 
 export interface Node {

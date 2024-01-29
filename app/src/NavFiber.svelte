@@ -14,9 +14,13 @@
     update_graph_accessibility,
     get_graph_accessibility,
   } from "./api/swarm";
+  import { stack } from "./store";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
+  if ($stack && $stack.custom_2b_domain) {
+    link = `https://${$stack.custom_2b_domain}`;
+  }
 
   let toggled = false;
   $: disabled = false;
