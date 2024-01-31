@@ -14,8 +14,8 @@ docker volume rm tribes.sphinx
 docker stop swarm.sphinx
 docker rm swarm.sphinx
 
-docker stop reverse-proxy
-docker rm reverse-proxy
+docker stop traefik.sphinx
+docker rm traefik.sphinx
 
 sudo rm -rf $HOME/vol/stack
 
