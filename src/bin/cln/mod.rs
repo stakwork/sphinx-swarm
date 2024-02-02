@@ -89,8 +89,9 @@ fn make_stack() -> Stack {
     let mut internal_nodes = Vec::new();
 
     // let cln_plugins = vec![ClnPlugin::HsmdBroker, ClnPlugin::HtlcInterceptor];
-    let cln_plugins = vec![ClnPlugin::HsmdBroker];
+    // let cln_plugins = vec![ClnPlugin::HsmdBroker];
     // let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
+    let cln_plugins = vec![];
 
     // bitcoind
     let v = "v23.0";
