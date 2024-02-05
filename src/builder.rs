@@ -59,8 +59,10 @@ pub async fn auto_updater(
     // 0 2 * * *
     // every 6 hours
     // 0 */6 * * *
+    // every hour
+    // 0 0 * * * *
     sched
-        .add(Job::new_async("0 0 * * * *", |_uuid, _l| {
+        .add(Job::new_async("@daily", |_uuid, _l| {
             Box::pin(async move {
                 if !AUTO_UPDATE.load(Ordering::Relaxed) {
                     AUTO_UPDATE.store(true, Ordering::Relaxed);
