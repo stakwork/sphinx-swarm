@@ -48,13 +48,14 @@
   }
 
   async function addUser() {
-    const result = await add_user(pubkey, Number(selected_role));
+    const result = await add_user(pubkey, Number(selected_role), name);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;
     show_notification = true;
     pubkey = "";
     selected_role = "1";
+    name = "";
     await getAdmins();
   }
 
