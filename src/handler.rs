@@ -165,11 +165,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     admin.name
                 );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let name: String;
-                match admin.name {
-                    Some(value) => name = value,
-                    None => name = String::new(),
-                }
+                let name = admin.name.unwrap_or("".to_string());
                 let response =
                     crate::conn::boltwall::add_admin_pubkey(&boltwall, &admin.pubkey, &name)
                         .await?;
@@ -189,11 +185,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     user.name
                 );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let name: String;
-                match user.name {
-                    Some(value) => name = value,
-                    None => name = String::new(),
-                }
+                let name = user.name.unwrap_or("".to_string());
                 let response =
                     crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role, name)
                         .await?;
