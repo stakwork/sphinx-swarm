@@ -25,6 +25,7 @@
   $: superAdminExist = false;
   $: superAdminPubkey = "";
   $: admins = [];
+  $: name = "";
 
   let selected_role = "1";
 
@@ -176,6 +177,13 @@
         {items}
       />
     {/if}
+    <div class="name_input">
+      <TextInput
+        labelText={`Name (Optional)`}
+        placeholder={`Enter name`}
+        bind:value={name}
+      />
+    </div>
     <div class="set-super-admin-btn-container">
       <Button
         on:click={handleSubmit}
@@ -263,5 +271,9 @@
     color: white;
     border: none;
     cursor: pointer;
+  }
+
+  .name_input {
+    margin-top: 1rem;
   }
 </style>
