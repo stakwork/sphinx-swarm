@@ -90,6 +90,7 @@
           id: admin.pubkey,
           pubkey: shortPubkey(admin.pubkey),
           role: formatRoles(admin.role),
+          name: admin.name || "",
         });
       }
       admins = [...newAdmin];
@@ -197,6 +198,7 @@
         headers={[
           { key: "pubkey", value: "Public Key" },
           { key: "role", value: "Role" },
+          { key: "name", value: "Name" },
           { key: "action", value: "" },
         ]}
         rows={admins}
