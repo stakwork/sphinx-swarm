@@ -36,7 +36,7 @@
   ];
 
   async function setSuperAdmin() {
-    const result = await add_boltwall_admin_pubkey(pubkey);
+    const result = await add_boltwall_admin_pubkey(pubkey, name);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;
@@ -44,6 +44,7 @@
     show_notification = true;
     superAdminPubkey = pubkey;
     pubkey = "";
+    name = "";
     await getAdmins();
   }
 
