@@ -58,6 +58,7 @@ pub struct UpdatePaidEndpointRequest {
 pub struct AddUserRequest {
     pub role: u32,
     pub pubkey: String,
+    pub name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -172,13 +172,20 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
             SwarmCmd::AddBoltwallUser(user) => {
                 log::info!(
-                    "AddBoltwallUser -> pubkey {}-> role {} ",
+                    "AddBoltwallUser -> pubkey {}-> role {} -> name {:?} ",
                     user.pubkey,
-                    user.role
+                    user.role,
+                    user.name
                 );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
+                let name: String;
+                match user.name {
+                    Some(value) => name = value,
+                    None => name = String::new(),
+                }
                 let response =
-                    crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role).await?;
+                    crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role, name)
+                        .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListAdmins => {

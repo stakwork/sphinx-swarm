@@ -13,6 +13,7 @@ pub struct SetAdminPubkeyBody {
 pub struct AddUserBody {
     pubkey: String,
     role: u32,
+    name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -77,7 +78,12 @@ pub async fn get_super_admin(img: &BoltwallImage) -> Result<String> {
     Ok(response_text)
 }
 
-pub async fn add_user(img: &BoltwallImage, pubkey: &str, role: u32) -> Result<String> {
+pub async fn add_user(
+    img: &BoltwallImage,
+    pubkey: &str,
+    role: u32,
+    name: String,
+) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
     let client = reqwest::Client::builder()
@@ -92,6 +98,7 @@ pub async fn add_user(img: &BoltwallImage, pubkey: &str, role: u32) -> Result<St
     let body = AddUserBody {
         pubkey: pubkey.to_string(),
         role: role,
+        name: name.to_string(),
     };
     let response = client
         .post(route.as_str())
