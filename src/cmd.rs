@@ -62,6 +62,12 @@ pub struct AddUserRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddAdminRequest {
+    pub pubkey: String,
+    pub name: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -76,7 +82,7 @@ pub enum SwarmCmd {
     StopContainer(String),
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
-    AddBoltwallAdminPubkey(String),
+    AddBoltwallAdminPubkey(AddAdminRequest),
     GetBoltwallSuperAdmin,
     AddBoltwallUser(AddUserRequest),
     ListAdmins,

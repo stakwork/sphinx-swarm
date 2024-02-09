@@ -7,6 +7,7 @@ use std::time::Duration;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetAdminPubkeyBody {
     pub pubkey: String,
+    pub name: String
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -28,7 +29,7 @@ pub struct UpdateBoltwallAccessibility {
     is_public: bool,
 }
 
-pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<String> {
+pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str, name: &str) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
     let client = reqwest::Client::builder()
@@ -42,6 +43,7 @@ pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str) -> Result<Strin
 
     let body = SetAdminPubkeyBody {
         pubkey: pubkey.to_string(),
+        name: name.to_string()
     };
     let response = client
         .post(route.as_str())

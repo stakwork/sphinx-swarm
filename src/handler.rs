@@ -158,10 +158,15 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
             }
-            SwarmCmd::AddBoltwallAdminPubkey(apk) => {
-                log::info!("AddBoltwallAdminPubkey -> {}", apk);
+            SwarmCmd::AddBoltwallAdminPubkey(admin) => {
+                log::info!("AddBoltwallAdminPubkey ->pubkey {}, name {:?}", admin.pubkey, admin.name);
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &apk).await?;
+                let name: String;
+                match admin.name {
+                    Some(value) => name = value,
+                    None => name = String::new()
+                }
+                let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &admin.pubkey, &name).await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::GetBoltwallSuperAdmin => {
