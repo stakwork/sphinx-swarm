@@ -159,14 +159,20 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 Some(serde_json::to_string(&containers)?)
             }
             SwarmCmd::AddBoltwallAdminPubkey(admin) => {
-                log::info!("AddBoltwallAdminPubkey ->pubkey {}, name {:?}", admin.pubkey, admin.name);
+                log::info!(
+                    "AddBoltwallAdminPubkey ->pubkey {}, name {:?}",
+                    admin.pubkey,
+                    admin.name
+                );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
                 let name: String;
                 match admin.name {
                     Some(value) => name = value,
-                    None => name = String::new()
+                    None => name = String::new(),
                 }
-                let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &admin.pubkey, &name).await?;
+                let response =
+                    crate::conn::boltwall::add_admin_pubkey(&boltwall, &admin.pubkey, &name)
+                        .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::GetBoltwallSuperAdmin => {

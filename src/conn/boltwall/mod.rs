@@ -7,7 +7,7 @@ use std::time::Duration;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetAdminPubkeyBody {
     pub pubkey: String,
-    pub name: String
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -43,7 +43,7 @@ pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str, name: &str) -> 
 
     let body = SetAdminPubkeyBody {
         pubkey: pubkey.to_string(),
-        name: name.to_string()
+        name: name.to_string(),
     };
     let response = client
         .post(route.as_str())
