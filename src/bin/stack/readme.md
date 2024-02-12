@@ -131,7 +131,7 @@ copy the AWS creds into it, and `HOST=xxx`
 in app `yarn build`
 
 docker build --no-cache -f src/bin/stack/Dockerfile -t sphinx-swarm . &&
-docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.92 &&
-docker push sphinxlightning/sphinx-swarm:0.3.92 &&
+docker tag sphinx-swarm sphinxlightning/sphinx-swarm:0.3.93 &&
+docker push sphinxlightning/sphinx-swarm:0.3.93 &&
 docker tag sphinx-swarm sphinxlightning/sphinx-swarm:latest &&
 docker push sphinxlightning/sphinx-swarm:latest
