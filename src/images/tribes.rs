@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::broker::BrokerImage;
+use crate::images::jarvis::getenv;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -15,6 +16,7 @@ pub struct TribesImage {
     pub network: String,
     pub port: String,
     pub host: Option<String>,
+    pub tribes_host: Option<String>, // for testing
     pub links: Links,
     pub log_level: Option<String>,
 }
@@ -28,6 +30,7 @@ impl TribesImage {
             port: port.to_string(),
             links: vec![],
             host: None,
+            tribes_host: getenv("TRIBES_HOST").ok(),
             log_level: None,
         }
     }
@@ -76,6 +79,10 @@ fn tribes(img: &TribesImage, broker: &BrokerImage) -> Result<Config<String>> {
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
     ];
+
+    if let Some(th) = &img.tribes_host {
+        env.push(format!("HOST={}", th));
+    }
 
     let bu = format!("{}:{}", domain(&broker.name), broker.mqtt_port);
     env.push(format!("BROKER_URL={}", bu));
