@@ -53,16 +53,16 @@ export async function get_container_stat(name?: string) {
   return await swarmCmd("GetStatistics", name);
 }
 
-export async function add_boltwall_admin_pubkey(pk: string) {
-  return await swarmCmd("AddBoltwallAdminPubkey", pk);
+export async function add_boltwall_admin_pubkey(pubkey: string, name?: string) {
+  return await swarmCmd("AddBoltwallAdminPubkey", { pubkey, name });
 }
 
 export async function get_super_admin() {
   return await swarmCmd("GetBoltwallSuperAdmin");
 }
 
-export async function add_user(pubkey: string, role: number) {
-  return await swarmCmd("AddBoltwallUser", { pubkey, role });
+export async function add_user(pubkey: string, role: number, name?: string) {
+  return await swarmCmd("AddBoltwallUser", { pubkey, role, name });
 }
 
 export async function list_admins() {

@@ -158,10 +158,17 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
             }
-            SwarmCmd::AddBoltwallAdminPubkey(apk) => {
-                log::info!("AddBoltwallAdminPubkey -> {}", apk);
+            SwarmCmd::AddBoltwallAdminPubkey(admin) => {
+                log::info!(
+                    "AddBoltwallAdminPubkey ->pubkey {}, name {:?}",
+                    admin.pubkey,
+                    admin.name
+                );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &apk).await?;
+                let name = admin.name.unwrap_or("".to_string());
+                let response =
+                    crate::conn::boltwall::add_admin_pubkey(&boltwall, &admin.pubkey, &name)
+                        .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::GetBoltwallSuperAdmin => {
@@ -172,13 +179,16 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             }
             SwarmCmd::AddBoltwallUser(user) => {
                 log::info!(
-                    "AddBoltwallUser -> pubkey {}-> role {} ",
+                    "AddBoltwallUser -> pubkey {}-> role {} -> name {:?} ",
                     user.pubkey,
-                    user.role
+                    user.role,
+                    user.name
                 );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
+                let name = user.name.unwrap_or("".to_string());
                 let response =
-                    crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role).await?;
+                    crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role, name)
+                        .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListAdmins => {

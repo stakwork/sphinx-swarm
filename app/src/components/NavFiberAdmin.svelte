@@ -25,6 +25,7 @@
   $: superAdminExist = false;
   $: superAdminPubkey = "";
   $: admins = [];
+  $: name = "";
 
   let selected_role = "1";
 
@@ -35,7 +36,7 @@
   ];
 
   async function setSuperAdmin() {
-    const result = await add_boltwall_admin_pubkey(pubkey);
+    const result = await add_boltwall_admin_pubkey(pubkey, name);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;
@@ -43,17 +44,19 @@
     show_notification = true;
     superAdminPubkey = pubkey;
     pubkey = "";
+    name = "";
     await getAdmins();
   }
 
   async function addUser() {
-    const result = await add_user(pubkey, Number(selected_role));
+    const result = await add_user(pubkey, Number(selected_role), name);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;
     show_notification = true;
     pubkey = "";
     selected_role = "1";
+    name = "";
     await getAdmins();
   }
 
@@ -90,6 +93,7 @@
           id: admin.pubkey,
           pubkey: shortPubkey(admin.pubkey),
           role: formatRoles(admin.role),
+          name: admin.name || "",
         });
       }
       admins = [...newAdmin];
@@ -175,6 +179,13 @@
         {items}
       />
     {/if}
+    <div class="name_input">
+      <TextInput
+        labelText={`Name (Optional)`}
+        placeholder={`Enter name`}
+        bind:value={name}
+      />
+    </div>
     <div class="set-super-admin-btn-container">
       <Button
         on:click={handleSubmit}
@@ -197,6 +208,7 @@
         headers={[
           { key: "pubkey", value: "Public Key" },
           { key: "role", value: "Role" },
+          { key: "name", value: "Name" },
           { key: "action", value: "" },
         ]}
         rows={admins}
@@ -261,5 +273,9 @@
     color: white;
     border: none;
     cursor: pointer;
+  }
+
+  .name_input {
+    margin-top: 1rem;
   }
 </style>

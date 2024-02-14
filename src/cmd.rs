@@ -58,6 +58,13 @@ pub struct UpdatePaidEndpointRequest {
 pub struct AddUserRequest {
     pub role: u32,
     pub pubkey: String,
+    pub name: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddAdminRequest {
+    pub pubkey: String,
+    pub name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -75,7 +82,7 @@ pub enum SwarmCmd {
     StopContainer(String),
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
-    AddBoltwallAdminPubkey(String),
+    AddBoltwallAdminPubkey(AddAdminRequest),
     GetBoltwallSuperAdmin,
     AddBoltwallUser(AddUserRequest),
     ListAdmins,
