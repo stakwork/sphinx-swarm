@@ -147,7 +147,7 @@ pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<Strin
         .expect("couldnt build boltwall reqwest client");
     let host = docker_domain(&img.name);
 
-    let route = format!("http://{}:{}/sub_admin/{}", host, img.port, pubkey);
+    let route = format!("http://{}:{}/user/{}", host, img.port, pubkey);
 
     let response = client
         .delete(route.as_str())
