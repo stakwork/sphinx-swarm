@@ -93,7 +93,7 @@
           id: admin.pubkey,
           pubkey: shortPubkey(admin.pubkey),
           role: formatRoles(admin.role),
-          name: admin.name || "",
+          name: formatUsername(admin.name) || "",
         });
       }
       admins = [...newAdmin];
@@ -129,6 +129,16 @@
     } else {
       return role;
     }
+  }
+
+  function formatUsername(name) {
+    if (!name) {
+      return "";
+    }
+    if (name.length <= 20) {
+      return name;
+    }
+    return `${name.substring(0, 16)}...`;
   }
 
   onMount(async () => {
