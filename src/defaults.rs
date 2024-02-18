@@ -265,6 +265,7 @@ impl Default for Stack {
         };
         let mut relay = RelayImage::new("relay", v, node_env, "3000");
         relay.dont_ping_hub();
+        relay.set_creds_dir("/relay/data");
         relay.links(vec![
             "proxy",
             lightning_provider,

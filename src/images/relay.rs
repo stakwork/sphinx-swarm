@@ -24,6 +24,8 @@ pub struct RelayImage {
     pub dont_ping_hub: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logging: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creds_dir: Option<String>,
 }
 impl RelayImage {
     pub fn new(name: &str, version: &str, node_env: &str, port: &str) -> Self {
@@ -36,7 +38,11 @@ impl RelayImage {
             host: None,
             dont_ping_hub: None,
             logging: None,
+            creds_dir: None,
         }
+    }
+    pub fn set_creds_dir(&mut self, creds_dir: &str) {
+        self.creds_dir = Some(creds_dir.to_string());
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
@@ -125,6 +131,10 @@ fn relay(
     }
     if let Some(host) = relay.host.clone() {
         conf.host_name(&host);
+    }
+    if let Some(cd) = relay.creds_dir.clone() {
+        conf.transport_private_key_location = Some(format!("{}/transportTokenPrivateKey.pem", cd));
+        conf.transport_public_key_location = Some(format!("{}/transportTokenPublicKey.pem", cd));
     }
     // relay config from env
     let mut relay_conf = relay_env_config(&conf);
