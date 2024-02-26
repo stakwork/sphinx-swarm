@@ -20,6 +20,7 @@ pub struct MixerImage {
     pub host: Option<String>,
     pub links: Links,
     pub log_level: Option<String>,
+    pub initial_peers: Option<String>, // alt brokers
 }
 
 impl MixerImage {
@@ -34,6 +35,7 @@ impl MixerImage {
             links: vec![],
             host: None,
             log_level: None,
+            initial_peers: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -52,6 +54,9 @@ impl MixerImage {
     }
     pub fn set_log_level(&mut self, log_level: &str) {
         self.log_level = Some(log_level.to_string())
+    }
+    pub fn set_initial_peers(&mut self, peers: &str) {
+        self.initial_peers = Some(peers.to_string())
     }
 }
 
@@ -117,6 +122,10 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
 
     if let Some(ll) = &img.log_level {
         env.push(format!("RUST_LOG={}", ll));
+    }
+
+    if let Some(ips) = &img.initial_peers {
+        env.push(format!("INITIAL_PEERS={}", ips));
     }
 
     if let Ok(toats) = std::env::var("TESTING_ONLY_ADD_TO_SENDER") {

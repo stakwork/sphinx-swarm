@@ -8,6 +8,7 @@ use sphinx_swarm::images::{
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::setup::setup_cln_chans;
+use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -84,34 +85,30 @@ pub async fn main() -> Result<()> {
 fn make_stack() -> Stack {
     let network = "regtest".to_string();
 
-    let mut nodes = Vec::new();
-
     let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
 
     // bitcoind
     let v = "v23.0";
     let mut bitcoind = BtcImage::new(BTC, v, &network);
     bitcoind.set_user_password("sphinx", "password");
-    nodes.push(Image::Btc(bitcoind));
 
     // CLN1
     let seed1 = [43; 32];
     let v = "latest";
-    let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
-    cln.set_seed(seed1);
-    cln.plugins(cln_plugins.clone());
-    cln.links(vec![BTC]);
-    nodes.push(Image::Cln(cln));
+    let mut cln1 = ClnImage::new(CLN1, v, &network, "9735", "10009");
+    cln1.set_seed(seed1);
+    cln1.plugins(cln_plugins.clone());
+    cln1.links(vec![BTC]);
 
-    let mut broker = BrokerImage::new(BROKER1, v, &network, "1883", None);
-    broker.set_seed(&hex::encode(&seed1));
-    broker.set_logs("login,pubsub");
-    nodes.push(Image::Broker(broker));
+    let mut broker1 = BrokerImage::new(BROKER1, v, &network, "1883", None);
+    broker1.set_seed(&hex::encode(&seed1));
+    broker1.set_logs("login,pubsub");
+    let broker1ip = format!("{}:{}", domain(&broker1.name), &broker1.mqtt_port);
 
-    let mut mixer = MixerImage::new(MIXER1, v, &network, "8080");
-    mixer.links(vec![CLN1, BROKER1]);
-    mixer.set_log_level("debug");
-    nodes.push(Image::Mixer(mixer));
+    let mut mixer1 = MixerImage::new(MIXER1, v, &network, "8080");
+    mixer1.links(vec![CLN1, BROKER1]);
+    mixer1.set_log_level("debug");
+    let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
     // CLN2
     let seed2 = [44; 32];
@@ -119,17 +116,29 @@ fn make_stack() -> Stack {
     cln2.set_seed(seed2);
     cln2.plugins(cln_plugins.clone());
     cln2.links(vec![BTC]);
-    nodes.push(Image::Cln(cln2));
 
     let mut broker2 = BrokerImage::new(BROKER2, v, &network, "1884", None);
     broker2.set_seed(&hex::encode(&seed2));
     broker2.set_logs("login,pubsub");
-    nodes.push(Image::Broker(broker2));
+    let broker2ip = format!("{}:{}", domain(&broker2.name), &broker2.mqtt_port);
 
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");
     mixer2.links(vec![CLN2, BROKER2]);
     mixer2.set_log_level("debug");
-    nodes.push(Image::Mixer(mixer2));
+    mixer2.set_initial_peers(&format!("{}@{}", mixer1pk, broker1ip));
+    let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
+
+    mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
+
+    let nodes = vec![
+        Image::Btc(bitcoind),
+        Image::Cln(cln1),
+        Image::Broker(broker1),
+        Image::Mixer(mixer1),
+        Image::Cln(cln2),
+        Image::Broker(broker2),
+        Image::Mixer(mixer2),
+    ];
 
     let ns: Vec<Node> = nodes.iter().map(|n| Node::Internal(n.to_owned())).collect();
     Stack {
