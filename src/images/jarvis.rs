@@ -109,6 +109,12 @@ fn jarvis(
             h
         ));
     }
+    if let Ok(jarvis_neo4j_user) = getenv("JARVIS_NEO4J_USER") {
+        env.push(format!("JARVIS_NEO4J_USER={}", jarvis_neo4j_user));
+    }
+    if let Ok(jarvis_neo4j_pass) = getenv("JARVIS_NEO4J_PASS") {
+        env.push(format!("JARVIS_NEO4J_PASS={}", jarvis_neo4j_pass));
+    }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
