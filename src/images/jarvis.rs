@@ -63,7 +63,15 @@ fn jarvis(
     let img = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/data/jarvis";
     let ports = vec![node.port.clone()];
+    let neo4jName = &neo4j.name
+    let neo4jBoltPort = &neo4j.bolt_port
 
+    if let Ok(neo4jNameVal) = getenv("JARVIS_NEO4J_NAME") {
+        neo4jName = neo4jNameVal
+    }
+    if let Ok(neo4jBoltPortVal) = getenv("JARVIS_BOLT_PORT") {
+        neo4jBoltPort = neo4jBoltPortVal
+    }
     let mut env = vec![
         format!(
             "NEO4J_URI=neo4j://{}:{}",
