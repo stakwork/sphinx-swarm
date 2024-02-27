@@ -11,6 +11,7 @@ use once_cell::sync::Lazy;
 use rocket::tokio;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
+use sphinx_auther::secp256k1::PublicKey;
 use std::collections::HashMap;
 
 pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
@@ -71,6 +72,7 @@ pub struct User {
     pub id: u32,
     pub username: String,
     pub pass_hash: String,
+    pub pubkey: Option<PublicKey>,
 }
 
 // optional node, could be external
@@ -129,6 +131,7 @@ impl Default for User {
             id: 1,
             username: username.to_string(),
             pass_hash,
+            pubkey: None,
         }
     }
 }

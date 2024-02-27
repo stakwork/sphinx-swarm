@@ -1,3 +1,4 @@
+use crate::app_login;
 use crate::auth;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
 use crate::events::{get_event_tx, EventChan};
@@ -30,7 +31,9 @@ pub async fn launch_rocket(
                 refresh_jwt,
                 all_options,
                 update_password,
-                events
+                events,
+                verify_challenge_token,
+                get_challenge
             ],
         )
         .attach(CORS)
@@ -122,6 +125,20 @@ pub struct LoginResult {
     pub token: String,
 }
 
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct VerifyTokenResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct GetChallengeResponse {
+    pub success: bool,
+    pub challenge: String,
+}
+
 #[rocket::post("/login", data = "<body>")]
 pub async fn login(
     sender: &State<mpsc::Sender<CmdRequest>>,
@@ -205,4 +222,25 @@ pub async fn update_admin(
         return Err(Error::Unauthorized);
     }
     Ok(reply)
+}
+
+#[get("/challenge")]
+pub async fn get_challenge() -> Result<Json<GetChallengeResponse>> {
+    let challenge = app_login::generate_challenge().await;
+    Ok(Json(GetChallengeResponse {
+        success: true,
+        challenge: challenge,
+    }))
+}
+
+#[post("/verify/<challenge>?<token>")]
+pub async fn verify_challenge_token(
+    challenge: &str,
+    token: &str,
+) -> Result<Json<VerifyTokenResponse>> {
+    let verify = app_login::verify_signed_token(challenge, token).await?;
+    Ok(Json(VerifyTokenResponse {
+        success: verify.success,
+        message: verify.message,
+    }))
 }
