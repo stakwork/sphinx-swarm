@@ -1,4 +1,6 @@
+use crate::app_login;
 use crate::auth;
+use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
 use crate::events::{get_event_tx, EventChan};
 use crate::logs::{get_log_tx, LogChans, LOGS};
@@ -10,6 +12,7 @@ use rocket::serde::{
     Deserialize, Serialize,
 };
 use rocket::*;
+use sphinx_auther::secp256k1::PublicKey;
 use std::sync::Arc;
 use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 
@@ -30,7 +33,11 @@ pub async fn launch_rocket(
                 refresh_jwt,
                 all_options,
                 update_password,
-                events
+                events,
+                verify_challenge_token,
+                get_challenge,
+                update_admin_pubkey,
+                check_challenge
             ],
         )
         .attach(CORS)
@@ -122,6 +129,27 @@ pub struct LoginResult {
     pub token: String,
 }
 
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct VerifyTokenResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct ChallengeStatusResponse {
+    pub success: bool,
+    pub token: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct GetChallengeResponse {
+    pub success: bool,
+    pub challenge: String,
+}
+
 #[rocket::post("/login", data = "<body>")]
 pub async fn login(
     sender: &State<mpsc::Sender<CmdRequest>>,
@@ -155,6 +183,7 @@ pub struct UpdatePasswordData {
     pub old_pass: String,
     pub password: String,
 }
+
 #[rocket::put("/admin/password", data = "<body>")]
 pub async fn update_password(
     sender: &State<mpsc::Sender<CmdRequest>>,
@@ -205,4 +234,62 @@ pub async fn update_admin(
         return Err(Error::Unauthorized);
     }
     Ok(reply)
+}
+
+#[get("/challenge")]
+pub async fn get_challenge() -> Result<Json<GetChallengeResponse>> {
+    let challenge = app_login::generate_challenge().await;
+    Ok(Json(GetChallengeResponse {
+        success: true,
+        challenge: challenge,
+    }))
+}
+
+#[post("/verify/<challenge>?<token>")]
+pub async fn verify_challenge_token(
+    challenge: &str,
+    token: &str,
+) -> Result<Json<VerifyTokenResponse>> {
+    let verify = app_login::verify_signed_token(challenge, token).await?;
+    Ok(Json(VerifyTokenResponse {
+        success: verify.success,
+        message: verify.message,
+    }))
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdateAdminPubkeyData {
+    pub pubkey: PublicKey,
+}
+
+#[rocket::put("/admin/pubkey", data = "<body>")]
+pub async fn update_admin_pubkey(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    body: Json<UpdateAdminPubkeyData>,
+    claims: auth::AdminJwtClaims,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::UpdateAdminPubkey(UpdateAdminPubkeyInfo {
+        user_id: claims.user,
+        pubkey: body.pubkey.clone(),
+    }));
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+    Ok(reply)
+}
+
+#[get("/poll/<challenge>")]
+pub async fn check_challenge(challenge: &str) -> Result<Json<ChallengeStatusResponse>> {
+    let response = app_login::check_challenge_status(challenge).await?;
+
+    Ok(Json(ChallengeStatusResponse {
+        success: response.success,
+        token: response.token,
+    }))
 }

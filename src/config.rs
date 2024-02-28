@@ -71,6 +71,7 @@ pub struct User {
     pub id: u32,
     pub username: String,
     pub pass_hash: String,
+    pub pubkey: Option<String>,
 }
 
 // optional node, could be external
@@ -129,6 +130,7 @@ impl Default for User {
             id: 1,
             username: username.to_string(),
             pass_hash,
+            pubkey: None,
         }
     }
 }

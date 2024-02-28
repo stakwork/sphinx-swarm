@@ -1,3 +1,4 @@
+pub mod app_login;
 pub mod auth;
 pub mod builder;
 pub mod cmd;

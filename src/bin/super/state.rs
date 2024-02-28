@@ -46,6 +46,7 @@ fn default_superuser() -> User {
         id: 1,
         username: username.to_string(),
         pass_hash,
+        pubkey: None,
     }
 }
 

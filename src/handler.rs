@@ -243,6 +243,24 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let response = crate::conn::boltwall::get_boltwall_accessibility(&boltwall).await?;
                 Some(serde_json::to_string(&response)?)
             }
+
+            SwarmCmd::UpdateAdminPubkey(details) => {
+                match state
+                    .stack
+                    .users
+                    .iter()
+                    .position(|u| u.id == details.user_id)
+                {
+                    Some(ui) => {
+                        state.stack.users[ui].pubkey = Some(details.pubkey.to_string());
+                        must_save_stack = true;
+                        let mut hm = HashMap::new();
+                        hm.insert("success", true);
+                        Some(serde_json::to_string(&hm)?)
+                    }
+                    None => Some("invalid user".to_string()),
+                }
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;
