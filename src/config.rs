@@ -11,7 +11,6 @@ use once_cell::sync::Lazy;
 use rocket::tokio;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
-use sphinx_auther::secp256k1::PublicKey;
 use std::collections::HashMap;
 
 pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
