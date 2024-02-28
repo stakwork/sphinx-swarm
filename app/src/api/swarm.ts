@@ -153,3 +153,9 @@ export async function get_challenge() {
   const result = await r.json();
   return result;
 }
+
+export async function get_challenge_status(challenge) {
+  const r = await fetch(`${root}/poll/${challenge}`);
+  const result = await r.json();
+  return result;
+}

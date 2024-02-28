@@ -3,8 +3,7 @@
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "../api";
   import { root } from "../api/cmd";
-  import { onMount } from "svelte";
-  import { Hospital } from "carbon-icons-svelte";
+  import { onMount, onDestroy } from "svelte";
   // import { saveUserToStore } from "../store";
 
   export let saveUserToStore = (_a: string) => {};
@@ -17,6 +16,7 @@
   $: addDisabled = !username || !password;
 
   let loading = false;
+  let interval;
 
   async function login() {
     try {
@@ -34,10 +34,33 @@
     }
   }
 
+  async function startPolling() {
+    let i = 0;
+    interval = setInterval(async () => {
+      try {
+        const response = await api.swarm.get_challenge_status(challenge);
+        if (response.success) {
+          challenge = "";
+          saveUserToStore(response.token);
+          loading = false;
+          if (interval) clearInterval(interval);
+        }
+        i++;
+        if (i > 100) {
+          loading = false;
+          if (interval) clearInterval(interval);
+        }
+      } catch (e) {
+        loading = false;
+        console.log("Auth interval error", e);
+      }
+    }, 3000);
+  }
+
   async function loginWithSphinx(e) {
     try {
       loading = true;
-      //start polling for result
+      startPolling();
     } catch (error) {
       loading = false;
     }
@@ -56,8 +79,7 @@
     } else if (root.includes("http://")) {
       parsedHost = parsedHost.substring(7);
     }
-    // return `sphinx.chat://?action=auth&host=${root}&challenge=${challenge}&ts=${milliseconds}`;
-    return `tobi-sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
+    return `sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
   }
 
   onMount(async () => {
@@ -66,6 +88,10 @@
       challenge = result.challenge;
       qrString = contructQrString(result.challenge);
     }
+  });
+
+  onDestroy(() => {
+    if (interval) clearInterval(interval);
   });
 </script>
 
