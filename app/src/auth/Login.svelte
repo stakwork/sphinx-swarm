@@ -2,12 +2,16 @@
   import { Button, TextInput, Loading, Form } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "../api";
+  import { root } from "../api/cmd";
+  import { onMount } from "svelte";
   // import { saveUserToStore } from "../store";
 
   export let saveUserToStore = (_a: string) => {};
 
   $: username = "";
   $: password = "";
+  $: qrString = "";
+  $: challenge = "";
 
   $: addDisabled = !username || !password;
 
@@ -28,6 +32,32 @@
       loading = false;
     }
   }
+
+  async function loginWithSphinx(e) {
+    try {
+      loading = true;
+      //start polling for result
+    } catch (error) {
+      loading = false;
+    }
+  }
+
+  function contructQrString(challenge: string) {
+    /**
+     * TODO
+     */
+    //change time to actual seconds from the backend
+    const milliseconds = new Date().getTime();
+    return `sphinx.chat://?action=auth&host=${root}&challenge=${challenge}&ts=${milliseconds}`;
+  }
+
+  onMount(async () => {
+    const result = await api.swarm.get_challenge();
+    if (result) {
+      challenge = result.challenge;
+      qrString = contructQrString(result.challenge);
+    }
+  });
 </script>
 
 <main>
@@ -66,6 +96,11 @@
             ></center
           >
         </Form>
+        <div class="sphinx-login-container">
+          <a href={qrString} class="sphinx-button" on:click={loginWithSphinx}
+            >Login with Sphinx</a
+          >
+        </div>
       </section>
     {/if}
   </div>
@@ -106,5 +141,30 @@
     font-size: 1.25rem;
     font-size: 900;
     margin-bottom: 35px;
+  }
+
+  .sphinx-login-container {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+
+  .sphinx-button {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    border: none;
+    outline: none;
+    font-weight: 500;
+    border-radius: 0.2rem;
+    cursor: pointer;
+    background-color: #618aff;
+    color: white;
+    text-decoration: none;
+  }
+
+  .sphinx-button:hover {
+    background-color: #4d6ecc;
   }
 </style>

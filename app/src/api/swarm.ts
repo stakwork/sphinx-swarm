@@ -147,3 +147,9 @@ export async function update_admin_pubkey(pubkey, token) {
   const result = await r.json();
   return result;
 }
+
+export async function get_challenge() {
+  const r = await fetch(`${root}/challenge`);
+  const result = await r.json();
+  return result;
+}
