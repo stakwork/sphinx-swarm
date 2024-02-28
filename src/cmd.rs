@@ -68,6 +68,12 @@ pub struct AddAdminRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateAdminPubkeyInfo {
+    pub user_id: u32,
+    pub pubkey: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -92,6 +98,7 @@ pub enum SwarmCmd {
     UpdateSwarm,
     UpdateBoltwallAccessibility(bool),
     GetBoltwallAccessibility,
+    UpdateAdminPubkey(UpdateAdminPubkeyInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

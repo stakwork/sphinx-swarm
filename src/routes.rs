@@ -1,5 +1,6 @@
 use crate::app_login;
 use crate::auth;
+use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
 use crate::events::{get_event_tx, EventChan};
 use crate::logs::{get_log_tx, LogChans, LOGS};
@@ -172,6 +173,7 @@ pub struct UpdatePasswordData {
     pub old_pass: String,
     pub password: String,
 }
+
 #[rocket::put("/admin/password", data = "<body>")]
 pub async fn update_password(
     sender: &State<mpsc::Sender<CmdRequest>>,
@@ -243,4 +245,31 @@ pub async fn verify_challenge_token(
         success: verify.success,
         message: verify.message,
     }))
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdateAdminPubkeyData {
+    pub pubkey: String,
+}
+
+#[rocket::put("/admin/pubkey", data = "<body>")]
+pub async fn update_admin_pubkey(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    body: Json<UpdateAdminPubkeyData>,
+    claims: auth::AdminJwtClaims,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::UpdateAdminPubkey(UpdateAdminPubkeyInfo {
+        user_id: claims.user,
+        pubkey: body.pubkey.clone(),
+    }));
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+    Ok(reply)
 }
