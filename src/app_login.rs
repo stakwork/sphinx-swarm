@@ -60,7 +60,7 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
 }
 
 pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> {
-    let details = DETAILS.lock().await;
+    let mut details = DETAILS.lock().await;
     let pubkey = details
         .get(challenge)
         .ok_or(anyhow::anyhow!("challenge doesn't exist"))?;
@@ -73,10 +73,14 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
         .iter()
         .find(|u| u.pubkey == Some(pubkey.to_string()))
     {
-        Some(user) => Ok(ChallengeStatus {
-            success: true,
-            token: auth::make_jwt(user.id)?,
-        }),
+        Some(user) => {
+            //remove successfully verified challenge from hashmap
+            details.remove(challenge);
+            Ok(ChallengeStatus {
+                success: true,
+                token: auth::make_jwt(user.id)?,
+            })
+        }
         None => Ok(ChallengeStatus {
             success: false,
             token: "".to_string(),
