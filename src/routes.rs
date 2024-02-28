@@ -12,6 +12,7 @@ use rocket::serde::{
     Deserialize, Serialize,
 };
 use rocket::*;
+use sphinx_auther::secp256k1::PublicKey;
 use std::sync::Arc;
 use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 
@@ -34,7 +35,8 @@ pub async fn launch_rocket(
                 update_password,
                 events,
                 verify_challenge_token,
-                get_challenge
+                get_challenge,
+                update_admin_pubkey
             ],
         )
         .attach(CORS)
@@ -250,7 +252,7 @@ pub async fn verify_challenge_token(
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct UpdateAdminPubkeyData {
-    pub pubkey: String,
+    pub pubkey: PublicKey,
 }
 
 #[rocket::put("/admin/pubkey", data = "<body>")]

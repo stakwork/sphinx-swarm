@@ -33,8 +33,7 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
     let state = config::STATE.lock().await;
 
     match state.stack.users.iter().find(|u| u.pubkey == Some(pubkey)) {
-        Some(user) => {
-            println!("This is our username{}", user.username);
+        Some(_user) => {
             *detail = true;
             Ok(VerifyResponse {
                 success: true,

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::images::Image;
 use serde::{Deserialize, Serialize};
+use sphinx_auther::secp256k1::PublicKey;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -70,7 +71,7 @@ pub struct AddAdminRequest {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateAdminPubkeyInfo {
     pub user_id: u32,
-    pub pubkey: String,
+    pub pubkey: PublicKey,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
