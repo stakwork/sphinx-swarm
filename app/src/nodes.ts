@@ -177,6 +177,12 @@ const defpos = {
   elastic: [320, 625],
   navfiber: [1150, 475],
   lss: [400, 270],
+  mixer_1: [940, 120],
+  mixer_2: [940, 380],
+  broker_1: [940, 220],
+  broker_2: [940, 480],
+  tribes_1: [1160, 175],
+  tribes_2: [1160, 425],
 };
 
 export const smalls = ["lss", "boltwall", "neo4j", "elastic", "cache", "lss_1"];
