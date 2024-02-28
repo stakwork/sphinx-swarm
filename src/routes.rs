@@ -36,7 +36,8 @@ pub async fn launch_rocket(
                 events,
                 verify_challenge_token,
                 get_challenge,
-                update_admin_pubkey
+                update_admin_pubkey,
+                check_challenge
             ],
         )
         .attach(CORS)
@@ -133,6 +134,13 @@ pub struct LoginResult {
 pub struct VerifyTokenResponse {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct ChallengeStatusResponse {
+    pub success: bool,
+    pub token: String,
 }
 
 #[derive(Serialize)]
@@ -274,4 +282,14 @@ pub async fn update_admin_pubkey(
         return Err(Error::Unauthorized);
     }
     Ok(reply)
+}
+
+#[get("/poll/<challenge>")]
+pub async fn check_challenge(challenge: &str) -> Result<Json<ChallengeStatusResponse>> {
+    let response = app_login::check_challenge_status(challenge).await?;
+
+    Ok(Json(ChallengeStatusResponse {
+        success: response.success,
+        token: response.token,
+    }))
 }

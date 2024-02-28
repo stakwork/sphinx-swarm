@@ -252,7 +252,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     .position(|u| u.id == details.user_id)
                 {
                     Some(ui) => {
-                        state.stack.users[ui].pubkey = Some(details.pubkey);
+                        state.stack.users[ui].pubkey = Some(details.pubkey.to_string());
                         must_save_stack = true;
                         let mut hm = HashMap::new();
                         hm.insert("success", true);

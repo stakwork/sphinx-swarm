@@ -4,6 +4,7 @@
   import * as api from "../api";
   import { root } from "../api/cmd";
   import { onMount } from "svelte";
+  import { Hospital } from "carbon-icons-svelte";
   // import { saveUserToStore } from "../store";
 
   export let saveUserToStore = (_a: string) => {};
@@ -47,8 +48,16 @@
      * TODO
      */
     //change time to actual seconds from the backend
+    // tobi-sphinx.chat
     const milliseconds = new Date().getTime();
-    return `sphinx.chat://?action=auth&host=${root}&challenge=${challenge}&ts=${milliseconds}`;
+    let parsedHost = root;
+    if (root.includes("https://")) {
+      parsedHost = parsedHost.substring(8);
+    } else if (root.includes("http://")) {
+      parsedHost = parsedHost.substring(7);
+    }
+    // return `sphinx.chat://?action=auth&host=${root}&challenge=${challenge}&ts=${milliseconds}`;
+    return `tobi-sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
   }
 
   onMount(async () => {
