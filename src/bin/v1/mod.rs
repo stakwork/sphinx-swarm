@@ -4,7 +4,8 @@ use sphinx_swarm::config::{Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{
-    broker::BrokerImage, btc::BtcImage, cln::ClnImage, mixer::MixerImage, Image,
+    broker::BrokerImage, btc::BtcImage, cln::ClnImage, mixer::MixerImage, tribes::TribesImage,
+    Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::setup::setup_cln_chans;
@@ -26,6 +27,8 @@ const BROKER1: &str = "broker_1";
 const BROKER2: &str = "broker_2";
 const MIXER1: &str = "mixer_1";
 const MIXER2: &str = "mixer_2";
+const TRIBES1: &str = "tribes_1";
+const TRIBES2: &str = "tribes_2";
 const JWT_KEY: &str = "f8int45s0pofgtye";
 
 #[rocket::main]
@@ -110,6 +113,9 @@ fn make_stack() -> Stack {
     mixer1.set_log_level("debug");
     let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
+    let mut tribes1 = TribesImage::new(TRIBES1, v, &network, "8801");
+    tribes1.links(vec![BROKER1]);
+
     // CLN2
     let seed2 = [44; 32];
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
@@ -130,14 +136,19 @@ fn make_stack() -> Stack {
 
     mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
 
+    let mut tribes2 = TribesImage::new(TRIBES2, v, &network, "8802");
+    tribes2.links(vec![BROKER2]);
+
     let nodes = vec![
         Image::Btc(bitcoind),
         Image::Cln(cln1),
         Image::Broker(broker1),
         Image::Mixer(mixer1),
+        Image::Tribes(tribes1),
         Image::Cln(cln2),
         Image::Broker(broker2),
         Image::Mixer(mixer2),
+        Image::Tribes(tribes2),
     ];
 
     let ns: Vec<Node> = nodes.iter().map(|n| Node::Internal(n.to_owned())).collect();
