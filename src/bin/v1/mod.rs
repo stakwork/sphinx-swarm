@@ -23,12 +23,16 @@ use tokio::sync::{mpsc, Mutex};
 const BTC: &str = "btc_1";
 const CLN1: &str = "cln_1";
 const CLN2: &str = "cln_2";
+const CLN3: &str = "cln_3";
 const BROKER1: &str = "broker_1";
 const BROKER2: &str = "broker_2";
+const BROKER3: &str = "broker_3";
 const MIXER1: &str = "mixer_1";
 const MIXER2: &str = "mixer_2";
+const MIXER3: &str = "mixer_3";
 const TRIBES1: &str = "tribes_1";
 const TRIBES2: &str = "tribes_2";
+const TRIBES3: &str = "tribes_3";
 const JWT_KEY: &str = "f8int45s0pofgtye";
 
 #[rocket::main]
@@ -109,7 +113,7 @@ fn make_stack() -> Stack {
     let broker1ip = format!("{}:{}", domain(&broker1.name), &broker1.mqtt_port);
 
     let mut mixer1 = MixerImage::new(MIXER1, v, &network, "8080");
-    mixer1.links(vec![CLN1, BROKER1]);
+    mixer1.links(vec![CLN1, BROKER1, BROKER2]);
     mixer1.set_log_level("debug");
     let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
@@ -131,13 +135,34 @@ fn make_stack() -> Stack {
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");
     mixer2.links(vec![CLN2, BROKER2]);
     mixer2.set_log_level("debug");
-    mixer2.set_initial_peers(&format!("{}@{}", mixer1pk, broker1ip));
     let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
 
-    mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
+    // CLN3
+    let seed3 = [45; 32];
+    let mut cln3 = ClnImage::new(CLN3, v, &network, "9737", "10011");
+    cln3.set_seed(seed3);
+    cln3.plugins(cln_plugins.clone());
+    cln3.links(vec![BTC]);
 
-    let mut tribes2 = TribesImage::new(TRIBES2, v, &network, "8802");
-    tribes2.links(vec![BROKER2]);
+    let mut broker3 = BrokerImage::new(BROKER3, v, &network, "1885", None);
+    broker3.set_seed(&hex::encode(&seed3));
+    broker3.set_logs("login,pubsub");
+    let broker3ip = format!("{}:{}", domain(&broker3.name), &broker3.mqtt_port);
+
+    let mut mixer3 = MixerImage::new(MIXER3, v, &network, "8082");
+    mixer3.links(vec![CLN3, BROKER3, BROKER2]);
+    mixer3.set_log_level("debug");
+    // let mixer3pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
+
+    let mut tribes3 = TribesImage::new(TRIBES3, v, &network, "8803");
+    tribes3.links(vec![BROKER3]);
+
+    // 2 -> 1
+    mixer2.set_initial_peers(&format!("{}@{}", mixer1pk, broker1ip));
+
+    // 1 and 3 -> 2
+    mixer3.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
+    mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
 
     let nodes = vec![
         Image::Btc(bitcoind),
@@ -148,7 +173,7 @@ fn make_stack() -> Stack {
         Image::Cln(cln2),
         Image::Broker(broker2),
         Image::Mixer(mixer2),
-        Image::Tribes(tribes2),
+        Image::Tribes(tribes3),
     ];
 
     let ns: Vec<Node> = nodes.iter().map(|n| Node::Internal(n.to_owned())).collect();
