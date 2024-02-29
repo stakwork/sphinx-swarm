@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rocket::tokio;
-use sphinx_swarm::config::{Node, Stack};
+use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{
@@ -8,7 +8,7 @@ use sphinx_swarm::images::{
     Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
-use sphinx_swarm::setup::setup_cln_chans;
+use sphinx_swarm::setup::{get_pubkey_cln, setup_cln_chans};
 use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
@@ -31,7 +31,7 @@ const MIXER1: &str = "mixer_1";
 const MIXER2: &str = "mixer_2";
 const MIXER3: &str = "mixer_3";
 const TRIBES1: &str = "tribes_1";
-const TRIBES2: &str = "tribes_2";
+// const TRIBES2: &str = "tribes_2";
 const TRIBES3: &str = "tribes_3";
 const JWT_KEY: &str = "f8int45s0pofgtye";
 
@@ -77,7 +77,10 @@ pub async fn main() -> Result<()> {
     }
     if !skip_setup {
         setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
+        setup_cln_chans(&mut clients, &stack.nodes, CLN3, CLN2, BTC).await?;
     }
+
+    try_check_2_hops(&mut clients, CLN1, CLN3).await;
 
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
@@ -86,6 +89,27 @@ pub async fn main() -> Result<()> {
 
     builder::shutdown_now();
 
+    Ok(())
+}
+
+async fn try_check_2_hops(clients: &mut Clients, node1: &str, node3: &str) {
+    for i in 0..200 {
+        let res = check_2_hops(clients, node1, node3).await;
+        if res.is_ok() {
+            return;
+        }
+        log::info!("retrying get_route to CLN3: {}...", i);
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    }
+}
+
+async fn check_2_hops(clients: &mut Clients, node1: &str, node3: &str) -> Result<()> {
+    let cln3_pubkey = get_pubkey_cln(clients, node3).await?;
+    let cln1 = clients.cln.get_mut(node1).unwrap();
+    let res = cln1.get_route(&cln3_pubkey, 1000).await?;
+    if res.route.len() < 2 {
+        return Err(anyhow::anyhow!("no route found"));
+    }
     Ok(())
 }
 
@@ -152,27 +176,35 @@ fn make_stack() -> Stack {
     let mut mixer3 = MixerImage::new(MIXER3, v, &network, "8082");
     mixer3.links(vec![CLN3, BROKER3, BROKER2]);
     mixer3.set_log_level("debug");
-    // let mixer3pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
+    let mixer3pk = "030f5205642b40c64ac5c575f4f365ca90b692f13808b46d827fdb1b6026a3e6c2";
 
     let mut tribes3 = TribesImage::new(TRIBES3, v, &network, "8803");
     tribes3.links(vec![BROKER3]);
 
-    // 2 -> 1
+    // 2 -> 1 and 3
     mixer2.set_initial_peers(&format!("{}@{}", mixer1pk, broker1ip));
+    mixer2.set_initial_peers(&format!("{}@{}", mixer3pk, broker3ip));
 
     // 1 and 3 -> 2
     mixer3.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
     mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
 
     let nodes = vec![
+        // bitcoin
         Image::Btc(bitcoind),
+        // 1
         Image::Cln(cln1),
         Image::Broker(broker1),
         Image::Mixer(mixer1),
         Image::Tribes(tribes1),
+        // 2 (routing)
         Image::Cln(cln2),
         Image::Broker(broker2),
         Image::Mixer(mixer2),
+        // 3
+        Image::Cln(cln3),
+        Image::Broker(broker3),
+        Image::Mixer(mixer3),
         Image::Tribes(tribes3),
     ];
 

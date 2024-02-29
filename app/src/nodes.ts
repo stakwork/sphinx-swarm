@@ -164,6 +164,7 @@ const defpos = {
   lss_1: [500, 120],
   cln_1: [680, 160],
   cln_2: [680, 280],
+  cln_3: [680, 400],
   lnd_1: [650, 420],
   proxy: [850, 140],
   relay: [1150, 375],
@@ -179,10 +180,13 @@ const defpos = {
   lss: [400, 270],
   mixer_1: [940, 120],
   mixer_2: [940, 380],
+  mixer_3: [940, 640],
   broker_1: [940, 220],
   broker_2: [940, 480],
+  broker_3: [940, 740],
   tribes_1: [1160, 175],
   tribes_2: [1160, 425],
+  tribes_3: [1160, 675],
 };
 
 export const smalls = ["lss", "boltwall", "neo4j", "elastic", "cache", "lss_1"];

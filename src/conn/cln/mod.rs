@@ -297,6 +297,17 @@ impl ClnRPC {
             }
         }
     }
+
+    pub async fn get_route(&mut self, dest: &str, amt_msat: u64) -> Result<pb::GetrouteResponse> {
+        let req = pb::GetrouteRequest {
+            id: hex::decode(dest)?,
+            amount_msat: Some(pb::Amount { msat: amt_msat }),
+            riskfactor: 10,
+            ..Default::default()
+        };
+        let response = self.client.get_route(req).await?;
+        Ok(response.into_inner())
+    }
 }
 
 fn amount_or_any(msat: u64) -> Option<pb::AmountOrAny> {
