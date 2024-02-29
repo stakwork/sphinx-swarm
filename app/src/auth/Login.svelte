@@ -74,7 +74,9 @@
     // tobi-sphinx.chat
     const milliseconds = new Date().getTime();
     let parsedHost = root;
-    if (root.includes("https://")) {
+    if (root === "/api") {
+      parsedHost = `${window.location.host}${root}`;
+    } else if (root.includes("https://")) {
       parsedHost = parsedHost.substring(8);
     } else if (root.includes("http://")) {
       parsedHost = parsedHost.substring(7);
