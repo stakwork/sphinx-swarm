@@ -148,7 +148,8 @@ fn make_stack() -> Stack {
     let seed2 = [44; 32];
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
     cln2.set_seed(seed2);
-    cln2.plugins(cln_plugins.clone());
+    // NO HTLC INTERCEPTOR FOR ROUTING NODE
+    // cln2.plugins(cln_plugins.clone());
     cln2.links(vec![BTC]);
 
     let mut broker2 = BrokerImage::new(BROKER2, v, &network, "1884", None);
@@ -159,6 +160,8 @@ fn make_stack() -> Stack {
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");
     mixer2.links(vec![CLN2, BROKER2]);
     mixer2.set_log_level("debug");
+    // NO GRPC WITH CLN OR GATEWAY NEEDED FOR ROUTING NODE
+    mixer2.set_no_lightning();
     let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
 
     // CLN3
@@ -182,8 +185,10 @@ fn make_stack() -> Stack {
     tribes3.links(vec![BROKER3]);
 
     // 2 -> 1 and 3
-    mixer2.set_initial_peers(&format!("{}@{}", mixer1pk, broker1ip));
-    mixer2.set_initial_peers(&format!("{}@{}", mixer3pk, broker3ip));
+    mixer2.set_initial_peers(&format!(
+        "{}@{},{}@{}",
+        mixer1pk, broker1ip, mixer3pk, broker3ip
+    ));
 
     // 1 and 3 -> 2
     mixer3.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
