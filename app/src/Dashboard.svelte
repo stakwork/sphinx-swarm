@@ -179,10 +179,10 @@
     height: 4.2rem;
     min-height: 4.2rem;
     display: flex;
-    background: #1a242e;
+    background: #23252f;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #101317;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
   }
   .logo-wrap {
