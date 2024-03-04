@@ -1,11 +1,5 @@
 <script>
-  import {
-    Tabs,
-    Tab,
-    TabContent,
-    Toggle,
-    InlineNotification,
-  } from "carbon-components-svelte";
+  import { InlineNotification } from "carbon-components-svelte";
   import { onMount } from "svelte";
   import SetupAdmin from "./components/NavFiberAdmin.svelte";
   import EnpointPermission from "./components/EnpointPermission.svelte";
@@ -27,6 +21,7 @@
   $: message = "";
   $: success = false;
   $: firstTime = false;
+  $: currentTab = "General";
 
   async function toggleGraphStatus(state) {
     if (firstTime) {
@@ -39,6 +34,12 @@
     success = parsedResult.success;
     show_notification = true;
     disabled = false;
+  }
+
+  const tabs = ["General", "Roles", "Payments"];
+
+  function setActiveTab(tab) {
+    currentTab = tab;
   }
 
   onMount(async () => {
@@ -86,7 +87,7 @@
       </div></a
     >
   </div>
-  <div>
+  <!-- <div>
     <Toggle
       labelText="Toggle Graph Accesibility"
       labelA="Private"
@@ -95,28 +96,35 @@
       on:toggle={(e) => toggleGraphStatus(e.detail)}
       {disabled}
     />
-  </div>
+  </div> -->
   <div class="tab-container">
-    <Tabs>
-      <Tab label="Setup Admin"></Tab>
-      <Tab label="Endpoint Permissions"></Tab>
-      <svelte:fragment slot="content">
-        <TabContent>
-          <SetupAdmin></SetupAdmin>
-        </TabContent>
-        <TabContent>
-          <EnpointPermission />
-        </TabContent>
-      </svelte:fragment>
-    </Tabs>
+    <div class="tab-header">
+      {#each tabs as tab (tab)}
+        <button
+          class="tab_button"
+          style={`${tab === currentTab ? "color: white; border-bottom: 0.125rem solid #618AFF;" : "color: #909BAA;"}`}
+          on:click={() => setActiveTab(tab)}
+        >
+          {tab}
+        </button>
+      {/each}
+    </div>
+    <div class="tab-content">
+      {#if currentTab === "General"}
+        <h1>General</h1>
+      {:else if currentTab === "Roles"}
+        <SetupAdmin />
+      {:else}
+        <EnpointPermission />
+      {/if}
+    </div>
   </div>
 </div>
 
 <style>
   .tab-container {
-    margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   .heading_container {
@@ -169,5 +177,36 @@
   .link_image {
     width: 1.25rem;
     height: 1.25rem;
+  }
+
+  .tab-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 3.5rem;
+    background-color: #1c1e26;
+    padding-left: 2.25rem;
+    padding-right: 2.25rem;
+  }
+
+  .tab_button {
+    color: #fff;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    padding-bottom: 0.75rem;
+    cursor: pointer;
+    text-transform: capitalize;
+    background-color: transparent;
+    border: none;
+    outline: none;
+  }
+
+  .tab-content {
+    display: flex;
+    flex-direction: column;
+    padding-left: 2.25rem;
+    padding-right: 2.25rem;
   }
 </style>
