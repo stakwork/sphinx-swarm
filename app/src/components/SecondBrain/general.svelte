@@ -1,4 +1,10 @@
 <script lang="ts">
+  import {
+    get_graph_accessibility,
+    update_graph_accessibility,
+  } from "../../api/swarm";
+  import { onMount } from "svelte";
+
   $: isChange = false;
   $: isLoading = false;
   $: state = {
@@ -7,7 +13,10 @@
       value: true,
       method: async () => test(),
     },
-    public: { value: true, method: async () => test() },
+    public: {
+      value: true,
+      method: async (value: boolean) => toggleGraphStatus(value),
+    },
   };
 
   $: changedState = {
@@ -66,6 +75,33 @@
     //change the global value of isChange
     checkChangeState();
   }
+
+  async function toggleGraphStatus(value: boolean) {
+    const result = await update_graph_accessibility(value);
+    const parsedResult = JSON.parse(result);
+
+    return { success: parsedResult.success, message: parsedResult.message };
+  }
+
+  //update graph name
+
+  //update trending topics
+
+  // TODO!!
+  // Handle on mount to update state from boltwall
+  // handle sending all change to the backend
+  onMount(async () => {
+    // get about details
+    // get trendingTopics feature flag state
+
+    // get public graph status
+    const result = await get_graph_accessibility();
+    const parsedResult = JSON.parse(result);
+    console.log(parsedResult);
+
+    //update state
+    //update changedState
+  });
 </script>
 
 <div class="container">
