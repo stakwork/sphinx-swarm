@@ -131,9 +131,6 @@
     }
   }
 
-  // TODO!!
-  // Handle on mount to update state from boltwall
-  // handle sending all change to the backend
   onMount(async () => {
     // get about details
     const aboutResult = await get_second_brain_about_details();
