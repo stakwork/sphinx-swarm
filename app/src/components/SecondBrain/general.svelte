@@ -2,6 +2,8 @@
   import {
     get_graph_accessibility,
     update_graph_accessibility,
+    get_second_brain_about_details,
+    get_feature_flag,
   } from "../../api/swarm";
   import { onMount } from "svelte";
 
@@ -18,6 +20,7 @@
       method: async (value: boolean) => toggleGraphStatus(value),
     },
   };
+  $: about = {};
 
   $: changedState = {
     graph_name: { value: "", isChange: false },
@@ -92,15 +95,40 @@
   // handle sending all change to the backend
   onMount(async () => {
     // get about details
+    const aboutResult = await get_second_brain_about_details();
+    const parsedAbout = await JSON.parse(aboutResult);
+    about = { ...parsedAbout };
+
     // get trendingTopics feature flag state
+    const featureFlagResult = await get_feature_flag();
+    const parsedFeatureFlag = JSON.parse(featureFlagResult);
 
     // get public graph status
     const result = await get_graph_accessibility();
     const parsedResult = JSON.parse(result);
-    console.log(parsedResult);
 
     //update state
+    state = {
+      public: {
+        value: parsedResult.data.isPublic,
+        method: async (value: boolean) => toggleGraphStatus(value),
+      },
+      graph_name: { value: parsedAbout.title, method: async () => test() },
+      trendingTopics: {
+        value: parsedFeatureFlag.data.trendingTopics,
+        method: async () => test(),
+      },
+    };
+
     //update changedState
+    changedState = {
+      public: { value: parsedResult.data.isPublic, isChange: false },
+      graph_name: { value: parsedAbout.title, isChange: false },
+      trendingTopis: {
+        value: parsedFeatureFlag.data.trendingTopics,
+        isChange: false,
+      },
+    };
   });
 </script>
 

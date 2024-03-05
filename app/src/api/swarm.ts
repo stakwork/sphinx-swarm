@@ -93,6 +93,14 @@ export async function get_graph_accessibility() {
   return await swarmCmd("GetBoltwallAccessibility");
 }
 
+export async function get_second_brain_about_details() {
+  return await swarmCmd("GetSecondBrainAboutDetails");
+}
+
+export async function get_feature_flag() {
+  return await swarmCmd("GetFeatureFlags");
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",
