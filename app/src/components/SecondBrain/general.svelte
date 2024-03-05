@@ -2,16 +2,70 @@
   $: isChange = false;
   $: isLoading = false;
   $: state = {
-    graph_name: { value: "", method: async () => test(), isChange: false },
+    graph_name: { value: "", method: async () => test() },
     trendingTopics: {
       value: true,
       method: async () => test(),
-      isChange: false,
     },
-    public: { value: true, method: async () => test(), isChange: false },
+    public: { value: true, method: async () => test() },
+  };
+
+  $: changedState = {
+    graph_name: { value: "", isChange: false },
+    trendingTopis: { value: true, isChange: false },
+    public: { value: true, isChange: false },
   };
 
   function test() {}
+  function handleCheckBoxChange(e, value) {
+    const checked = e.target.checked;
+    if (checked !== state[value].value) {
+      changedState = {
+        ...changedState,
+        [value]: { value: checked, isChange: true },
+      };
+    } else if (checked === state[value].value) {
+      changedState = {
+        ...changedState,
+        [value]: { value: checked, isChange: false },
+      };
+    }
+
+    //assume nothing changed and check
+    isChange = false;
+
+    //change the global value of isChange
+    checkChangeState();
+  }
+
+  function checkChangeState() {
+    for (let key in changedState) {
+      if (changedState[key].isChange) {
+        isChange = true;
+      }
+    }
+  }
+
+  function handleInputChange(e) {
+    const inputValue = e.target.value;
+    if (inputValue !== state.graph_name.value) {
+      changedState = {
+        ...changedState,
+        graph_name: { value: inputValue, isChange: true },
+      };
+    } else if (inputValue === state.graph_name.value) {
+      changedState = {
+        ...changedState,
+        graph_name: { value: inputValue, isChange: false },
+      };
+    }
+
+    //assume nothing changed and check
+    isChange = false;
+
+    //change the global value of isChange
+    checkChangeState();
+  }
 </script>
 
 <div class="container">
@@ -21,7 +75,7 @@
       {#if isLoading === false && isChange === true}
         <button class="discard-button">Discard</button>
       {/if}
-      <button disabled={false} class="save-button">
+      <button disabled={!isChange} class="save-button">
         {#if isLoading === true}
           <div class="loading-spinner"></div>
         {:else}
@@ -33,11 +87,22 @@
   <div class="content">
     <div class="about-container">
       <label class="graph-label" for="graph-title">Graph Title</label>
-      <input id="graph-title" type="text" class="graph-input" />
+      <input
+        id="graph-title"
+        type="text"
+        class="graph-input"
+        bind:value={changedState.graph_name.value}
+        on:input={handleInputChange}
+      />
     </div>
     <div class="checkbox-content">
       <div class="checkbox-container">
-        <input type="checkbox" class="checkbox" />
+        <input
+          type="checkbox"
+          class="checkbox"
+          on:click={(e) => handleCheckBoxChange(e, "public")}
+          checked={changedState.public.value}
+        />
         <div class="checkout-label-container">
           <h4 class="checkout-label">Public</h4>
           <p class="checkout-label-description">
@@ -46,7 +111,12 @@
         </div>
       </div>
       <div class="checkbox-container">
-        <input type="checkbox" class="checkbox" />
+        <input
+          type="checkbox"
+          class="checkbox"
+          on:click={(e) => handleCheckBoxChange(e, "trendingTopics")}
+          checked={changedState.trendingTopis.value}
+        />
         <div class="checkout-label-container">
           <h4 class="checkout-label">Trending Topics</h4>
           <p class="checkout-label-description">
