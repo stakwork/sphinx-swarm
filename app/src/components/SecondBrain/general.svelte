@@ -4,16 +4,21 @@
     update_graph_accessibility,
     get_second_brain_about_details,
     get_feature_flag,
+    update_second_brain_about,
+    update_feature_flags,
   } from "../../api/swarm";
   import { onMount } from "svelte";
 
   $: isChange = false;
   $: isLoading = false;
   $: state = {
-    graph_name: { value: "", method: async () => test() },
+    graph_name: {
+      value: "",
+      method: async (title: string) => updateGraphDetails(title),
+    },
     trendingTopics: {
       value: true,
-      method: async () => test(),
+      method: async (value: boolean) => updateTrendingTopic(value),
     },
     public: {
       value: true,
@@ -21,6 +26,7 @@
     },
   };
   $: about = {};
+  $: isSuccess = false;
 
   $: changedState = {
     graph_name: { value: "", isChange: false },
@@ -28,7 +34,6 @@
     public: { value: true, isChange: false },
   };
 
-  function test() {}
   function handleCheckBoxChange(e, value) {
     const checked = e.target.checked;
     if (checked !== state[value].value) {
@@ -87,8 +92,44 @@
   }
 
   //update graph name
+  async function updateGraphDetails(title: string) {
+    return await update_second_brain_about({ ...about, title });
+  }
 
   //update trending topics
+  async function updateTrendingTopic(value) {
+    return await update_feature_flags({ trendingTopics: value });
+  }
+
+  async function handleSaveChanges() {
+    isLoading = true;
+    try {
+      for (let key in changedState) {
+        if (changedState[key].isChange) {
+          const response = await state[key].method(changedState[key].value);
+
+          //update state
+          const newObj = { ...state[key], value: changedState[key].value };
+          state = { ...state, [key]: { ...newObj } };
+          changedState = {
+            ...changedState,
+            [key]: { value: changedState[key].value, isChange: false },
+          };
+        }
+      }
+
+      //handle success state
+      isSuccess = true;
+      isLoading = false;
+      isChange = false;
+
+      setTimeout(() => {
+        isSuccess = false;
+      }, 5000);
+    } catch (error) {
+      isLoading = false;
+    }
+  }
 
   // TODO!!
   // Handle on mount to update state from boltwall
@@ -113,10 +154,13 @@
         value: parsedResult.data.isPublic,
         method: async (value: boolean) => toggleGraphStatus(value),
       },
-      graph_name: { value: parsedAbout.title, method: async () => test() },
+      graph_name: {
+        value: parsedAbout.title,
+        method: async (title: string) => updateGraphDetails(title),
+      },
       trendingTopics: {
         value: parsedFeatureFlag.data.trendingTopics,
-        method: async () => test(),
+        method: async (value: boolean) => updateTrendingTopic(value),
       },
     };
 
@@ -136,16 +180,28 @@
   <div class="header">
     <h2 class="title">General</h2>
     <div class="button-container">
-      {#if isLoading === false && isChange === true}
+      {#if isLoading === false && isChange === true && isSuccess === false}
         <button class="discard-button">Discard</button>
       {/if}
-      <button disabled={!isChange} class="save-button">
-        {#if isLoading === true}
-          <div class="loading-spinner"></div>
-        {:else}
-          Save Changes
-        {/if}
-      </button>
+      {#if isSuccess === false}
+        <button
+          disabled={!isChange}
+          class="save-button"
+          on:click={handleSaveChanges}
+        >
+          {#if isLoading === true}
+            <div class="loading-spinner"></div>
+          {:else}
+            Save Changes
+          {/if}
+        </button>
+      {/if}
+      {#if isSuccess === true}
+        <div class="success_container">
+          <img src="swarm/check_circle.svg" alt="success" class="" />
+          <p class="success_text">Changes Saved</p>
+        </div>
+      {/if}
     </div>
   </div>
   <div class="content">
@@ -266,7 +322,8 @@
 
   .save-button:disabled {
     background: rgba(48, 51, 66, 0.5);
-    color: #23252f;
+    /* color: #23252f; */
+    color: #52566e;
     cursor: not-allowed;
   }
 
@@ -286,6 +343,23 @@
     100% {
       transform: rotate(360deg);
     }
+  }
+
+  .success_container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 1rem;
+  }
+
+  .success_text {
+    color: #49c998;
+    font-family: "Roboto";
+    font-size: 0.8125rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1rem; /* 123.077% */
+    letter-spacing: 0.00813rem;
   }
 
   .content {
@@ -344,6 +418,7 @@
   .checkbox {
     width: 0.9375rem;
     height: 0.9375rem;
+    margin: 0;
   }
 
   .checkout-label-container {

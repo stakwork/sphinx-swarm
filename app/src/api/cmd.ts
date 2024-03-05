@@ -69,7 +69,9 @@ export type Cmd =
   | "UpdateBoltwallAccessibility"
   | "GetBoltwallAccessibility"
   | "GetSecondBrainAboutDetails"
-  | "GetFeatureFlags";
+  | "GetFeatureFlags"
+  | "UpdateSecondBrainAbout"
+  | "UpdateFeatureFlags";
 
 interface CmdData {
   cmd: Cmd;
