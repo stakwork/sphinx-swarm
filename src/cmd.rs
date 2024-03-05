@@ -100,6 +100,8 @@ pub enum SwarmCmd {
     UpdateBoltwallAccessibility(bool),
     GetBoltwallAccessibility,
     UpdateAdminPubkey(UpdateAdminPubkeyInfo),
+    GetFeatureFlags,
+    GetSecondBrainAboutDetails,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

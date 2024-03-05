@@ -252,3 +252,43 @@ pub async fn get_boltwall_accessibility(img: &BoltwallImage) -> Result<String> {
 
     Ok(response_text)
 }
+
+pub async fn get_feature_flags(img: &BoltwallImage) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build boltwall reqwest client");
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/featureFlags", host, img.port);
+
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
+
+pub async fn get_second_brain_about_details(img: &BoltwallImage) -> Result<String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build boltwall reqwest client");
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/about", host, img.port);
+
+    let response = client.get(route.as_str()).send().await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
