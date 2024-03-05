@@ -75,6 +75,15 @@ pub struct UpdateAdminPubkeyInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSecondBrainAboutRequest {
+    pub app_version: String,
+    pub description: String,
+    pub mission_statement: String,
+    pub search_term: String,
+    pub title: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -102,6 +111,8 @@ pub enum SwarmCmd {
     UpdateAdminPubkey(UpdateAdminPubkeyInfo),
     GetFeatureFlags,
     GetSecondBrainAboutDetails,
+    UpdateSecondBrainAbout(UpdateSecondBrainAboutRequest),
+    UpdateFeatureFlags(HashMap<String, bool>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
