@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import SetupAdmin from "./components/NavFiberAdmin.svelte";
   import EnpointPermission from "./components/EnpointPermission.svelte";
+  import General from "./components/SecondBrain/general.svelte";
   import {
     update_graph_accessibility,
     get_graph_accessibility,
@@ -111,7 +112,7 @@
     </div>
     <div class="tab-content">
       {#if currentTab === "General"}
-        <h1>General</h1>
+        <General />
       {:else if currentTab === "Roles"}
         <SetupAdmin />
       {:else}
