@@ -1,10 +1,34 @@
 <script lang="ts">
+  $: isChange = false;
+  $: isLoading = false;
+  $: state = {
+    graph_name: { value: "", method: async () => test(), isChange: false },
+    trendingTopics: {
+      value: true,
+      method: async () => test(),
+      isChange: false,
+    },
+    public: { value: true, method: async () => test(), isChange: false },
+  };
+
+  function test() {}
 </script>
 
 <div class="container">
   <div class="header">
     <h2 class="title">General</h2>
-    <button disabled={true} class="save-button">Save Changes</button>
+    <div class="button-container">
+      {#if isLoading === false && isChange === true}
+        <button class="discard-button">Discard</button>
+      {/if}
+      <button disabled={false} class="save-button">
+        {#if isLoading === true}
+          <div class="loading-spinner"></div>
+        {:else}
+          Save Changes
+        {/if}
+      </button>
+    </div>
   </div>
   <div class="content">
     <div class="about-container">
@@ -57,12 +81,41 @@
     letter-spacing: 0.01125rem;
   }
 
-  .save-button {
+  .button-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .discard-button {
+    display: flex;
+    height: 2rem;
+    padding: 0.75rem 1rem;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
     border-radius: 0.375rem;
-    background: rgba(48, 51, 66, 0.5);
+    border: 1px solid rgba(107, 122, 141, 0.5);
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.8125rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 1.1875rem; /* 146.154% */
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .save-button {
+    display: flex;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
     padding: 0.75rem;
     gap: 0.375rem;
-    color: #23252f;
     text-align: center;
     font-family: "Barlow";
     font-size: 0.8125rem;
@@ -71,6 +124,34 @@
     line-height: 1.1875rem; /* 146.154% */
     border: none;
     outline: none;
+    background: #2fbe88;
+    color: #fff;
+    width: 6.5rem;
+    cursor: pointer;
+  }
+
+  .save-button:disabled {
+    background: rgba(48, 51, 66, 0.5);
+    color: #23252f;
+    cursor: not-allowed;
+  }
+
+  .loading-spinner {
+    border: 2px solid #f3f3f3; /* Light grey */
+    border-top: 2px solid #2fbe88; /* Blue */
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .content {
