@@ -30,7 +30,7 @@
 
   $: changedState = {
     graph_name: { value: "", isChange: false },
-    trendingTopis: { value: true, isChange: false },
+    trendingTopics: { value: true, isChange: false },
     public: { value: true, isChange: false },
   };
 
@@ -56,7 +56,7 @@
   }
 
   function checkChangeState() {
-    for (let key in changedState) {
+    for (let key in { ...changedState }) {
       if (changedState[key].isChange) {
         isChange = true;
       }
@@ -101,12 +101,23 @@
     return await update_feature_flags({ trendingTopics: value });
   }
 
+  async function discardButtonHandler() {
+    for (let key in { ...changedState }) {
+      changedState = {
+        ...changedState,
+        [key]: { value: state[key].value, isChange: false },
+      };
+    }
+
+    isChange = false;
+  }
+
   async function handleSaveChanges() {
     isLoading = true;
     try {
-      for (let key in changedState) {
+      for (let key in { ...changedState }) {
         if (changedState[key].isChange) {
-          const response = await state[key].method(changedState[key].value);
+          await state[key].method(changedState[key].value);
 
           //update state
           const newObj = { ...state[key], value: changedState[key].value };
@@ -165,7 +176,7 @@
     changedState = {
       public: { value: parsedResult.data.isPublic, isChange: false },
       graph_name: { value: parsedAbout.title, isChange: false },
-      trendingTopis: {
+      trendingTopics: {
         value: parsedFeatureFlag.data.trendingTopics,
         isChange: false,
       },
@@ -178,7 +189,9 @@
     <h2 class="title">General</h2>
     <div class="button-container">
       {#if isLoading === false && isChange === true && isSuccess === false}
-        <button class="discard-button">Discard</button>
+        <button class="discard-button" on:click={discardButtonHandler}
+          >Discard</button
+        >
       {/if}
       {#if isSuccess === false}
         <button
@@ -232,7 +245,7 @@
           type="checkbox"
           class="checkbox"
           on:click={(e) => handleCheckBoxChange(e, "trendingTopics")}
-          checked={changedState.trendingTopis.value}
+          checked={changedState.trendingTopics.value}
         />
         <div class="checkout-label-container">
           <h4 class="checkout-label">Trending Topics</h4>
