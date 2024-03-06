@@ -55,24 +55,26 @@
       </button>
     </section>
 
-    <header>
-      <img
-        src={`swarm/${type.toLowerCase()}.png`}
-        class="node-top-img"
-        alt="node "
-      />
-      {$selectedNode.name}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      {#if hasHsmd}
-        <div
-          class="hsmd-wrap"
-          style={`opacity:${hsmdConnected ? 1 : 0.2}`}
-          on:click={openHsmdUI}
-        >
-          {@html chipSVG}
-        </div>
-      {/if}
-    </header>
+    {#if $selectedNode.name !== "navfiber"}
+      <header>
+        <img
+          src={`swarm/${type.toLowerCase()}.png`}
+          class="node-top-img"
+          alt="node "
+        />
+        {$selectedNode.name}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        {#if hasHsmd}
+          <div
+            class="hsmd-wrap"
+            style={`opacity:${hsmdConnected ? 1 : 0.2}`}
+            on:click={openHsmdUI}
+          >
+            {@html chipSVG}
+          </div>
+        {/if}
+      </header>
+    {/if}
     <div class="ctrls">
       {#if type === "Relay"}
         <RelayControls {tag} />
@@ -119,7 +121,7 @@
     position: fixed;
     right: 0rem;
     top: 4.14rem;
-    background: #1a242e;
+    background: #23252f;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.35);
     animation-name: sidebar;
     animation-duration: 40ms;
@@ -167,7 +169,9 @@
     border: 0;
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
-    box-shadow: 0 4px 8px 0 #1a242e, 0 6px 20px 0 #1a242e;
+    box-shadow:
+      0 4px 8px 0 #1a242e,
+      0 6px 20px 0 #1a242e;
     cursor: pointer;
     box-shadow: none;
   }

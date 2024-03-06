@@ -261,6 +261,36 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                     None => Some("invalid user".to_string()),
                 }
             }
+
+            SwarmCmd::GetFeatureFlags => {
+                log::info!("Get Boltwall Feature Flags ===>");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = crate::conn::boltwall::get_feature_flags(&boltwall).await?;
+                Some(serde_json::to_string(&response)?)
+            }
+
+            SwarmCmd::GetSecondBrainAboutDetails => {
+                log::info!("Get Second Brain About Details ===>");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response =
+                    crate::conn::boltwall::get_second_brain_about_details(&boltwall).await?;
+                Some(serde_json::to_string(&response)?)
+            }
+
+            SwarmCmd::UpdateSecondBrainAbout(about) => {
+                log::info!("Update Second Brain Title: {:?}", about.title);
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response =
+                    crate::conn::boltwall::update_second_brain_about(&boltwall, about).await?;
+                Some(serde_json::to_string(&response)?)
+            }
+
+            SwarmCmd::UpdateFeatureFlags(body) => {
+                log::info!("Update Feature Flags ===> {:?}", body);
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = crate::conn::boltwall::update_feature_flags(&boltwall, body).await?;
+                Some(serde_json::to_string(&response)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

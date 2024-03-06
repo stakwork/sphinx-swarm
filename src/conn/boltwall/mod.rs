@@ -1,8 +1,8 @@
-use crate::images::boltwall::BoltwallImage;
 use crate::utils::docker_domain;
+use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetAdminPubkeyBody {
@@ -29,14 +29,18 @@ pub struct UpdateBoltwallAccessibility {
     is_public: bool,
 }
 
-pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str, name: &str) -> Result<String> {
-    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
-
-    let client = reqwest::Client::builder()
+fn make_client() -> reqwest::Client {
+    reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
         .danger_accept_invalid_certs(true)
         .build()
-        .expect("couldnt build boltwall reqwest client");
+        .expect("couldnt build boltwall reqwest client")
+}
+
+pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str, name: &str) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/set_admin_pubkey", host, img.port);
@@ -60,12 +64,7 @@ pub async fn add_admin_pubkey(img: &BoltwallImage, pubkey: &str, name: &str) -> 
 pub async fn get_super_admin(img: &BoltwallImage) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
-
+    let client = make_client();
     let host = docker_domain(&img.name);
     let route = format!("http://{}:{}/super_admin", host, img.port);
 
@@ -88,11 +87,7 @@ pub async fn add_user(
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/set_user_role", host, img.port);
@@ -117,11 +112,7 @@ pub async fn add_user(
 pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/admins", host, img.port);
@@ -140,11 +131,7 @@ pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
 pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/user/{}", host, img.port, pubkey);
@@ -163,11 +150,7 @@ pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<Strin
 pub async fn list_paid_endpoint(img: &BoltwallImage) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/endpointsList", host, img.port);
@@ -186,11 +169,7 @@ pub async fn list_paid_endpoint(img: &BoltwallImage) -> Result<String> {
 pub async fn update_paid_endpoint(img: &BoltwallImage, id: u64, status: bool) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/updateEndpointStatus", host, img.port);
@@ -214,11 +193,7 @@ pub async fn update_paid_endpoint(img: &BoltwallImage, id: u64, status: bool) ->
 pub async fn update_boltwall_accessibility(img: &BoltwallImage, is_public: bool) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/setPublicPrivate", host, img.port);
@@ -237,16 +212,89 @@ pub async fn update_boltwall_accessibility(img: &BoltwallImage, is_public: bool)
 }
 
 pub async fn get_boltwall_accessibility(img: &BoltwallImage) -> Result<String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("couldnt build boltwall reqwest client");
+    let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/getPublicPrivate", host, img.port);
 
     let response = client.get(route.as_str()).send().await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
+
+pub async fn get_feature_flags(img: &BoltwallImage) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = make_client();
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/featureFlags", host, img.port);
+
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
+
+pub async fn get_second_brain_about_details(img: &BoltwallImage) -> Result<String> {
+    let client = make_client();
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/about", host, img.port);
+
+    let response = client.get(route.as_str()).send().await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
+pub async fn update_feature_flags(
+    img: &BoltwallImage,
+    body: HashMap<String, bool>,
+) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = make_client();
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/featureFlags", host, img.port);
+
+    let response = client
+        .post(route.as_str())
+        .header("x-admin-token", admin_token)
+        .json(&body)
+        .send()
+        .await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}
+
+pub async fn update_second_brain_about(
+    img: &BoltwallImage,
+    body: UpdateSecondBrainAboutRequest,
+) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = make_client();
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/about", host, img.port);
+
+    let response = client
+        .post(route.as_str())
+        .header("x-admin-token", admin_token)
+        .json(&body)
+        .send()
+        .await?;
 
     let response_text = response.text().await?;
 
