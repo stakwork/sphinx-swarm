@@ -30,6 +30,6 @@
 
 <style>
   .endpoint-permission-container {
-    padding: 2rem 1.5rem;
+    padding-top: 1.5rem;
   }
 </style>

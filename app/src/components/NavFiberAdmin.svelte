@@ -245,9 +245,6 @@
 </div>
 
 <style>
-  .nav-wrapper {
-    padding: 0px 25px;
-  }
   .super-admin-container {
     display: flex;
     flex-direction: column;
