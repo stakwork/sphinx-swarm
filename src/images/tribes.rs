@@ -19,6 +19,7 @@ pub struct TribesImage {
     pub tribes_host: Option<String>, // for testing
     pub links: Links,
     pub log_level: Option<String>,
+    pub initial_routing_nodes: Option<String>, // fetch nodes at first
 }
 
 impl TribesImage {
@@ -32,6 +33,7 @@ impl TribesImage {
             host: None,
             tribes_host: getenv("TRIBES_HOST").ok(),
             log_level: None,
+            initial_routing_nodes: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -44,6 +46,9 @@ impl TribesImage {
     }
     pub fn set_log_level(&mut self, log_level: &str) {
         self.log_level = Some(log_level.to_string())
+    }
+    pub fn set_initial_routing_nodes(&mut self, irns: &str) {
+        self.initial_routing_nodes = Some(irns.to_string())
     }
 }
 
@@ -89,6 +94,10 @@ fn tribes(img: &TribesImage, broker: &BrokerImage) -> Result<Config<String>> {
 
     if let Some(ll) = &img.log_level {
         env.push(format!("RUST_LOG={}", ll));
+    }
+
+    if let Some(irns) = &img.initial_routing_nodes {
+        env.push(format!("INITIAL_ROUTING_NODES={}", irns));
     }
 
     let mut c = Config {
