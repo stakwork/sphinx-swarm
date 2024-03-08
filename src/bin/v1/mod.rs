@@ -138,6 +138,9 @@ fn make_stack() -> Stack {
 
     let mut mixer1 = MixerImage::new(MIXER1, v, &network, "8080");
     mixer1.links(vec![CLN1, BROKER1, BROKER2]);
+    mixer1.set_default_tribe_server(
+        "0374b91a4c726f0c097a2643f63983491d5afabdc9bdd8576096e2b5580107bf03",
+    );
     mixer1.set_log_level("debug");
     let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
@@ -178,6 +181,9 @@ fn make_stack() -> Stack {
 
     let mut mixer3 = MixerImage::new(MIXER3, v, &network, "8082");
     mixer3.links(vec![CLN3, BROKER3, BROKER2]);
+    mixer3.set_default_tribe_server(
+        "038d3c5f8392dd91e7a7289e92ee6cb6ded5db6dbfd06c8c6fb8b42fe511672627",
+    );
     mixer3.set_log_level("debug");
     let mixer3pk = "030f5205642b40c64ac5c575f4f365ca90b692f13808b46d827fdb1b6026a3e6c2";
 
