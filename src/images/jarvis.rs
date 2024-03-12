@@ -63,7 +63,15 @@ fn jarvis(
     let img = format!("{}/{}", repo.org, repo.repo);
     let root_vol = "/data/jarvis";
     let ports = vec![node.port.clone()];
+    let neo4jName = &neo4j.name
+    let neo4jBoltPort = &neo4j.bolt_port
 
+    if let Ok(neo4jNameVal) = getenv("JARVIS_NEO4J_NAME") {
+        neo4jName = neo4jNameVal
+    }
+    if let Ok(neo4jBoltPortVal) = getenv("JARVIS_BOLT_PORT") {
+        neo4jBoltPort = neo4jBoltPortVal
+    }
     let mut env = vec![
         format!(
             "NEO4J_URI=neo4j://{}:{}",
@@ -100,6 +108,12 @@ fn jarvis(
             "SECOND_BRAIN_GRAPH_URL=https://{}/get_elasticsearch_entities",
             h
         ));
+    }
+    if let Ok(jarvis_neo4j_user) = getenv("JARVIS_NEO4J_USER") {
+        env.push(format!("JARVIS_NEO4J_USER={}", jarvis_neo4j_user));
+    }
+    if let Ok(jarvis_neo4j_pass) = getenv("JARVIS_NEO4J_PASS") {
+        env.push(format!("JARVIS_NEO4J_PASS={}", jarvis_neo4j_pass));
     }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
