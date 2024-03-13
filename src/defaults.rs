@@ -47,6 +47,106 @@ fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
     }
 }
 
+fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
+    let seed_str = std::env::var("SEED").expect("no seed");
+    if seed_str.len() != 64 {
+        panic!("seed must be 64 hex chars");
+    }
+    let seed_vec = hex::decode(&seed_str).expect("seed decode");
+    let seed: [u8; 32] = seed_vec.try_into().expect("seed len");
+
+    let is_router = match std::env::var("IS_ROUTER").ok() {
+        Some(ir) => ir == "true",
+        None => false,
+    };
+
+    let mut internal_nodes = vec![];
+    let mut external_nodes = vec![];
+
+    add_btc(&network, &mut internal_nodes, &mut external_nodes);
+
+    let mut cln = ClnImage::new("cln", "latest", network, "9735", "10009");
+    cln.set_seed(seed.clone());
+    if !is_router {
+        let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
+        cln.plugins(cln_plugins);
+    }
+    cln.host(host.clone());
+    cln.links(vec!["bitcoind"]);
+
+    let mut broker = BrokerImage::new(
+        "broker",
+        "latest",
+        network,
+        "1883",                   // mqtt
+        Some("5005".to_string()), // ws
+    );
+    broker.set_seed(&seed_str);
+    broker.host(host.clone());
+
+    let mut mixer = MixerImage::new("mixer", "latest", network, "8800");
+    mixer.links(vec!["cln", "broker"]);
+    mixer.host(host.clone());
+
+    if !is_router {
+        let mut tribes = TribesImage::new("tribes", "latest", network, "8801");
+        tribes.links(vec!["broker"]);
+        tribes.host(host.clone());
+    }
+
+    let mut nodes: Vec<Node> = internal_nodes
+        .iter()
+        .map(|n| Node::Internal(n.to_owned()))
+        .collect();
+    nodes.extend(external_nodes);
+
+    Stack {
+        network: network.to_string(),
+        nodes: nodes,
+        host,
+        users: vec![Default::default()],
+        jwt_key: secrets::random_word(16),
+        ready: false,
+        ip: env_no_empty("IP"),
+        auto_update: None,
+        custom_2b_domain: None,
+    }
+}
+
+fn add_btc(network: &str, internal_nodes: &mut Vec<Image>, external_nodes: &mut Vec<Node>) {
+    let mut external_btc = false;
+    // CLN and external BTC
+    if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
+        // check the BTC url is ok
+        if let Ok(_) = url::Url::parse(&ebtc) {
+            let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
+            external_nodes.push(Node::External(btc));
+            external_btc = true;
+        }
+    } else {
+        if network == "bitcoin" {
+            panic!("CLN_MAINNET_BTC required for mainnet");
+        }
+    }
+
+    if !external_btc {
+        let v = "v23.0";
+        let mut bitcoind = BtcImage::new("bitcoind", v, &network);
+        // connect to already running BTC node
+        if let Ok(btc_pass) = std::env::var("BTC_PASS") {
+            // only if its really there (not empty string)
+            if btc_pass.len() > 0 {
+                bitcoind.set_user_password("sphinx", &btc_pass);
+            }
+        }
+        // generate random pass if none exists
+        if let None = bitcoind.pass {
+            bitcoind.set_user_password("sphinx", &secrets::random_word(12));
+        }
+        internal_nodes.push(Image::Btc(bitcoind));
+    }
+}
+
 fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &str) -> Stack {
     Stack {
         network: network.to_string(),
@@ -155,13 +255,22 @@ impl Default for Stack {
             host = None
         }
 
-        // choose only second brain
+        // choose only sphinx v1 tester
         let sphinxv1 = match std::env::var("SPHINXV1").ok() {
             Some(sbo) => sbo == "true",
             None => false,
         };
         if sphinxv1 {
             return sphinxv1_only(&network, host);
+        }
+
+        // choose only sphinx v2 tester
+        let sphinxv2 = match std::env::var("SPHINXV2").ok() {
+            Some(sbo) => sbo == "true",
+            None => false,
+        };
+        if sphinxv2 {
+            return sphinxv2_only(&network, host);
         }
 
         let use_lnd = match std::env::var("USE_LND").ok() {
@@ -184,37 +293,7 @@ impl Default for Stack {
         let mut internal_nodes = vec![];
         let mut external_nodes = vec![];
 
-        let mut external_btc = false;
-        // CLN and external BTC
-        if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
-            // check the BTC url is ok
-            if let Ok(_) = url::Url::parse(&ebtc) {
-                let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
-                external_nodes.push(Node::External(btc));
-                external_btc = true;
-            }
-        } else {
-            if network == "bitcoin" {
-                panic!("CLN_MAINNET_BTC required for mainnet");
-            }
-        }
-
-        if !external_btc {
-            let v = "v23.0";
-            let mut bitcoind = BtcImage::new("bitcoind", v, &network);
-            // connect to already running BTC node
-            if let Ok(btc_pass) = std::env::var("BTC_PASS") {
-                // only if its really there (not empty string)
-                if btc_pass.len() > 0 {
-                    bitcoind.set_user_password("sphinx", &btc_pass);
-                }
-            }
-            // generate random pass if none exists
-            if let None = bitcoind.pass {
-                bitcoind.set_user_password("sphinx", &secrets::random_word(12));
-            }
-            internal_nodes.push(Image::Btc(bitcoind));
-        }
+        add_btc(&network, &mut internal_nodes, &mut external_nodes);
 
         if is_cln {
             let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
