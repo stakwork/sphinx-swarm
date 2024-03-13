@@ -9,6 +9,7 @@
     get_graph_accessibility,
   } from "./api/swarm";
   import { stack } from "./store";
+  import Roles from "./components/SecondBrain/roles/roles.svelte";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -114,7 +115,8 @@
       {#if currentTab === "General"}
         <General />
       {:else if currentTab === "Roles"}
-        <SetupAdmin />
+        <!-- <SetupAdmin /> -->
+        <Roles />
       {:else}
         <EnpointPermission />
       {/if}
