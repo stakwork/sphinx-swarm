@@ -7,6 +7,9 @@ docker rm broker.sphinx
 docker stop swarm.sphinx
 docker rm swarm.sphinx
 
+docker stop tribes.sphinx
+docker rm tribes.sphinx
+
 docker stop traefik.sphinx
 docker rm traefik.sphinx
 
