@@ -2,8 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::broker::BrokerImage;
-use crate::images::jarvis::getenv;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -39,6 +38,7 @@ impl TribesImage {
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
             self.host = Some(format!("{}.{}", self.name, h));
+            self.tribes_host = self.host.clone();
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {

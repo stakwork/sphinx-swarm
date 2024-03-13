@@ -1,7 +1,7 @@
 use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, *};
 use crate::config::Node;
-use crate::utils::{domain, exposed_ports, host_config};
-use anyhow::{anyhow, Context, Result};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
@@ -167,13 +167,3 @@ docker tag sphinx-jarvis-backend sphinxlightning/sphinx-jarvis-backend:latest
 docker push sphinxlightning/sphinx-jarvis-backend:latest
 
 */
-
-pub fn getenv(envname: &str) -> Result<String> {
-    let sh = std::env::var(envname)?;
-    // remove empty string
-    if sh.len() > 0 {
-        Ok(sh)
-    } else {
-        Err(anyhow!("{} is empty", envname))
-    }
-}

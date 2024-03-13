@@ -313,3 +313,13 @@ pub fn setup_logs() {
 pub async fn sleep_ms(n: u64) {
     tokio::time::sleep(std::time::Duration::from_millis(n)).await;
 }
+
+pub fn getenv(envname: &str) -> Result<String> {
+    let sh = std::env::var(envname)?;
+    // remove empty string
+    if sh.len() > 0 {
+        Ok(sh)
+    } else {
+        Err(anyhow!("{} is empty", envname))
+    }
+}

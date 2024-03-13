@@ -4,7 +4,7 @@ use crate::config::{Clients, ExternalNodeType, Node};
 use crate::conn::cln::hsmd::HsmdClient;
 use crate::conn::cln::setup as setup_cln;
 use crate::conn::lnd::setup::test_mine_if_needed;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -281,7 +281,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--accept-htlc-tlv-type=13377331".to_string(),
         "--database-upgrade=true".to_string(),
     ];
-    if let Ok(eba) = jarvis::getenv("ANNOUNCE_ADDRESS") {
+    if let Ok(eba) = getenv("ANNOUNCE_ADDRESS") {
         cmd.push(format!("--announce-addr={}", eba));
     }
     if let Some(hsms) = img.seed {
