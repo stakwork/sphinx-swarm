@@ -1,235 +1,12 @@
 use crate::config::*;
-use crate::images::boltwall::{BoltwallImage, ExternalLnd};
-use crate::images::broker::BrokerImage;
 use crate::images::cln::{ClnImage, ClnPlugin};
-use crate::images::elastic::ElasticImage;
-use crate::images::jarvis::JarvisImage;
-use crate::images::mixer::MixerImage;
-use crate::images::navfiber::NavFiberImage;
-use crate::images::neo4j::Neo4jImage;
-use crate::images::tribes::TribesImage;
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
     relay::RelayImage, Image,
 };
+use crate::secondbrain::*;
 use crate::secrets;
-
-fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
-    let mut broker = BrokerImage::new("broker", "latest", network, "1883", None);
-    broker.host(host.clone());
-
-    let mut mixer = MixerImage::new("mixer", "latest", network, "8800");
-    mixer.set_no_lightning();
-    mixer.links(vec!["broker"]);
-    mixer.host(host.clone());
-
-    let mut tribes = TribesImage::new("tribes", "latest", network, "8801");
-    tribes.links(vec!["broker"]);
-    tribes.host(host.clone());
-
-    Stack {
-        network: network.to_string(),
-        nodes: vec![
-            Image::Broker(broker),
-            Image::Mixer(mixer),
-            Image::Tribes(tribes),
-        ]
-        .iter()
-        .map(|n| Node::Internal(n.to_owned()))
-        .collect(),
-        host,
-        users: vec![Default::default()],
-        jwt_key: secrets::random_word(16),
-        ready: false,
-        ip: env_no_empty("IP"),
-        auto_update: None,
-        custom_2b_domain: None,
-    }
-}
-
-fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
-    let seed_str = std::env::var("SEED").expect("no seed");
-    if seed_str.len() != 64 {
-        panic!("seed must be 64 hex chars");
-    }
-    let seed_vec = hex::decode(&seed_str).expect("seed decode");
-    let seed: [u8; 32] = seed_vec.try_into().expect("seed len");
-
-    let is_router = match std::env::var("IS_ROUTER").ok() {
-        Some(ir) => ir == "true",
-        None => false,
-    };
-
-    let mut internal_nodes = vec![];
-    let mut external_nodes = vec![];
-
-    add_btc(&network, &mut internal_nodes, &mut external_nodes);
-
-    let mut cln = ClnImage::new("cln", "latest", network, "9735", "10009");
-    cln.set_seed(seed.clone());
-    if !is_router {
-        let cln_plugins = vec![ClnPlugin::HtlcInterceptor];
-        cln.plugins(cln_plugins);
-    }
-    cln.host(host.clone());
-    cln.links(vec!["bitcoind"]);
-
-    let mut broker = BrokerImage::new(
-        "broker",
-        "latest",
-        network,
-        "1883",                   // mqtt
-        Some("5005".to_string()), // ws
-    );
-    broker.set_seed(&seed_str);
-    broker.host(host.clone());
-
-    let mut mixer = MixerImage::new("mixer", "latest", network, "8800");
-    mixer.links(vec!["cln", "broker"]);
-    mixer.host(host.clone());
-
-    if !is_router {
-        let mut tribes = TribesImage::new("tribes", "latest", network, "8801");
-        tribes.links(vec!["broker"]);
-        tribes.host(host.clone());
-    }
-
-    let mut nodes: Vec<Node> = internal_nodes
-        .iter()
-        .map(|n| Node::Internal(n.to_owned()))
-        .collect();
-    nodes.extend(external_nodes);
-
-    Stack {
-        network: network.to_string(),
-        nodes: nodes,
-        host,
-        users: vec![Default::default()],
-        jwt_key: secrets::random_word(16),
-        ready: false,
-        ip: env_no_empty("IP"),
-        auto_update: None,
-        custom_2b_domain: None,
-    }
-}
-
-fn add_btc(network: &str, internal_nodes: &mut Vec<Image>, external_nodes: &mut Vec<Node>) {
-    let mut external_btc = false;
-    // CLN and external BTC
-    if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
-        // check the BTC url is ok
-        if let Ok(_) = url::Url::parse(&ebtc) {
-            let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
-            external_nodes.push(Node::External(btc));
-            external_btc = true;
-        }
-    } else {
-        if network == "bitcoin" {
-            panic!("CLN_MAINNET_BTC required for mainnet");
-        }
-    }
-
-    if !external_btc {
-        let v = "v23.0";
-        let mut bitcoind = BtcImage::new("bitcoind", v, &network);
-        // connect to already running BTC node
-        if let Ok(btc_pass) = std::env::var("BTC_PASS") {
-            // only if its really there (not empty string)
-            if btc_pass.len() > 0 {
-                bitcoind.set_user_password("sphinx", &btc_pass);
-            }
-        }
-        // generate random pass if none exists
-        if let None = bitcoind.pass {
-            bitcoind.set_user_password("sphinx", &secrets::random_word(12));
-        }
-        internal_nodes.push(Image::Btc(bitcoind));
-    }
-}
-
-fn only_second_brain(network: &str, host: Option<String>, lightning_provider: &str) -> Stack {
-    Stack {
-        network: network.to_string(),
-        nodes: second_brain_imgs(host.clone(), lightning_provider)
-            .iter()
-            .map(|n| Node::Internal(n.to_owned()))
-            .collect(),
-        host,
-        users: vec![Default::default()],
-        jwt_key: secrets::random_word(16),
-        ready: false,
-        ip: env_no_empty("IP"),
-        auto_update: Some(vec![
-            "jarvis".to_string(),
-            "boltwall".to_string(),
-            "navfiber".to_string(),
-        ]),
-        custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
-    }
-}
-
-fn env_no_empty(varname: &str) -> Option<String> {
-    match std::env::var(varname).ok() {
-        Some(v) => match v.as_str() {
-            "" => None,
-            s => Some(s.to_string()),
-        },
-        None => None,
-    }
-}
-
-fn external_lnd() -> Option<ExternalLnd> {
-    if let Some(a) = env_no_empty("EXTERNAL_LND_ADDRESS") {
-        if let Some(m) = env_no_empty("EXTERNAL_LND_MACAROON") {
-            if let Some(c) = env_no_empty("EXTERNAL_LND_CERT") {
-                return Some(ExternalLnd::new(&a, &m, &c));
-            }
-        }
-    }
-    None
-}
-
-fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Image> {
-    // neo4j
-    let v = "4.4.9";
-    let mut neo4j = Neo4jImage::new("neo4j", v);
-    neo4j.host(host.clone());
-
-    // elastic
-    let mut v = "8.11.1";
-    let mut elastic = ElasticImage::new("elastic", v);
-    elastic.host(host.clone());
-
-    // jarvis
-    v = "latest";
-    let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
-    jarvis.links(vec!["neo4j", "elastic", "boltwall"]);
-
-    // boltwall
-    v = "latest";
-    let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-    if let Some(ext) = external_lnd() {
-        bolt.external_lnd(ext);
-        bolt.links(vec!["jarvis"]);
-    } else {
-        bolt.links(vec!["jarvis", lightning_provider]);
-    }
-    bolt.host(host.clone());
-
-    // navfiber
-    v = "latest";
-    let mut nav = NavFiberImage::new("navfiber", v, "8001");
-    nav.links(vec!["jarvis"]);
-    nav.host(host.clone());
-
-    vec![
-        Image::NavFiber(nav),
-        Image::Neo4j(neo4j),
-        Image::Elastic(elastic),
-        Image::BoltWall(bolt),
-        Image::Jarvis(jarvis),
-    ]
-}
+use crate::sphinxv2::*;
 
 // NETWORK = "bitcoin", "regtest"
 // HOST = hostname for this server (swarmx.sphinx.chat)
@@ -409,5 +186,49 @@ impl Default for Stack {
             auto_update: None,
             custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         }
+    }
+}
+
+pub fn add_btc(network: &str, internal_nodes: &mut Vec<Image>, external_nodes: &mut Vec<Node>) {
+    let mut external_btc = false;
+    // CLN and external BTC
+    if let Ok(ebtc) = std::env::var("CLN_MAINNET_BTC") {
+        // check the BTC url is ok
+        if let Ok(_) = url::Url::parse(&ebtc) {
+            let btc = ExternalNode::new("bitcoind", ExternalNodeType::Btc, &ebtc);
+            external_nodes.push(Node::External(btc));
+            external_btc = true;
+        }
+    } else {
+        if network == "bitcoin" {
+            panic!("CLN_MAINNET_BTC required for mainnet");
+        }
+    }
+
+    if !external_btc {
+        let v = "v23.0";
+        let mut bitcoind = BtcImage::new("bitcoind", v, &network);
+        // connect to already running BTC node
+        if let Ok(btc_pass) = std::env::var("BTC_PASS") {
+            // only if its really there (not empty string)
+            if btc_pass.len() > 0 {
+                bitcoind.set_user_password("sphinx", &btc_pass);
+            }
+        }
+        // generate random pass if none exists
+        if let None = bitcoind.pass {
+            bitcoind.set_user_password("sphinx", &secrets::random_word(12));
+        }
+        internal_nodes.push(Image::Btc(bitcoind));
+    }
+}
+
+pub fn env_no_empty(varname: &str) -> Option<String> {
+    match std::env::var(varname).ok() {
+        Some(v) => match v.as_str() {
+            "" => None,
+            s => Some(s.to_string()),
+        },
+        None => None,
     }
 }

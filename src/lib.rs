@@ -14,6 +14,8 @@ pub mod logs;
 pub mod rocket_utils;
 pub mod routes;
 pub mod rsa;
+pub mod secondbrain;
 pub mod secrets;
 pub mod setup;
+pub mod sphinxv2;
 pub mod utils;
