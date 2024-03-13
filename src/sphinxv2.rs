@@ -33,6 +33,7 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
     }
     cln.host(host.clone());
     cln.links(vec!["bitcoind"]);
+    internal_nodes.push(Image::Cln(cln));
 
     let mut broker = BrokerImage::new(
         "broker",
@@ -43,15 +44,18 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
     );
     broker.set_seed(&seed_str);
     broker.host(host.clone());
+    internal_nodes.push(Image::Broker(broker));
 
     let mut mixer = MixerImage::new("mixer", "latest", network, "8800");
     mixer.links(vec!["cln", "broker"]);
     mixer.host(host.clone());
+    internal_nodes.push(Image::Mixer(mixer));
 
     if !is_router {
         let mut tribes = TribesImage::new("tribes", "latest", network, "8801");
         tribes.links(vec!["broker"]);
         tribes.host(host.clone());
+        internal_nodes.push(Image::Tribes(tribes));
     }
 
     let mut nodes: Vec<Node> = internal_nodes
