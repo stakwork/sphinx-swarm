@@ -262,6 +262,8 @@
   .container {
     display: flex;
     flex-direction: column;
+    padding-left: 2.25rem;
+    padding-right: 2.25rem;
   }
 
   .header {

@@ -3,6 +3,7 @@
   import { boltwallSuperAdminPubkey } from "../../../store";
   import { onMount } from "svelte";
   import { get_super_admin } from "../../../api/swarm";
+  import UserRecord from "./userRecord.svelte";
 
   async function checkSuperAdminExist() {
     const result = await get_super_admin();
@@ -16,13 +17,15 @@
   }
 
   onMount(async () => {
-    checkSuperAdminExist();
+    await checkSuperAdminExist();
   });
 </script>
 
 <div class="container">
   {#if !$boltwallSuperAdminPubkey}
     <SetSuperAdmin />
+  {:else}
+    <UserRecord />
   {/if}
 </div>
 

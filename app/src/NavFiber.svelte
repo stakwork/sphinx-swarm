@@ -199,6 +199,8 @@
     font-weight: 500;
     line-height: normal;
     padding-bottom: 0.75rem;
+    padding-left: 0;
+    padding-right: 0;
     cursor: pointer;
     text-transform: capitalize;
     background-color: transparent;
@@ -209,7 +211,5 @@
   .tab-content {
     display: flex;
     flex-direction: column;
-    padding-left: 2.25rem;
-    padding-right: 2.25rem;
   }
 </style>
