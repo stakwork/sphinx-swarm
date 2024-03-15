@@ -1,32 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { list_admins } from "../../../api/swarm";
+  import { add_user, list_admins } from "../../../api/swarm";
   import { shortPubkey } from "../../../helpers";
+  import Modal from "../../modal.svelte";
+  import Input from "../../input/input.svelte";
+  import Select from "../../select/select.svelte";
 
-  const tableHeaderColumns = ["Name", "Public Key", "Role", ""];
   let users: { id: string; name: string; pubkey: string; role: string }[] = [];
 
-  const tobi = [
-    {
-      id: "03a394d0ebf0d003124ab130c6b12b8b990a50a30a464354800a51981ba745bb07",
-      pubkey: "03a394d0ebf0d00...",
-      role: "Super Admin",
-      name: "Alice",
-    },
+  $: openAddUserModel = false;
 
-    {
-      id: "03a394d0ebf0d003124ab130c6b12b8b990a50a30a464354800a51981ba745bb07",
-      pubkey: "03a394d0ebf0d00...",
-      role: "Admin",
-      name: "Jonathan",
-    },
-    {
-      id: "03a394d0ebf0d003124ab130c6b12b8b990a50a30a464354800a51981ba745bb07",
-      pubkey: "03a394d0ebf0d00...",
-      role: "Member",
-      name: "Jonathan",
-    },
-  ];
+  let userpubkey = "";
+  let username = "";
+  let role = "1";
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -65,28 +51,49 @@
         });
       }
       users = [...newAdmin];
-      console.log(users);
     }
   }
 
-  async function determineHeaderClass(index: number, arrayLength: number) {
-    if (index === 0) {
-      return "leftHeaderColumn";
-    } else if (index === arrayLength - 1) {
-      return "rightHeaderColumn";
-    }
+  function closeAddUserModal() {
+    openAddUserModel = false;
+  }
+
+  function openAddUserModal() {
+    openAddUserModel = true;
   }
 
   onMount(async () => {
     //Get All users
     await getAdmins();
   });
+
+  function updateUserPubkey(value) {
+    userpubkey = value;
+  }
+
+  function updateUserName(value) {
+    username = value;
+  }
+
+  function updateRoleChange(value) {
+    role = value;
+  }
+
+  async function handleCreateUser() {
+    const result = await add_user(userpubkey, Number(role), username);
+    const parsedResult = JSON.parse(result);
+    userpubkey = "";
+    role = "1";
+    username = "";
+    await getAdmins();
+    closeAddUserModal();
+  }
 </script>
 
 <div class="container">
   <div class="header_container">
     <h2 class="heading_text">Roles</h2>
-    <button class="add_user_btn">Add User</button>
+    <button class="add_user_btn" on:click={openAddUserModal}>Add User</button>
   </div>
   <div class="table_container">
     <table class="table">
@@ -99,7 +106,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each tobi as user}
+        {#each users as user}
           <tr class="table_row">
             <td class="column_name table_column">{user.name}</td>
             <td class="column_pubkey table_column">{user.pubkey}</td>
@@ -117,6 +124,54 @@
       </tbody>
     </table>
   </div>
+  <Modal isOpen={openAddUserModel} onClose={closeAddUserModal}>
+    <div class="add_user_container">
+      <div class="close_container">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <img
+          src="swarm/close.svg"
+          alt="close"
+          class="close_icon"
+          on:click={closeAddUserModal}
+        />
+      </div>
+      <div class="add_user_body">
+        <h3 class="add_user_heading">Add User</h3>
+        <div class="form_container">
+          <div class="input_container">
+            <Input
+              label="Name"
+              placeholder="Enter Name ..."
+              onInput={updateUserName}
+              value={username}
+            />
+            <Input
+              label="Pubkey"
+              placeholder="Paste Pubkey  ..."
+              onInput={updateUserPubkey}
+              value={userpubkey}
+            />
+            <Select
+              value={role}
+              options={[
+                { value: "1", label: "Select Role" },
+                { value: "2", label: "Admin" },
+                { value: "3", label: "Member" },
+              ]}
+              label="Select Role"
+              valueChange={updateRoleChange}
+            />
+          </div>
+          <button
+            disabled={role === "1" || !username || !userpubkey}
+            class="add_user_action_btn"
+            on:click={handleCreateUser}
+            ><img src="swarm/plus.svg" alt="plus" class="plus_sign" />Add User</button
+          >
+        </div>
+      </div>
+    </div>
+  </Modal>
 </div>
 
 <style>
@@ -241,5 +296,85 @@
     width: 1.25rem;
     height: 1.25rem;
     cursor: pointer;
+  }
+
+  .add_user_container {
+    display: flex;
+    flex-direction: column;
+    width: 19.875rem;
+  }
+
+  .close_container {
+    padding-top: 1rem;
+    padding-right: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .close_icon {
+    cursor: pointer;
+  }
+
+  .add_user_body {
+    display: flex;
+    flex-direction: column;
+    padding-left: 2.13rem;
+    padding-right: 2.13rem;
+    padding-top: 0.25rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .add_user_heading {
+    color: #fff;
+    font-family: "Barlow";
+    font-size: 1.375rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1.125rem; /* 81.818% */
+    margin-bottom: 1.13rem;
+  }
+
+  .form_container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .input_container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .add_user_action_btn {
+    border-radius: 0.375rem;
+    background: #618aff;
+    display: flex;
+    width: 100%;
+    padding: 0.75rem;
+    justify-content: center;
+    align-items: center;
+    gap: 0.375rem;
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 0rem; /* 0% */
+    letter-spacing: 0.00875rem;
+    outline: none;
+    border: none;
+    margin-top: 2.5rem;
+    cursor: pointer;
+  }
+
+  .add_user_action_btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .plus_sign {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 </style>
