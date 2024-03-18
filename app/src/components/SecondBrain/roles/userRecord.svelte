@@ -238,7 +238,10 @@
         {#each users as user}
           <tr class="table_row">
             <td class="column_name table_column">{user.name}</td>
-            <td class="column_pubkey table_column">{user.pubkey}</td>
+            <td class="column_pubkey table_column">
+              {user.pubkey}
+              <div class="tool_tip_container">{user.id}</div>
+            </td>
             <td class="column_role table_column">{user.role}</td>
             <td class="column_action table_column"
               >{#if user.role === "Super Admin"}
@@ -502,6 +505,13 @@
     font-style: normal;
     font-weight: 400;
     line-height: 1.5rem; /* 171.429% */
+    cursor: pointer;
+    position: relative;
+  }
+
+  .column_pubkey:hover .tool_tip_container {
+    visibility: visible;
+    opacity: 1;
   }
 
   .column_role {
@@ -839,5 +849,22 @@
     width: 1.125rem;
     height: 1.125rem;
     animation: spin 1s linear infinite;
+  }
+
+  .tool_tip_container {
+    visibility: hidden;
+    position: absolute;
+    border-radius: 0.25rem;
+    padding: 0.625rem;
+    background: #000;
+    width: 19.6875rem;
+    overflow-wrap: break-word;
+    text-align: center;
+    z-index: 1;
+    cursor: default;
+    font-family: "Barlow";
+    font-size: 0.75rem;
+    color: #fff;
+    opacity: 0;
   }
 </style>
