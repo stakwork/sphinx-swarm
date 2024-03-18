@@ -1,23 +1,34 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { add_user, list_admins } from "../../../api/swarm";
+  import {
+    add_boltwall_admin_pubkey,
+    add_user,
+    list_admins,
+    update_admin_pubkey,
+  } from "../../../api/swarm";
   import { shortPubkey } from "../../../helpers";
   import Modal from "../../modal.svelte";
   import Input from "../../input/input.svelte";
   import Select from "../../select/select.svelte";
   import { ToastNotification } from "carbon-components-svelte";
+  import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
 
   let users: { id: string; name: string; pubkey: string; role: string }[] = [];
+  let currentUser: { id: string; name: string; pubkey: string; role: string } =
+    { id: "", pubkey: "", name: "", role: "" };
 
   $: openAddUserModel = false;
+  $: openEditAdmin = false;
 
   let userpubkey = "";
+  let adminpubkey = "";
   let username = "";
   let role = "1";
   $: success = false;
   $: message = "";
   $: show_notification = false;
   $: addUserSuccess = false;
+  $: is_admin_Loading = false;
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -67,6 +78,14 @@
     openAddUserModel = true;
   }
 
+  function openEditAdminModal() {
+    openEditAdmin = true;
+  }
+
+  function closeEditAdminModal() {
+    openEditAdmin = false;
+  }
+
   onMount(async () => {
     //Get All users
     await getAdmins();
@@ -82,6 +101,10 @@
 
   function updateRoleChange(value) {
     role = value;
+  }
+
+  function updateAdminPubkey(value) {
+    adminpubkey = value;
   }
 
   function handleAddUserSuccess() {
@@ -109,6 +132,49 @@
     } else {
       show_notification = true;
     }
+  }
+
+  function findUser(pubkey: string) {
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+      if (user.id === pubkey) {
+        currentUser = { ...user };
+        return;
+      }
+    }
+  }
+
+  async function editAdminSaveHandler() {
+    is_admin_Loading = true;
+    try {
+      const result = await add_boltwall_admin_pubkey(
+        adminpubkey,
+        currentUser.name
+      );
+      const parsedResult = JSON.parse(result);
+      const swarmAdmin = await update_admin_pubkey(adminpubkey, $activeUser);
+
+      boltwallSuperAdminPubkey.set(adminpubkey);
+      is_admin_Loading = false;
+      if (parsedResult.success) {
+        adminpubkey = "";
+        message = "Super Admin Updated Successfully";
+        await getAdmins();
+        handleAddUserSuccess();
+        closeEditAdminModal();
+      }
+    } catch (error) {
+      is_admin_Loading = false;
+      //TODO:: Handle error properly
+      console.log(
+        `ERROR SETTING BOLTWALL SUPER ADMIN: ${JSON.stringify(error)}`
+      );
+    }
+  }
+
+  async function editAdminHandler(pubkey: string) {
+    findUser(pubkey);
+    openEditAdminModal();
   }
 </script>
 
@@ -142,7 +208,13 @@
             <td class="column_role table_column">{user.role}</td>
             <td class="column_action table_column"
               >{#if user.role === "Super Admin"}
-                <img src="swarm/edit.svg" alt="edit" class="action_icon" />
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <img
+                  on:click={() => editAdminHandler(user.id)}
+                  src="swarm/edit.svg"
+                  alt="edit"
+                  class="action_icon"
+                />
               {:else}
                 <img src="swarm/delete.svg" alt="delete" class="action_icon" />
               {/if}</td
@@ -211,6 +283,38 @@
             class="add_user_action_btn"
             on:click={handleCreateUser}
             ><img src="swarm/plus.svg" alt="plus" class="plus_sign" />Add User</button
+          >
+        </div>
+      </div>
+    </div>
+  </Modal>
+  <Modal isOpen={openEditAdmin} onClose={closeEditAdminModal}>
+    <div class="edit_admin_container">
+      <div class="admin_image_container">
+        <img src="swarm/admin.svg" alt="admin" />
+      </div>
+      <h3 class="edit_admin_text">Edit Admin</h3>
+      <div class="edit_admin_form_container">
+        <Input
+          label=""
+          placeholder="Paste your Pubkey Here"
+          onInput={updateAdminPubkey}
+          value={adminpubkey}
+        />
+        <div class="edit_admin_btn_container">
+          <button on:click={closeEditAdminModal} class="edit_admin_cancel_btn"
+            >Cancel</button
+          >
+          <button
+            disabled={is_admin_Loading || !adminpubkey}
+            class="edit_admin_save_btn"
+            on:click={editAdminSaveHandler}
+          >
+            {#if is_admin_Loading === true}
+              <div class="loading-spinner"></div>
+            {:else}
+              Save Changes
+            {/if}</button
           >
         </div>
       </div>
@@ -447,5 +551,112 @@
     line-height: 1rem; /* 123.077% */
     letter-spacing: 0.00813rem;
     text-transform: capitalize;
+  }
+
+  .edit_admin_container {
+    padding: 2.37rem 2.13rem 3.94rem 2.13rem;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .admin_image_container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.63rem;
+  }
+
+  .admin_image_container img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .edit_admin_text {
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 1.875rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1rem; /* 53.333% */
+    letter-spacing: 0.01875rem;
+  }
+
+  .edit_admin_form_container {
+    display: flex;
+    flex-direction: column;
+    width: 15.625rem;
+    margin-top: 1.94rem;
+  }
+
+  .edit_admin_btn_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.31rem;
+  }
+
+  .edit_admin_cancel_btn {
+    display: flex;
+    width: 7.5rem;
+    height: 2.5rem;
+    padding: 0.75rem 1rem;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(107, 122, 141, 0.5);
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.1875rem; /* 135.714% */
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .edit_admin_save_btn {
+    display: flex;
+    width: 7.5rem;
+    height: 2.5rem;
+    padding: 0.75rem 1rem;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.375rem;
+    background: #618aff;
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.1875rem; /* 135.714% */
+    border: none;
+    cursor: pointer;
+  }
+
+  .edit_admin_save_btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .loading-spinner {
+    border: 2px solid #fff; /* Light grey */
+    border-top: 2px solid #618aff; /* Blue */
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 </style>
