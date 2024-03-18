@@ -9,6 +9,7 @@
     get_graph_accessibility,
   } from "./api/swarm";
   import { stack } from "./store";
+  import Roles from "./components/SecondBrain/roles/roles.svelte";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -114,7 +115,8 @@
       {#if currentTab === "General"}
         <General />
       {:else if currentTab === "Roles"}
-        <SetupAdmin />
+        <!-- <SetupAdmin /> -->
+        <Roles />
       {:else}
         <EnpointPermission />
       {/if}
@@ -197,6 +199,8 @@
     font-weight: 500;
     line-height: normal;
     padding-bottom: 0.75rem;
+    padding-left: 0;
+    padding-right: 0;
     cursor: pointer;
     text-transform: capitalize;
     background-color: transparent;
@@ -207,7 +211,5 @@
   .tab-content {
     display: flex;
     flex-direction: column;
-    padding-left: 2.25rem;
-    padding-right: 2.25rem;
   }
 </style>

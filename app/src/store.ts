@@ -75,6 +75,8 @@ export const adminIsCreatedForOnboarding = writable<boolean>(false);
 
 export const isOnboarding = writable<boolean>(false);
 
+export const boltwallSuperAdminPubkey = writable<string>("");
+
 export const balances = derived(
   [channels, selectedNode],
   ([$channels, $selectedNode]) => {
