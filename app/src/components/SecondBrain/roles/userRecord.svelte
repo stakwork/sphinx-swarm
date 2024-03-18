@@ -17,6 +17,7 @@
   $: success = false;
   $: message = "";
   $: show_notification = false;
+  $: addUserSuccess = false;
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -83,20 +84,30 @@
     role = value;
   }
 
+  function handleAddUserSuccess() {
+    addUserSuccess = true;
+    setTimeout(() => {
+      addUserSuccess = false;
+    }, 3000);
+  }
+
   async function handleCreateUser() {
     const result = await add_user(userpubkey, Number(role), username);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
-    message = parsedResult.message;
-    show_notification = true;
+    message =
+      parsedResult.message === "user added successfully"
+        ? "User Added"
+        : parsedResult.message;
     if (success) {
-      setTimeout(async () => {
-        userpubkey = "";
-        role = "1";
-        username = "";
-        await getAdmins();
-        closeAddUserModal();
-      }, 3000);
+      await getAdmins();
+      closeAddUserModal();
+      userpubkey = "";
+      role = "1";
+      username = "";
+      handleAddUserSuccess();
+    } else {
+      show_notification = true;
     }
   }
 </script>
@@ -104,7 +115,14 @@
 <div class="container">
   <div class="header_container">
     <h2 class="heading_text">Roles</h2>
-    <button class="add_user_btn" on:click={openAddUserModal}>Add User</button>
+    {#if addUserSuccess}
+      <div class="add_user_success_info">
+        <img src="swarm/check_circle.svg" alt="success" />
+        <p>{message}</p>
+      </div>
+    {:else}
+      <button class="add_user_btn" on:click={openAddUserModal}>Add User</button>
+    {/if}
   </div>
   <div class="table_container">
     <table class="table">
@@ -412,5 +430,22 @@
 
   .toast_container {
     margin-bottom: 1rem;
+  }
+
+  .add_user_success_info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .add_user_success_info p {
+    color: #49c998;
+    font-family: "Roboto";
+    font-size: 0.8125rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1rem; /* 123.077% */
+    letter-spacing: 0.00813rem;
+    text-transform: capitalize;
   }
 </style>
