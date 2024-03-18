@@ -3,6 +3,7 @@
   import {
     add_boltwall_admin_pubkey,
     add_user,
+    delete_sub_admin,
     list_admins,
     update_admin_pubkey,
   } from "../../../api/swarm";
@@ -19,6 +20,7 @@
 
   $: openAddUserModel = false;
   $: openEditAdmin = false;
+  $: openDeleteUser = false;
 
   let userpubkey = "";
   let adminpubkey = "";
@@ -29,6 +31,7 @@
   $: show_notification = false;
   $: addUserSuccess = false;
   $: is_admin_Loading = false;
+  $: isDeleteUserLoading = false;
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -84,6 +87,14 @@
 
   function closeEditAdminModal() {
     openEditAdmin = false;
+  }
+
+  function openDeleteUserHandler() {
+    openDeleteUser = true;
+  }
+
+  function closeDeleteUserHandler() {
+    openDeleteUser = false;
   }
 
   onMount(async () => {
@@ -176,6 +187,29 @@
     findUser(pubkey);
     openEditAdminModal();
   }
+
+  function deleteUserHandler(pubkey: string) {
+    findUser(pubkey);
+    openDeleteUserHandler();
+  }
+
+  async function deleteUser() {
+    isDeleteUserLoading = true;
+    try {
+      const result = await delete_sub_admin(currentUser.id);
+      const parsedResult = JSON.parse(result);
+      isDeleteUserLoading = false;
+      if (parsedResult.success) {
+        message = "User Deleted Successfully";
+        await getAdmins();
+        handleAddUserSuccess();
+        closeDeleteUserHandler();
+      }
+    } catch (error) {
+      isDeleteUserLoading = false;
+      console.log(`ERROR DELETING USER: ${JSON.stringify(error)}`);
+    }
+  }
 </script>
 
 <div class="container">
@@ -216,7 +250,13 @@
                   class="action_icon"
                 />
               {:else}
-                <img src="swarm/delete.svg" alt="delete" class="action_icon" />
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <img
+                  src="swarm/delete.svg"
+                  alt="delete"
+                  class="action_icon"
+                  on:click={() => deleteUserHandler(user.id)}
+                />
               {/if}</td
             >
           </tr>
@@ -314,9 +354,40 @@
               <div class="loading-spinner"></div>
             {:else}
               Save Changes
-            {/if}</button
-          >
+            {/if}
+          </button>
         </div>
+      </div>
+    </div>
+  </Modal>
+  <Modal isOpen={openDeleteUser} onClose={closeDeleteUserHandler}>
+    <div class="delete_user_container">
+      <div class="user_details_container">
+        <div class="user_image_container">
+          <img src="swarm/user.svg" alt="user" />
+        </div>
+        <p>{currentUser.name}</p>
+      </div>
+      <p class="delete_warning_text">
+        Are you sure you want to <span class="delete_warning_text_emphasis"
+          >Delete this user?</span
+        >
+      </p>
+      <div class="delete_button_container">
+        <button class="delete_user_cancel_btn" on:click={closeDeleteUserHandler}
+          >Cancel</button
+        >
+        <button
+          class="delete_user_btn"
+          disabled={isDeleteUserLoading}
+          on:click={deleteUser}
+        >
+          {#if isDeleteUserLoading === true}
+            <div class="delete_loading-spinner"></div>
+          {:else}
+            Delete
+          {/if}
+        </button>
       </div>
     </div>
   </Modal>
@@ -421,6 +492,7 @@
     font-weight: 500;
     line-height: 1.5rem; /* 171.429% */
     padding-left: 2.25rem;
+    text-transform: capitalize;
   }
 
   .column_pubkey {
@@ -643,8 +715,8 @@
   }
 
   .loading-spinner {
-    border: 2px solid #fff; /* Light grey */
-    border-top: 2px solid #618aff; /* Blue */
+    border: 2px solid #fff;
+    border-top: 2px solid #618aff;
     border-radius: 50%;
     width: 1.125rem;
     height: 1.125rem;
@@ -658,5 +730,114 @@
     100% {
       transform: rotate(360deg);
     }
+  }
+
+  .delete_user_container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.06rem 2.19rem 3rem 2.19rem;
+  }
+
+  .user_details_container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .user_details_container img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .user_details_container p {
+    color: #6b7a8d;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 1.125rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 1.5rem; /* 133.333% */
+    text-transform: capitalize;
+  }
+
+  .delete_warning_text {
+    width: 15.5625rem;
+    color: var(--Primary-Text, #fff);
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 1.25rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.75rem; /* 140% */
+    margin-top: 2.19rem;
+    margin-bottom: 3.25rem;
+  }
+
+  .delete_warning_text_emphasis {
+    font-weight: 700;
+  }
+
+  .delete_button_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 15.5625rem;
+  }
+
+  .delete_user_cancel_btn {
+    display: flex;
+    width: 7rem;
+    height: 2.5rem;
+    padding: 0.75rem 1rem;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(107, 122, 141, 0.5);
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.1875rem; /* 135.714% */
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .delete_user_btn {
+    display: flex;
+    width: 7rem;
+    height: 2.5rem;
+    padding: 0.75rem;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.375rem;
+    background: #ed7474;
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 0rem; /* 0% */
+    letter-spacing: 0.00875rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .delete_user_btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .delete_loading-spinner {
+    border: 2px solid #fff; /* Light grey */
+    border-top: 2px solid #ed7474; /* Blue */
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
   }
 </style>
