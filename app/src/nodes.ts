@@ -178,6 +178,8 @@ const defpos = {
   elastic: [320, 625],
   navfiber: [1150, 475],
   lss: [400, 270],
+  mixer: [850, 270],
+  broker: [600, 320],
   mixer_1: [940, 120],
   mixer_2: [940, 380],
   mixer_3: [940, 640],
