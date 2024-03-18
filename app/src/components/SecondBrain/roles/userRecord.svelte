@@ -5,6 +5,7 @@
   import Modal from "../../modal.svelte";
   import Input from "../../input/input.svelte";
   import Select from "../../select/select.svelte";
+  import { ToastNotification } from "carbon-components-svelte";
 
   let users: { id: string; name: string; pubkey: string; role: string }[] = [];
 
@@ -13,6 +14,9 @@
   let userpubkey = "";
   let username = "";
   let role = "1";
+  $: success = false;
+  $: message = "";
+  $: show_notification = false;
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -82,11 +86,18 @@
   async function handleCreateUser() {
     const result = await add_user(userpubkey, Number(role), username);
     const parsedResult = JSON.parse(result);
-    userpubkey = "";
-    role = "1";
-    username = "";
-    await getAdmins();
-    closeAddUserModal();
+    success = parsedResult.success || false;
+    message = parsedResult.message;
+    show_notification = true;
+    if (success) {
+      setTimeout(async () => {
+        userpubkey = "";
+        role = "1";
+        username = "";
+        await getAdmins();
+        closeAddUserModal();
+      }, 3000);
+    }
   }
 </script>
 
@@ -136,6 +147,21 @@
         />
       </div>
       <div class="add_user_body">
+        {#if show_notification}
+          <div class="toast_container">
+            <ToastNotification
+              kind={success ? "success" : "error"}
+              title={success ? "Success:" : "Error:"}
+              subtitle={message}
+              timeout={3000}
+              on:close={(e) => {
+                e.preventDefault();
+                show_notification = false;
+              }}
+              fullWidth={true}
+            />
+          </div>
+        {/if}
         <h3 class="add_user_heading">Add User</h3>
         <div class="form_container">
           <div class="input_container">
@@ -218,6 +244,8 @@
 
   .table_container {
     width: 100%;
+    overflow-y: auto;
+    height: 25rem;
   }
 
   .table {
@@ -236,6 +264,10 @@
     padding-top: 1.25rem;
     padding-bottom: 1.25rem;
     text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #23252f;
   }
 
   .leftHeaderColumn {
@@ -376,5 +408,9 @@
   .plus_sign {
     width: 1.25rem;
     height: 1.25rem;
+  }
+
+  .toast_container {
+    margin-bottom: 1rem;
   }
 </style>
