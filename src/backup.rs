@@ -1,11 +1,13 @@
 use chrono::Local;
+use rocket::tokio::fs;
 use rusoto_core::Region;
-use rusoto_s3::{DeleteObjectsRequest, ListObjectsV2Request, ObjectIdentifier, PutObjectRequest, S3Client};
+use rusoto_s3::{
+    DeleteObjectsRequest, ListObjectsV2Request, ObjectIdentifier, PutObjectRequest, S3Client,
+};
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use tokio::fs;
 
 pub async fn backup_to_s3(
     proxy_path: &str,
@@ -15,13 +17,15 @@ pub async fn backup_to_s3(
     let docker = Docker::connect_with_local_defaults()?;
 
     // Download and zip proxy volume
-    let proxy_zip_data = download_and_zip_from_container(&docker, "proxy_container_id", proxy_path).await?;
+    let proxy_zip_data =
+        download_and_zip_from_container(&docker, "proxy_container_id", proxy_path).await?;
     let proxy_zip_file_name = format!("proxy_data_{}_{}.zip", Local::now().format("%Y%m%d_%H%M%S"));
     let proxy_zip_file = PathBuf::from(&proxy_zip_file_name);
     fs::write(&proxy_zip_file, proxy_zip_data).await?;
 
     // Download and zip relay volume
-    let relay_zip_data = download_and_zip_from_container(&docker, "relay_container_id", relay_path).await?;
+    let relay_zip_data =
+        download_and_zip_from_container(&docker, "relay_container_id", relay_path).await?;
     let relay_zip_file_name = format!("relay_data_{}_{}.zip", Local::now().format("%Y%m%d_%H%M%S"));
     let relay_zip_file = PathBuf::from(&relay_zip_file_name);
     fs::write(&relay_zip_file, relay_zip_data).await?;
@@ -40,7 +44,9 @@ async fn download_and_zip_from_container(
     id: &str,
     path: &str,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let tar_stream = docker.download_from_container(id, Some(DownloadFromContainerOptions { path: path.into() })).await?;
+    let tar_stream = docker
+        .download_from_container(id, Some(DownloadFromContainerOptions { path: path.into() }))
+        .await?;
     let mut zip_data = Vec::new();
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(&mut zip_data));
 
@@ -51,7 +57,10 @@ async fn download_and_zip_from_container(
         let mut data = Vec::new();
         entry.read_to_end(&mut data)?;
 
-        zip.start_file(path.to_string_lossy().into_owned(), zip::write::FileOptions::default())?;
+        zip.start_file(
+            path.to_string_lossy().into_owned(),
+            zip::write::FileOptions::default(),
+        )?;
         zip.write_all(&data)?;
     }
 
@@ -64,7 +73,8 @@ async fn zip_data(data: Vec<u8>, name: &str) -> Result<PathBuf, Box<dyn Error>> 
     let zip_file_name = format!("{}_{}.zip", name, current_time.format("%Y%m%d_%H%M%S"));
 
     let mut zip_file = zip::ZipWriter::new(File::create(&zip_file_name)?);
-    let options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let options =
+        zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
     zip_file.start_file(name, options)?;
     zip_file.write_all(&data)?;
@@ -73,7 +83,11 @@ async fn zip_data(data: Vec<u8>, name: &str) -> Result<PathBuf, Box<dyn Error>> 
 }
 
 // Uploads the zip file to S3
-async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<(), Box<dyn Error>> {
+async fn upload_to_s3(
+    bucket: &str,
+    zip_file_name: &str,
+    zip_file: PathBuf,
+) -> Result<(), Box<dyn Error>> {
     let s3_client = S3Client::new(Region::default());
 
     let file = File::open(&zip_file)?;
@@ -94,7 +108,11 @@ async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> R
 }
 
 // Deletes old backups from the S3 bucket
-async fn delete_old_backups(bucket: &str, prefix: &str, retention_days: i64) -> Result<(), Box<dyn Error>> {
+async fn delete_old_backups(
+    bucket: &str,
+    prefix: &str,
+    retention_days: i64,
+) -> Result<(), Box<dyn Error>> {
     let s3_client = S3Client::new(Region::default());
 
     let current_time = Local::now();
@@ -108,10 +126,15 @@ async fn delete_old_backups(bucket: &str, prefix: &str, retention_days: i64) -> 
 
     let objects = s3_client.list_objects_v2(list_request).await?;
 
-    let objects_to_delete: Vec<ObjectIdentifier> = objects.contents
+    let objects_to_delete: Vec<ObjectIdentifier> = objects
+        .contents
         .unwrap_or_default()
         .iter()
-        .filter(|obj| obj.last_modified.as_ref().map_or(false, |lm| lm < &cutoff_time))
+        .filter(|obj| {
+            obj.last_modified
+                .as_ref()
+                .map_or(false, |lm| lm < &cutoff_time)
+        })
         .map(|obj| ObjectIdentifier {
             key: obj.key.clone(),
             ..Default::default()
@@ -134,8 +157,7 @@ async fn delete_old_backups(bucket: &str, prefix: &str, retention_days: i64) -> 
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn test_backup() -> Result<(), Box<dyn Error>> {
     let bucket = "your-bucket-name";
     let zip_data = vec![1, 2, 3, 4, 5]; // Example data to be zipped
 
