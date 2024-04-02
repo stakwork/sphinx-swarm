@@ -1,4 +1,5 @@
 use crate::app_login;
+use crate::app_signup;
 use crate::auth;
 use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
@@ -37,7 +38,8 @@ pub async fn launch_rocket(
                 verify_challenge_token,
                 get_challenge,
                 update_admin_pubkey,
-                check_challenge
+                check_challenge,
+                get_signup_challenge
             ],
         )
         .attach(CORS)
@@ -239,6 +241,17 @@ pub async fn update_admin(
 #[get("/challenge")]
 pub async fn get_challenge() -> Result<Json<GetChallengeResponse>> {
     let challenge = app_login::generate_challenge().await;
+    Ok(Json(GetChallengeResponse {
+        success: true,
+        challenge: challenge,
+    }))
+}
+
+#[get("/signup_challenge")]
+pub async fn get_signup_challenge(
+    claims: auth::AdminJwtClaims,
+) -> Result<Json<GetChallengeResponse>> {
+    let challenge = app_signup::generate_signup_challenge(claims.user).await;
     Ok(Json(GetChallengeResponse {
         success: true,
         challenge: challenge,

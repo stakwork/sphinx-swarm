@@ -1,4 +1,5 @@
 pub mod app_login;
+pub mod app_signup;
 pub mod auth;
 // pub mod backup;
 pub mod builder;

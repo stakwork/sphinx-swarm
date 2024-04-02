@@ -1,13 +1,17 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import {
     add_boltwall_admin_pubkey,
+    get_signup_challenge,
     update_admin_pubkey,
   } from "../../../api/swarm";
   import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
   import Input from "../../input/input.svelte";
+
   let superAdminPubkey = "";
   let superAdminUsername = "";
   let isLoading = false;
+  $: challenge = "";
 
   function handleAdminPubkeyInput(value) {
     superAdminPubkey = value;
@@ -41,6 +45,23 @@
       );
     }
   }
+
+  async function setup_get_signup_challenge() {
+    const result = await get_signup_challenge($activeUser);
+    challenge = result.challenge;
+  }
+
+  onMount(async () => {
+    try {
+      //get_sign_up_challenge for sphinx_login
+      await setup_get_signup_challenge();
+    } catch (error) {
+      console.log(
+        "Error setting up sign up challenge: ",
+        JSON.stringify(error)
+      );
+    }
+  });
 </script>
 
 <div class="container">
