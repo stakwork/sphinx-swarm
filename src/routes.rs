@@ -1,5 +1,4 @@
 use crate::app_login;
-use crate::app_signup;
 use crate::auth;
 use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
@@ -251,7 +250,7 @@ pub async fn get_challenge() -> Result<Json<GetChallengeResponse>> {
 pub async fn get_signup_challenge(
     claims: auth::AdminJwtClaims,
 ) -> Result<Json<GetChallengeResponse>> {
-    let challenge = app_signup::generate_signup_challenge(claims.user).await;
+    let challenge = app_login::generate_signup_challenge(claims.user).await;
     Ok(Json(GetChallengeResponse {
         success: true,
         challenge: challenge,
