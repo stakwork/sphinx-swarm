@@ -1,3 +1,4 @@
+import { root } from "../api/cmd";
 export function formatSatsNumbers(num) {
   if (!num) return "0";
   const numFormat = new Intl.NumberFormat().format(num).replaceAll(",", " ");
@@ -62,4 +63,22 @@ export function shortTransactionId(id: string): string {
 
 export function shortPubkey(id: string): string {
   return `${id.substring(0, 15)}...`;
+}
+
+export function contructQrString(challenge: string) {
+  /**
+   * TODO
+   */
+  //change time to actual seconds from the backend
+  // tobi-sphinx.chat
+  const milliseconds = new Date().getTime();
+  let parsedHost = root;
+  if (root === "/api") {
+    parsedHost = `${window.location.host}${root}`;
+  } else if (root.includes("https://")) {
+    parsedHost = parsedHost.substring(8);
+  } else if (root.includes("http://")) {
+    parsedHost = parsedHost.substring(7);
+  }
+  return `tobi-sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
 }

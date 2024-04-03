@@ -1,17 +1,23 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import {
     add_boltwall_admin_pubkey,
+    get_challenge_status,
     get_signup_challenge,
     update_admin_pubkey,
   } from "../../../api/swarm";
   import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
   import Input from "../../input/input.svelte";
+  import { contructQrString } from "../../../helpers";
 
   let superAdminPubkey = "";
   let superAdminUsername = "";
   let isLoading = false;
   $: challenge = "";
+  $: qrString = "";
+  $: sphinx_app_loading = false;
+
+  let interval;
 
   function handleAdminPubkeyInput(value) {
     superAdminPubkey = value;
@@ -46,9 +52,43 @@
     }
   }
 
+  async function startPolling() {
+    let i = 0;
+    interval = setInterval(async () => {
+      try {
+        const response = await get_challenge_status(challenge);
+        if (response.success) {
+          challenge = "";
+          // saveUserToStore(response.token);
+          // Todo: save this result to store
+          sphinx_app_loading = false;
+          if (interval) clearInterval(interval);
+        }
+        i++;
+        if (i > 100) {
+          sphinx_app_loading = false;
+          if (interval) clearInterval(interval);
+        }
+      } catch (e) {
+        sphinx_app_loading = false;
+        console.log("Auth interval error", e);
+      }
+    }, 3000);
+  }
+
+  async function signupWithSphinx(e) {
+    try {
+      sphinx_app_loading = true;
+      startPolling();
+    } catch (error) {
+      sphinx_app_loading = false;
+    }
+  }
+
   async function setup_get_signup_challenge() {
     const result = await get_signup_challenge($activeUser);
     challenge = result.challenge;
+    qrString = contructQrString(challenge);
   }
 
   onMount(async () => {
@@ -61,6 +101,10 @@
         JSON.stringify(error)
       );
     }
+  });
+
+  onDestroy(() => {
+    if (interval) clearInterval(interval);
   });
 </script>
 
@@ -106,12 +150,18 @@
         <div class="line"></div>
       </div>
       <div class="sphinx_btn_container">
-        <button class="sphinx_btn">
-          <img
-            src="swarm/sphinx_logo.svg"
-            alt="sphinx"
-            class="sphinx_logo"
-          />Connect With Sphinx</button
+        <button
+          disabled={!challenge || !qrString}
+          class="sphinx_btn"
+          on:click={signupWithSphinx}
+        >
+          <a href={qrString} class="sphinx_link">
+            <img
+              src="swarm/sphinx_logo.svg"
+              alt="sphinx"
+              class="sphinx_logo"
+            />Connect With Sphinx
+          </a></button
         >
         <p class="sphinx_text">To set Yourself as Superadmin</p>
       </div>
@@ -268,7 +318,6 @@
   .sphinx_btn {
     display: flex;
     align-items: center;
-    padding: 0.8125rem;
     border-radius: 0.375rem;
     background: #618aff;
     color: #fff;
@@ -281,6 +330,14 @@
     width: 100%;
     border: none;
     cursor: pointer;
+  }
+
+  .sphinx_link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    padding: 0.8125rem;
   }
 
   .sphinx_logo {
