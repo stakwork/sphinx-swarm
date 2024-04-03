@@ -16,6 +16,7 @@ pub struct MixerImage {
     pub network: String,
     pub port: String,
     pub no_lightning: Option<bool>,
+    pub no_gateway: Option<bool>,
     pub no_mqtt: Option<bool>,
     pub host: Option<String>,
     pub links: Links,
@@ -32,6 +33,7 @@ impl MixerImage {
             network: network.to_string(),
             port: port.to_string(),
             no_lightning: None,
+            no_gateway: None,
             no_mqtt: None,
             links: vec![],
             host: None,
@@ -50,6 +52,9 @@ impl MixerImage {
     }
     pub fn set_no_lightning(&mut self) {
         self.no_lightning = Some(true)
+    }
+    pub fn set_no_gateway(&mut self) {
+        self.no_gateway = Some(true)
     }
     pub fn set_no_mqtt(&mut self) {
         self.no_mqtt = Some(true)
@@ -100,14 +105,19 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
     ];
 
     let mut extra_vols = Vec::new();
-    if bool_arg(&img.no_lightning) {
-        env.push("NO_LIGHTNING=true".to_string());
+
+    if bool_arg(&img.no_gateway) {
+        env.push("NO_GATEWAY=true".to_string());
     } else if let Some(c) = cln {
         env.push(format!("GATEWAY_IP={}", domain(&c.name)));
         // gateway grpc port is the normal grpc port + 200
         let grpc_port: u16 = c.grpc_port.parse::<u16>()?;
         env.push(format!("GATEWAY_PORT={}", grpc_port + 200));
+    }
 
+    if bool_arg(&img.no_lightning) {
+        env.push("NO_LIGHTNING=true".to_string());
+    } else if let Some(c) = cln {
         let cln_vol = volume_string(&c.name, "/cln");
         extra_vols.push(cln_vol);
         let creds = c.credentials_paths("cln");

@@ -163,8 +163,8 @@ fn make_stack() -> Stack {
     let mut mixer2 = MixerImage::new(MIXER2, v, &network, "8081");
     mixer2.links(vec![CLN2, BROKER2]);
     mixer2.set_log_level("debug");
-    // NO GRPC WITH CLN OR GATEWAY NEEDED FOR ROUTING NODE
-    mixer2.set_no_lightning();
+    // NO GRPC WITH GATEWAY NEEDED FOR ROUTING NODE
+    mixer2.set_no_gateway();
     let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
 
     // CLN3
