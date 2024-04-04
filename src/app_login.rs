@@ -139,6 +139,11 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
     Ok(res)
 }
 
+pub async fn find_challenge_from_signup_hashmap(challenge: &str) -> Option<(u32, Option<String>)> {
+    let details = SIGNUP_DETAILS.lock().await;
+    let detail = details.get(challenge)?;
+    Some(detail.clone())
+}
 pub async fn remove_signup_challenge(challenge: &str) -> Option<(u32, Option<String>)> {
     let mut details = SIGNUP_DETAILS.lock().await;
     details.remove(challenge)
@@ -149,7 +154,7 @@ pub async fn sign_up_admin_pubkey(
     must_save_stack: &mut bool,
     state: &mut crate::config::State,
 ) -> Result<GetSignupChallengeResponse> {
-    let res = match remove_signup_challenge(&body.challenge).await {
+    let res = match find_challenge_from_signup_hashmap(&body.challenge).await {
         Some(user_detail) => {
             // check user id matches
             if body.user_id != user_detail.0 {
@@ -177,6 +182,7 @@ pub async fn sign_up_admin_pubkey(
                     let boltwall = crate::handler::find_boltwall(&state.stack.nodes)?;
                     crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &"".to_string())
                         .await?;
+                    remove_signup_challenge(&body.challenge).await;
                     GetSignupChallengeResponse {
                         success: true,
                         pubkey: pubkey.to_string(),
