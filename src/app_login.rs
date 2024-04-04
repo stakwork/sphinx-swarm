@@ -30,7 +30,7 @@ pub struct GetSignupChallengeResponse {
 
 pub static DETAILS: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub static SIGNUP_DETAILS: Lazy<Mutex<HashMap<String, HashMap<u32, String>>>> =
+pub static SIGNUP_DETAILS: Lazy<Mutex<HashMap<String, (u32, Option<String>)>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub async fn generate_challenge() -> String {
@@ -42,11 +42,8 @@ pub async fn generate_challenge() -> String {
 
 pub async fn generate_signup_challenge(user_id: u32) -> String {
     let challenge = secrets::random_word(16);
-    let mut user_details: HashMap<u32, String> = HashMap::new();
-
-    user_details.insert(user_id, "".to_string());
     let mut details = SIGNUP_DETAILS.lock().await;
-    details.insert(challenge.clone(), user_details);
+    details.insert(challenge.clone(), (user_id, None));
     challenge.to_string()
 }
 
@@ -55,38 +52,17 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
 
     match signup_details.get_mut(challenge) {
         Some(signup_detail) => {
-            let mut user_id: Option<u32> = None;
             //get the key
-            for (key, _value) in signup_detail {
-                user_id = Some(key.clone());
-                break;
-            }
+            let (user_id, _value) = signup_detail;
             //decrypt token
             let unsigned = token::Token::from_base64(token)?;
             let pubkey = unsigned.recover()?;
 
-            //add the pubkey
-            match user_id {
-                Some(id) => {
-                    let mut user_details: HashMap<u32, String> = HashMap::new();
-                    user_details.insert(id, pubkey.to_string());
-                    let detail = signup_details
-                        .get_mut(challenge)
-                        .ok_or(anyhow::anyhow!("challenge doesn't exist for sign up"))?;
-                    *detail = user_details;
-                    drop(signup_details);
-                    return Ok(VerifyResponse {
-                        success: true,
-                        message: "Successfully verified token".to_string(),
-                    });
-                }
-                None => {
-                    return Ok(VerifyResponse {
-                        success: false,
-                        message: "invalid token".to_string(),
-                    })
-                }
-            }
+            *signup_detail = (*user_id, Some(pubkey.to_string()));
+            return Ok(VerifyResponse {
+                success: true,
+                message: "Successfully verified token".to_string(),
+            });
         }
         None => drop(signup_details),
     }
@@ -163,13 +139,62 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
     Ok(res)
 }
 
-pub async fn find_challenge_from_signup_hashmap(challenge: &str) -> Option<HashMap<u32, String>> {
-    let details = SIGNUP_DETAILS.lock().await;
-    let detail = details.get(challenge)?;
-    Some(detail.clone())
+pub async fn remove_signup_challenge(challenge: &str) -> Option<(u32, Option<String>)> {
+    let mut details = SIGNUP_DETAILS.lock().await;
+    details.remove(challenge)
 }
 
-pub async fn delete_signup_challenge(challenge: &str) {
-    let mut details = SIGNUP_DETAILS.lock().await;
-    details.remove(challenge);
+pub async fn sign_up_admin_pubkey(
+    body: crate::cmd::SignUpAdminPubkeyDetails,
+    must_save_stack: &mut bool,
+    state: &mut crate::config::State,
+) -> Result<GetSignupChallengeResponse> {
+    let res = match remove_signup_challenge(&body.challenge).await {
+        Some(user_detail) => {
+            // check user id matches
+            if body.user_id != user_detail.0 {
+                return Ok(GetSignupChallengeResponse {
+                    success: false,
+                    pubkey: "".to_string(),
+                    message: "you are not unauthorized to access this challenge".to_string(),
+                });
+            }
+            let pubkey = user_detail.1;
+            // check if verified
+            if pubkey.is_none() {
+                return Ok(GetSignupChallengeResponse {
+                    success: false,
+                    pubkey: "".to_string(),
+                    message: "not yet verified".to_string(),
+                });
+            }
+            // safe to unwrap here since "is_none" was checked above
+            let pubkey = pubkey.unwrap();
+            match state.stack.users.iter().position(|u| u.id == body.user_id) {
+                Some(ui) => {
+                    state.stack.users[ui].pubkey = Some(pubkey.clone());
+                    *must_save_stack = true;
+                    let boltwall = crate::handler::find_boltwall(&state.stack.nodes)?;
+                    crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &"".to_string())
+                        .await?;
+                    GetSignupChallengeResponse {
+                        success: true,
+                        pubkey: pubkey.to_string(),
+                        message: "signup successful".to_string(),
+                    }
+                }
+                None => GetSignupChallengeResponse {
+                    success: false,
+                    pubkey: "".to_string(),
+                    message: "you are not unauthorized to access this challenge".to_string(),
+                },
+            }
+        }
+        None => GetSignupChallengeResponse {
+            success: false,
+            pubkey: "".to_string(),
+            message: "challenge not found".to_string(),
+        },
+    };
+    Ok(res)
 }

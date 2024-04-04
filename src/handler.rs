@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use crate::app_login::{
-    delete_signup_challenge, find_challenge_from_signup_hashmap, GetSignupChallengeResponse,
-};
+use crate::app_login::sign_up_admin_pubkey;
 use crate::auth;
 use crate::builder;
 use crate::cmd::*;
@@ -297,70 +295,8 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
 
             SwarmCmd::SignUpAdminPubkey(body) => {
                 log::info!("Signup Admin Pubkey ===> {:?}", body);
-                // find challenge from global hashmap with challenge
-                match find_challenge_from_signup_hashmap(&body.challenge).await {
-                    Some(user_detail) => match user_detail.get(&body.user_id) {
-                        Some(pubkey) => {
-                            if pubkey.is_empty() {
-                                let response = GetSignupChallengeResponse {
-                                    success: false,
-                                    pubkey: "".to_string(),
-                                    message: "not yet verified".to_string(),
-                                };
-                                Some(serde_json::to_string(&response).unwrap())
-                            } else {
-                                match state.stack.users.iter().position(|u| u.id == body.user_id) {
-                                    Some(ui) => {
-                                        state.stack.users[ui].pubkey = Some(pubkey.to_string());
-                                        must_save_stack = true;
-                                        let boltwall = find_boltwall(&state.stack.nodes)?;
-                                        crate::conn::boltwall::add_admin_pubkey(
-                                            &boltwall,
-                                            &pubkey,
-                                            &"".to_string(),
-                                        )
-                                        .await?;
-                                        //delete from global hashmap
-                                        delete_signup_challenge(&body.challenge).await;
-                                        let response = GetSignupChallengeResponse {
-                                            success: true,
-                                            pubkey: pubkey.to_string(),
-                                            message: "signup successful".to_string(),
-                                        };
-                                        Some(serde_json::to_string(&response).unwrap())
-                                    }
-                                    None => {
-                                        let response = GetSignupChallengeResponse {
-                                            success: false,
-                                            pubkey: "".to_string(),
-                                            message:
-                                                "you are not unauthorized to access this challenge"
-                                                    .to_string(),
-                                        };
-                                        Some(serde_json::to_string(&response).unwrap())
-                                    }
-                                }
-                            }
-                        }
-                        None => {
-                            let response = GetSignupChallengeResponse {
-                                success: false,
-                                pubkey: "".to_string(),
-                                message: "you are not unauthorized to access this challenge"
-                                    .to_string(),
-                            };
-                            Some(serde_json::to_string(&response).unwrap())
-                        }
-                    },
-                    None => {
-                        let response = GetSignupChallengeResponse {
-                            success: false,
-                            pubkey: "".to_string(),
-                            message: "challenge not found".to_string(),
-                        };
-                        Some(serde_json::to_string(&response).unwrap())
-                    }
-                }
+                let response = sign_up_admin_pubkey(body, &mut must_save_stack, &mut state).await?;
+                return Ok(serde_json::to_string(&response)?);
             }
         },
         Cmd::Relay(c) => {
@@ -591,7 +527,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
 }
 
 use crate::images::boltwall::BoltwallImage;
-fn find_boltwall(nodes: &Vec<Node>) -> Result<BoltwallImage> {
+pub fn find_boltwall(nodes: &Vec<Node>) -> Result<BoltwallImage> {
     let mut boltwall_opt = None;
     for img in nodes.iter() {
         if let Ok(ii) = img.as_internal() {
