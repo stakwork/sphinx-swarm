@@ -4,6 +4,7 @@
   import * as api from "../api";
   import { root } from "../api/cmd";
   import { onMount, onDestroy } from "svelte";
+  import { contructQrString } from "../helpers";
   // import { saveUserToStore } from "../store";
 
   export let saveUserToStore = (_a: string) => {};
@@ -64,24 +65,6 @@
     } catch (error) {
       loading = false;
     }
-  }
-
-  function contructQrString(challenge: string) {
-    /**
-     * TODO
-     */
-    //change time to actual seconds from the backend
-    // tobi-sphinx.chat
-    const milliseconds = new Date().getTime();
-    let parsedHost = root;
-    if (root === "/api") {
-      parsedHost = `${window.location.host}${root}`;
-    } else if (root.includes("https://")) {
-      parsedHost = parsedHost.substring(8);
-    } else if (root.includes("http://")) {
-      parsedHost = parsedHost.substring(7);
-    }
-    return `sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
   }
 
   onMount(async () => {
