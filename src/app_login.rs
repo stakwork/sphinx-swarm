@@ -3,6 +3,8 @@ use crate::config;
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rocket::tokio::sync::Mutex;
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::secrets;
@@ -18,6 +20,12 @@ pub struct VerifyResponse {
 pub struct ChallengeStatus {
     pub success: bool,
     pub token: String,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetSignupChallengeResponse {
+    pub success: bool,
+    pub pubkey: String,
+    pub message: String,
 }
 
 pub static DETAILS: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -177,4 +185,15 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
     }
 
     Ok(res)
+}
+
+pub async fn find_challenge_from_signup_hashmap(challenge: &str) -> Option<HashMap<u32, String>> {
+    let details = SIGNUP_DETAILS.lock().await;
+    let detail = details.get(challenge)?;
+    Some(detail.clone())
+}
+
+pub async fn delete_signup_challenge(challenge: &str) {
+    let mut details = SIGNUP_DETAILS.lock().await;
+    details.remove(challenge);
 }

@@ -4,6 +4,7 @@
     add_boltwall_admin_pubkey,
     get_challenge_status,
     get_signup_challenge,
+    get_signup_challenge_status,
     update_admin_pubkey,
   } from "../../../api/swarm";
   import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
@@ -56,11 +57,18 @@
     let i = 0;
     interval = setInterval(async () => {
       try {
-        const response = await get_challenge_status(challenge);
+        const response = await get_signup_challenge_status(
+          challenge,
+          $activeUser
+        );
         if (response.success) {
           challenge = "";
-          // saveUserToStore(response.token);
-          // Todo: save this result to store
+          boltwallSuperAdminPubkey.set(response.pubkey);
+          sphinx_app_loading = false;
+          if (interval) clearInterval(interval);
+        } else if (response.message !== "not yet verified") {
+          //display error message
+          console.log(response.message);
           sphinx_app_loading = false;
           if (interval) clearInterval(interval);
         }

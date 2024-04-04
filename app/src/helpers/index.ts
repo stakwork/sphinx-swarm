@@ -80,5 +80,5 @@ export function contructQrString(challenge: string) {
   } else if (root.includes("http://")) {
     parsedHost = parsedHost.substring(7);
   }
-  return `tobi-sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
+  return `sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
 }

@@ -176,6 +176,16 @@ export async function get_challenge_status(challenge) {
   return result;
 }
 
+export async function get_signup_challenge_status(challenge, token) {
+  const r = await fetch(`${root}/poll_signup_challenge/${challenge}`, {
+    headers: {
+      "x-jwt": token,
+    },
+  });
+  const result = await r.json();
+  return result;
+}
+
 export async function get_signup_challenge(token) {
   const r = await fetch(`${root}/signup_challenge`, {
     headers: { "x-jwt": token },
