@@ -75,34 +75,10 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
                         .ok_or(anyhow::anyhow!("challenge doesn't exist for sign up"))?;
                     *detail = user_details;
                     drop(signup_details);
-                    let mut state = config::STATE.lock().await;
-                    match state.stack.users.iter().position(|u| u.id == id) {
-                        Some(ui) => {
-                            state.stack.users[ui].pubkey = Some(pubkey.to_string());
-                            //save state
-                            //TODO: find a way to ensure we get stack value dynamically
-                            config::put_config_file("stack", &state.stack).await;
-                            drop(state);
-                            return Ok(VerifyResponse {
-                                success: true,
-                                message: "Successfully verified token".to_string(),
-                            });
-                        }
-                        None => {
-                            let mut revert_signup_details = SIGNUP_DETAILS.lock().await;
-                            let detail = revert_signup_details
-                                .get_mut(challenge)
-                                .ok_or(anyhow::anyhow!("challenge doesn't exist for sign up"))?;
-                            let mut user_details: HashMap<u32, String> = HashMap::new();
-                            user_details.insert(id, "".to_string());
-                            *detail = user_details;
-                            drop(revert_signup_details);
-                            return Ok(VerifyResponse {
-                                success: false,
-                                message: "invalid user".to_string(),
-                            });
-                        }
-                    }
+                    return Ok(VerifyResponse {
+                        success: true,
+                        message: "Successfully verified token".to_string(),
+                    });
                 }
                 None => {
                     return Ok(VerifyResponse {
