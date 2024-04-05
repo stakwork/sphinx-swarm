@@ -45,7 +45,7 @@
     padding: 0.94rem;
     border-radius: 0.375rem;
     background: #13181d;
-    color: #556171;
+    color: #ffffff;
     font-family: "Roboto";
     font-size: 0.875rem;
     font-style: normal;

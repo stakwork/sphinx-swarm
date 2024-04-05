@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::app_login::sign_up_admin_pubkey;
 use crate::auth;
 use crate::builder;
 use crate::cmd::*;
@@ -291,6 +292,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let response = crate::conn::boltwall::update_feature_flags(&boltwall, body).await?;
                 Some(serde_json::to_string(&response)?)
             }
+
+            SwarmCmd::SignUpAdminPubkey(body) => {
+                log::info!("Signup Admin Pubkey ===> {:?}", body);
+                let response = sign_up_admin_pubkey(body, &mut must_save_stack, &mut state).await?;
+                return Ok(serde_json::to_string(&response)?);
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;
@@ -520,7 +527,7 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
 }
 
 use crate::images::boltwall::BoltwallImage;
-fn find_boltwall(nodes: &Vec<Node>) -> Result<BoltwallImage> {
+pub fn find_boltwall(nodes: &Vec<Node>) -> Result<BoltwallImage> {
     let mut boltwall_opt = None;
     for img in nodes.iter() {
         if let Ok(ii) = img.as_internal() {

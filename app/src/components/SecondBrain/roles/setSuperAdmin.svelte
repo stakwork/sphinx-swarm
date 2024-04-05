@@ -1,13 +1,23 @@
 <script lang="ts">
+  import { onDestroy, onMount } from "svelte";
   import {
     add_boltwall_admin_pubkey,
+    get_signup_challenge,
+    get_signup_challenge_status,
     update_admin_pubkey,
   } from "../../../api/swarm";
   import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
   import Input from "../../input/input.svelte";
+  import { contructQrString } from "../../../helpers";
+
   let superAdminPubkey = "";
   let superAdminUsername = "";
   let isLoading = false;
+  $: challenge = "";
+  $: qrString = "";
+  $: sphinx_app_loading = false;
+
+  let interval;
 
   function handleAdminPubkeyInput(value) {
     superAdminPubkey = value;
@@ -41,6 +51,68 @@
       );
     }
   }
+
+  async function startPolling() {
+    let i = 0;
+    interval = setInterval(async () => {
+      try {
+        const response = await get_signup_challenge_status(
+          challenge,
+          $activeUser
+        );
+        if (response.success) {
+          challenge = "";
+          boltwallSuperAdminPubkey.set(response.pubkey);
+          sphinx_app_loading = false;
+          if (interval) clearInterval(interval);
+        } else if (response.message !== "not yet verified") {
+          //display error message
+          console.log(response.message);
+          sphinx_app_loading = false;
+          if (interval) clearInterval(interval);
+        }
+        i++;
+        if (i > 100) {
+          sphinx_app_loading = false;
+          if (interval) clearInterval(interval);
+        }
+      } catch (e) {
+        sphinx_app_loading = false;
+        console.log("Auth interval error", e);
+      }
+    }, 3000);
+  }
+
+  async function signupWithSphinx(e) {
+    try {
+      sphinx_app_loading = true;
+      startPolling();
+    } catch (error) {
+      sphinx_app_loading = false;
+    }
+  }
+
+  async function setup_get_signup_challenge() {
+    const result = await get_signup_challenge($activeUser);
+    challenge = result.challenge;
+    qrString = contructQrString(challenge);
+  }
+
+  onMount(async () => {
+    try {
+      //get_sign_up_challenge for sphinx_login
+      await setup_get_signup_challenge();
+    } catch (error) {
+      console.log(
+        "Error setting up sign up challenge: ",
+        JSON.stringify(error)
+      );
+    }
+  });
+
+  onDestroy(() => {
+    if (interval) clearInterval(interval);
+  });
 </script>
 
 <div class="container">
@@ -85,13 +157,25 @@
         <div class="line"></div>
       </div>
       <div class="sphinx_btn_container">
-        <button class="sphinx_btn">
-          <img
-            src="swarm/sphinx_logo.svg"
-            alt="sphinx"
-            class="sphinx_logo"
-          />Connect With Sphinx</button
+        <button
+          disabled={!challenge || !qrString || sphinx_app_loading}
+          class="sphinx_btn"
+          on:click={signupWithSphinx}
         >
+          {#if sphinx_app_loading}
+            <div class="sphinx_loading-spinner_container">
+              <div class="sphinx-loading-spinner"></div>
+            </div>
+          {:else}
+            <a href={qrString} class="sphinx_link">
+              <img
+                src="swarm/sphinx_logo.svg"
+                alt="sphinx"
+                class="sphinx_logo"
+              />Connect With Sphinx
+            </a>
+          {/if}
+        </button>
         <p class="sphinx_text">To set Yourself as Superadmin</p>
       </div>
     </div>
@@ -179,6 +263,23 @@
     animation: spin 1s linear infinite;
   }
 
+  .sphinx_loading-spinner_container {
+    display: flex;
+    padding: 0.8125rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sphinx-loading-spinner {
+    border: 2px solid #fff;
+    border-top: 2px solid #618aff;
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
+  }
+
   @keyframes spin {
     0% {
       transform: rotate(0deg);
@@ -247,7 +348,6 @@
   .sphinx_btn {
     display: flex;
     align-items: center;
-    padding: 0.8125rem;
     border-radius: 0.375rem;
     background: #618aff;
     color: #fff;
@@ -260,6 +360,18 @@
     width: 100%;
     border: none;
     cursor: pointer;
+  }
+
+  .sphinx_link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    padding: 0.8125rem;
+  }
+
+  .sphinx_btn:disabled {
+    cursor: not-allowed;
   }
 
   .sphinx_logo {

@@ -1,5 +1,6 @@
 use crate::app_login;
 use crate::auth;
+use crate::cmd::SignUpAdminPubkeyDetails;
 use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
 use crate::events::{get_event_tx, EventChan};
@@ -37,7 +38,9 @@ pub async fn launch_rocket(
                 verify_challenge_token,
                 get_challenge,
                 update_admin_pubkey,
-                check_challenge
+                check_challenge,
+                get_signup_challenge,
+                check_signup_challenge
             ],
         )
         .attach(CORS)
@@ -245,6 +248,17 @@ pub async fn get_challenge() -> Result<Json<GetChallengeResponse>> {
     }))
 }
 
+#[get("/signup_challenge")]
+pub async fn get_signup_challenge(
+    claims: auth::AdminJwtClaims,
+) -> Result<Json<GetChallengeResponse>> {
+    let challenge = app_login::generate_signup_challenge(claims.user).await;
+    Ok(Json(GetChallengeResponse {
+        success: true,
+        challenge: challenge,
+    }))
+}
+
 #[post("/verify/<challenge>?<token>")]
 pub async fn verify_challenge_token(
     challenge: &str,
@@ -292,4 +306,25 @@ pub async fn check_challenge(challenge: &str) -> Result<Json<ChallengeStatusResp
         success: response.success,
         token: response.token,
     }))
+}
+
+#[get("/poll_signup_challenge/<challenge>")]
+pub async fn check_signup_challenge(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    challenge: &str,
+    claims: auth::AdminJwtClaims,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::SignUpAdminPubkey(SignUpAdminPubkeyDetails {
+        user_id: claims.user,
+        challenge: challenge.to_string(),
+    }));
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+    Ok(reply)
 }
