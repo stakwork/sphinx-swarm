@@ -2,7 +2,6 @@
   import { Button, TextInput, Loading, Form } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "../api";
-  import { root } from "../api/cmd";
   import { onMount, onDestroy } from "svelte";
   import { contructQrString } from "../helpers";
   // import { saveUserToStore } from "../store";
