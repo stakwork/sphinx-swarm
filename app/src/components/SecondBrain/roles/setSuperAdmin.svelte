@@ -2,7 +2,6 @@
   import { onDestroy, onMount } from "svelte";
   import {
     add_boltwall_admin_pubkey,
-    get_challenge_status,
     get_signup_challenge,
     get_signup_challenge_status,
     update_admin_pubkey,
@@ -159,18 +158,24 @@
       </div>
       <div class="sphinx_btn_container">
         <button
-          disabled={!challenge || !qrString}
+          disabled={!challenge || !qrString || sphinx_app_loading}
           class="sphinx_btn"
           on:click={signupWithSphinx}
         >
-          <a href={qrString} class="sphinx_link">
-            <img
-              src="swarm/sphinx_logo.svg"
-              alt="sphinx"
-              class="sphinx_logo"
-            />Connect With Sphinx
-          </a></button
-        >
+          {#if sphinx_app_loading}
+            <div class="sphinx_loading-spinner_container">
+              <div class="sphinx-loading-spinner"></div>
+            </div>
+          {:else}
+            <a href={qrString} class="sphinx_link">
+              <img
+                src="swarm/sphinx_logo.svg"
+                alt="sphinx"
+                class="sphinx_logo"
+              />Connect With Sphinx
+            </a>
+          {/if}
+        </button>
         <p class="sphinx_text">To set Yourself as Superadmin</p>
       </div>
     </div>
@@ -252,6 +257,23 @@
   .loading-spinner {
     border: 2px solid #16171d; /* Light grey */
     border-top: 2px solid #fff; /* Blue */
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
+  }
+
+  .sphinx_loading-spinner_container {
+    display: flex;
+    padding: 0.8125rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sphinx-loading-spinner {
+    border: 2px solid #fff;
+    border-top: 2px solid #618aff;
     border-radius: 50%;
     width: 1.125rem;
     height: 1.125rem;
@@ -346,6 +368,10 @@
     text-decoration: none;
     color: #fff;
     padding: 0.8125rem;
+  }
+
+  .sphinx_btn:disabled {
+    cursor: not-allowed;
   }
 
   .sphinx_logo {
