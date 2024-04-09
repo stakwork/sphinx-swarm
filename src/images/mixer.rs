@@ -22,7 +22,7 @@ pub struct MixerImage {
     pub links: Links,
     pub log_level: Option<String>,
     pub initial_peers: Option<String>, // alt brokers
-    pub default_tribe_server: Option<String>,
+    pub default_tribe_pubkey: Option<String>,
 }
 
 impl MixerImage {
@@ -39,7 +39,7 @@ impl MixerImage {
             host: None,
             log_level: None,
             initial_peers: None,
-            default_tribe_server: None,
+            default_tribe_pubkey: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -65,8 +65,8 @@ impl MixerImage {
     pub fn set_initial_peers(&mut self, peers: &str) {
         self.initial_peers = Some(peers.to_string())
     }
-    pub fn set_default_tribe_server(&mut self, server: &str) {
-        self.default_tribe_server = Some(server.to_string())
+    pub fn set_default_tribe_pubkey(&mut self, pk: &str) {
+        self.default_tribe_pubkey = Some(pk.to_string())
     }
 }
 
@@ -147,6 +147,10 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
         if toats == "1" {
             env.push(format!("TESTING_ONLY_ADD_TO_SENDER=1"));
         }
+    }
+
+    if let Some(dts) = &img.default_tribe_pubkey {
+        env.push(format!("DEFAULT_TRIBE_PUBKEY={}", dts));
     }
 
     let mut c = Config {
