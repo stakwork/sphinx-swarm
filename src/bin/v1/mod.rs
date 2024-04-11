@@ -125,8 +125,9 @@ fn make_stack() -> Stack {
 
     // CLN1
     let seed1 = [43; 32];
-    let v = "latest";
-    let mut cln1 = ClnImage::new(CLN1, v, &network, "9735", "10009");
+    let clnv = "v24.02-amd64";
+    let mut cln1 = ClnImage::new(CLN1, clnv, &network, "9735", "10009");
+    cln1.set_git_version("v24.02");
     cln1.set_seed(seed1);
     cln1.plugins(cln_plugins.clone());
     cln1.links(vec![BTC]);
@@ -149,7 +150,8 @@ fn make_stack() -> Stack {
 
     // CLN2
     let seed2 = [44; 32];
-    let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
+    let mut cln2 = ClnImage::new(CLN2, clnv, &network, "9736", "10010");
+    cln1.set_git_version("v24.02");
     cln2.set_seed(seed2);
     // NO HTLC INTERCEPTOR FOR ROUTING NODE
     // cln2.plugins(cln_plugins.clone());
@@ -169,7 +171,8 @@ fn make_stack() -> Stack {
 
     // CLN3
     let seed3 = [45; 32];
-    let mut cln3 = ClnImage::new(CLN3, v, &network, "9737", "10011");
+    let mut cln3 = ClnImage::new(CLN3, clnv, &network, "9737", "10011");
+    cln1.set_git_version("v24.02");
     cln3.set_seed(seed3);
     cln3.plugins(cln_plugins.clone());
     cln3.links(vec![BTC]);

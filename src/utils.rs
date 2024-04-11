@@ -223,7 +223,7 @@ pub fn _net_config() -> Option<NetworkingConfig<String>> {
 
 pub async fn load_json<T: DeserializeOwned + Serialize>(file: &str, default: T) -> T {
     let path = std::path::Path::new(&file);
-    match fs::read(path.clone()).await {
+    match fs::read(path).await {
         Ok(data) => match serde_json::from_slice(&data) {
             Ok(d) => d,
             Err(_) => default,
@@ -238,7 +238,7 @@ pub async fn load_json<T: DeserializeOwned + Serialize>(file: &str, default: T) 
 }
 pub async fn get_json<T: DeserializeOwned>(file: &str) -> T {
     let path = std::path::Path::new(&file);
-    let data = fs::read(path.clone()).await.unwrap();
+    let data = fs::read(path).await.unwrap();
     serde_json::from_slice(&data).unwrap()
 }
 pub async fn put_json<T: Serialize>(file: &str, rs: &T) {
@@ -250,7 +250,7 @@ pub async fn put_json<T: Serialize>(file: &str, rs: &T) {
 
 pub async fn load_yaml<T: DeserializeOwned + Serialize>(file: &str, default: T) -> Result<T> {
     let path = std::path::Path::new(&file);
-    match fs::read(path.clone()).await {
+    match fs::read(path).await {
         Ok(data) => match serde_yaml::from_slice::<T>(&data) {
             Ok(d) => Ok(d),
             Err(e) => {
@@ -269,7 +269,7 @@ pub async fn load_yaml<T: DeserializeOwned + Serialize>(file: &str, default: T) 
 }
 pub async fn get_yaml<T: DeserializeOwned>(file: &str) -> T {
     let path = std::path::Path::new(&file);
-    let data = fs::read(path.clone()).await.unwrap();
+    let data = fs::read(path).await.unwrap();
     serde_yaml::from_slice(&data).unwrap()
 }
 pub async fn put_yaml<T: Serialize>(file: &str, rs: &T) {

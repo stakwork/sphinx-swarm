@@ -69,6 +69,9 @@ impl ClnImage {
     pub fn set_seed(&mut self, hsms: [u8; 32]) {
         self.seed = Some(hsms);
     }
+    pub fn set_git_version(&mut self, gv: &str) {
+        self.git_version = Some(gv.to_string());
+    }
     pub fn remove_client(&self, clients: &mut Clients) {
         clients.cln.remove(&self.name);
     }
@@ -285,6 +288,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd.push(format!("--announce-addr={}", eba));
     }
     if let Some(hsms) = img.seed {
+        cmd.push(format!("--developer"));
         // cmd.push(format!("--developer=1")); // 23.11
         cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));
         let privkey = privkey_from_seed(&hsms);
