@@ -295,8 +295,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         }
     }
     if let Some(hsms) = &img.seed {
-        // cmd.push(format!("--developer=1")); // 23.11
-        cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));
+        cmd.push(format!("--dev-force-bip32-seed={}", hsms));
         let privkey = privkey_from_seed(&hsms).expect("bad seed");
         cmd.push(format!("--dev-force-privkey={}", privkey));
     }
