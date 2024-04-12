@@ -124,16 +124,17 @@ fn make_stack() -> Stack {
     bitcoind.set_user_password("sphinx", "password");
 
     // CLN1
-    let seed1 = [43; 32];
-    let clnv = "v24.02-amd64";
+    let seed1 = "2b".repeat(32); //[43; 32];
+    let clnv = "v24.02.2";
+    let clngitv = "v24.02.0";
     let mut cln1 = ClnImage::new(CLN1, clnv, &network, "9735", "10009");
-    cln1.set_git_version("v24.02");
-    cln1.set_seed(seed1);
+    cln1.set_git_version(clngitv);
+    cln1.set_seed(seed1.clone());
     cln1.plugins(cln_plugins.clone());
     cln1.links(vec![BTC]);
 
     let mut broker1 = BrokerImage::new(BROKER1, v, &network, "1883", None);
-    broker1.set_seed(&hex::encode(&seed1));
+    broker1.set_seed(&seed1);
     broker1.set_logs("login,pubsub");
     let broker1ip = format!("{}:{}", domain(&broker1.name), &broker1.mqtt_port);
 
@@ -149,16 +150,16 @@ fn make_stack() -> Stack {
     tribes1.links(vec![BROKER1]);
 
     // CLN2
-    let seed2 = [44; 32];
+    let seed2 = "2c".repeat(32); //[44; 32];
     let mut cln2 = ClnImage::new(CLN2, clnv, &network, "9736", "10010");
-    cln1.set_git_version("v24.02");
-    cln2.set_seed(seed2);
+    cln1.set_git_version(clngitv);
+    cln2.set_seed(seed2.clone());
     // NO HTLC INTERCEPTOR FOR ROUTING NODE
     // cln2.plugins(cln_plugins.clone());
     cln2.links(vec![BTC]);
 
     let mut broker2 = BrokerImage::new(BROKER2, v, &network, "1884", None);
-    broker2.set_seed(&hex::encode(&seed2));
+    broker2.set_seed(&seed2);
     broker2.set_logs("login,pubsub");
     let broker2ip = format!("{}:{}", domain(&broker2.name), &broker2.mqtt_port);
 
@@ -170,15 +171,15 @@ fn make_stack() -> Stack {
     let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
 
     // CLN3
-    let seed3 = [45; 32];
+    let seed3 = "2d".repeat(32); //[45; 32];
     let mut cln3 = ClnImage::new(CLN3, clnv, &network, "9737", "10011");
-    cln1.set_git_version("v24.02");
-    cln3.set_seed(seed3);
+    cln1.set_git_version(clngitv);
+    cln3.set_seed(seed3.clone());
     cln3.plugins(cln_plugins.clone());
     cln3.links(vec![BTC]);
 
     let mut broker3 = BrokerImage::new(BROKER3, v, &network, "1885", None);
-    broker3.set_seed(&hex::encode(&seed3));
+    broker3.set_seed(&seed3);
     broker3.set_logs("login,pubsub");
     let broker3ip = format!("{}:{}", domain(&broker3.name), &broker3.mqtt_port);
 

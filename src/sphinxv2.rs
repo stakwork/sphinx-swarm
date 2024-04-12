@@ -13,7 +13,7 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
         panic!("seed must be 64 hex chars");
     }
     let seed_vec = hex::decode(&seed_str).expect("seed decode");
-    let seed: [u8; 32] = seed_vec.try_into().expect("seed len");
+    let seed = hex::encode(seed_vec);
 
     let is_router = match std::env::var("IS_ROUTER").ok() {
         Some(ir) => ir == "true",

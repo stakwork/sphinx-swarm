@@ -21,7 +21,8 @@ pub struct ClnImage {
     pub host: Option<String>,
     pub git_version: Option<String>,
     pub frontend: Option<bool>,
-    pub seed: Option<[u8; 32]>,
+    pub seed: Option<String>,
+    pub developer: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -50,6 +51,7 @@ impl ClnImage {
             git_version: None,
             frontend: None,
             seed: None,
+            developer: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -66,7 +68,7 @@ impl ClnImage {
     pub fn broker_frontend(&mut self) {
         self.frontend = Some(true);
     }
-    pub fn set_seed(&mut self, hsms: [u8; 32]) {
+    pub fn set_seed(&mut self, hsms: String) {
         self.seed = Some(hsms);
     }
     pub fn set_git_version(&mut self, gv: &str) {
@@ -287,11 +289,15 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
     if let Ok(eba) = getenv("ANNOUNCE_ADDRESS") {
         cmd.push(format!("--announce-addr={}", eba));
     }
-    if let Some(hsms) = img.seed {
-        cmd.push(format!("--developer"));
+    if let Some(dev) = img.developer {
+        if dev {
+            cmd.push(format!("--developer"));
+        }
+    }
+    if let Some(hsms) = &img.seed {
         // cmd.push(format!("--developer=1")); // 23.11
         cmd.push(format!("--dev-force-bip32-seed={}", hex::encode(hsms)));
-        let privkey = privkey_from_seed(&hsms);
+        let privkey = privkey_from_seed(&hsms).expect("bad seed");
         cmd.push(format!("--dev-force-privkey={}", privkey));
     }
     if let Some(u) = &btc.user {
@@ -388,10 +394,16 @@ async fn sleep(n: u64) {
     rocket::tokio::time::sleep(std::time::Duration::from_secs(n)).await;
 }
 
-fn privkey_from_seed(seed: &[u8; 32]) -> String {
+pub(super) fn unhex32(s: &str) -> Result<[u8; 32]> {
+    let h = hex::decode(s)?;
+    Ok(h.try_into().map_err(|_| anyhow!("unhex32 failed"))?)
+}
+
+fn privkey_from_seed(seed: &str) -> Result<String> {
     let secp_ctx = secp256k1::Secp256k1::new();
-    let (_, node_secret) = cln_node_keys(seed, &secp_ctx);
-    hex::encode(node_secret.secret_bytes())
+    let seed = unhex32(seed)?;
+    let (_, node_secret) = cln_node_keys(&seed[..], &secp_ctx);
+    Ok(hex::encode(node_secret.secret_bytes()))
 }
 
 use bitcoin::hashes::sha256::Hash as BitcoinSha256;
