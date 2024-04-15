@@ -243,6 +243,7 @@ impl Stack {
                 }
                 Image::Mixer(m) => Node::Internal(Image::Mixer(m)),
                 Image::Tribes(t) => Node::Internal(Image::Tribes(t)),
+                Image::Config(c) => Node::Internal(Image::Config(c)),
             },
         });
         Stack {

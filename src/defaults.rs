@@ -50,6 +50,15 @@ impl Default for Stack {
             return sphinxv2_only(&network, host);
         }
 
+        // choose only sphinx v2 tester
+        let configonly = match std::env::var("CONFIG").ok() {
+            Some(sbo) => sbo == "true",
+            None => false,
+        };
+        if configonly {
+            return config_only(host);
+        }
+
         let use_lnd = match std::env::var("USE_LND").ok() {
             Some(sbo) => sbo == "true",
             None => false,

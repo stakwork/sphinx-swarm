@@ -3,6 +3,7 @@ pub mod broker;
 pub mod btc;
 pub mod cache;
 pub mod cln;
+pub mod config_server;
 pub mod elastic;
 pub mod jarvis;
 pub mod lnd;
@@ -41,6 +42,7 @@ pub enum Image {
     Broker(broker::BrokerImage),
     Mixer(mixer::MixerImage),
     Tribes(tribes::TribesImage),
+    Config(config_server::ConfigImage),
 }
 
 pub struct Repository {
@@ -81,6 +83,7 @@ impl Image {
             Image::Broker(n) => n.name.clone(),
             Image::Mixer(n) => n.name.clone(),
             Image::Tribes(n) => n.name.clone(),
+            Image::Config(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -100,6 +103,7 @@ impl Image {
             Image::Broker(_n) => "Broker",
             Image::Mixer(_n) => "Mixer",
             Image::Tribes(_n) => "Tribes",
+            Image::Config(_n) => "Config",
         }
         .to_string()
     }
@@ -120,6 +124,7 @@ impl Image {
             Image::Broker(n) => n.version = version.to_string(),
             Image::Mixer(n) => n.version = version.to_string(),
             Image::Tribes(n) => n.version = version.to_string(),
+            Image::Config(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -199,6 +204,7 @@ impl DockerConfig for Image {
             Image::Broker(n) => n.make_config(nodes, docker).await,
             Image::Mixer(n) => n.make_config(nodes, docker).await,
             Image::Tribes(n) => n.make_config(nodes, docker).await,
+            Image::Config(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -221,6 +227,7 @@ impl DockerHubImage for Image {
             Image::Broker(n) => n.repo(),
             Image::Mixer(n) => n.repo(),
             Image::Tribes(n) => n.repo(),
+            Image::Config(n) => n.repo(),
         }
     }
 }

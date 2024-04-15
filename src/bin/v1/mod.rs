@@ -234,3 +234,40 @@ fn make_stack() -> Stack {
         ..Default::default()
     }
 }
+
+/*
+xlarge (16)
+==========
+pesto chicken
+very veggie + olives
+build own: tomato base, mozzarella cheese
+oasis
+vegan cheese - 1/2 veggie
+
+large (14)
+=========
+gluten free basil chicken
+
+2024-04-12T22:28:49.758Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "03eaa039e5e4ef6395301c793430c72ab3da29b956c114d3ac740b67979d7c39b2", "6230726279308962671", "req", "register"]
+2024-04-12T22:28:49.976Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "034ba0d91a2c4ee61cd33d2a2c1c69d4d9b31cc53b69fbe2852e64c91016cfbdc4", "0", "req", "send", "8dbe586be27a4ad8bd9732f6c9ac21f89648d0873427ea73971496555d338ec7"]
+2024-04-12T22:28:49.976Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "034ba0d91a2c4ee61cd33d2a2c1c69d4d9b31cc53b69fbe2852e64c91016cfbdc4", "0", "req", "send", "c8d74010e54408b8bd6b493c58748ea157389ffe2710a054a2b9f28d7ec7368d"]
+2024-04-12T22:28:49.976Z INFO  [sphinx_mixer::send] handle local! 0
+2024-04-12T22:28:49.977Z INFO  [sphinx_mixer::send] handle local! 0
+2024-04-12T22:28:49.979Z INFO  [sphinx_mixer::interceptor] send on stream 029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e
+2024-04-12T22:28:49.979Z INFO  [sphinx_mixer::handler] stream on topic 029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e/03eaa039e5e4ef6395301c793430c72ab3da29b956c114d3ac740b67979d7c39b2/6230726279308962671/res/stream/38/1712960929976
+2024-04-12T22:28:49.979Z INFO  [sphinx_mixer::push] handle push
+2024-04-12T22:28:49.982Z INFO  [sphinx_mixer::interceptor] send on stream 02c205151e85aab7bdc4ce95b4acfbba2aacbb628fbff46ac3a3ad8818c8f0e96e
+2024-04-12T22:28:49.982Z INFO  [sphinx_mixer::handler] stream on topic 02c205151e85aab7bdc4ce95b4acfbba2aacbb628fbff46ac3a3ad8818c8f0e96e/023be900c195aee419e5f68bf4b7bc156597da7649a9103b1afec949d233e4d1aa/0/res/stream/2/1712960929977
+2024-04-12T22:28:49.982Z INFO  [sphinx_mixer::push] handle push
+2024-04-12T22:28:56.418Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "034ba0d91a2c4ee61cd33d2a2c1c69d4d9b31cc53b69fbe2852e64c91016cfbdc4", "0", "req", "send", "8dbe586be27a4ad8bd9732f6c9ac21f89648d0873427ea73971496555d338ec7"]
+2024-04-12T22:28:56.418Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "034ba0d91a2c4ee61cd33d2a2c1c69d4d9b31cc53b69fbe2852e64c91016cfbdc4", "0", "req", "send", "c8d74010e54408b8bd6b493c58748ea157389ffe2710a054a2b9f28d7ec7368d"]
+2024-04-12T22:28:56.419Z INFO  [sphinx_mixer::send] handle local! 0
+2024-04-12T22:28:56.419Z INFO  [sphinx_mixer::send] handle local! 0
+2024-04-12T22:28:56.426Z INFO  [sphinx_mixer::interceptor] send on stream 029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e
+2024-04-12T22:28:56.426Z INFO  [sphinx_mixer::handler] stream on topic 029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e/03eaa039e5e4ef6395301c793430c72ab3da29b956c114d3ac740b67979d7c39b2/6230726279308962671/res/stream/39/1712960936419
+2024-04-12T22:28:56.426Z INFO  [sphinx_mixer::push] handle push
+2024-04-12T22:28:56.431Z INFO  [sphinx_mixer::interceptor] send on stream 02c205151e85aab7bdc4ce95b4acfbba2aacbb628fbff46ac3a3ad8818c8f0e96e
+2024-04-12T22:28:56.431Z INFO  [sphinx_mixer::handler] stream on topic 02c205151e85aab7bdc4ce95b4acfbba2aacbb628fbff46ac3a3ad8818c8f0e96e/023be900c195aee419e5f68bf4b7bc156597da7649a9103b1afec949d233e4d1aa/0/res/stream/3/1712960936419
+2024-04-12T22:28:56.431Z INFO  [sphinx_mixer::push] handle push
+
+*/

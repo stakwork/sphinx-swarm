@@ -2,10 +2,12 @@ use crate::config::*;
 use crate::defaults::*;
 use crate::images::broker::BrokerImage;
 use crate::images::cln::{ClnImage, ClnPlugin};
+use crate::images::config_server::ConfigImage;
 use crate::images::mixer::MixerImage;
 use crate::images::tribes::TribesImage;
 use crate::images::Image;
 use crate::secrets;
+use crate::utils::getenv;
 
 pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
     let seed_str = std::env::var("SEED").expect("no seed");
@@ -101,6 +103,42 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
         .iter()
         .map(|n| Node::Internal(n.to_owned()))
         .collect(),
+        host,
+        users: vec![Default::default()],
+        jwt_key: secrets::random_word(16),
+        ready: false,
+        ip: env_no_empty("IP"),
+        auto_update: None,
+        custom_2b_domain: None,
+    }
+}
+
+fn cfg_img() -> anyhow::Result<ConfigImage> {
+    let regtest_tribe = getenv("REGTEST_TRIBE")?;
+    let regtest_router = getenv("REGTEST_ROUTER")?;
+    let mainnet_tribe = getenv("MAINNET_TRIBE")?;
+    let mainnet_router = getenv("MAINNET_ROUTER")?;
+    Ok(ConfigImage::new(
+        "config",
+        "latest",
+        "8001",
+        regtest_tribe,
+        regtest_router,
+        mainnet_tribe,
+        mainnet_router,
+    ))
+}
+
+pub fn config_only(host: Option<String>) -> Stack {
+    let mut cfg = cfg_img().expect("bad cfg img");
+
+    cfg.host(host.clone());
+
+    let nodes = vec![Node::Internal(Image::Config(cfg))];
+
+    Stack {
+        network: "bitcoin".to_string(),
+        nodes,
         host,
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
