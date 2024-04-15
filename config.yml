@@ -67,7 +67,7 @@ services:
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
-      - CONFIG=true
+      - IS_CONFIG=true
       - REGTEST_TRIBE=$REGTEST_TRIBE
       - REGTEST_ROUTER=$REGTEST_ROUTER
       - MAINNET_TRIBE=$MAINNET_TRIBE
