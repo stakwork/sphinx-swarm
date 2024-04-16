@@ -116,16 +116,20 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
 fn cfg_img() -> anyhow::Result<ConfigImage> {
     let regtest_tribe = getenv("REGTEST_TRIBE")?;
     let regtest_router = getenv("REGTEST_ROUTER")?;
+    let regtest_default_lsp = getenv("REGTEST_DEFAULT_LSP")?;
     let mainnet_tribe = getenv("MAINNET_TRIBE")?;
     let mainnet_router = getenv("MAINNET_ROUTER")?;
+    let mainnet_default_lsp = getenv("MAINNET_DEFAULT_LSP")?;
     Ok(ConfigImage::new(
         "config",
         "latest",
         "8001",
         regtest_tribe,
         regtest_router,
+        regtest_default_lsp,
         mainnet_tribe,
         mainnet_router,
+        mainnet_default_lsp,
     ))
 }
 

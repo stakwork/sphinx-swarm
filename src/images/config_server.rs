@@ -14,8 +14,10 @@ pub struct ConfigImage {
     pub port: String,
     pub regtest_tribe: String,
     pub regtest_router: String,
+    pub regest_default_lsp: String,
     pub mainnet_tribe: String,
     pub mainnet_router: String,
+    pub mainnet_default_lsp: String,
     pub host: Option<String>,
 }
 
@@ -26,8 +28,10 @@ impl ConfigImage {
         port: &str,
         regtest_tribe: String,
         regtest_router: String,
+        regest_default_lsp: String,
         mainnet_tribe: String,
         mainnet_router: String,
+        mainnet_default_lsp: String,
     ) -> Self {
         Self {
             name: name.to_string(),
@@ -35,8 +39,10 @@ impl ConfigImage {
             port: port.to_string(),
             regtest_tribe,
             regtest_router,
+            regest_default_lsp,
             mainnet_tribe,
             mainnet_router,
+            mainnet_default_lsp,
             host: None,
         }
     }
@@ -76,8 +82,10 @@ fn config_server(img: &ConfigImage) -> Result<Config<String>> {
         format!("ROCKET_PORT={}", img.port),
         format!("REGTEST_TRIBE={}", img.regtest_tribe),
         format!("REGTEST_ROUTER={}", img.regtest_router),
+        format!("REGTEST_DEFAULT_LSP={}", img.regest_default_lsp),
         format!("MAINNET_TRIBE={}", img.mainnet_tribe),
         format!("MAINNET_ROUTER={}", img.mainnet_router),
+        format!("MAINNET_DEFAULT_LSP={}", img.mainnet_default_lsp),
     ];
 
     let mut c = Config {
