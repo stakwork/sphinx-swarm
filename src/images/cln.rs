@@ -74,6 +74,9 @@ impl ClnImage {
     pub fn set_git_version(&mut self, gv: &str) {
         self.git_version = Some(gv.to_string());
     }
+    pub fn set_dev(&mut self) {
+        self.developer = Some(true);
+    }
     pub fn remove_client(&self, clients: &mut Clients) {
         clients.cln.remove(&self.name);
     }
@@ -311,6 +314,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         ));
         // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln-sphinx:latest
         // docker run -it --entrypoint "/bin/bash" cln-sphinx
+        // docker run -it --entrypoint "/bin/bash" sphinxlightning/cln:fix-gossip
         // lightningd --version
         // let git_version = "2f1a063-modded";
         let git_version = img
@@ -353,8 +357,12 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         ));
         if let Ok(rp) = img.grpc_port.parse::<u16>() {
             let plugin_port = rp + 200;
-            environ.push(format!(
-                "FM_CLN_EXTENSION_LISTEN_ADDRESS=0.0.0.0:{}",
+            // environ.push(format!(
+            //     "FM_CLN_EXTENSION_LISTEN_ADDRESS=0.0.0.0:{}",
+            //     plugin_port.to_string()
+            // ));
+            cmd.push(format!(
+                "--fm-gateway-listen=0.0.0.0:{}",
                 plugin_port.to_string()
             ));
             ports.push(plugin_port.to_string());

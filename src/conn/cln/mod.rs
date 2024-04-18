@@ -114,6 +114,20 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
+    pub async fn list_peer_channels(
+        &mut self,
+        peer_id: Vec<u8>,
+    ) -> Result<pb::ListpeerchannelsResponse> {
+        let response = self
+            .client
+            .list_peer_channels(pb::ListpeerchannelsRequest {
+                id: Some(peer_id),
+                ..Default::default()
+            })
+            .await?;
+        Ok(response.into_inner())
+    }
+
     pub async fn try_fund_channel(
         &mut self,
         id: &str,

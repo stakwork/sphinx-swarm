@@ -93,7 +93,7 @@ pub async fn new_chan_from_cln1(
         .iter()
         .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
     {
-        if p.channels.len() > 0 {
+        if p.num_channels.unwrap_or(0) > 0 {
             log::info!("skipping new channel setup");
             return Ok(());
         }
@@ -116,19 +116,13 @@ pub async fn new_chan_from_cln1(
     let mut ok = false;
     log::info!("wait for channel to confirm...");
     while !ok {
-        let peers = cln1.list_peers().await?;
-        for p in peers
-            .peers
-            .into_iter()
-            .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
-        {
-            for c in p.channels {
-                // println!("{:?}", c.status);
-                if let Some(status) = c.status.get(0) {
-                    if status.starts_with("CHANNELD_NORMAL") {
-                        log::info!("channel confirmed!!!");
-                        ok = true;
-                    }
+        let pc = cln1.list_peer_channels(hex::decode(peer_pubkey)?).await?;
+        for c in pc.channels {
+            // println!("{:?}", c.status);
+            if let Some(status) = c.status.get(0) {
+                if status.starts_with("CHANNELD_NORMAL") {
+                    log::info!("channel confirmed!!!");
+                    ok = true;
                 }
             }
         }
