@@ -90,6 +90,12 @@ pub struct SignUpAdminPubkeyDetails {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FeatureFlagUserRoles {
+    pub user: bool,
+    pub admin: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -118,7 +124,7 @@ pub enum SwarmCmd {
     GetFeatureFlags,
     GetSecondBrainAboutDetails,
     UpdateSecondBrainAbout(UpdateSecondBrainAboutRequest),
-    UpdateFeatureFlags(HashMap<String, bool>),
+    UpdateFeatureFlags(HashMap<String, FeatureFlagUserRoles>),
     SignUpAdminPubkey(SignUpAdminPubkeyDetails),
 }
 

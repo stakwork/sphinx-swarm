@@ -18,11 +18,19 @@
     },
     trendingTopics: {
       value: true,
-      method: async (value: boolean) => updateTrendingTopic(value),
     },
     public: {
       value: true,
       method: async (value: boolean) => toggleGraphStatus(value),
+    },
+    addItem: {
+      value: true,
+    },
+    addContent: {
+      value: true,
+    },
+    settings: {
+      value: true,
     },
   };
   $: about = {};
@@ -32,7 +40,33 @@
     graph_name: { value: "", isChange: false },
     trendingTopics: { value: true, isChange: false },
     public: { value: true, isChange: false },
+    addItem: { value: true, isChange: false },
+    addContent: { value: true, isChange: false },
+    settings: { value: true, isChange: false },
   };
+
+  const featureFlags = [
+    {
+      key: "trendingTopics",
+      label: "Trending Topics",
+      description: "Toggle to display Trending topics on the graph.",
+    },
+    {
+      key: "addItem",
+      label: "Add Item",
+      description: "Toggle Add Item on the Graph",
+    },
+    {
+      key: "addContent",
+      label: "Add Content",
+      description: "Toggle Add Content on the Graph",
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      description: "Toggle Settings on the Graph",
+    },
+  ];
 
   function handleCheckBoxChange(e, value) {
     const checked = e.target.checked;
@@ -112,20 +146,56 @@
     isChange = false;
   }
 
+  function findFeatureFlag(key: string) {
+    for (let i = 0; i < featureFlags.length; i++) {
+      if (featureFlags[i].key === key) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   async function handleSaveChanges() {
     isLoading = true;
     try {
+      const changedFeatureFlag = {};
       for (let key in { ...changedState }) {
         if (changedState[key].isChange) {
-          await state[key].method(changedState[key].value);
+          const isFeatureFlag = findFeatureFlag(key);
+          if (isFeatureFlag) {
+            changedFeatureFlag[key] = {
+              user: changedState[key].value,
+              admin: changedState[key].value,
+            };
+          } else {
+            await state[key].method(changedState[key].value);
+            //update state
+            const newObj = { ...state[key], value: changedState[key].value };
+            state = { ...state, [key]: { ...newObj } };
+            changedState = {
+              ...changedState,
+              [key]: { value: changedState[key].value, isChange: false },
+            };
+          }
+        }
+      }
 
-          //update state
-          const newObj = { ...state[key], value: changedState[key].value };
-          state = { ...state, [key]: { ...newObj } };
-          changedState = {
-            ...changedState,
-            [key]: { value: changedState[key].value, isChange: false },
-          };
+      if (Object.keys(changedFeatureFlag).length !== 0) {
+        const result = await update_feature_flags({ ...changedFeatureFlag });
+        const parsedResult = JSON.parse(result);
+        if (parsedResult.success) {
+          for (let key in changedFeatureFlag) {
+            // Update The state
+            state = {
+              ...state,
+              [key]: { value: changedFeatureFlag[key].user },
+            };
+            //  Updated Changes state
+            changedState = {
+              ...changedState,
+              [key]: { value: changedState[key].value, isChange: false },
+            };
+          }
         }
       }
 
@@ -167,8 +237,16 @@
         method: async (title: string) => updateGraphDetails(title),
       },
       trendingTopics: {
-        value: parsedFeatureFlag.data.trendingTopics,
-        method: async (value: boolean) => updateTrendingTopic(value),
+        value: parsedFeatureFlag.data.trendingTopics.user,
+      },
+      addItem: {
+        value: parsedFeatureFlag.data.addItem.user,
+      },
+      addContent: {
+        value: parsedFeatureFlag.data.addContent.user,
+      },
+      settings: {
+        value: parsedFeatureFlag.data.settings.user,
       },
     };
 
@@ -177,7 +255,16 @@
       public: { value: parsedResult.data.isPublic, isChange: false },
       graph_name: { value: parsedAbout.title, isChange: false },
       trendingTopics: {
-        value: parsedFeatureFlag.data.trendingTopics,
+        value: parsedFeatureFlag.data.trendingTopics.user,
+        isChange: false,
+      },
+      addContent: {
+        value: parsedFeatureFlag.data.addContent.user,
+        isChange: false,
+      },
+      addItem: { value: parsedFeatureFlag.data.addItem.user, isChange: false },
+      settings: {
+        value: parsedFeatureFlag.data.settings.user,
         isChange: false,
       },
     };
@@ -240,20 +327,22 @@
           </p>
         </div>
       </div>
-      <div class="checkbox-container">
-        <input
-          type="checkbox"
-          class="checkbox"
-          on:click={(e) => handleCheckBoxChange(e, "trendingTopics")}
-          checked={changedState.trendingTopics.value}
-        />
-        <div class="checkout-label-container">
-          <h4 class="checkout-label">Trending Topics</h4>
-          <p class="checkout-label-description">
-            Toggle to display Trending topics on the graph.
-          </p>
+      {#each featureFlags as featureFlag}
+        <div class="checkbox-container">
+          <input
+            type="checkbox"
+            class="checkbox"
+            on:click={(e) => handleCheckBoxChange(e, featureFlag.key)}
+            checked={changedState[featureFlag.key].value}
+          />
+          <div class="checkout-label-container">
+            <h4 class="checkout-label">{featureFlag.label}</h4>
+            <p class="checkout-label-description">
+              {featureFlag.description}
+            </p>
+          </div>
         </div>
-      </div>
+      {/each}
     </div>
   </div>
 </div>

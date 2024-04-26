@@ -1,3 +1,4 @@
+use crate::cmd::FeatureFlagUserRoles;
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
 use anyhow::{anyhow, Context, Result};
@@ -257,7 +258,7 @@ pub async fn get_second_brain_about_details(img: &BoltwallImage) -> Result<Strin
 }
 pub async fn update_feature_flags(
     img: &BoltwallImage,
-    body: HashMap<String, bool>,
+    body: HashMap<String, FeatureFlagUserRoles>,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
