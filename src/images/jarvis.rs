@@ -144,6 +144,9 @@ fn jarvis(
             radar_twitter_scheduler_time_in_sec
         ));
     }
+    if let Ok(jarvis_feature_flag_schema) = getenv("JARVIS_FEATURE_FLAG_SCHEMA") {
+        env.push(format!("FEATURE_FLAG_SCHEMA={}", jarvis_feature_flag_schema));
+    }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
