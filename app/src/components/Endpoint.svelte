@@ -1,45 +1,37 @@
 <script>
-  import { Toggle, InlineNotification } from "carbon-components-svelte";
+  import { createEventDispatcher } from "svelte";
+  import { Toggle } from "carbon-components-svelte";
   import { update_paid_endpoint } from "../api/swarm";
 
   export let id;
   export let description = "";
   export let toggled = false;
 
+  const dispatch = createEventDispatcher();
+
   $: disabled = false;
-  $: show_notification = false;
-  $: message = "";
   $: success = false;
+
+  function sendDataToParent(success) {
+    dispatch("customEvent", success);
+  }
 
   async function handleUpdatePaidEndpoint(status) {
     disabled = true;
     const result = await update_paid_endpoint(id, status);
     const parsedResult = JSON.parse(result);
-    message = parsedResult.message;
     success = parsedResult.success;
-    show_notification = true;
     disabled = false;
+    sendDataToParent(success);
   }
 </script>
 
 <div class="container">
-  {#if show_notification}
-    <InlineNotification
-      lowContrast
-      kind={success ? "success" : "error"}
-      title={success ? "Success:" : "Error:"}
-      subtitle={message}
-      timeout={3000}
-      on:close={(e) => {
-        e.preventDefault();
-        show_notification = false;
-      }}
-    />
-  {/if}
   <div class="endpoint-container">
-    <p>{description}</p>
+    <p class:active={toggled} class="endpoint-description">{description}</p>
     <div class="toggle-container">
       <Toggle
+        size="default"
         labelA=""
         labelB=""
         bind:toggled
@@ -58,6 +50,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #00000040;
   }
 
   .toggle-container {
@@ -65,5 +59,18 @@
     justify-content: center;
     align-items: center;
     margin-bottom: 1rem;
+  }
+
+  .endpoint-description {
+    font-family: "Barlow";
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.125rem;
+    letter-spacing: 0.01em;
+    color: #6b7a8d;
+  }
+
+  .active {
+    color: #ffffff;
   }
 </style>
