@@ -21,11 +21,55 @@
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { onMount } from "svelte";
   import * as api from "./api";
-  import type { Stack } from "./nodes";
+  import type { Node, Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
   import type { Container } from "./api/swarm";
+  import { getVersionFromDigest } from "./helpers/swarm";
   let selectedName = "";
+
+  async function getNodeVersion(nodes: Node[]) {
+    //loop throug nodes
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      // if node version is latest get digest
+      if (node.version === "latest") {
+        let image_name = `sphinx-${node.name}`;
+        if (node.name === "relay") {
+          image_name = `sphinx-relay-swarm`;
+        } else if (node.name === "cln") {
+          image_name = `cln-sphinx`;
+        } else if (node.name === "navfiber") {
+          image_name = `sphinx-nav-fiber`;
+        } else if (node.name === "cache") {
+          image_name = ``;
+        } else if (node.name === "jarvis") {
+          image_name = `sphinx-jarvis-backend`;
+        }
+        const image_digest_response = await api.swarm.get_image_digest(
+          `sphinxlightning/${image_name}`
+        );
+        if (image_digest_response.success) {
+          const version = await getVersionFromDigest(
+            image_digest_response.digest,
+            image_name
+          );
+
+          stack.update((stack) => {
+            for (let i = 0; i < stack.nodes.length; i++) {
+              const oldNode = { ...stack.nodes[i] };
+              if (oldNode.name === node.name) {
+                const newNode = { ...oldNode, version };
+                stack.nodes[i] = { ...newNode };
+                break;
+              }
+            }
+            return stack;
+          });
+        }
+      }
+    }
+  }
 
   async function pollConfig() {
     let ready = false;
@@ -41,6 +85,8 @@
     console.log("=>", stackRemote);
     if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
+      // get node version
+      getNodeVersion(stackRemote.nodes);
     }
     return stackRemote.ready;
   }

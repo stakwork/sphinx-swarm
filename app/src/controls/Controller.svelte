@@ -64,7 +64,7 @@
         />
         <div>
           <p class="node_name">{$selectedNode.name}</p>
-          <p class="node_version">{$selectedNode.version}</p>
+          <p class="node_version">{$selectedNode.version || ""}</p>
         </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         {#if hasHsmd}

@@ -298,6 +298,10 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let response = sign_up_admin_pubkey(body, &mut must_save_stack, &mut state).await?;
                 return Ok(serde_json::to_string(&response)?);
             }
+            SwarmCmd::GetImageDigest(image_name) => {
+                let digest = get_image_digest(&image_name).await?;
+                return Ok(serde_json::to_string(&digest)?);
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

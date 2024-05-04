@@ -71,7 +71,8 @@ export type Cmd =
   | "GetSecondBrainAboutDetails"
   | "GetFeatureFlags"
   | "UpdateSecondBrainAbout"
-  | "UpdateFeatureFlags";
+  | "UpdateFeatureFlags"
+  | "GetImageDigest";
 
 interface CmdData {
   cmd: Cmd;
