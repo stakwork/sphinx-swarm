@@ -4,10 +4,7 @@
   import SetupAdmin from "./components/NavFiberAdmin.svelte";
   import EnpointPermission from "./components/EnpointPermission.svelte";
   import General from "./components/SecondBrain/general.svelte";
-  import {
-    update_graph_accessibility,
-    get_graph_accessibility,
-  } from "./api/swarm";
+  import { get_graph_accessibility } from "./api/swarm";
   import { stack, selectedNode } from "./store";
   import Roles from "./components/SecondBrain/roles/roles.svelte";
 
