@@ -52,8 +52,11 @@
         if (image_digest_response.success) {
           const version = await getVersionFromDigest(
             image_digest_response.digest,
-            image_name
+            `https://hub.docker.com/v2/repositories/sphinxlightning/${image_name}/tags?page_size=100`
           );
+
+          console.log(image_name);
+          console.log(version);
 
           stack.update((stack) => {
             for (let i = 0; i < stack.nodes.length; i++) {
