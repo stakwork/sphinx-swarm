@@ -16,7 +16,9 @@ use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
+use serde::Deserialize;
 use serde::Serialize;
+use std::default::Default;
 
 use crate::utils::{domain, sleep_ms};
 
@@ -456,6 +458,40 @@ pub fn sphinx_container(names: &Option<Vec<String>>) -> Option<String> {
         }
     };
     None
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetImageDigestResponse {
+    pub success: bool,
+    pub digest: String,
+    pub message: String,
+}
+
+// get image digest
+pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse> {
+    let docker = Docker::connect_with_local_defaults()?;
+
+    let image_info: bollard_stubs::models::ImageInspect = docker.inspect_image(image_name).await?;
+
+    let error_response = GetImageDigestResponse {
+        success: false,
+        digest: "".to_string(),
+        message: "digest does not exist".to_string(),
+    };
+
+    if let Some(digests) = image_info.repo_digests {
+        if let Some(first_digest) = digests.get(0) {
+            return Ok(GetImageDigestResponse {
+                success: true,
+                digest: first_digest.to_string(),
+                message: "digest retrieved successfully".to_string(),
+            });
+        } else {
+            return Ok(error_response);
+        }
+    } else {
+        return Ok(error_response);
+    }
 }
 
 #[derive(Serialize, Clone, Debug)]

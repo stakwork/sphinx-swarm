@@ -62,7 +62,10 @@
           class="node-top-img"
           alt="node "
         />
-        {$selectedNode.name}
+        <div>
+          <p class="node_name">{$selectedNode.name}</p>
+          <p class="node_version">{$selectedNode.version || ""}</p>
+        </div>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         {#if hasHsmd}
           <div
@@ -159,6 +162,18 @@
     width: 30px;
     outline: 0;
     z-index: 10;
+  }
+
+  .node_name {
+    text-transform: capitalize;
+    font-weight: 700;
+    font-family: "Barlow";
+    font-size: 1.5rem;
+  }
+
+  .node_version {
+    font-family: "Roboto";
+    font-size: 0.8rem;
   }
 
   .close-btn-wrap button {

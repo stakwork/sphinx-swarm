@@ -4,11 +4,8 @@
   import SetupAdmin from "./components/NavFiberAdmin.svelte";
   import EnpointPermission from "./components/EnpointPermission.svelte";
   import General from "./components/SecondBrain/general.svelte";
-  import {
-    update_graph_accessibility,
-    get_graph_accessibility,
-  } from "./api/swarm";
-  import { stack } from "./store";
+  import { get_graph_accessibility } from "./api/swarm";
+  import { stack, selectedNode } from "./store";
   import Roles from "./components/SecondBrain/roles/roles.svelte";
 
   export let host = "";
@@ -24,19 +21,6 @@
   $: success = false;
   $: firstTime = false;
   $: currentTab = "General";
-
-  async function toggleGraphStatus(state) {
-    if (firstTime) {
-      return;
-    }
-    disabled = true;
-    const result = await update_graph_accessibility(state.toggled);
-    const parsedResult = JSON.parse(result);
-    message = parsedResult.message;
-    success = parsedResult.success;
-    show_notification = true;
-    disabled = false;
-  }
 
   const tabs = ["General", "Roles", "Payments"];
 
@@ -79,7 +63,10 @@
         alt="Second Brain Logo"
         class="logo_image"
       />
-      <p class="title">Second Brain</p>
+      <div class="title_version_container">
+        <p class="title">Second Brain</p>
+        <p class="version">{$selectedNode.version}</p>
+      </div>
     </div>
 
     <a target="_blank" rel="noreferrer" href={link}>
@@ -89,16 +76,6 @@
       </div></a
     >
   </div>
-  <!-- <div>
-    <Toggle
-      labelText="Toggle Graph Accesibility"
-      labelA="Private"
-      labelB="Public"
-      bind:toggled
-      on:toggle={(e) => toggleGraphStatus(e.detail)}
-      {disabled}
-    />
-  </div> -->
   <div class="tab-container">
     <div class="tab-header">
       {#each tabs as tab (tab)}
@@ -144,6 +121,11 @@
     gap: 0.75rem;
   }
 
+  .title_version_container {
+    display: flex;
+    flex-direction: column;
+  }
+
   .title {
     color: white;
     text-transform: capitalize;
@@ -151,6 +133,12 @@
     font-size: 1.375rem;
     font-weight: 700;
     line-height: 0.875rem; /* 63.636% */
+  }
+
+  .version {
+    font-family: "Barlow";
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
   }
 
   .open_link {
