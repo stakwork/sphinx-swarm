@@ -126,6 +126,7 @@ pub enum SwarmCmd {
     UpdateSecondBrainAbout(UpdateSecondBrainAboutRequest),
     UpdateFeatureFlags(HashMap<String, FeatureFlagUserRoles>),
     SignUpAdminPubkey(SignUpAdminPubkeyDetails),
+    GetImageDigest(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

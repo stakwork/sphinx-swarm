@@ -21,6 +21,10 @@ export async function get_config() {
   return await swarmCmd("GetConfig");
 }
 
+export async function get_image_digest(image_name: string) {
+  return await swarmCmd("GetImageDigest", image_name);
+}
+
 export async function get_logs(name) {
   return await swarmCmd("GetContainerLogs", name);
 }
