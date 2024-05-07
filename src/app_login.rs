@@ -20,6 +20,7 @@ pub struct VerifyResponse {
 pub struct ChallengeStatus {
     pub success: bool,
     pub token: String,
+    pub message: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetSignupChallengeResponse {
@@ -92,24 +93,35 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
         },
     };
     drop(state);
+    let mut details = DETAILS.lock().await;
+    let detail = details
+        .get_mut(challenge)
+        .ok_or(anyhow::anyhow!("challenge doesn't exist"))?;
 
     if res.success {
-        let mut details = DETAILS.lock().await;
-        let detail = details
-            .get_mut(challenge)
-            .ok_or(anyhow::anyhow!("challenge doesn't exist"))?;
         *detail = pubkey.to_string();
+    } else {
+        *detail = "unauthorize".to_string()
     }
 
     Ok(res)
 }
 
 pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> {
-    let details = DETAILS.lock().await;
+    let mut details = DETAILS.lock().await;
     let pubkey = details
         .get(challenge)
         .ok_or(anyhow::anyhow!("challenge doesn't exist"))?
         .clone();
+
+    if pubkey == "unauthorize" {
+        details.remove(challenge);
+        return Ok(ChallengeStatus {
+            success: false,
+            token: "".to_string(),
+            message: "unauthorized".to_string(),
+        });
+    }
     drop(details);
 
     let state = config::STATE.lock().await;
@@ -122,10 +134,12 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
         Some(user) => ChallengeStatus {
             success: true,
             token: auth::make_jwt(user.id)?,
+            message: "login successfully".to_string(),
         },
         None => ChallengeStatus {
             success: false,
             token: "".to_string(),
+            message: "waiting for token".to_string(),
         },
     };
     drop(state);

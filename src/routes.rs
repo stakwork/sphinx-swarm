@@ -144,6 +144,7 @@ pub struct VerifyTokenResponse {
 pub struct ChallengeStatusResponse {
     pub success: bool,
     pub token: String,
+    pub message: String,
 }
 
 #[derive(Serialize)]
@@ -305,6 +306,7 @@ pub async fn check_challenge(challenge: &str) -> Result<Json<ChallengeStatusResp
     Ok(Json(ChallengeStatusResponse {
         success: response.success,
         token: response.token,
+        message: response.message,
     }))
 }
 
