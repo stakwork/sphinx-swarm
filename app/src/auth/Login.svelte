@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Button, TextInput, Loading, Form } from "carbon-components-svelte";
+  import {
+    Button,
+    TextInput,
+    Loading,
+    Form,
+    ToastNotification,
+  } from "carbon-components-svelte";
   import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "../api";
   import { onMount, onDestroy } from "svelte";
@@ -16,6 +22,7 @@
   $: addDisabled = !username || !password;
 
   let loading = false;
+  let sphinxSignError = false;
   let interval;
 
   async function login() {
@@ -45,6 +52,17 @@
           loading = false;
           if (interval) clearInterval(interval);
         }
+
+        if (!response.success && response.message === "unauthorized") {
+          challenge = "";
+          loading = false;
+          sphinxSignError = true;
+          if (interval) clearInterval(interval);
+          setTimeout(() => {
+            sphinxSignError = false;
+          }, 20000);
+        }
+
         i++;
         if (i > 100) {
           loading = false;
@@ -89,6 +107,15 @@
       <Loading />
     {:else}
       <section class="login-wrap">
+        {#if sphinxSignError}
+          <div class="toast_container">
+            <ToastNotification
+              fullWidth
+              title="Error"
+              subtitle="You are not the authorized admin"
+            />
+          </div>
+        {/if}
         <h3 class="header-text">Login to Sphinx Swarm</h3>
         <Form on:submit>
           <TextInput
@@ -160,6 +187,10 @@
     font-size: 1.25rem;
     font-size: 900;
     margin-bottom: 35px;
+  }
+
+  .toast_container {
+    margin-bottom: 1rem;
   }
 
   .sphinx-login-container {
