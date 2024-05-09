@@ -6,11 +6,11 @@
     Form,
     ToastNotification,
   } from "carbon-components-svelte";
-  import Icon from "carbon-icons-svelte/lib/Login.svelte";
   import * as api from "../api";
   import { onMount, onDestroy } from "svelte";
   import { contructQrString } from "../helpers";
   // import { saveUserToStore } from "../store";
+  import Input from "../components/input/input.svelte";
 
   export let saveUserToStore = (_a: string) => {};
 
@@ -22,6 +22,7 @@
   $: addDisabled = !username || !password;
 
   let loading = false;
+  let sphinx_app_loading = false;
   let sphinxSignError = false;
   let interval;
 
@@ -49,13 +50,13 @@
         if (response.success) {
           challenge = "";
           saveUserToStore(response.token);
-          loading = false;
+          sphinx_app_loading = false;
           if (interval) clearInterval(interval);
         }
 
         if (!response.success && response.message === "unauthorized") {
           challenge = "";
-          loading = false;
+          sphinx_app_loading = false;
           sphinxSignError = true;
           if (interval) clearInterval(interval);
           setTimeout(() => {
@@ -65,22 +66,30 @@
 
         i++;
         if (i > 100) {
-          loading = false;
+          sphinx_app_loading = false;
           if (interval) clearInterval(interval);
         }
       } catch (e) {
-        loading = false;
+        sphinx_app_loading = false;
         console.log("Auth interval error", e);
       }
     }, 3000);
   }
 
+  function handleUsernameInput(value) {
+    username = value;
+  }
+
+  function handlePasswordInput(value) {
+    password = value;
+  }
+
   async function loginWithSphinx(e) {
     try {
-      loading = true;
+      sphinx_app_loading = true;
       startPolling();
     } catch (error) {
-      loading = false;
+      sphinx_app_loading = false;
     }
   }
 
@@ -97,58 +106,84 @@
   });
 </script>
 
-<main>
-  <div class="logo-wrap">
-    <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
-    <span class="stack-title">Sphinx</span>
+<main class="container">
+  <div class="image_container">
+    <div class="welcome_container">
+      <img src="../dist/swarm/old_logo.svg" alt="logo" />
+      <h2 class="welcome_text">
+        Welcome to <span class="app_name">Sphinx Swarm</span>
+      </h2>
+    </div>
   </div>
-  <div class="container">
-    {#if loading}
-      <Loading />
-    {:else}
-      <section class="login-wrap">
-        {#if sphinxSignError}
-          <div class="toast_container">
-            <ToastNotification
-              fullWidth
-              title="Error"
-              subtitle="You are not the authorized admin"
-            />
-          </div>
-        {/if}
-        <h3 class="header-text">Login to Sphinx Swarm</h3>
-        <Form on:submit>
-          <TextInput
-            labelText={"Username"}
-            placeholder={"Enter username"}
+  <div class="sign_contianer">
+    <div class="login_inner_container">
+      {#if sphinxSignError}
+        <div class="toast_container">
+          <ToastNotification
+            fullWidth
+            title="Error"
+            subtitle="You are not the authorized admin"
+          />
+        </div>
+      {/if}
+      <h2 class="login_text">Login</h2>
+      <div class="form_container">
+        <div class="inputs_container">
+          <Input
+            label="Username"
+            placeholder="Enter Username ..."
             bind:value={username}
+            onInput={handleUsernameInput}
           />
-          <div class="spacer" />
-          <TextInput
-            labelText={"Password"}
-            placeholder={"Enter password"}
-            type={"password"}
+
+          <Input
+            label="Password"
+            placeholder="Enter Password ..."
             bind:value={password}
+            onInput={handlePasswordInput}
           />
-          <div class="spacer" />
-          <center
-            ><Button
-              disabled={addDisabled}
-              type="submit"
-              class="peer-btn"
-              on:click={login}
-              size="field"
-              icon={Icon}>Login</Button
-            ></center
+        </div>
+        <div class="submit_btn_container">
+          <button
+            disabled={loading || addDisabled || sphinx_app_loading}
+            on:click={login}
+            class="submit_btn"
           >
-        </Form>
-        <div class="sphinx-login-container">
-          <a href={qrString} class="sphinx-button" on:click={loginWithSphinx}
-            >Login with Sphinx</a
+            {#if loading === true}
+              <div class="loading-spinner"></div>
+            {:else}
+              Login
+            {/if}</button
           >
         </div>
-      </section>
-    {/if}
+        <div class="alt_info">
+          <div class="line"></div>
+          <p class="or">OR</p>
+          <div class="line"></div>
+        </div>
+        <div class="sphinx_btn_container">
+          <button
+            disabled={!challenge || !qrString || sphinx_app_loading || loading}
+            class="sphinx_btn"
+            on:click={loginWithSphinx}
+          >
+            {#if sphinx_app_loading}
+              <div class="sphinx_loading-spinner_container">
+                <div class="sphinx-loading-spinner"></div>
+              </div>
+            {:else}
+              <a href={qrString} class="sphinx_link">
+                <img
+                  src="swarm/sphinx_logo.svg"
+                  alt="sphinx"
+                  class="sphinx_logo"
+                />Login With Sphinx
+              </a>
+            {/if}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -156,65 +191,204 @@
   main {
     height: 100vh;
     width: 100vw;
-    background: #1a242e;
-  }
-  .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 85vh;
-  }
-  .logo-wrap {
-    padding: 22px;
-    margin-left: 35px;
-    display: flex;
-    align-items: center;
-  }
-  .logo-wrap .logo {
-    border-radius: 50%;
-    width: 55px;
-    height: 55px;
-  }
-  .logo-wrap .stack-title {
-    margin-left: 12px;
-  }
-  .login-wrap {
-    width: 35vw;
-    text-align: left;
-  }
-  .header-text {
-    font-size: 1.25rem;
-    font-size: 900;
-    margin-bottom: 35px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .toast_container {
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
   }
 
-  .sphinx-login-container {
-    display: flex;
+  .image_container {
+    background-image: url("../dist/swarm/login_cover.svg");
+    background-size: cover;
+    background-position: center;
+    background-color: #16171d;
     width: 100%;
-    justify-content: center;
+  }
+
+  .welcome_container {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 2rem;
+    margin-top: 7.625rem;
+    gap: 2.75rem;
   }
 
-  .sphinx-button {
-    padding: 1rem 2rem;
-    font-size: 1rem;
+  .welcome_text {
+    font-family: "Barlow";
+    font-weight: 300;
+    font-size: 2.25rem;
+    line-height: 2.7rem;
+    color: #ffffff;
+  }
+
+  .app_name {
+    font-family: "Barlow";
+    font-weight: 700;
+  }
+
+  .sign_contianer {
+    background-color: #23252f;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login_text {
+    margin-bottom: 2rem;
+    font-family: "Barlow";
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1rem;
+  }
+
+  .login_inner_container {
+    width: 20.625rem;
+  }
+
+  .form_container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inputs_container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .submit_btn_container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2.12rem;
+    margin-top: 2rem;
+  }
+
+  .submit_btn {
+    color: #16171d;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.1875rem; /* 135.714% */
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    background: #fff;
     border: none;
-    outline: none;
-    font-weight: 500;
-    border-radius: 0.2rem;
+    width: 100%;
     cursor: pointer;
-    background-color: #618aff;
-    color: white;
-    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .sphinx-button:hover {
-    background-color: #4d6ecc;
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .submit_btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .loading-spinner {
+    border: 2px solid #16171d;
+    border-top: 2px solid #fff;
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
+  }
+
+  .alt_info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .line {
+    width: 8.12rem;
+    height: 1px;
+    background-color: #6b7a8d;
+  }
+
+  .or {
+    color: #6b7a8d;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 1.1875rem; /* 135.714% */
+  }
+
+  .sphinx_btn_container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 4rem;
+  }
+
+  .sphinx_btn {
+    display: flex;
+    align-items: center;
+    border-radius: 0.375rem;
+    background: #618aff;
+    color: #fff;
+    text-align: center;
+    font-family: "Barlow";
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.1875rem; /* 135.714% */
+    width: 100%;
+    border: none;
+    cursor: pointer;
+  }
+
+  .sphinx-loading-spinner {
+    border: 2px solid #fff;
+    border-top: 2px solid #618aff;
+    border-radius: 50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    animation: spin 1s linear infinite;
+  }
+
+  .sphinx_loading-spinner_container {
+    display: flex;
+    padding: 0.8125rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sphinx_link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    padding: 0.8125rem;
+  }
+
+  .sphinx_btn:disabled {
+    cursor: not-allowed;
+  }
+
+  .sphinx_logo {
+    width: 1.371rem;
+    height: 1.3125rem;
+    margin-right: 3.945rem;
   }
 </style>
