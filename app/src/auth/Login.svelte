@@ -1,11 +1,5 @@
 <script lang="ts">
-  import {
-    Button,
-    TextInput,
-    Loading,
-    Form,
-    ToastNotification,
-  } from "carbon-components-svelte";
+  import { ToastNotification } from "carbon-components-svelte";
   import * as api from "../api";
   import { onMount, onDestroy } from "svelte";
   import { contructQrString } from "../helpers";
@@ -19,6 +13,7 @@
   $: password = "";
   $: qrString = "";
   $: challenge = "";
+  $: message = "";
 
   $: addDisabled = !username || !password;
 
@@ -59,6 +54,7 @@
           challenge = "";
           sphinx_app_loading = false;
           sphinxSignError = true;
+          message = "You are not the authorized admin";
           if (interval) clearInterval(interval);
           setTimeout(() => {
             sphinxSignError = false;
@@ -68,7 +64,12 @@
         i++;
         if (i > 100) {
           sphinx_app_loading = false;
+          sphinxSignError = true;
+          message = "Timeout, please try again";
           if (interval) clearInterval(interval);
+          setTimeout(() => {
+            sphinxSignError = false;
+          }, 20000);
         }
       } catch (e) {
         sphinx_app_loading = false;
@@ -120,11 +121,7 @@
     <div class="login_inner_container">
       {#if sphinxSignError}
         <div class="toast_container">
-          <ToastNotification
-            fullWidth
-            title="Error"
-            subtitle="You are not the authorized admin"
-          />
+          <ToastNotification fullWidth title="Error" subtitle={message} />
         </div>
       {/if}
       <h2 class="login_text">Login</h2>
