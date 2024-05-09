@@ -11,6 +11,7 @@
   import { contructQrString } from "../helpers";
   // import { saveUserToStore } from "../store";
   import Input from "../components/input/input.svelte";
+  import Password from "../components/input/password.svelte";
 
   export let saveUserToStore = (_a: string) => {};
 
@@ -109,7 +110,7 @@
 <main class="container">
   <div class="image_container">
     <div class="welcome_container">
-      <img src="../dist/swarm/old_logo.svg" alt="logo" />
+      <img src="swarm/old_logo.svg" alt="logo" />
       <h2 class="welcome_text">
         Welcome to <span class="app_name">Sphinx Swarm</span>
       </h2>
@@ -136,7 +137,7 @@
             onInput={handleUsernameInput}
           />
 
-          <Input
+          <Password
             label="Password"
             placeholder="Enter Password ..."
             bind:value={password}
@@ -200,7 +201,7 @@
   }
 
   .image_container {
-    background-image: url("../dist/swarm/login_cover.svg");
+    background-image: url("swarm/login_cover.svg");
     background-size: cover;
     background-position: center;
     background-color: #16171d;
