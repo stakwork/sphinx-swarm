@@ -55,17 +55,19 @@
             `https://hub.docker.com/v2/repositories/sphinxlightning/${image_name}/tags?page_size=100`
           );
 
-          stack.update((stack) => {
-            for (let i = 0; i < stack.nodes.length; i++) {
-              const oldNode = { ...stack.nodes[i] };
-              if (oldNode.name === node.name) {
-                const newNode = { ...oldNode, version };
-                stack.nodes[i] = { ...newNode };
-                break;
+          if (version) {
+            stack.update((stack) => {
+              for (let i = 0; i < stack.nodes.length; i++) {
+                const oldNode = { ...stack.nodes[i] };
+                if (oldNode.name === node.name) {
+                  const newNode = { ...oldNode, version };
+                  stack.nodes[i] = { ...newNode };
+                  break;
+                }
               }
-            }
-            return stack;
-          });
+              return stack;
+            });
+          }
         }
       }
     }
