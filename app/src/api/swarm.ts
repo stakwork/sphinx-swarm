@@ -197,3 +197,7 @@ export async function get_signup_challenge(token) {
   const result = await r.json();
   return result;
 }
+
+export async function get_image_tags(url) {
+  return await swarmCmd("GetDockerImageTags", url);
+}

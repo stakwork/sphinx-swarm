@@ -127,6 +127,7 @@ pub enum SwarmCmd {
     UpdateFeatureFlags(HashMap<String, FeatureFlagUserRoles>),
     SignUpAdminPubkey(SignUpAdminPubkeyDetails),
     GetImageDigest(String),
+    GetDockerImageTags(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -1,13 +1,12 @@
+import { get_image_tags } from "../api/swarm";
+
 export async function getVersionFromDigest(digest: string, url: string) {
   try {
     const splittedDigest = digest.split("@")[1];
+    const response = await get_image_tags(encodeURIComponent(url));
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("Error fetching image from Docker Hub");
-    }
+    const tags = JSON.parse(response);
 
-    const tags = await response.json();
     for (let i = 0; i < tags.results.length; i++) {
       const result = tags.results[i];
       if (result.digest === splittedDigest) {
