@@ -4,21 +4,55 @@
   export let onInput;
   export let label;
 
+  $: hide = true;
+
   function handleInput(event) {
     const inputValue = event.target.value;
     onInput(inputValue);
+  }
+
+  function toggleHide() {
+    hide = !hide;
   }
 </script>
 
 <div class="container">
   <label for={label} class="label">{label}</label>
-  <input
-    id={label}
-    bind:value
-    class="input"
-    {placeholder}
-    on:input={handleInput}
-  />
+  <div class="input_container">
+    {#if hide}
+      <input
+        type="password"
+        id={label}
+        bind:value
+        class="input"
+        {placeholder}
+        on:input={handleInput}
+      />
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <img
+        src="swarm/hide.svg"
+        alt="visibility"
+        on:click={toggleHide}
+        class="toggle"
+      />
+    {:else}
+      <input
+        type="text"
+        id={label}
+        bind:value
+        class="input"
+        {placeholder}
+        on:input={handleInput}
+      />
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <img
+        src="swarm/show.svg"
+        alt="visibility"
+        on:click={toggleHide}
+        class="toggle"
+      />
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -41,10 +75,16 @@
     letter-spacing: 0.00813rem;
   }
 
-  .input {
+  .input_container {
+    width: 100%;
+    background: #13181d;
     padding: 0.94rem;
     border-radius: 0.375rem;
-    background: #13181d;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .input {
     color: #ffffff;
     font-family: "Roboto";
     font-size: 0.875rem;
@@ -52,6 +92,7 @@
     font-weight: 400;
     line-height: 1rem; /* 114.286% */
     letter-spacing: 0.00875rem;
+    background: transparent;
     width: 100%;
     border: none;
     outline: none;
@@ -62,7 +103,6 @@
     font-family: "Roboto";
     font-size: 0.875rem;
   }
-
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
@@ -73,5 +113,9 @@
 
   input:-webkit-autofill {
     -webkit-text-fill-color: white !important;
+  }
+
+  .toggle {
+    cursor: pointer;
   }
 </style>
