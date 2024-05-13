@@ -52,7 +52,9 @@
         if (image_digest_response.success) {
           const version = await getVersionFromDigest(
             image_digest_response.digest,
-            `https://hub.docker.com/v2/repositories/sphinxlightning/${image_name}/tags?page_size=100`
+            `sphinxlightning/${image_name}`,
+            "1",
+            "100"
           );
 
           if (version) {

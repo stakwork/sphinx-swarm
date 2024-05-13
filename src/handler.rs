@@ -303,9 +303,9 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let digest = get_image_digest(&image_name).await?;
                 return Ok(serde_json::to_string(&digest)?);
             }
-            SwarmCmd::GetDockerImageTags(url) => {
-                log::info!("Get Docker Image Tags ===> {:?}", url);
-                let tags = get_image_tags(url).await?;
+            SwarmCmd::GetDockerImageTags(image_details) => {
+                log::info!("Get Docker Image Tags ===> {:?}", image_details);
+                let tags = get_image_tags(image_details).await?;
                 return Ok(serde_json::to_string(&tags)?);
             }
         },
