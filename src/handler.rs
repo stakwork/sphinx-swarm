@@ -6,6 +6,7 @@ use crate::builder;
 use crate::cmd::*;
 use crate::config;
 use crate::config::{Clients, Node, Stack, State, STATE};
+use crate::conn::swarm::get_image_tags;
 use crate::dock::*;
 use crate::images::DockerHubImage;
 use crate::rocket_utils::CmdRequest;
@@ -301,6 +302,11 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
             SwarmCmd::GetImageDigest(image_name) => {
                 let digest = get_image_digest(&image_name).await?;
                 return Ok(serde_json::to_string(&digest)?);
+            }
+            SwarmCmd::GetDockerImageTags(image_details) => {
+                log::info!("Get Docker Image Tags ===> {:?}", image_details);
+                let tags = get_image_tags(image_details).await?;
+                return Ok(serde_json::to_string(&tags)?);
             }
         },
         Cmd::Relay(c) => {

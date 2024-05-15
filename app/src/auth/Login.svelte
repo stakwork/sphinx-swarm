@@ -198,7 +198,7 @@
   }
 
   .image_container {
-    background-image: url("swarm/login_cover.svg");
+    background-image: url("../swarm/login_cover.svg");
     background-size: cover;
     background-position: center;
     background-color: #16171d;
