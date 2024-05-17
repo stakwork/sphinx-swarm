@@ -146,7 +146,8 @@ sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-c
 sudo chmod +x /usr/local/bin/docker-compose &&
 sudo apt update &&
 sudo apt install git &&
-git clone https://github.com/stakwork/sphinx-swarm.git
+git clone https://github.com/stakwork/sphinx-swarm.git &&
+docker network create sphinx-swarm
 ```
 
 You can run this to setup the .env file (Not all .env options here)
