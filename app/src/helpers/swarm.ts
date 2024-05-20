@@ -1,13 +1,17 @@
-export async function getVersionFromDigest(digest: string, url: string) {
+import { get_image_tags } from "../api/swarm";
+
+export async function getVersionFromDigest(
+  digest: string,
+  org_image_name: string,
+  page: string,
+  page_size: string
+) {
   try {
     const splittedDigest = digest.split("@")[1];
+    const response = await get_image_tags(org_image_name, page, page_size);
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("Error fetching image from Docker Hub");
-    }
+    const tags = JSON.parse(response);
 
-    const tags = await response.json();
     for (let i = 0; i < tags.results.length; i++) {
       const result = tags.results[i];
       if (result.digest === splittedDigest) {
@@ -24,7 +28,19 @@ export async function getVersionFromDigest(digest: string, url: string) {
     }
 
     if (tags.next) {
-      return await getVersionFromDigest(digest, tags.next);
+      const urlString = tags.next;
+      const url = new URL(urlString);
+      const params = new URLSearchParams(url.search);
+
+      const page = params.get("page");
+      const page_size = params.get("page_size");
+
+      return await getVersionFromDigest(
+        digest,
+        org_image_name,
+        page,
+        page_size
+      );
     }
   } catch (error) {
     throw error;

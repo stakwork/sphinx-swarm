@@ -72,7 +72,8 @@ export type Cmd =
   | "GetFeatureFlags"
   | "UpdateSecondBrainAbout"
   | "UpdateFeatureFlags"
-  | "GetImageDigest";
+  | "GetImageDigest"
+  | "GetDockerImageTags";
 
 interface CmdData {
   cmd: Cmd;
