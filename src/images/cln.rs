@@ -284,7 +284,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--log-level=info:gossipd".to_string(),
         "--log-level=info:channeld".to_string(),
         "--log-level=debug".to_string(),
-        "--log-level=io:plugin-keysend".to_string(),
+        // "--log-level=io:plugin-keysend".to_string(),
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--accept-htlc-tlv-type=13377331".to_string(),
         "--database-upgrade=true".to_string(),
