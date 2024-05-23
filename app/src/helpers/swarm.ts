@@ -1,4 +1,7 @@
+import type { Writable } from "svelte/store";
 import { get_image_tags } from "../api/swarm";
+import type { Stack } from "../nodes";
+import { swarm } from "../api";
 
 export async function getVersionFromDigest(
   digest: string,
@@ -57,6 +60,49 @@ function findArchitectureDigest(architectureDigests, results) {
           return result.name;
         }
       }
+    }
+  }
+}
+
+export async function getImageVersion(
+  node_name: string,
+  stack: Writable<Stack>
+) {
+  let image_name = `sphinx-${node_name}`;
+  if (node_name === "relay") {
+    image_name = `sphinx-relay-swarm`;
+  } else if (node_name === "cln") {
+    image_name = `cln-sphinx`;
+  } else if (node_name === "navfiber") {
+    image_name = `sphinx-nav-fiber`;
+  } else if (node_name === "cache") {
+    image_name = ``;
+  } else if (node_name === "jarvis") {
+    image_name = `sphinx-jarvis-backend`;
+  }
+  const image_digest_response = await swarm.get_image_digest(
+    `sphinxlightning/${image_name}`
+  );
+  if (image_digest_response.success) {
+    const version = await getVersionFromDigest(
+      image_digest_response.digest,
+      `sphinxlightning/${image_name}`,
+      "1",
+      "100"
+    );
+
+    if (version) {
+      stack.update((stack) => {
+        for (let i = 0; i < stack.nodes.length; i++) {
+          const oldNode = { ...stack.nodes[i] };
+          if (oldNode.name === node_name) {
+            const newNode = { ...oldNode, version };
+            stack.nodes[i] = { ...newNode };
+            break;
+          }
+        }
+        return stack;
+      });
     }
   }
 }
