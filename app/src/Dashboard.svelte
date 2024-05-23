@@ -34,7 +34,7 @@
       const node = nodes[i];
       // if node version is latest get digest
       if (node.version === "latest") {
-        await getImageVersion(node.name, stack);
+        await getImageVersion(node.name, stack, selectedNode);
       }
     }
   }

@@ -1,6 +1,6 @@
 import type { Writable } from "svelte/store";
 import { get_image_tags } from "../api/swarm";
-import type { Stack } from "../nodes";
+import type { Stack, Node } from "../nodes";
 import { swarm } from "../api";
 
 export async function getVersionFromDigest(
@@ -66,7 +66,8 @@ function findArchitectureDigest(architectureDigests, results) {
 
 export async function getImageVersion(
   node_name: string,
-  stack: Writable<Stack>
+  stack: Writable<Stack>,
+  selectedNode: Writable<Node>
 ) {
   let image_name = `sphinx-${node_name}`;
   if (node_name === "relay") {
@@ -96,7 +97,15 @@ export async function getImageVersion(
         for (let i = 0; i < stack.nodes.length; i++) {
           const oldNode = { ...stack.nodes[i] };
           if (oldNode.name === node_name) {
-            const newNode = { ...oldNode, version };
+            const newNode = {
+              ...oldNode,
+              version,
+            };
+
+            selectedNode.update((node) =>
+              node && node.name === newNode.name ? { ...newNode } : node
+            );
+
             stack.nodes[i] = { ...newNode };
             break;
           }
