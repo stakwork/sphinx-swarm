@@ -13,8 +13,10 @@
   import { IS_DEV } from "../api/cmd";
   import { chipSVG } from "../nodes";
   import FirstConnect from "./FirstConnect.svelte";
+  import Jarvis from "../Jarvis.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
+  console.log(type, "We are good here");
   $: ctrls = $selectedNode && controls[type];
 
   // tag is the name of the container itself
@@ -95,6 +97,8 @@
         <Boltwall host={$selectedNode.host} />
       {:else if type === "Cln"}
         <Lnd {tag} {type} />
+      {:else if type === "Jarvis"}
+        <Jarvis />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}

@@ -80,6 +80,8 @@ const clnControls: Control[] = [];
 
 const boltwallControls: Control[] = [];
 
+const jarvisControls: Control[] = [];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
@@ -89,4 +91,5 @@ export const controls = {
   NavFiber: navfiberControls,
   Cln: clnControls,
   BoltWall: boltwallControls,
+  Jarvis: jarvisControls,
 };
