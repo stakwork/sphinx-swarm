@@ -1,6 +1,6 @@
-use crate::config::{Clients, Node, Stack, State, STATE};
+use crate::config::{self, Clients, Node, Stack, State, STATE};
 use crate::dock::*;
-use crate::dock::{create_and_start, stop_and_remove};
+use crate::dock::{pull_image, stop_and_remove};
 use crate::images::{DockerConfig, Image};
 use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
@@ -98,11 +98,11 @@ pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str
     let mut state = STATE.lock().await;
     let nodes = state.stack.nodes.clone();
     let img = find_img(node_name, &nodes)?;
-    img.remove_client(&mut state.clients);
-    drop(state);
-    match update_node(proj, docker, node_name, &nodes, &img).await {
+
+    // drop(state);
+    match update_node(proj, docker, node_name, &nodes, &img, &mut state.clients).await {
         Ok(()) => {
-            let mut state = STATE.lock().await;
+            // let mut state = STATE.lock().await;
             // FIXME if this never returns then STATE will deadlock
             // for example new CLN does spin up GRPC until remote signer is connected
             let oy = match make_client(proj, docker, &img, &mut state).await {
@@ -123,8 +123,16 @@ pub async fn update_node_and_make_client(
     state: &mut State,
 ) -> Result<()> {
     let img = find_img(node_name, &state.stack.nodes)?;
-    img.remove_client(&mut state.clients);
-    match update_node(proj, docker, node_name, &state.stack.nodes, &img).await {
+    match update_node(
+        proj,
+        docker,
+        node_name,
+        &state.stack.nodes,
+        &img,
+        &mut state.clients,
+    )
+    .await
+    {
         Ok(_) => {
             let oy = match make_client(proj, docker, &img, state).await {
                 Ok(_) => Ok(()),
@@ -197,20 +205,32 @@ pub async fn update_node(
     node_name: &str,
     nodes: &Vec<Node>,
     theimg: &Image,
+    clients: &mut config::Clients,
 ) -> Result<()> {
     let hostname = domain(&node_name);
 
-    // stop the node
-    stop_and_remove(docker, &hostname).await?;
-
-    // nodes[pos].set_version(&un.version)?;
-
     let theconfig = theimg.make_config(&nodes, docker).await?;
 
-    create_and_start(docker, theconfig, false).await?;
+    let need_to_start = pull_image(docker, theconfig.clone()).await?;
 
-    // post-startup steps (LND unlock)
-    theimg.post_startup(proj, docker).await?;
+    if need_to_start {
+        //remove clinet
+        theimg.remove_client(clients);
+
+        // stop the node
+        stop_and_remove(docker, &hostname).await?;
+
+        let id = create_container(&docker, theconfig).await?;
+        log::info!("=> created {}", &hostname);
+
+        //remove client
+        start_container(&docker, &id).await?;
+
+        // post-startup steps (LND unlock)
+        theimg.post_startup(proj, docker).await?;
+    }
+
+    // nodes[pos].set_version(&un.version)?;
 
     Ok(())
 }
