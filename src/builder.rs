@@ -1,6 +1,6 @@
 use crate::config::{self, Clients, Node, Stack, State, STATE};
 use crate::dock::*;
-use crate::dock::{pull_image, stop_and_remove};
+use crate::dock::{prune_images, pull_image, stop_and_remove};
 use crate::images::{DockerConfig, Image};
 use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
@@ -210,6 +210,9 @@ pub async fn update_node(
     let hostname = domain(&node_name);
 
     let theconfig = theimg.make_config(&nodes, docker).await?;
+
+    //prune all unused images
+    prune_images(docker).await;
 
     let need_to_start = pull_image(docker, theconfig.clone()).await?;
 
