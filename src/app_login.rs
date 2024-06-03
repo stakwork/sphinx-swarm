@@ -194,7 +194,7 @@ pub async fn sign_up_admin_pubkey(
                     state.stack.users[ui].pubkey = Some(pubkey.clone());
                     *must_save_stack = true;
                     let boltwall = crate::handler::find_boltwall(&state.stack.nodes)?;
-                    crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &"".to_string())
+                    crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &body.username)
                         .await?;
                     remove_signup_challenge(&body.challenge).await;
                     GetSignupChallengeResponse {

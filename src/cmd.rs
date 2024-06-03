@@ -87,6 +87,7 @@ pub struct UpdateSecondBrainAboutRequest {
 pub struct SignUpAdminPubkeyDetails {
     pub challenge: String,
     pub user_id: u32,
+    pub username: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
