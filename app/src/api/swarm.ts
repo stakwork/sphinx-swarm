@@ -180,12 +180,15 @@ export async function get_challenge_status(challenge) {
   return result;
 }
 
-export async function get_signup_challenge_status(challenge, token) {
-  const r = await fetch(`${root}/poll_signup_challenge/${challenge}`, {
-    headers: {
-      "x-jwt": token,
-    },
-  });
+export async function get_signup_challenge_status(challenge, username, token) {
+  const r = await fetch(
+    `${root}/poll_signup_challenge/${challenge}?username=${username}`,
+    {
+      headers: {
+        "x-jwt": token,
+      },
+    }
+  );
   const result = await r.json();
   return result;
 }
