@@ -98,6 +98,14 @@ pub struct GetDockerImageTagsDetails {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateUserDetails {
+    pub name: String,
+    pub pubkey: String,
+    pub role: u32,
+    pub id: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeatureFlagUserRoles {
     pub user: bool,
     pub admin: bool,
@@ -136,6 +144,7 @@ pub enum SwarmCmd {
     SignUpAdminPubkey(SignUpAdminPubkeyDetails),
     GetImageDigest(String),
     GetDockerImageTags(GetDockerImageTagsDetails),
+    UpdateUser(UpdateUserDetails),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
