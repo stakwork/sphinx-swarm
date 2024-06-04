@@ -23,6 +23,7 @@ pub struct MixerImage {
     pub log_level: Option<String>,
     pub initial_peers: Option<String>, // alt brokers
     pub default_tribe_pubkey: Option<String>,
+    pub invite_price: Option<String>,
 }
 
 impl MixerImage {
@@ -40,6 +41,7 @@ impl MixerImage {
             log_level: None,
             initial_peers: None,
             default_tribe_pubkey: None,
+            invite_price: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -141,6 +143,10 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
 
     if let Some(ips) = &img.initial_peers {
         env.push(format!("INITIAL_PEERS={}", ips));
+    }
+
+    if let Some(ip) = &img.invite_price {
+        env.push(format!("INVITE_PRICE={}", ip));
     }
 
     if let Ok(toats) = std::env::var("TESTING_ONLY_ADD_TO_SENDER") {
