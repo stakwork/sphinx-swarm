@@ -25,6 +25,7 @@
   let userpubkey = "";
   let adminpubkey = "";
   let username = "";
+  let superAdminUsername = "";
   let role = "1";
   $: success = false;
   $: message = "";
@@ -118,6 +119,10 @@
     adminpubkey = value;
   }
 
+  function updateAdminUsername(value) {
+    superAdminUsername = value;
+  }
+
   function handleAddUserSuccess() {
     addUserSuccess = true;
     setTimeout(() => {
@@ -160,7 +165,7 @@
     try {
       const result = await add_boltwall_admin_pubkey(
         adminpubkey,
-        currentUser.name
+        superAdminUsername
       );
       const parsedResult = JSON.parse(result);
       const swarmAdmin = await update_admin_pubkey(adminpubkey, $activeUser);
@@ -185,6 +190,8 @@
 
   async function editAdminHandler(pubkey: string) {
     findUser(pubkey);
+    superAdminUsername = currentUser.name;
+    adminpubkey = currentUser.id;
     openEditAdminModal();
   }
 
@@ -339,8 +346,14 @@
       <h3 class="edit_admin_text">Edit Admin</h3>
       <div class="edit_admin_form_container">
         <Input
-          label=""
-          placeholder="Paste your Pubkey Here"
+          label="Username"
+          placeholder="Type Username Here"
+          onInput={updateAdminUsername}
+          value={superAdminUsername}
+        />
+        <Input
+          label="Pubkey"
+          placeholder="Type Pubkey Here"
           onInput={updateAdminPubkey}
           value={adminpubkey}
         />
@@ -671,6 +684,7 @@
     flex-direction: column;
     width: 15.625rem;
     margin-top: 1.94rem;
+    gap: 1rem;
   }
 
   .edit_admin_btn_container {
