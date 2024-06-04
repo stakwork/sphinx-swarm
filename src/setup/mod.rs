@@ -76,6 +76,13 @@ pub async fn setup_lnd_chans(
     Ok(())
 }
 
+pub async fn mine_blocks(clients: &mut Clients, btc_name: &str, n: u64) -> Result<()> {
+    let btcrpc = clients.bitcoind.get(btc_name).unwrap();
+    log::info!("mine {} blocks", n);
+    btcrpc.test_mine(n, None)?;
+    Ok(())
+}
+
 pub async fn new_chan_from_cln1(
     clients: &mut Clients,
     sender_name: &str,

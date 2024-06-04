@@ -67,7 +67,7 @@ pub async fn create_and_init(
     Ok((Some(id), true))
 }
 
-pub async fn pull_image(docker: &Docker, c: Config<String>) -> Result<(bool)> {
+pub async fn pull_image(docker: &Docker, c: Config<String>) -> Result<bool> {
     let img_tag = c.image.clone().context("expected image")?;
     // if it contains a "/" its from the registry
     let local_sphinx_image = is_local_sphinx_image(&img_tag);
