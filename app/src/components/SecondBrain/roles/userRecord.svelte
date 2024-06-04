@@ -21,10 +21,14 @@
   $: openAddUserModel = false;
   $: openEditAdmin = false;
   $: openDeleteUser = false;
+  $: openEditUserModal = false;
 
   let userpubkey = "";
   let adminpubkey = "";
   let username = "";
+  let editUsername = "";
+  let editPubkey = "";
+  let editRole = "";
   let superAdminUsername = "";
   let role = "1";
   $: success = false;
@@ -33,6 +37,13 @@
   $: addUserSuccess = false;
   $: is_admin_Loading = false;
   $: isDeleteUserLoading = false;
+  $: allowUserEdit = false;
+
+  const roles = [
+    { value: "1", label: "Select Role" },
+    { value: "2", label: "Admin" },
+    { value: "3", label: "Member" },
+  ];
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -59,6 +70,7 @@
   async function getAdmins() {
     const result = await list_admins();
     const parsedResult = JSON.parse(result);
+    console.log(parsedResult);
     if (parsedResult.success) {
       const newAdmin = [];
       for (let i = 0; i < parsedResult.data.length; i++) {
@@ -94,8 +106,18 @@
     openDeleteUser = true;
   }
 
+  function fromEditToDeleteHandler() {
+    closeDeleteUserHandler();
+    editUserHandler(currentUser.id);
+  }
+
   function closeDeleteUserHandler() {
     openDeleteUser = false;
+  }
+
+  function closeEditUserHandler() {
+    openEditUserModal = false;
+    clearAllEdit();
   }
 
   onMount(async () => {
@@ -111,8 +133,45 @@
     username = value;
   }
 
+  function updateEditUsername(value) {
+    editUsername = value;
+    checkIsEdit();
+  }
+
+  function updateEditPubkey(value) {
+    editPubkey = value;
+    checkIsEdit();
+  }
+
   function updateRoleChange(value) {
     role = value;
+  }
+
+  function updateEditRoleChange(value) {
+    editRole = value;
+    checkIsEdit();
+  }
+
+  function clearAllEdit() {
+    editPubkey = "";
+    editUsername = "";
+    editRole = "";
+    allowUserEdit = false;
+  }
+
+  function checkIsEdit() {
+    const role = findRoleByLabel(currentUser.role);
+    if (editRole === "1") {
+      allowUserEdit = false;
+    } else if (
+      currentUser.id !== editPubkey ||
+      currentUser.name !== editUsername ||
+      role.value !== editRole
+    ) {
+      allowUserEdit = true;
+    } else {
+      allowUserEdit = false;
+    }
   }
 
   function updateAdminPubkey(value) {
@@ -188,6 +247,14 @@
     }
   }
 
+  function findRoleByLabel(label: string) {
+    for (let i = 0; i < roles.length; i++) {
+      if (roles[i].label === label) {
+        return roles[i];
+      }
+    }
+  }
+
   async function editAdminHandler(pubkey: string) {
     findUser(pubkey);
     superAdminUsername = currentUser.name;
@@ -197,7 +264,26 @@
 
   function deleteUserHandler(pubkey: string) {
     findUser(pubkey);
+    openEditUserModal = false;
     openDeleteUserHandler();
+  }
+
+  function editUserHandler(pubkey: string) {
+    findUser(pubkey);
+    if (!editUsername) editUsername = currentUser.name;
+    if (!editPubkey) editPubkey = currentUser.id;
+    if (!editRole) {
+      const role = findRoleByLabel(currentUser.role);
+      editRole = role.value;
+    }
+    openEditUserModal = true;
+  }
+
+  function handleEditUser() {
+    //send result to boltwall
+    // clear edit username, pukey and roles
+    //clear is owk to change
+    //close modal
   }
 
   async function deleteUser() {
@@ -211,6 +297,7 @@
         await getAdmins();
         handleAddUserSuccess();
         closeDeleteUserHandler();
+        clearAllEdit();
       }
     } catch (error) {
       isDeleteUserLoading = false;
@@ -262,10 +349,10 @@
               {:else}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <img
-                  src="swarm/delete.svg"
-                  alt="delete"
+                  src="swarm/edit.svg"
+                  alt="edit"
                   class="action_icon"
-                  on:click={() => deleteUserHandler(user.id)}
+                  on:click={() => editUserHandler(user.id)}
                 />
               {/if}</td
             >
@@ -319,11 +406,7 @@
             />
             <Select
               value={role}
-              options={[
-                { value: "1", label: "Select Role" },
-                { value: "2", label: "Admin" },
-                { value: "3", label: "Member" },
-              ]}
+              options={roles}
               label="Select Role"
               valueChange={updateRoleChange}
             />
@@ -390,8 +473,9 @@
         >
       </p>
       <div class="delete_button_container">
-        <button class="delete_user_cancel_btn" on:click={closeDeleteUserHandler}
-          >Cancel</button
+        <button
+          class="delete_user_cancel_btn"
+          on:click={fromEditToDeleteHandler}>Cancel</button
         >
         <button
           class="delete_user_btn"
@@ -404,6 +488,53 @@
             Delete
           {/if}
         </button>
+      </div>
+    </div>
+  </Modal>
+  <Modal isOpen={openEditUserModal} onClose={closeEditUserHandler}>
+    <div class="edit_user_container">
+      <div class="close_container">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <img
+          src="swarm/close.svg"
+          alt="close"
+          class="close_icon"
+          on:click={closeEditUserHandler}
+        />
+      </div>
+      <div class="add_user_body">
+        <h3 class="add_user_heading">Edit User</h3>
+        <div class="input_container">
+          <Input
+            label="Name"
+            placeholder="Enter Name ..."
+            onInput={updateEditUsername}
+            value={editUsername}
+          />
+          <Input
+            label="Pubkey"
+            placeholder="Paste Pubkey  ..."
+            onInput={updateEditPubkey}
+            value={editPubkey}
+          />
+          <Select
+            value={editRole}
+            options={roles}
+            label="Select Role"
+            valueChange={updateEditRoleChange}
+          />
+        </div>
+        <div class="edit_user_btn_container">
+          <button
+            on:click={() => deleteUserHandler(currentUser.id)}
+            class="delete_btn">Delete</button
+          >
+          <button
+            on:click={handleEditUser}
+            class="save_changes_btn"
+            disabled={!allowUserEdit}>Save Changes</button
+          >
+        </div>
       </div>
     </div>
   </Modal>
@@ -880,5 +1011,60 @@
     font-size: 0.75rem;
     color: #fff;
     opacity: 0;
+  }
+
+  .edit_user_container {
+    display: flex;
+    flex-direction: column;
+    width: 19.875rem;
+  }
+
+  .edit_user_btn_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+  }
+
+  .delete_btn {
+    background-color: #ed74741a;
+    height: 2.5rem;
+    width: 4.875rem;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    color: #ed7474;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: "Barlow";
+    border: none;
+    cursor: pointer;
+  }
+
+  .delete_btn:hover {
+    background-color: #ed747426;
+  }
+
+  .save_changes_btn {
+    width: 9.375rem;
+    height: 2.5rem;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    background-color: #618aff;
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: "Barlow";
+    cursor: pointer;
+  }
+
+  .save_changes_btn:hover {
+    background-color: #5078f2;
+  }
+
+  .save_changes_btn:disabled {
+    background-color: #30334280;
+    color: #52566e;
+    cursor: not-allowed;
   }
 </style>
