@@ -6,6 +6,7 @@
     delete_sub_admin,
     list_admins,
     update_admin_pubkey,
+    update_user,
   } from "../../../api/swarm";
   import { shortPubkey } from "../../../helpers";
   import Modal from "../../modal.svelte";
@@ -14,9 +15,20 @@
   import { ToastNotification } from "carbon-components-svelte";
   import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
 
-  let users: { id: string; name: string; pubkey: string; role: string }[] = [];
-  let currentUser: { id: string; name: string; pubkey: string; role: string } =
-    { id: "", pubkey: "", name: "", role: "" };
+  let users: {
+    id: string;
+    name: string;
+    pubkey: string;
+    role: string;
+    identifier: number;
+  }[] = [];
+  let currentUser: {
+    id: string;
+    name: string;
+    pubkey: string;
+    role: string;
+    identifier: number;
+  } = { id: "", pubkey: "", name: "", role: "", identifier: 0 };
 
   $: openAddUserModel = false;
   $: openEditAdmin = false;
@@ -38,6 +50,7 @@
   $: is_admin_Loading = false;
   $: isDeleteUserLoading = false;
   $: allowUserEdit = false;
+  $: is_edit_Loading = false;
 
   const roles = [
     { value: "1", label: "Select Role" },
@@ -80,6 +93,7 @@
           pubkey: shortPubkey(admin.pubkey),
           role: formatRoles(admin.role),
           name: formatUsername(admin.name) || "",
+          identifier: admin.id,
         });
       }
       users = [...newAdmin];
@@ -279,11 +293,40 @@
     openEditUserModal = true;
   }
 
-  function handleEditUser() {
-    //send result to boltwall
-    // clear edit username, pukey and roles
-    //clear is owk to change
-    //close modal
+  async function handleEditUser() {
+    //set loading state
+    is_edit_Loading = true;
+
+    try {
+      //send result to boltwall
+      const result = await update_user({
+        pubkey: editPubkey,
+        name: editUsername,
+        role: Number(editRole),
+        id: Number(currentUser.identifier),
+      });
+
+      const parsedResult = JSON.parse(result);
+      success = parsedResult.success || false;
+      message = parsedResult.message;
+      if (success) {
+        //get all admins again
+        await getAdmins();
+
+        handleAddUserSuccess();
+        // stop loading
+        is_edit_Loading = false;
+
+        //close modal
+        closeEditUserHandler();
+      } else {
+        show_notification = true;
+      }
+    } catch (error) {
+      is_edit_Loading = false;
+      //TODO:: Handle error properly
+      console.log(`ERROR UPDATING USER: ${JSON.stringify(error)}`);
+    }
   }
 
   async function deleteUser() {
@@ -502,6 +545,21 @@
           on:click={closeEditUserHandler}
         />
       </div>
+      {#if show_notification}
+        <div class="toast_container">
+          <ToastNotification
+            kind={success ? "success" : "error"}
+            title={success ? "Success:" : "Error:"}
+            subtitle={message}
+            timeout={3000}
+            on:close={(e) => {
+              e.preventDefault();
+              show_notification = false;
+            }}
+            fullWidth={true}
+          />
+        </div>
+      {/if}
       <div class="add_user_body">
         <h3 class="add_user_heading">Edit User</h3>
         <div class="input_container">
@@ -532,7 +590,7 @@
           <button
             on:click={handleEditUser}
             class="save_changes_btn"
-            disabled={!allowUserEdit}>Save Changes</button
+            disabled={!allowUserEdit || is_edit_Loading}>Save Changes</button
           >
         </div>
       </div>

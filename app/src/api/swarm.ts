@@ -212,3 +212,17 @@ export async function get_image_tags(
     org_image_name,
   });
 }
+
+export async function update_user({
+  pubkey,
+  name,
+  role,
+  id,
+}: {
+  pubkey: string;
+  name: string;
+  role: number;
+  id: number;
+}) {
+  return await swarmCmd("UpdateUser", { pubkey, name, role, id });
+}
