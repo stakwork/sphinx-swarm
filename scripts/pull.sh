@@ -1,3 +1,4 @@
+docker image prune -af
 docker pull sphinxlightning/sphinx-swarm:latest
 docker pull sphinxlightning/sphinx-proxy:latest
 docker pull sphinxlightning/cln-sphinx:latest

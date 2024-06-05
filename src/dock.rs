@@ -9,7 +9,7 @@ use bollard::container::{
     LogsOptions, RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
-use bollard::image::CreateImageOptions;
+use bollard::image::{CreateImageOptions, PruneImagesOptions};
 use bollard::network::CreateNetworkOptions;
 use bollard::service::{ContainerSummary, VolumeListResponse};
 use bollard::volume::CreateVolumeOptions;
@@ -65,6 +65,17 @@ pub async fn create_and_init(
     let id = create_container(&docker, c.clone()).await?;
     log::info!("=> created {}", &hostname);
     Ok((Some(id), true))
+}
+
+pub async fn pull_image(docker: &Docker, c: Config<String>) -> Result<bool> {
+    let img_tag = c.image.clone().context("expected image")?;
+    // if it contains a "/" its from the registry
+    let local_sphinx_image = is_local_sphinx_image(&img_tag);
+    if !local_sphinx_image {
+        create_image(&docker, &c).await?;
+    }
+
+    Ok(true)
 }
 
 // returns container id
@@ -491,6 +502,23 @@ pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse
         }
     } else {
         return Ok(error_response);
+    }
+}
+
+pub async fn prune_images(docker: &Docker) {
+    let mut filters = HashMap::new();
+    // By setting dangling to `["false"]`, it will consider both dangling and non-dangling images
+    filters.insert("dangling", vec!["true"]);
+
+    let prune_options = PruneImagesOptions { filters };
+
+    match docker.prune_images(Some(prune_options)).await {
+        Ok(prune_result) => {
+            println!("Pruned images: {:?}", prune_result);
+        }
+        Err(e) => {
+            eprintln!("Error pruning images: {}", e);
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bollard::image;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 

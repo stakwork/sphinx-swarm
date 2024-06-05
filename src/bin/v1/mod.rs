@@ -8,7 +8,7 @@ use sphinx_swarm::images::{
     Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
-use sphinx_swarm::setup::{get_pubkey_cln, setup_cln_chans};
+use sphinx_swarm::setup::{get_pubkey_cln, mine_blocks, setup_cln_chans};
 use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
@@ -76,6 +76,11 @@ pub async fn main() -> Result<()> {
         }
     }
     if !skip_setup {
+        sleep(2).await;
+        log::info!("setup now");
+        mine_blocks(&mut clients, BTC, 1001).await?;
+        mine_blocks(&mut clients, BTC, 1001).await?;
+        log::info!("setup chans");
         setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
         setup_cln_chans(&mut clients, &stack.nodes, CLN3, CLN2, BTC).await?;
     }
@@ -99,8 +104,12 @@ async fn try_check_2_hops(clients: &mut Clients, node1: &str, node3: &str) {
             return;
         }
         log::info!("retrying get_route to CLN3: {}...", i);
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        sleep(2).await;
     }
+}
+
+async fn sleep(secs: u64) {
+    tokio::time::sleep(tokio::time::Duration::from_secs(secs)).await;
 }
 
 async fn check_2_hops(clients: &mut Clients, node1: &str, node3: &str) -> Result<()> {

@@ -14,6 +14,7 @@ if  [ $1 == "btc" ] || \
     [ $1 == "broker" ] || \
     [ $1 == "tribes" ] || \
     [ $1 == "traefik" ] || \
+    [ $1 == "config" ] || \
     [ $1 == "swarm" ]
 then
     echo "=> stop $1.sphinx"

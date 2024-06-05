@@ -1,4 +1,4 @@
-# docker-compose -f sphinx.yml up -d
+# docker-compose -f config.yml up -d
 
 version: "2"
 
@@ -69,9 +69,13 @@ services:
       - ROCKET_PORT=8000
       - IS_CONFIG=true
       - REGTEST_TRIBE=$REGTEST_TRIBE
+      - REGTEST_TRIBE_HOST=$REGTEST_TRIBE_HOST
       - REGTEST_ROUTER=$REGTEST_ROUTER
+      - REGTEST_DEFAULT_LSP=$REGTEST_DEFAULT_LSP
       - MAINNET_TRIBE=$MAINNET_TRIBE
+      - MAINNET_TRIBE_HOST=$MAINNET_TRIBE_HOST
       - MAINNET_ROUTER=$MAINNET_ROUTER
+      - MAINNET_DEFAULT_LSP=$MAINNET_DEFAULT_LSP
 
 networks:
   sphinx-swarm:
