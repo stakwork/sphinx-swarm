@@ -301,3 +301,34 @@ pub async fn update_second_brain_about(
 
     Ok(response_text)
 }
+
+pub async fn update_user(
+    img: &BoltwallImage,
+    pubkey: String,
+    name: String,
+    id: u32,
+    role: u32,
+) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = make_client();
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/user/{}", host, img.port, id);
+
+    let body = AddUserBody {
+        pubkey: pubkey.to_string(),
+        name: name.to_string(),
+        role: role,
+    };
+    let response = client
+        .put(route.as_str())
+        .header("x-admin-token", admin_token)
+        .json(&body)
+        .send()
+        .await?;
+
+    let response_text = response.text().await?;
+
+    Ok(response_text)
+}

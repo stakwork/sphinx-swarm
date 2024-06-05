@@ -6,6 +6,7 @@
     delete_sub_admin,
     list_admins,
     update_admin_pubkey,
+    update_user,
   } from "../../../api/swarm";
   import { shortPubkey } from "../../../helpers";
   import Modal from "../../modal.svelte";
@@ -14,17 +15,33 @@
   import { ToastNotification } from "carbon-components-svelte";
   import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
 
-  let users: { id: string; name: string; pubkey: string; role: string }[] = [];
-  let currentUser: { id: string; name: string; pubkey: string; role: string } =
-    { id: "", pubkey: "", name: "", role: "" };
+  let users: {
+    id: string;
+    name: string;
+    pubkey: string;
+    role: string;
+    identifier: number;
+  }[] = [];
+  let currentUser: {
+    id: string;
+    name: string;
+    pubkey: string;
+    role: string;
+    identifier: number;
+  } = { id: "", pubkey: "", name: "", role: "", identifier: 0 };
 
   $: openAddUserModel = false;
   $: openEditAdmin = false;
   $: openDeleteUser = false;
+  $: openEditUserModal = false;
 
   let userpubkey = "";
   let adminpubkey = "";
   let username = "";
+  let editUsername = "";
+  let editPubkey = "";
+  let editRole = "";
+  let superAdminUsername = "";
   let role = "1";
   $: success = false;
   $: message = "";
@@ -32,6 +49,14 @@
   $: addUserSuccess = false;
   $: is_admin_Loading = false;
   $: isDeleteUserLoading = false;
+  $: allowUserEdit = false;
+  $: is_edit_Loading = false;
+
+  const roles = [
+    { value: "1", label: "Select Role" },
+    { value: "2", label: "Admin" },
+    { value: "3", label: "Member" },
+  ];
 
   function formatRoles(role) {
     if (role === "admin") {
@@ -58,6 +83,7 @@
   async function getAdmins() {
     const result = await list_admins();
     const parsedResult = JSON.parse(result);
+    console.log(parsedResult);
     if (parsedResult.success) {
       const newAdmin = [];
       for (let i = 0; i < parsedResult.data.length; i++) {
@@ -67,6 +93,7 @@
           pubkey: shortPubkey(admin.pubkey),
           role: formatRoles(admin.role),
           name: formatUsername(admin.name) || "",
+          identifier: admin.id,
         });
       }
       users = [...newAdmin];
@@ -93,8 +120,18 @@
     openDeleteUser = true;
   }
 
+  function fromEditToDeleteHandler() {
+    closeDeleteUserHandler();
+    editUserHandler(currentUser.id);
+  }
+
   function closeDeleteUserHandler() {
     openDeleteUser = false;
+  }
+
+  function closeEditUserHandler() {
+    openEditUserModal = false;
+    clearAllEdit();
   }
 
   onMount(async () => {
@@ -110,12 +147,53 @@
     username = value;
   }
 
+  function updateEditUsername(value) {
+    editUsername = value;
+    checkIsEdit();
+  }
+
+  function updateEditPubkey(value) {
+    editPubkey = value;
+    checkIsEdit();
+  }
+
   function updateRoleChange(value) {
     role = value;
   }
 
+  function updateEditRoleChange(value) {
+    editRole = value;
+    checkIsEdit();
+  }
+
+  function clearAllEdit() {
+    editPubkey = "";
+    editUsername = "";
+    editRole = "";
+    allowUserEdit = false;
+  }
+
+  function checkIsEdit() {
+    const role = findRoleByLabel(currentUser.role);
+    if (editRole === "1") {
+      allowUserEdit = false;
+    } else if (
+      currentUser.id !== editPubkey ||
+      currentUser.name !== editUsername ||
+      role.value !== editRole
+    ) {
+      allowUserEdit = true;
+    } else {
+      allowUserEdit = false;
+    }
+  }
+
   function updateAdminPubkey(value) {
     adminpubkey = value;
+  }
+
+  function updateAdminUsername(value) {
+    superAdminUsername = value;
   }
 
   function handleAddUserSuccess() {
@@ -160,7 +238,7 @@
     try {
       const result = await add_boltwall_admin_pubkey(
         adminpubkey,
-        currentUser.name
+        superAdminUsername
       );
       const parsedResult = JSON.parse(result);
       const swarmAdmin = await update_admin_pubkey(adminpubkey, $activeUser);
@@ -183,14 +261,72 @@
     }
   }
 
+  function findRoleByLabel(label: string) {
+    for (let i = 0; i < roles.length; i++) {
+      if (roles[i].label === label) {
+        return roles[i];
+      }
+    }
+  }
+
   async function editAdminHandler(pubkey: string) {
     findUser(pubkey);
+    superAdminUsername = currentUser.name;
+    adminpubkey = currentUser.id;
     openEditAdminModal();
   }
 
   function deleteUserHandler(pubkey: string) {
     findUser(pubkey);
+    openEditUserModal = false;
     openDeleteUserHandler();
+  }
+
+  function editUserHandler(pubkey: string) {
+    findUser(pubkey);
+    if (!editUsername) editUsername = currentUser.name;
+    if (!editPubkey) editPubkey = currentUser.id;
+    if (!editRole) {
+      const role = findRoleByLabel(currentUser.role);
+      editRole = role.value;
+    }
+    openEditUserModal = true;
+  }
+
+  async function handleEditUser() {
+    //set loading state
+    is_edit_Loading = true;
+
+    try {
+      //send result to boltwall
+      const result = await update_user({
+        pubkey: editPubkey,
+        name: editUsername,
+        role: Number(editRole),
+        id: Number(currentUser.identifier),
+      });
+
+      const parsedResult = JSON.parse(result);
+      success = parsedResult.success || false;
+      message = parsedResult.message;
+      if (success) {
+        //get all admins again
+        await getAdmins();
+
+        handleAddUserSuccess();
+        // stop loading
+        is_edit_Loading = false;
+
+        //close modal
+        closeEditUserHandler();
+      } else {
+        show_notification = true;
+      }
+    } catch (error) {
+      is_edit_Loading = false;
+      //TODO:: Handle error properly
+      console.log(`ERROR UPDATING USER: ${JSON.stringify(error)}`);
+    }
   }
 
   async function deleteUser() {
@@ -204,6 +340,7 @@
         await getAdmins();
         handleAddUserSuccess();
         closeDeleteUserHandler();
+        clearAllEdit();
       }
     } catch (error) {
       isDeleteUserLoading = false;
@@ -255,10 +392,10 @@
               {:else}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <img
-                  src="swarm/delete.svg"
-                  alt="delete"
+                  src="swarm/edit.svg"
+                  alt="edit"
                   class="action_icon"
-                  on:click={() => deleteUserHandler(user.id)}
+                  on:click={() => editUserHandler(user.id)}
                 />
               {/if}</td
             >
@@ -312,11 +449,7 @@
             />
             <Select
               value={role}
-              options={[
-                { value: "1", label: "Select Role" },
-                { value: "2", label: "Admin" },
-                { value: "3", label: "Member" },
-              ]}
+              options={roles}
               label="Select Role"
               valueChange={updateRoleChange}
             />
@@ -339,8 +472,14 @@
       <h3 class="edit_admin_text">Edit Admin</h3>
       <div class="edit_admin_form_container">
         <Input
-          label=""
-          placeholder="Paste your Pubkey Here"
+          label="Username"
+          placeholder="Type Username Here"
+          onInput={updateAdminUsername}
+          value={superAdminUsername}
+        />
+        <Input
+          label="Pubkey"
+          placeholder="Type Pubkey Here"
           onInput={updateAdminPubkey}
           value={adminpubkey}
         />
@@ -377,8 +516,9 @@
         >
       </p>
       <div class="delete_button_container">
-        <button class="delete_user_cancel_btn" on:click={closeDeleteUserHandler}
-          >Cancel</button
+        <button
+          class="delete_user_cancel_btn"
+          on:click={fromEditToDeleteHandler}>Cancel</button
         >
         <button
           class="delete_user_btn"
@@ -391,6 +531,68 @@
             Delete
           {/if}
         </button>
+      </div>
+    </div>
+  </Modal>
+  <Modal isOpen={openEditUserModal} onClose={closeEditUserHandler}>
+    <div class="edit_user_container">
+      <div class="close_container">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <img
+          src="swarm/close.svg"
+          alt="close"
+          class="close_icon"
+          on:click={closeEditUserHandler}
+        />
+      </div>
+      {#if show_notification}
+        <div class="toast_container">
+          <ToastNotification
+            kind={success ? "success" : "error"}
+            title={success ? "Success:" : "Error:"}
+            subtitle={message}
+            timeout={3000}
+            on:close={(e) => {
+              e.preventDefault();
+              show_notification = false;
+            }}
+            fullWidth={true}
+          />
+        </div>
+      {/if}
+      <div class="add_user_body">
+        <h3 class="add_user_heading">Edit User</h3>
+        <div class="input_container">
+          <Input
+            label="Name"
+            placeholder="Enter Name ..."
+            onInput={updateEditUsername}
+            value={editUsername}
+          />
+          <Input
+            label="Pubkey"
+            placeholder="Paste Pubkey  ..."
+            onInput={updateEditPubkey}
+            value={editPubkey}
+          />
+          <Select
+            value={editRole}
+            options={roles}
+            label="Select Role"
+            valueChange={updateEditRoleChange}
+          />
+        </div>
+        <div class="edit_user_btn_container">
+          <button
+            on:click={() => deleteUserHandler(currentUser.id)}
+            class="delete_btn">Delete</button
+          >
+          <button
+            on:click={handleEditUser}
+            class="save_changes_btn"
+            disabled={!allowUserEdit || is_edit_Loading}>Save Changes</button
+          >
+        </div>
       </div>
     </div>
   </Modal>
@@ -671,6 +873,7 @@
     flex-direction: column;
     width: 15.625rem;
     margin-top: 1.94rem;
+    gap: 1rem;
   }
 
   .edit_admin_btn_container {
@@ -866,5 +1069,60 @@
     font-size: 0.75rem;
     color: #fff;
     opacity: 0;
+  }
+
+  .edit_user_container {
+    display: flex;
+    flex-direction: column;
+    width: 19.875rem;
+  }
+
+  .edit_user_btn_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+  }
+
+  .delete_btn {
+    background-color: #ed74741a;
+    height: 2.5rem;
+    width: 4.875rem;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    color: #ed7474;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: "Barlow";
+    border: none;
+    cursor: pointer;
+  }
+
+  .delete_btn:hover {
+    background-color: #ed747426;
+  }
+
+  .save_changes_btn {
+    width: 9.375rem;
+    height: 2.5rem;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    background-color: #618aff;
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: "Barlow";
+    cursor: pointer;
+  }
+
+  .save_changes_btn:hover {
+    background-color: #5078f2;
+  }
+
+  .save_changes_btn:disabled {
+    background-color: #30334280;
+    color: #52566e;
+    cursor: not-allowed;
   }
 </style>

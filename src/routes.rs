@@ -310,15 +310,17 @@ pub async fn check_challenge(challenge: &str) -> Result<Json<ChallengeStatusResp
     }))
 }
 
-#[get("/poll_signup_challenge/<challenge>")]
+#[get("/poll_signup_challenge/<challenge>?<username>")]
 pub async fn check_signup_challenge(
     sender: &State<mpsc::Sender<CmdRequest>>,
     challenge: &str,
+    username: String,
     claims: auth::AdminJwtClaims,
 ) -> Result<String> {
     let cmd: Cmd = Cmd::Swarm(SwarmCmd::SignUpAdminPubkey(SignUpAdminPubkeyDetails {
         user_id: claims.user,
         challenge: challenge.to_string(),
+        username: username.to_string(),
     }));
     let txt = serde_json::to_string(&cmd)?;
     let (request, reply_rx) = CmdRequest::new("SWARM", &txt);

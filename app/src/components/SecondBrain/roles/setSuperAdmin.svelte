@@ -12,6 +12,7 @@
 
   let superAdminPubkey = "";
   let superAdminUsername = "";
+  let sphinxSuperAdminUsername = "";
   let isLoading = false;
   $: challenge = "";
   $: qrString = "";
@@ -21,6 +22,10 @@
 
   function handleAdminPubkeyInput(value) {
     superAdminPubkey = value;
+  }
+
+  function handleSphinxAdminUsernameInput(value) {
+    sphinxSuperAdminUsername = value;
   }
 
   function handleAdminUsernameInput(value) {
@@ -58,6 +63,7 @@
       try {
         const response = await get_signup_challenge_status(
           challenge,
+          sphinxSuperAdminUsername,
           $activeUser
         );
         if (response.success) {
@@ -157,8 +163,17 @@
         <div class="line"></div>
       </div>
       <div class="sphinx_btn_container">
+        <Input
+          label="Username"
+          placeholder="Enter Username ..."
+          bind:value={sphinxSuperAdminUsername}
+          onInput={handleSphinxAdminUsernameInput}
+        />
         <button
-          disabled={!challenge || !qrString || sphinx_app_loading}
+          disabled={!challenge ||
+            !qrString ||
+            sphinx_app_loading ||
+            !sphinxSuperAdminUsername}
           class="sphinx_btn"
           on:click={signupWithSphinx}
         >
@@ -166,7 +181,7 @@
             <div class="sphinx_loading-spinner_container">
               <div class="sphinx-loading-spinner"></div>
             </div>
-          {:else}
+          {:else if sphinxSuperAdminUsername}
             <a href={qrString} class="sphinx_link">
               <img
                 src="swarm/sphinx_logo.svg"
@@ -174,6 +189,14 @@
                 class="sphinx_logo"
               />Connect With Sphinx
             </a>
+          {:else}
+            <div class="sphinx_link">
+              <img
+                src="swarm/sphinx_logo.svg"
+                alt="sphinx"
+                class="sphinx_logo"
+              />Connect With Sphinx
+            </div>
           {/if}
         </button>
         <p class="sphinx_text">To set Yourself as Superadmin</p>

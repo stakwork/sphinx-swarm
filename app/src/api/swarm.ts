@@ -180,12 +180,15 @@ export async function get_challenge_status(challenge) {
   return result;
 }
 
-export async function get_signup_challenge_status(challenge, token) {
-  const r = await fetch(`${root}/poll_signup_challenge/${challenge}`, {
-    headers: {
-      "x-jwt": token,
-    },
-  });
+export async function get_signup_challenge_status(challenge, username, token) {
+  const r = await fetch(
+    `${root}/poll_signup_challenge/${challenge}?username=${username}`,
+    {
+      headers: {
+        "x-jwt": token,
+      },
+    }
+  );
   const result = await r.json();
   return result;
 }
@@ -208,4 +211,18 @@ export async function get_image_tags(
     page_size,
     org_image_name,
   });
+}
+
+export async function update_user({
+  pubkey,
+  name,
+  role,
+  id,
+}: {
+  pubkey: string;
+  name: string;
+  role: number;
+  id: number;
+}) {
+  return await swarmCmd("UpdateUser", { pubkey, name, role, id });
 }

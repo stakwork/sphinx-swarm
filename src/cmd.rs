@@ -87,6 +87,7 @@ pub struct UpdateSecondBrainAboutRequest {
 pub struct SignUpAdminPubkeyDetails {
     pub challenge: String,
     pub user_id: u32,
+    pub username: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -94,6 +95,14 @@ pub struct GetDockerImageTagsDetails {
     pub page: String,
     pub page_size: String,
     pub org_image_name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateUserDetails {
+    pub name: String,
+    pub pubkey: String,
+    pub role: u32,
+    pub id: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -135,6 +144,7 @@ pub enum SwarmCmd {
     SignUpAdminPubkey(SignUpAdminPubkeyDetails),
     GetImageDigest(String),
     GetDockerImageTags(GetDockerImageTagsDetails),
+    UpdateUser(UpdateUserDetails),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
