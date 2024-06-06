@@ -20,7 +20,7 @@ pub struct BoltwallImage {
     pub external_lnd: Option<ExternalLnd>,
     pub links: Links,
     pub admin_token: Option<String>,
-    pub stakwork_token: Option<String>,
+    pub stakwork_secret: Option<String>,
 }
 
 impl BoltwallImage {
@@ -34,7 +34,7 @@ impl BoltwallImage {
             external_lnd: None,
             links: vec![],
             admin_token: Some(secrets::random_word(32)),
-            stakwork_token: Some(secrets::random_word(32)),
+            stakwork_secret: Some(secrets::random_word(32)),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -46,8 +46,8 @@ impl BoltwallImage {
     pub fn set_admin_token(&mut self, at: &str) {
         self.admin_token = Some(at.to_string());
     }
-    pub fn set_stakwork_token(&mut self, st: &str) {
-        self.stakwork_token = Some(st.to_string());
+    pub fn set_stakwork_token(&mut self, ss: &str) {
+        self.stakwork_secret = Some(ss.to_string());
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
@@ -203,9 +203,9 @@ fn boltwall(
         env.push(format!("ADMIN_TOKEN={}", at));
     }
 
-    //stakwork token to ensure we only accept request from stakwork
-    if let Some(st) = &node.stakwork_token {
-        env.push(format!("STAKWORK_TOKEN={}", st))
+    //stakwork secret to ensure we only accept request from stakwork
+    if let Some(ss) = &node.stakwork_secret {
+        env.push(format!("STAKWORK_SECRET={}", ss))
     }
 
     let mut c = Config {
