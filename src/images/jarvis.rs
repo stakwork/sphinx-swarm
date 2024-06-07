@@ -101,6 +101,10 @@ fn jarvis(
             h
         ));
     }
+    //stakwork-secret from boltwall
+    if let Some(ss) = &boltwall.stakwork_secret {
+        env.push(format!("STAKWORK_SECRET={}", ss))
+    }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
@@ -145,7 +149,10 @@ fn jarvis(
         ));
     }
     if let Ok(jarvis_feature_flag_schema) = getenv("JARVIS_FEATURE_FLAG_SCHEMA") {
-        env.push(format!("FEATURE_FLAG_SCHEMA={}", jarvis_feature_flag_schema));
+        env.push(format!(
+            "FEATURE_FLAG_SCHEMA={}",
+            jarvis_feature_flag_schema
+        ));
     }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
