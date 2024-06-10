@@ -25,12 +25,14 @@ jobs:
       - name: Get Directory structure
         working-directory: ./app
         run: |
+          git config user.name 'Github Actions'
+          git config user.email github-actions@github.com
           yarn install
           yarn run build
+          git status
       # - name: Run Build
       #   run: |
-      #     git config user.name 'Github Actions'
-      #     git config user.email github-actions@github.com
+     
       #     npm install
       #     npm run format
       #     git add ./src || true
