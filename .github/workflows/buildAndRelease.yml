@@ -24,7 +24,9 @@ jobs:
           # cache: 'npm'
       - name: Get Directory structure
         working-directory: ./app
-        run: yarn run build
+        run: |
+          yarn install
+          yarn run build
       # - name: Run Build
       #   run: |
       #     git config user.name 'Github Actions'
