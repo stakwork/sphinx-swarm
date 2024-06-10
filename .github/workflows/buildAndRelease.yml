@@ -23,6 +23,7 @@ jobs:
           node-version: 20
           # cache: 'npm'
       - name: Get Directory structure
+        working-directory: ./app
         run: ls
       # - name: Run Build
       #   run: |
