@@ -1,11 +1,8 @@
 name: Generate Build Files and Update version #
 on:
-  pull_request:
+ push:
     branches:
       - master
-#  push:
-#     branches:
-#       - master
 
 jobs:
   npm-build-and-update-version:
@@ -21,30 +18,19 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
-          # cache: 'npm'
-      - name: Get Directory structure
+      - name: Run Build
         working-directory: ./app
         run: |
           git config user.name 'Github Actions'
           git config user.email github-actions@github.com
           yarn install
           yarn run build
-          git status
-      # - name: Run Build
-      #   run: |
-     
-      #     npm install
-      #     npm run format
-      #     git add ./src || true
-      #     git commit -m "ci: prettier format" || echo -n
-      #     git push --set-upstream origin master || echo -n
-      #     CI=false npm install && CI=false npm run build
-      #     git add ./dist -f
-      #     git commit -m "ci: automatic build fixes" || echo -n
-      #     git push --set-upstream origin master
-      # - name: Create New Release
-      #   uses: rymndhng/release-on-push-action@master
-      #   with:
-      #     bump_version_scheme: patch
-      #     use_github_release_notes: true
+          git add ./dist -f
+          git commit -m "ci: automatic build" || echo -n
+          git push --set-upstream origin master
+      - name: Create New Release
+        uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: patch
+          use_github_release_notes: true
 
