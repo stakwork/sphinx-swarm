@@ -1,0 +1,45 @@
+name: Generate Build Files and Update version #
+on:
+  pull_request:
+    branches:
+      - master
+#  push:
+#     branches:
+#       - master
+
+jobs:
+  npm-build-and-update-version:
+    name: build
+    runs-on: 
+      - ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }} 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Get Directory structure
+        run: ls
+      # - name: Run Build
+      #   run: |
+      #     git config user.name 'Github Actions'
+      #     git config user.email github-actions@github.com
+      #     npm install
+      #     npm run format
+      #     git add ./src || true
+      #     git commit -m "ci: prettier format" || echo -n
+      #     git push --set-upstream origin master || echo -n
+      #     CI=false npm install && CI=false npm run build
+      #     git add ./dist -f
+      #     git commit -m "ci: automatic build fixes" || echo -n
+      #     git push --set-upstream origin master
+      # - name: Create New Release
+      #   uses: rymndhng/release-on-push-action@master
+      #   with:
+      #     bump_version_scheme: patch
+      #     use_github_release_notes: true
+
