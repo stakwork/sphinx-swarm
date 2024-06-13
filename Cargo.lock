@@ -466,7 +466,7 @@ dependencies = [
 [[package]]
 name = "cln-grpc"
 version = "0.1.8"
-source = "git+https://github.com/stakwork/lightning?branch=fix-gossip#ba0d317e751ee04c59c2400ddff201cf29ab76aa"
+source = "git+https://github.com/stakwork/lightning?rev=ba0d317e751ee04c59c2400ddff201cf29ab76aa#ba0d317e751ee04c59c2400ddff201cf29ab76aa"
 dependencies = [
  "anyhow",
  "bitcoin 0.30.2",
