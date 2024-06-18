@@ -4,11 +4,11 @@ use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{
-    broker::BrokerImage, btc::BtcImage, cln::ClnImage, mixer::MixerImage, tribes::TribesImage,
-    Image,
+    broker::BrokerImage, btc::BtcImage, cln::ClnImage, lnd::LndImage, mixer::MixerImage,
+    tribes::TribesImage, Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
-use sphinx_swarm::setup::{get_pubkey_cln, mine_blocks, setup_cln_chans};
+use sphinx_swarm::setup::{get_pubkey_cln, mine_blocks, setup_cln_chans, setup_lnd_chans};
 use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
@@ -34,6 +34,7 @@ const TRIBES1: &str = "tribes_1";
 // const TRIBES2: &str = "tribes_2";
 const TRIBES3: &str = "tribes_3";
 const JWT_KEY: &str = "f8int45s0pofgtye";
+const LND_1: &str = "lnd_1";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -78,11 +79,16 @@ pub async fn main() -> Result<()> {
     if !skip_setup {
         sleep(2).await;
         log::info!("setup now");
-        mine_blocks(&mut clients, BTC, 1001).await?;
-        mine_blocks(&mut clients, BTC, 1001).await?;
+        mine_blocks(&mut clients, BTC, 500).await?;
+        mine_blocks(&mut clients, BTC, 500).await?;
+        mine_blocks(&mut clients, BTC, 500).await?;
+        mine_blocks(&mut clients, BTC, 500).await?;
         log::info!("setup chans");
         setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
         setup_cln_chans(&mut clients, &stack.nodes, CLN3, CLN2, BTC).await?;
+        if do_test_lnd() {
+            setup_lnd_chans(&mut clients, &stack.nodes, CLN1, LND_1, BTC).await?;
+        }
     }
 
     try_check_2_hops(&mut clients, CLN1, CLN3).await;
@@ -224,7 +230,7 @@ fn make_stack() -> Stack {
     mixer3.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
     mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
 
-    let nodes = vec![
+    let mut nodes = vec![
         // bitcoin
         Image::Btc(bitcoind),
         // 1
@@ -243,6 +249,14 @@ fn make_stack() -> Stack {
         Image::Tribes(tribes3),
     ];
 
+    if do_test_lnd() {
+        let v = "v0.18.0-beta";
+        let mut lnd = LndImage::new(LND_1, v, &network, "10012", "9738");
+        lnd.http_port = Some("8881".to_string());
+        lnd.links(vec![BTC]);
+        nodes.extend_from_slice(&[Image::Lnd(lnd)]);
+    }
+
     let ns: Vec<Node> = nodes.iter().map(|n| Node::Internal(n.to_owned())).collect();
     Stack {
         network,
@@ -253,6 +267,15 @@ fn make_stack() -> Stack {
         ready: false,
         ..Default::default()
     }
+}
+
+fn do_test_lnd() -> bool {
+    if let Ok(test_proxy) = std::env::var("TEST_LND") {
+        if test_proxy == String::from("true") {
+            return true;
+        }
+    }
+    false
 }
 
 /*

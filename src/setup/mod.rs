@@ -52,9 +52,6 @@ pub async fn setup_lnd_chans(
     recip: &str,
     btc_name: &str,
 ) -> Result<()> {
-    // if !do_test_proxy() {
-    //     return Ok(());
-    // }
     let lnd1_pubkey = get_pubkey_lnd(clients, recip).await?;
     if let Some(node) = nodes.iter().find(|n| n.name() == recip) {
         log::info!("LND1 pubkey {}", &lnd1_pubkey);
@@ -65,7 +62,7 @@ pub async fn setup_lnd_chans(
         sleep(1000).await;
         // keysend send
         cln_keysend_to(clients, sender, &lnd1_pubkey, 1_000_000, false).await?;
-        sleep(59000).await;
+        sleep(9000).await;
         // keysend receive
         let cln1_pubkey = get_pubkey_cln(clients, sender).await?;
         log::info!("lnd send 1");
