@@ -5,8 +5,6 @@
     Toolbar,
     ToolbarContent,
     ToolbarSearch,
-    ToolbarMenu,
-    ToolbarMenuItem,
   } from "carbon-components-svelte";
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
@@ -27,8 +25,46 @@
       tribes.set(serverTribes);
     }
   }
+
+  async function getConfigSortByUnhealthy() {
+    const conf = await api.swarm.get_config();
+    if (conf && conf.stacks && conf.stacks.length) {
+      let unhealthyRemotes = [];
+      let healthyRemotes = [];
+      for (let i = 0; i < conf.stacks.length; i++) {
+        let el = conf.stacks[i];
+        const host = el.host;
+        try {
+          let url = `https://boltwall.${host}/stats`;
+          // custom URLs
+          if (!url.includes("swarm")) {
+            url = `https://${host}/api/stats`;
+          }
+          console.log("URL", url);
+          const r = await fetch(url);
+          await r.json();
+          healthyRemotes.push(el);
+        } catch (e) {
+          console.warn(e);
+          unhealthyRemotes.push(el);
+        }
+      }
+
+      remotes.set([...unhealthyRemotes, ...healthyRemotes]);
+      const serverTribes = await getTribes([
+        ...unhealthyRemotes,
+        ...healthyRemotes,
+      ]);
+      tribes.set(serverTribes);
+    }
+  }
+
   onMount(() => {
     getConfig();
+
+    const interval = setInterval(getConfigSortByUnhealthy, 3000);
+    getConfigSortByUnhealthy();
+    return () => clearInterval(interval);
   });
 
   function something() {
