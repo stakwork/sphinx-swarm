@@ -7,7 +7,6 @@ use crate::images::mixer::MixerImage;
 use crate::images::tribes::TribesImage;
 use crate::images::Image;
 use crate::secrets;
-use crate::utils::getenv;
 
 pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
     let seed_str = std::env::var("SEED").expect("no seed");
@@ -113,40 +112,12 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
     }
 }
 
-fn cfg_img() -> anyhow::Result<ConfigImage> {
-    let regtest_tribe = getenv("REGTEST_TRIBE")?;
-    let regtest_tribe_host = getenv("REGTEST_TRIBE_HOST")?;
-    let regtest_router = getenv("REGTEST_ROUTER")?;
-    let regtest_default_lsp = getenv("REGTEST_DEFAULT_LSP")?;
-    let mainnet_tribe = getenv("MAINNET_TRIBE")?;
-    let mainnet_tribe_host = getenv("MAINNET_TRIBE_HOST")?;
-    let mainnet_router = getenv("MAINNET_ROUTER")?;
-    let mainnet_default_lsp = getenv("MAINNET_DEFAULT_LSP")?;
-    Ok(ConfigImage::new(
-        "config",
-        "latest",
-        "8001",
-        regtest_tribe,
-        regtest_tribe_host,
-        regtest_router,
-        regtest_default_lsp,
-        mainnet_tribe,
-        mainnet_tribe_host,
-        mainnet_router,
-        mainnet_default_lsp,
-    ))
-}
-
 pub fn config_only(host: Option<String>) -> Stack {
-    let mut cfg = cfg_img().expect("bad cfg img");
-
+    let mut cfg = ConfigImage::new("config", "latest", "8001");
     cfg.host(host.clone());
-
-    let nodes = vec![Node::Internal(Image::Config(cfg))];
-
     Stack {
         network: "bitcoin".to_string(),
-        nodes,
+        nodes: vec![Node::Internal(Image::Config(cfg))],
         host,
         users: vec![Default::default()],
         jwt_key: secrets::random_word(16),

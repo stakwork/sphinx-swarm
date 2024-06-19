@@ -12,43 +12,15 @@ pub struct ConfigImage {
     pub name: String,
     pub version: String,
     pub port: String,
-    pub regtest_tribe: String,
-    pub regtest_tribe_host: String,
-    pub regtest_router: String,
-    pub regtest_default_lsp: String,
-    pub mainnet_tribe: String,
-    pub mainnet_tribe_host: String,
-    pub mainnet_router: String,
-    pub mainnet_default_lsp: String,
     pub host: Option<String>,
 }
 
 impl ConfigImage {
-    pub fn new(
-        name: &str,
-        version: &str,
-        port: &str,
-        regtest_tribe: String,
-        regtest_tribe_host: String,
-        regtest_router: String,
-        regtest_default_lsp: String,
-        mainnet_tribe: String,
-        mainnet_tribe_host: String,
-        mainnet_router: String,
-        mainnet_default_lsp: String,
-    ) -> Self {
+    pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
-            regtest_tribe,
-            regtest_tribe_host,
-            regtest_router,
-            regtest_default_lsp,
-            mainnet_tribe,
-            mainnet_tribe_host,
-            mainnet_router,
-            mainnet_default_lsp,
             host: None,
         }
     }
@@ -75,6 +47,10 @@ impl DockerHubImage for ConfigImage {
     }
 }
 
+fn getenv_(name: &str) -> String {
+    std::env::var(name).unwrap_or("".to_string())
+}
+
 fn config_server(img: &ConfigImage) -> Result<Config<String>> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
@@ -86,14 +62,16 @@ fn config_server(img: &ConfigImage) -> Result<Config<String>> {
     let env = vec![
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
-        format!("REGTEST_TRIBE={}", img.regtest_tribe),
-        format!("REGTEST_TRIBE_HOST={}", img.regtest_tribe_host),
-        format!("REGTEST_ROUTER={}", img.regtest_router),
-        format!("REGTEST_DEFAULT_LSP={}", img.regtest_default_lsp),
-        format!("MAINNET_TRIBE={}", img.mainnet_tribe),
-        format!("MAINNET_TRIBE_HOST={}", img.mainnet_tribe_host),
-        format!("MAINNET_ROUTER={}", img.mainnet_router),
-        format!("MAINNET_DEFAULT_LSP={}", img.mainnet_default_lsp),
+        format!("REGTEST_TRIBE={}", getenv_("REGTEST_TRIBE")),
+        format!("REGTEST_TRIBE_HOST={}", getenv_("REGTEST_TRIBE_HOST")),
+        format!("REGTEST_ROUTER={}", getenv_("REGTEST_ROUTER")),
+        format!("REGTEST_DEFAULT_LSP={}", getenv_("REGTEST_DEFAULT_LSP")),
+        format!("REGTEST_LSPS={}", getenv_("REGTEST_LSPS")),
+        format!("MAINNET_TRIBE={}", getenv_("MAINNET_TRIBE")),
+        format!("MAINNET_TRIBE_HOST={}", getenv_("MAINNET_TRIBE_HOST")),
+        format!("MAINNET_ROUTER={}", getenv_("MAINNET_ROUTER")),
+        format!("MAINNET_DEFAULT_LSP={}", getenv_("MAINNET_DEFAULT_LSP")),
+        format!("MAINNET_LSPS={}", getenv_("MAINNET_LSPS")),
     ];
 
     let mut c = Config {

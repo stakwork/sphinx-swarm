@@ -288,7 +288,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--accept-htlc-tlv-type=13377331".to_string(),
         "--database-upgrade=true".to_string(),
-        // "--cltv-delta=1440".to_string(),
+        "--cltv-delta=34".to_string(),
     ];
     if let Ok(eba) = getenv("ANNOUNCE_ADDRESS") {
         cmd.push(format!("--announce-addr={}", eba));

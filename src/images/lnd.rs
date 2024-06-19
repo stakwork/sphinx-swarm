@@ -133,6 +133,7 @@ fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
         format!("--accept-keysend"),
         format!("--accept-amp"),
         format!("--db.bolt.auto-compact"),
+        format!("--bitcoin.defaultremotedelay=144"),
     ];
     if let Some(u) = &btc.user {
         if let Some(p) = &btc.pass {
