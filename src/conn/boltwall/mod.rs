@@ -213,12 +213,18 @@ pub async fn update_boltwall_accessibility(img: &BoltwallImage, is_public: bool)
 }
 
 pub async fn get_boltwall_accessibility(img: &BoltwallImage) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
     let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/getPublicPrivate", host, img.port);
 
-    let response = client.get(route.as_str()).send().await?;
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
 
     let response_text = response.text().await?;
 
@@ -245,12 +251,18 @@ pub async fn get_feature_flags(img: &BoltwallImage) -> Result<String> {
 }
 
 pub async fn get_second_brain_about_details(img: &BoltwallImage) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
     let client = make_client();
     let host = docker_domain(&img.name);
 
     let route = format!("http://{}:{}/about", host, img.port);
 
-    let response = client.get(route.as_str()).send().await?;
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
 
     let response_text = response.text().await?;
 
