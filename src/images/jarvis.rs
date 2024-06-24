@@ -100,6 +100,7 @@ fn jarvis(
             "SECOND_BRAIN_GRAPH_URL=https://{}/get_elasticsearch_entities",
             h
         ));
+        env.push(format!("SECOND_BRAIN_BASE_URL=https://{}", h));
     }
     //stakwork-secret from boltwall
     if let Some(ss) = &boltwall.stakwork_secret {
