@@ -10,6 +10,7 @@ use futures_util::stream::TryStreamExt;
 use std::io::Cursor;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
+use tokio::fs::remove_dir_all;
 use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::CompressionMethod;
@@ -132,7 +133,20 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
 
     zip_directory(parent_directory, &parent_zip).unwrap();
     let parent_zip_file = PathBuf::from(&parent_zip);
-    let _ = upload_to_s3("sphinx-swarm", &parent_zip, parent_zip_file).await;
+    let response = upload_to_s3("sphinx-swarm", &parent_zip, parent_zip_file).await;
+
+    match response {
+        Ok(status) => {
+            if status == true {
+                let _ = fs::remove_file(parent_zip);
+
+                let _ = remove_dir_all(parent_directory).await;
+            }
+        }
+        Err(_) => {
+            println!("Error occured while sending file to S3 bucket")
+        }
+    }
 }
 
 fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
@@ -161,7 +175,7 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
 }
 
 // Uploads the zip file to S3
-async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<(), Error> {
+async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<bool, Error> {
     // Load the AWS configuration
     let config = aws_config::load_from_env().await;
     let client = Client::new(&config);
@@ -178,13 +192,13 @@ async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> R
 
             // Send the request
             request.send().await?;
+            return Ok(true);
         }
         Err(_) => {
-            println!("Error streaming zip file")
+            println!("Error streaming zip file");
+            return Ok(false);
         }
     };
-
-    Ok(())
 }
 
 // Deletes old backups from the S3 bucket
