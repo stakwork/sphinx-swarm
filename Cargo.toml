@@ -52,6 +52,8 @@ cln-grpc = { git = "https://github.com/stakwork/lightning", rev = "ba0d317e751ee
 serde_yaml = "0.9"
 tokio-cron-scheduler = "*"
 sphinx-auther = { git = "https://github.com/stakwork/sphinx-rs.git", branch = "master" }
+zip = "0.6.5"
+tokio = { version = "1", features = ["full"] }
 
 [lib]
 name = "sphinx_swarm"
