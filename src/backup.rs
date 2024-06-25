@@ -2,9 +2,8 @@ use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
 // use chrono::Local;
 use std::fs::{self, File};
-use std::io::{Read, Write};
-use tar::Archive;
-use tokio::io::AsyncWriteExt;
+// use tar::Archive;
+// use tokio::io::AsyncWriteExt;
 use zip::ZipWriter;
 // use rusoto_core::Region;
 // use rusoto_s3::{
@@ -14,7 +13,10 @@ use zip::ZipWriter;
 // use std::path::PathBuf;
 use futures_util::stream::TryStreamExt;
 use std::io::Cursor;
+use std::io::{self, Read, Write};
+use walkdir::WalkDir;
 use zip::write::FileOptions;
+use zip::CompressionMethod;
 
 use crate::config::STATE;
 use crate::utils::domain;
@@ -157,6 +159,34 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
             container_id, subdirectory
         );
     }
+
+    let parent_zip = format!("{}.zip", parent_directory);
+    zip_directory(parent_directory, &parent_zip).unwrap();
+}
+
+fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
+    let file = File::create(zip_file)?;
+    let mut zip = ZipWriter::new(file);
+    let options = zip::write::FileOptions::default().compression_method(CompressionMethod::Stored);
+
+    for entry in WalkDir::new(src_dir) {
+        let entry = entry?;
+        let path = entry.path();
+        let name = path.strip_prefix(src_dir).unwrap().to_str().unwrap();
+
+        if path.is_file() {
+            zip.start_file(name, options)?;
+            let mut f = File::open(path)?;
+            let mut buffer = Vec::new();
+            f.read_to_end(&mut buffer)?;
+            zip.write_all(&buffer)?;
+        } else if path.is_dir() {
+            zip.add_directory(name, options)?;
+        }
+    }
+
+    zip.finish()?;
+    Ok(())
 }
 
 // async fn zip_data(data: Vec<u8>, name: &str) -> Result<PathBuf, Box<dyn Error>> {
