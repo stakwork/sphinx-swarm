@@ -4,52 +4,19 @@ use bollard::Docker;
 use std::fs::{self, File};
 // use tar::Archive;
 // use tokio::io::AsyncWriteExt;
-use zip::ZipWriter;
-// use rusoto_core::Region;
-// use rusoto_s3::{
-//     DeleteObjectsRequest, ListObjectsV2Request, ObjectIdentifier, PutObjectRequest, S3Client,
-// };
-// use std::error::Error;
-// use std::path::PathBuf;
+use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::{Client, Error};
 use futures_util::stream::TryStreamExt;
 use std::io::Cursor;
 use std::io::{self, Read, Write};
+use std::path::PathBuf;
 use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::CompressionMethod;
+use zip::ZipWriter;
 
 use crate::config::STATE;
 use crate::utils::domain;
-
-// pub async fn backup_to_s3(
-//     proxy_path: &str,
-//     relay_path: &str,
-//     bucket: &str,
-// ) -> Result<(), Box<dyn std::error::Error>> {
-//     let docker = Docker::connect_with_local_defaults()?;
-
-//     // Download and zip proxy volume
-//     let proxy_zip_data =
-//         download_and_zip_from_container(&docker, "proxy_container_id", proxy_path).await?;
-//     let proxy_zip_file_name = format!("proxy_data_{}_{}.zip", Local::now().format("%Y%m%d_%H%M%S"));
-//     let proxy_zip_file = PathBuf::from(&proxy_zip_file_name);
-//     fs::write(&proxy_zip_file, proxy_zip_data).await?;
-
-//     // Download and zip relay volume
-//     let relay_zip_data =
-//         download_and_zip_from_container(&docker, "relay_container_id", relay_path).await?;
-//     let relay_zip_file_name = format!("relay_data_{}_{}.zip", Local::now().format("%Y%m%d_%H%M%S"));
-//     let relay_zip_file = PathBuf::from(&relay_zip_file_name);
-//     fs::write(&relay_zip_file, relay_zip_data).await?;
-
-//     // Upload proxy zip file to S3
-//     upload_to_s3(&bucket, &proxy_zip_file_name, proxy_zip_file).await?;
-
-//     // Upload relay zip file to S3
-//     upload_to_s3(&bucket, &relay_zip_file_name, relay_zip_file).await?;
-
-//     Ok(())
-// }
 
 pub async fn backup_containers() {
     let state = STATE.lock().await;
@@ -162,6 +129,8 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
 
     let parent_zip = format!("{}.zip", parent_directory);
     zip_directory(parent_directory, &parent_zip).unwrap();
+    let parent_zip_file = PathBuf::from(&parent_zip);
+    let _ = upload_to_s3("sphinx-swarm", &parent_zip, parent_zip_file).await;
 }
 
 fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
@@ -189,44 +158,32 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
     Ok(())
 }
 
-// async fn zip_data(data: Vec<u8>, name: &str) -> Result<PathBuf, Box<dyn Error>> {
-//     let current_time = Local::now();
-//     let zip_file_name = format!("{}_{}.zip", name, current_time.format("%Y%m%d_%H%M%S"));
-
-//     let mut zip_file = zip::ZipWriter::new(File::create(&zip_file_name)?);
-//     let options =
-//         zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-
-//     zip_file.start_file(name, options)?;
-//     zip_file.write_all(&data)?;
-
-//     Ok(PathBuf::from(zip_file_name))
-// }
-
 // Uploads the zip file to S3
-// async fn upload_to_s3(
-//     bucket: &str,
-//     zip_file_name: &str,
-//     zip_file: PathBuf,
-// ) -> Result<(), Box<dyn Error>> {
-//     let s3_client = S3Client::new(Region::default());
+async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<(), Error> {
+    // Load the AWS configuration
+    let config = aws_config::load_from_env().await;
+    let client = Client::new(&config);
 
-//     let file = File::open(&zip_file)?;
-//     let mut buffer = Vec::new();
-//     file.read_to_end(&mut buffer)?;
+    // Read the file into a ByteStream
+    match ByteStream::from_path(&zip_file).await {
+        Ok(body) => {
+            // Prepare the PutObjectRequest
+            let request = client
+                .put_object()
+                .bucket(bucket)
+                .key(zip_file_name)
+                .body(body);
 
-//     let key = zip_file_name;
+            // Send the request
+            request.send().await?;
+        }
+        Err(_) => {
+            println!("Error streaming zip file")
+        }
+    };
 
-//     let request = PutObjectRequest {
-//         bucket: bucket.to_owned(),
-//         key: key.to_owned(),
-//         body: Some(buffer.into()),
-//         ..Default::default()
-//     };
-
-//     s3_client.put_object(request).await?;
-//     Ok(())
-// }
+    Ok(())
+}
 
 // Deletes old backups from the S3 bucket
 // async fn delete_old_backups(
@@ -274,22 +231,6 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
 
 //         s3_client.delete_objects(delete_request).await?;
 //     }
-
-//     Ok(())
-// }
-
-// async fn test_backup() -> Result<(), Box<dyn Error>> {
-//     let bucket = "your-bucket-name";
-//     let zip_data = vec![1, 2, 3, 4, 5]; // Example data to be zipped
-
-//     let zip_file = zip_data(zip_data, "backup_data").await?;
-//     println!("Zip file created: {:?}", zip_file);
-
-//     upload_to_s3(bucket, "backup_data.zip", zip_file.clone()).await?;
-//     println!("Zip file uploaded to S3");
-
-//     delete_old_backups(bucket, "backup_prefix", 30).await?;
-//     println!("Old backups deleted from S3");
 
 //     Ok(())
 // }
