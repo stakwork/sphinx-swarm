@@ -4,6 +4,8 @@ use chrono::Local;
 use std::fs::{self, File};
 // use tar::Archive;
 // use tokio::io::AsyncWriteExt;
+use aws_config::meta::region::RegionProviderChain;
+use aws_config::Region;
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::{Client, Error};
 use futures_util::stream::TryStreamExt;
@@ -17,7 +19,7 @@ use zip::CompressionMethod;
 use zip::ZipWriter;
 
 use crate::config::STATE;
-use crate::utils::domain;
+use crate::utils::{domain, getenv};
 
 pub async fn backup_containers() {
     let state = STATE.lock().await;
@@ -176,8 +178,14 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
 
 // Uploads the zip file to S3
 async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<bool, Error> {
+    // Read the custom region environment variable
+    let region = getenv("AWS_S3_REGION_NAME").expect("AWS_S3_REGION_NAME must be set in .env file");
+
+    // Create a region provider chain
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+
     // Load the AWS configuration
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
     // Read the file into a ByteStream
