@@ -1,6 +1,6 @@
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
-// use chrono::Local;
+use chrono::Local;
 use std::fs::{self, File};
 // use tar::Archive;
 // use tokio::io::AsyncWriteExt;
@@ -127,7 +127,9 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
         );
     }
 
-    let parent_zip = format!("{}.zip", parent_directory);
+    let current_timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+    let parent_zip = format!("{}_{}.zip", parent_directory, current_timestamp);
+
     zip_directory(parent_directory, &parent_zip).unwrap();
     let parent_zip_file = PathBuf::from(&parent_zip);
     let _ = upload_to_s3("sphinx-swarm", &parent_zip, parent_zip_file).await;
