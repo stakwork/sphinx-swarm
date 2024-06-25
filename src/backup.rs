@@ -1,6 +1,7 @@
+use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
-use chrono::Local;
+use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use std::fs::{self, File};
 // use tar::Archive;
 // use tokio::io::AsyncWriteExt;
@@ -210,51 +211,71 @@ async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> R
 }
 
 // Deletes old backups from the S3 bucket
-// async fn delete_old_backups(
-//     bucket: &str,
-//     prefix: &str,
-//     retention_days: i64,
-// ) -> Result<(), Box<dyn Error>> {
-//     let s3_client = S3Client::new(Region::default());
+pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<(), Error> {
+    // Read the custom region environment variable
+    let region = getenv("AWS_S3_REGION_NAME").expect("AWS_S3_REGION_NAME must be set in .env file");
 
-//     let current_time = Local::now();
-//     let cutoff_time = current_time - chrono::Duration::days(retention_days);
+    // Create a region provider chain
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
-//     let list_request = ListObjectsV2Request {
-//         bucket: bucket.to_owned(),
-//         prefix: Some(prefix.to_owned()),
-//         ..Default::default()
-//     };
+    // Load the AWS configuration with the custom region
+    let config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&config);
 
-//     let objects = s3_client.list_objects_v2(list_request).await?;
+    // List objects in the bucket
+    let resp = client.list_objects_v2().bucket(bucket).send().await?;
 
-//     let objects_to_delete: Vec<ObjectIdentifier> = objects
-//         .contents
-//         .unwrap_or_default()
-//         .iter()
-//         .filter(|obj| {
-//             obj.last_modified
-//                 .as_ref()
-//                 .map_or(false, |lm| lm < &cutoff_time)
-//         })
-//         .map(|obj| ObjectIdentifier {
-//             key: obj.key.clone(),
-//             ..Default::default()
-//         })
-//         .collect();
+    let objects = resp.contents();
 
-//     if !objects_to_delete.is_empty() {
-//         let delete_request = DeleteObjectsRequest {
-//             bucket: bucket.to_owned(),
-//             delete: rusoto_s3::Delete {
-//                 objects: objects_to_delete,
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
+    // Filter objects older than retention_days
+    let retention_date = Utc::now() - Duration::days(retention_days);
+    let mut objects_to_delete = Vec::new();
 
-//         s3_client.delete_objects(delete_request).await?;
-//     }
+    for obj in objects {
+        if let Some(last_modified) = obj.last_modified {
+            let last_modified_timestamp = last_modified.secs();
+            let naive_datetime = NaiveDateTime::from_timestamp_opt(last_modified_timestamp, 0)
+                .expect("Invalid timestamp");
+            let last_modified_chrono: DateTime<Utc> =
+                DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
 
-//     Ok(())
-// }
+            if last_modified_chrono < retention_date {
+                if let Some(key) = &obj.key {
+                    let object_identifier_result = ObjectIdentifier::builder().key(key).build();
+                    match object_identifier_result {
+                        Ok(object_identifier) => {
+                            objects_to_delete.push(object_identifier);
+                        }
+                        Err(_) => {
+                            print!("Could not build object correctly")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if !objects_to_delete.is_empty() {
+        // Delete old objects
+        let delete_request = client
+            .delete_objects()
+            .bucket(bucket)
+            .delete(
+                Delete::builder()
+                    .set_objects(Some(objects_to_delete))
+                    .build()?,
+            )
+            .send()
+            .await?;
+
+        println!(
+            "Deleted {} old objects from bucket {}",
+            delete_request.deleted().len(),
+            bucket
+        );
+    } else {
+        println!("No old objects to delete in bucket {}", bucket);
+    }
+
+    Ok(())
+}
