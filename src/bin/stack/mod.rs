@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rocket::tokio;
-use sphinx_swarm::backup::{backup_containers, download_and_zip_from_container};
+use sphinx_swarm::backup::backup_containers;
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
 
     // download_and_zip_from_container().await;
 
-    backup_containers().await;
+    backup_containers().await?;
 
     tokio::signal::ctrl_c().await?;
 

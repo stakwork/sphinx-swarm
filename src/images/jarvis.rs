@@ -48,6 +48,7 @@ impl DockerHubImage for JarvisImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-jarvis-backend".to_string(),
+            root_volume: "/data/jarvis".to_string(),
         }
     }
 }
@@ -61,7 +62,7 @@ fn jarvis(
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/data/jarvis";
+    let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
 
     let mut env = vec![

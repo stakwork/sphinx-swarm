@@ -113,6 +113,7 @@ impl DockerHubImage for BoltwallImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-boltwall".to_string(),
+            root_volume: "/boltwall".to_string(),
         }
     }
 }
@@ -153,7 +154,7 @@ fn boltwall(
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let ports = vec![node.port.clone()];
-    let root_vol = "/boltwall";
+    let root_vol = &repo.root_volume;
 
     let mut env = vec![
         format!("PORT={}", node.port),

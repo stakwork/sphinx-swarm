@@ -78,6 +78,7 @@ impl DockerHubImage for Neo4jImage {
         Repository {
             org: "library".to_string(),
             repo: "neo4j".to_string(),
+            root_volume: "/data".to_string(),
         }
     }
 }
@@ -86,7 +87,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}", repo.repo);
-    let root_vol = "/data";
+    let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
     let c = Config {

@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
@@ -5,13 +6,14 @@ use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use std::fs::{self, File};
 // use tar::Archive;
 // use tokio::io::AsyncWriteExt;
+use crate::images::DockerHubImage;
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_s3::primitives::ByteStream;
-use aws_sdk_s3::{Client, Error};
+use aws_sdk_s3::Client;
 use futures_util::stream::TryStreamExt;
 use std::io::Cursor;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use tokio::fs::remove_dir_all;
 use walkdir::WalkDir;
@@ -26,7 +28,7 @@ fn bucket_name() -> String {
     getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
 }
 
-pub async fn backup_containers() {
+pub async fn backup_containers() -> Result<()> {
     let state = STATE.lock().await;
     let nodes = state.stack.nodes.clone();
     drop(state);
@@ -36,46 +38,33 @@ pub async fn backup_containers() {
     for node in nodes.iter() {
         let node_name = node.name();
         let hostname = domain(&node_name);
-        if node_name == "relay".to_string() {
-            containers.push((
-                hostname.clone(),
-                "/relay/data".to_string(),
-                node_name.clone(),
-            ))
-        }
-        if node_name == "proxy".to_string() {
-            containers.push((
-                hostname.clone(),
-                "/app/proxy".to_string(),
-                node_name.clone(),
-            ))
-        }
-        if node_name == "neo4j".to_string() {
-            containers.push((hostname.clone(), "/data".to_string(), node_name.clone()));
-        }
-        if node_name == "boltwall".to_string() {
-            containers.push((
-                hostname.to_string(),
-                "/boltwall".to_string(),
-                node_name.clone(),
-            ))
+        let img = node.as_internal()?;
+        let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
+        if to_backup.contains(&node_name.as_str()) {
+            containers.push((hostname.clone(), img.repo().root_volume, node_name.clone()))
         }
     }
 
     println!("Node_names: {:?}", containers);
 
-    download_and_zip_from_container(containers).await;
+    let (parent_directory, parent_zip) = download_and_zip_from_container(containers).await?;
+
+    upload_final_zip_to_s3(parent_directory, parent_zip).await?;
+
+    Ok(())
 }
 
-pub async fn download_and_zip_from_container(containers: Vec<(String, String, String)>) {
+pub async fn download_and_zip_from_container(
+    containers: Vec<(String, String, String)>,
+) -> Result<(String, String)> {
     // Initialize the Docker client
-    let docker = Docker::connect_with_local_defaults().unwrap();
+    let docker = Docker::connect_with_local_defaults()?;
 
     // Define the parent directory where all the container volumes will be saved
-    let parent_directory = getenv("HOST").expect("NO_HOST_NAME");
+    let parent_directory = getenv("HOST")?;
 
     // Create the parent directory if it doesn't exist
-    fs::create_dir_all(&parent_directory).unwrap();
+    fs::create_dir_all(&parent_directory)?;
 
     // Iterate over each container and download its volume
     for (container_id, volume_path, sub_directory) in containers {
@@ -87,7 +76,7 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
 
         // Collect the streamed data into a vector
         let mut tar_data = Vec::new();
-        while let Some(chunk) = stream.try_next().await.unwrap() {
+        while let Some(chunk) = stream.try_next().await? {
             tar_data.extend(&chunk);
         }
 
@@ -101,34 +90,30 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
         let subdirectory = format!("{}/{}", &parent_directory, sub_directory);
 
         // Create the subdirectory if it doesn't exist
-        fs::create_dir_all(&subdirectory).unwrap();
+        fs::create_dir_all(&subdirectory)?;
 
         // Create a ZIP file to save the content
         let zip_file_path = format!("{}/{}.zip", subdirectory, container_id);
-        let zip_file = File::create(zip_file_path).unwrap();
+        let zip_file = File::create(zip_file_path)?;
         let mut zip_writer = ZipWriter::new(zip_file);
         let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
         // Iterate over the entries in the tar archive and write them to the ZIP file
-        for entry in archive.entries().unwrap() {
-            let mut entry = entry.unwrap();
-            let path = entry.path().unwrap().to_owned();
+        for entry in archive.entries()? {
+            let mut entry = entry?;
+            let path = entry.path()?.to_owned();
 
             if path.is_dir() {
-                zip_writer
-                    .add_directory(path.to_string_lossy(), options)
-                    .unwrap();
+                zip_writer.add_directory(path.to_string_lossy(), options)?;
             } else {
-                zip_writer
-                    .start_file(path.to_string_lossy(), options)
-                    .unwrap();
+                zip_writer.start_file(path.to_string_lossy(), options)?;
                 let mut buffer = Vec::new();
-                entry.read_to_end(&mut buffer).unwrap();
-                zip_writer.write_all(&buffer).unwrap();
+                entry.read_to_end(&mut buffer)?;
+                zip_writer.write_all(&buffer)?;
             }
         }
 
-        zip_writer.finish().unwrap();
+        zip_writer.finish()?;
 
         println!(
             "Volume from container {} downloaded and saved as a ZIP file in directory {}",
@@ -139,25 +124,23 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
     let current_timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
     let parent_zip = format!("{}_{}.zip", &parent_directory, current_timestamp);
 
-    zip_directory(&parent_directory, &parent_zip).unwrap();
-    let parent_zip_file = PathBuf::from(&parent_zip);
-    let response = upload_to_s3(&bucket_name(), &parent_zip, parent_zip_file).await;
+    zip_directory(&parent_directory, &parent_zip)?;
 
-    match response {
-        Ok(status) => {
-            if status == true {
-                let _ = fs::remove_file(parent_zip);
-
-                let _ = remove_dir_all(parent_directory).await;
-            }
-        }
-        Err(_) => {
-            println!("Error occured while sending file to S3 bucket")
-        }
-    }
+    Ok((parent_directory, parent_zip))
 }
 
-fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
+async fn upload_final_zip_to_s3(parent_directory: String, parent_zip: String) -> Result<()> {
+    let parent_zip_file = PathBuf::from(&parent_zip);
+    let status = upload_to_s3(&bucket_name(), &parent_zip, parent_zip_file).await?;
+
+    if status == true {
+        let _ = fs::remove_file(parent_zip);
+        let _ = remove_dir_all(parent_directory).await;
+    }
+    Ok(())
+}
+
+fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
     let file = File::create(zip_file)?;
     let mut zip = ZipWriter::new(file);
     let options = zip::write::FileOptions::default().compression_method(CompressionMethod::Stored);
@@ -165,7 +148,10 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
     for entry in WalkDir::new(src_dir) {
         let entry = entry?;
         let path = entry.path();
-        let name = path.strip_prefix(src_dir).unwrap().to_str().unwrap();
+        let name = path
+            .strip_prefix(src_dir)?
+            .to_str()
+            .context("non-UTF-8 file name")?;
 
         if path.is_file() {
             zip.start_file(name, options)?;
@@ -183,9 +169,9 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> io::Result<()> {
 }
 
 // Uploads the zip file to S3
-async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<bool, Error> {
+async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<bool> {
     // Read the custom region environment variable
-    let region = getenv("AWS_S3_REGION_NAME").expect("AWS_S3_REGION_NAME must be set in .env file");
+    let region = getenv("AWS_S3_REGION_NAME")?;
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -216,9 +202,9 @@ async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> R
 }
 
 // Deletes old backups from the S3 bucket
-pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<(), Error> {
+pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()> {
     // Read the custom region environment variable
-    let region = getenv("AWS_S3_REGION_NAME").expect("AWS_S3_REGION_NAME must be set in .env file");
+    let region = getenv("AWS_S3_REGION_NAME")?;
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -240,7 +226,7 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<(),
         if let Some(last_modified) = obj.last_modified {
             let last_modified_timestamp = last_modified.secs();
             let naive_datetime = NaiveDateTime::from_timestamp_opt(last_modified_timestamp, 0)
-                .expect("Invalid timestamp");
+                .context("Invalid timestamp")?;
             let last_modified_chrono: DateTime<Utc> =
                 DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
 
