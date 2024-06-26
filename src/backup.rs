@@ -229,56 +229,56 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
 
     let objects = resp.contents();
 
-    println!("{:?}", &objects);
+    if objects.len() > 3 {
+        // Filter objects older than retention_days
+        let retention_date = Utc::now() - Duration::days(retention_days);
+        let mut objects_to_delete = Vec::new();
 
-    // Filter objects older than retention_days
-    let retention_date = Utc::now() - Duration::days(retention_days);
-    let mut objects_to_delete = Vec::new();
+        for obj in objects {
+            if let Some(last_modified) = obj.last_modified {
+                let last_modified_timestamp = last_modified.secs();
+                let naive_datetime = NaiveDateTime::from_timestamp_opt(last_modified_timestamp, 0)
+                    .context("Invalid timestamp")?;
+                let last_modified_chrono: DateTime<Utc> =
+                    DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
 
-    for obj in objects {
-        if let Some(last_modified) = obj.last_modified {
-            let last_modified_timestamp = last_modified.secs();
-            let naive_datetime = NaiveDateTime::from_timestamp_opt(last_modified_timestamp, 0)
-                .context("Invalid timestamp")?;
-            let last_modified_chrono: DateTime<Utc> =
-                DateTime::from_naive_utc_and_offset(naive_datetime, Utc);
-
-            if last_modified_chrono < retention_date {
-                if let Some(key) = &obj.key {
-                    let object_identifier_result = ObjectIdentifier::builder().key(key).build();
-                    match object_identifier_result {
-                        Ok(object_identifier) => {
-                            objects_to_delete.push(object_identifier);
-                        }
-                        Err(_) => {
-                            print!("Could not build object correctly")
+                if last_modified_chrono < retention_date {
+                    if let Some(key) = &obj.key {
+                        let object_identifier_result = ObjectIdentifier::builder().key(key).build();
+                        match object_identifier_result {
+                            Ok(object_identifier) => {
+                                objects_to_delete.push(object_identifier);
+                            }
+                            Err(_) => {
+                                print!("Could not build object correctly")
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-    if !objects_to_delete.is_empty() {
-        // Delete old objects
-        let delete_request = client
-            .delete_objects()
-            .bucket(bucket)
-            .delete(
-                Delete::builder()
-                    .set_objects(Some(objects_to_delete))
-                    .build()?,
-            )
-            .send()
-            .await?;
+        if !objects_to_delete.is_empty() {
+            // Delete old objects
+            let delete_request = client
+                .delete_objects()
+                .bucket(bucket)
+                .delete(
+                    Delete::builder()
+                        .set_objects(Some(objects_to_delete))
+                        .build()?,
+                )
+                .send()
+                .await?;
 
-        println!(
-            "Deleted {} old objects from bucket {}",
-            delete_request.deleted().len(),
-            bucket
-        );
-    } else {
-        println!("No old objects to delete in bucket {}", bucket);
+            println!(
+                "Deleted {} old objects from bucket {}",
+                delete_request.deleted().len(),
+                bucket
+            );
+        } else {
+            println!("No old objects to delete in bucket {}", bucket);
+        }
     }
 
     Ok(())
