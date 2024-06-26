@@ -38,10 +38,14 @@ pub async fn backup_containers() -> Result<()> {
     for node in nodes.iter() {
         let node_name = node.name();
         let hostname = domain(&node_name);
-        let img = node.as_internal()?;
-        let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
-        if to_backup.contains(&node_name.as_str()) {
-            containers.push((hostname.clone(), img.repo().root_volume, node_name.clone()))
+        match node.as_internal() {
+            Ok(img) => {
+                let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
+                if to_backup.contains(&node_name.as_str()) {
+                    containers.push((hostname.clone(), img.repo().root_volume, node_name.clone()))
+                }
+            }
+            Err(_) => (),
         }
     }
 
