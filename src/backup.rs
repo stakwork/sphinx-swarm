@@ -22,9 +22,14 @@ use zip::ZipWriter;
 use crate::config::STATE;
 use crate::utils::{domain, getenv};
 
+fn bucket_name() -> String {
+    getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
+}
+
 pub async fn backup_containers() {
     let state = STATE.lock().await;
     let nodes = state.stack.nodes.clone();
+    drop(state);
 
     let mut containers: Vec<(String, String, String)> = Vec::new();
 
@@ -136,7 +141,7 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
 
     zip_directory(&parent_directory, &parent_zip).unwrap();
     let parent_zip_file = PathBuf::from(&parent_zip);
-    let response = upload_to_s3("sphinx-swarm", &parent_zip, parent_zip_file).await;
+    let response = upload_to_s3(&bucket_name(), &parent_zip, parent_zip_file).await;
 
     match response {
         Ok(status) => {
