@@ -217,10 +217,19 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
+    let object_prefix = getenv("HOST")?;
+
     // List objects in the bucket
-    let resp = client.list_objects_v2().bucket(bucket).send().await?;
+    let resp = client
+        .list_objects_v2()
+        .bucket(bucket)
+        .prefix(object_prefix)
+        .send()
+        .await?;
 
     let objects = resp.contents();
+
+    println!("{:?}", &objects);
 
     // Filter objects older than retention_days
     let retention_date = Utc::now() - Duration::days(retention_days);
