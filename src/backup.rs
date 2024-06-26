@@ -67,10 +67,10 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
     let docker = Docker::connect_with_local_defaults().unwrap();
 
     // Define the parent directory where all the container volumes will be saved
-    let parent_directory = "downloaded_volumes";
+    let parent_directory = getenv("HOST").expect("NO_HOST_NAME");
 
     // Create the parent directory if it doesn't exist
-    fs::create_dir_all(parent_directory).unwrap();
+    fs::create_dir_all(&parent_directory).unwrap();
 
     // Iterate over each container and download its volume
     for (container_id, volume_path, sub_directory) in containers {
@@ -93,7 +93,7 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
         let mut archive = tar::Archive::new(tar_cursor);
 
         // Define the subdirectory for the current container
-        let subdirectory = format!("{}/{}", parent_directory, sub_directory);
+        let subdirectory = format!("{}/{}", &parent_directory, sub_directory);
 
         // Create the subdirectory if it doesn't exist
         fs::create_dir_all(&subdirectory).unwrap();
@@ -132,9 +132,9 @@ pub async fn download_and_zip_from_container(containers: Vec<(String, String, St
     }
 
     let current_timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-    let parent_zip = format!("{}_{}.zip", parent_directory, current_timestamp);
+    let parent_zip = format!("{}_{}.zip", &parent_directory, current_timestamp);
 
-    zip_directory(parent_directory, &parent_zip).unwrap();
+    zip_directory(&parent_directory, &parent_zip).unwrap();
     let parent_zip_file = PathBuf::from(&parent_zip);
     let response = upload_to_s3("sphinx-swarm", &parent_zip, parent_zip_file).await;
 
