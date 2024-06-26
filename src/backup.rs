@@ -1,31 +1,45 @@
-use anyhow::{Context, Result};
-use aws_sdk_s3::types::{Delete, ObjectIdentifier};
-use bollard::container::DownloadFromContainerOptions;
-use bollard::Docker;
-use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
-use std::fs::{self, File};
-// use tar::Archive;
-// use tokio::io::AsyncWriteExt;
+use crate::config::STATE;
 use crate::images::DockerHubImage;
+use crate::utils::{domain, getenv};
+use anyhow::{Context, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::types::{Delete, ObjectIdentifier};
 use aws_sdk_s3::Client;
+use bollard::container::DownloadFromContainerOptions;
+use bollard::Docker;
+use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use futures_util::stream::TryStreamExt;
+use std::fs::{self, File};
 use std::io::Cursor;
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::fs::remove_dir_all;
+use tokio_cron_scheduler::{Job, JobScheduler};
 use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::CompressionMethod;
 use zip::ZipWriter;
 
-use crate::config::STATE;
-use crate::utils::{domain, getenv};
+pub static BACK_AND_DELETE: AtomicBool = AtomicBool::new(false);
 
 fn bucket_name() -> String {
     getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
+}
+
+fn backup_retention_days() -> i64 {
+    match getenv("BACKUP_RETENTION_DAYS")
+        .unwrap_or("10".to_string())
+        .parse()
+    {
+        Ok(float_value) => return float_value,
+        Err(e) => {
+            println!("Unable to parse BACKUP_RETENTION_DAYS: {}", e);
+            return 10;
+        }
+    }
 }
 
 pub async fn backup_containers() -> Result<()> {
@@ -282,4 +296,40 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     }
 
     Ok(())
+}
+
+pub async fn backup_and_delete_volumes_cron() -> Result<JobScheduler> {
+    log::info!(":backup and delete volumes");
+    let sched = JobScheduler::new().await?;
+
+    sched
+        .add(Job::new_async("@daily", |_uuid, _l| {
+            Box::pin(async move {
+                if !BACK_AND_DELETE.load(Ordering::Relaxed) {
+                    BACK_AND_DELETE.store(true, Ordering::Relaxed);
+                }
+            })
+        })?)
+        .await?;
+
+    sched.start().await?;
+
+    tokio::spawn(async move {
+        loop {
+            let go = BACK_AND_DELETE.load(Ordering::Relaxed);
+            if go {
+                if let Err(e) = backup_containers().await {
+                    log::error!("Backup Volumes: {:?}", e);
+                }
+                if let Err(e) = delete_old_backups(&bucket_name(), backup_retention_days()).await {
+                    log::error!("Delete Old backup volumes: {:?}", e);
+                }
+
+                BACK_AND_DELETE.store(false, Ordering::Relaxed);
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        }
+    });
+
+    Ok(sched)
 }
