@@ -59,6 +59,7 @@ impl DockerHubImage for ElasticImage {
         Repository {
             org: "library".to_string(),
             repo: "elasticsearch".to_string(),
+            root_volume: "/data".to_string(),
         }
     }
 }
@@ -67,7 +68,7 @@ fn elastic(node: &ElasticImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}", repo.repo);
-    let root_vol = "/data";
+    let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 
     let c = Config {

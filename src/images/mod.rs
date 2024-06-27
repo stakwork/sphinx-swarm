@@ -48,6 +48,7 @@ pub enum Image {
 pub struct Repository {
     pub org: String,
     pub repo: String,
+    pub root_volume: String,
 }
 
 pub trait DockerHubImage {

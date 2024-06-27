@@ -85,6 +85,7 @@ impl DockerHubImage for RelayImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-relay-swarm".to_string(),
+            root_volume: "/relay/data".to_string(),
         }
     }
 }
@@ -100,7 +101,7 @@ fn relay(
     let repo = relay.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
     let version = relay.version.clone();
-    let root_vol = "/relay/data";
+    let root_vol = &repo.root_volume;
     let mut conf = RelayConfig::new(&relay.name, &relay.port);
     if let Some(b) = relay.dont_ping_hub {
         if b {

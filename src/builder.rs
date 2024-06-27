@@ -52,7 +52,6 @@ pub async fn auto_updater(
     docker: Docker,
     node_names: Vec<String>,
 ) -> Result<JobScheduler> {
-    use rocket::tokio;
     log::info!(":auto_updater");
     let sched = JobScheduler::new().await?;
     // every day at 2 am

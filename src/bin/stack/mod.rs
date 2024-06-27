@@ -1,5 +1,6 @@
 use anyhow::Result;
 use rocket::tokio;
+use sphinx_swarm::backup::backup_and_delete_volumes_cron;
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
@@ -55,6 +56,8 @@ async fn main() -> Result<()> {
             log::error!("CRON failed {:?}", e);
         }
     }
+
+    backup_and_delete_volumes_cron().await?;
 
     tokio::signal::ctrl_c().await?;
 

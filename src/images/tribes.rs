@@ -66,6 +66,7 @@ impl DockerHubImage for TribesImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-tribes-v2".to_string(),
+            root_volume: "/home".to_string(),
         }
     }
 }
@@ -74,7 +75,7 @@ fn tribes(img: &TribesImage, broker: &BrokerImage) -> Result<Config<String>> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
-    let root_vol = "/home";
+    let root_vol = &repo.root_volume;
 
     let ports = vec![img.port.clone()];
 

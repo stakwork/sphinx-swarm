@@ -71,6 +71,7 @@ impl DockerHubImage for CacheImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-cache".to_string(),
+            root_volume: "/cache/data".to_string(),
         }
     }
 }
@@ -79,7 +80,7 @@ fn cache(node: &CacheImage, meme_host: &str, mqtt_host: &str, mqtt_port: &str) -
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/cache/data";
+    let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
     Config {
         image: Some(format!("{}:{}", img, node.version)),

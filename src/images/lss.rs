@@ -39,6 +39,7 @@ impl DockerHubImage for LssImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-lss".to_string(),
+            root_volume: "/root/".to_string(),
         }
     }
 }
@@ -47,7 +48,7 @@ fn lss(node: &LssImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/root/";
+    let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
     let cmd = vec![
         format!("./lssd"),

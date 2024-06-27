@@ -76,6 +76,7 @@ impl DockerHubImage for BtcImage {
         Repository {
             org: "lncm".to_string(),
             repo: "bitcoind".to_string(),
+            root_volume: "/data/.bitcoin".to_string(),
         }
     }
 }
@@ -91,7 +92,7 @@ pub fn btc(node: &BtcImage) -> Config<String> {
     // let image = "ruimarinho/bitcoin-core";
     let repo = node.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/data/.bitcoin";
+    let root_vol = &repo.root_volume;
     let mut cmd = vec![
         format!("-rpcbind={}", domain(&node.name)),
         "-rpcallowip=0.0.0.0/0".to_string(),
