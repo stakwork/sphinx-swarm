@@ -28,8 +28,6 @@ pub async fn download_from_s3(
 
     let resp = client.get_object().bucket(bucket).key(key).send().await?;
 
-    println!("Response from S3 bucker: {:?}", &resp);
-
     let mut file = File::create(output_path)?;
     let data = resp.body.collect().await?;
     file.write_all(&data.into_bytes())?;

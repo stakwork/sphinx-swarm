@@ -36,7 +36,7 @@ fn backup_retention_days() -> i64 {
     {
         Ok(float_value) => return float_value,
         Err(e) => {
-            println!("Unable to parse BACKUP_RETENTION_DAYS: {}", e);
+            log::error!("Unable to parse BACKUP_RETENTION_DAYS: {}", e);
             return 10;
         }
     }
@@ -62,8 +62,6 @@ pub async fn backup_containers() -> Result<()> {
             Err(_) => (),
         }
     }
-
-    println!("Node_names: {:?}", containers);
 
     let (parent_directory, parent_zip) = download_and_zip_from_container(containers).await?;
 
@@ -133,9 +131,10 @@ pub async fn download_and_zip_from_container(
 
         zip_writer.finish()?;
 
-        println!(
+        log::info!(
             "Volume from container {} downloaded and saved as a ZIP file in directory {}",
-            container_id, subdirectory
+            container_id,
+            subdirectory
         );
     }
 
@@ -213,7 +212,7 @@ async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> R
             return Ok(true);
         }
         Err(_) => {
-            println!("Error streaming zip file");
+            log::error!("Error streaming zip file");
             return Ok(false);
         }
     };
@@ -285,13 +284,13 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
                 .send()
                 .await?;
 
-            println!(
+            log::info!(
                 "Deleted {} old objects from bucket {}",
                 delete_request.deleted().len(),
                 bucket
             );
         } else {
-            println!("No old objects to delete in bucket {}", bucket);
+            log::info!("No old objects to delete in bucket {}", bucket);
         }
     }
 

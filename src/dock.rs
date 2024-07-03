@@ -471,7 +471,7 @@ pub async fn get_container_statistics(
             }
         }
 
-        println!("==> {:?}", container_stats);
+        log::info!("==> {:?}", container_stats);
         Ok(container_stats)
     }
 }
@@ -535,10 +535,10 @@ pub async fn prune_images(docker: &Docker) {
 
     match docker.prune_images(Some(prune_options)).await {
         Ok(prune_result) => {
-            println!("Pruned images: {:?}", prune_result);
+            log::info!("Pruned images: {:?}", prune_result);
         }
         Err(e) => {
-            eprintln!("Error pruning images: {}", e);
+            log::error!("Error pruning images: {}", e);
         }
     }
 }
@@ -630,7 +630,7 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) {
                     let _ = unzip_file(&zip_path, &parent_directory);
                     // let _ = unzip_file("tester.zip", &parent_directory);
                 } else {
-                    println!("Directory exist");
+                    log::info!("Directory exist");
                 }
                 let mut data_path = format!("{}/{}/{}", &parent_directory, &name, &name);
 
@@ -644,7 +644,7 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) {
                 }
             }
             Err(_) => {
-                println!("we could not get backup name")
+                log::error!("Backup key not provided")
             }
         }
     }
