@@ -1,8 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Password from "../input/password.svelte";
+  import { get_api_token } from "../../api/swarm";
 
-  onMount(async () => {});
+  $: x_api_token = "";
+
+  onMount(async () => {
+    const api = await get_api_token();
+
+    x_api_token = api.x_api_token;
+  });
 </script>
 
 <div class="container">
@@ -14,7 +21,7 @@
       <p class="api-title">API TOKEN</p>
       <div class="password_container">
         <Password
-          value="Testing_Testing_Testing_Is_Gooded"
+          value={x_api_token}
           onInput={() => {}}
           label=""
           readonly={true}
@@ -67,6 +74,6 @@
   }
 
   .password_container {
-    width: 65%;
+    width: 70%;
   }
 </style>

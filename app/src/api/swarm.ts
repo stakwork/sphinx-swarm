@@ -113,6 +113,10 @@ export async function update_feature_flags(data: { [key: string]: boolean }) {
   return await swarmCmd("UpdateFeatureFlags", data);
 }
 
+export async function get_api_token() {
+  return await swarmCmd("GetApiToken");
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

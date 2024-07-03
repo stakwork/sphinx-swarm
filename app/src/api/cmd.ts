@@ -74,7 +74,8 @@ export type Cmd =
   | "UpdateFeatureFlags"
   | "GetImageDigest"
   | "GetDockerImageTags"
-  | "UpdateUser";
+  | "UpdateUser"
+  | "GetApiToken";
 
 interface CmdData {
   cmd: Cmd;
