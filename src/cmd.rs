@@ -145,6 +145,7 @@ pub enum SwarmCmd {
     GetImageDigest(String),
     GetDockerImageTags(GetDockerImageTagsDetails),
     UpdateUser(UpdateUserDetails),
+    GetApiToken,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
