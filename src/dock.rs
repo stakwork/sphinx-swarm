@@ -580,6 +580,9 @@ async fn copy_data_to_volume(
 ) -> Result<(), Box<dyn Error>> {
     let state = STATE.lock().await;
     let nodes = state.stack.nodes.clone();
+
+    drop(state);
+
     let host = domain(name);
 
     let img = find_img(&name, &nodes)?;
