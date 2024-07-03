@@ -25,7 +25,7 @@ use zip::ZipWriter;
 
 pub static BACK_AND_DELETE: AtomicBool = AtomicBool::new(false);
 
-fn bucket_name() -> String {
+pub fn bucket_name() -> String {
     getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
 }
 

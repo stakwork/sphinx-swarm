@@ -1,6 +1,8 @@
 use crate::config::{self, Clients, Node, Stack, State, STATE};
 use crate::dock::*;
-use crate::dock::{prune_images, pull_image, stop_and_remove};
+use crate::dock::{
+    prune_images, pull_image, restart_container, restore_backup_if_exist, stop_and_remove,
+};
 use crate::images::{DockerConfig, Image};
 use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
@@ -159,13 +161,20 @@ pub async fn add_node(
     // create config
     let node_config = img.make_config(nodes, docker).await?;
     // start container
-    let (new_id, need_to_start) = create_and_init(docker, node_config, skip).await?;
+    let (new_id, need_to_start, created_new_volume) =
+        create_and_init(docker, node_config, skip).await?;
     if need_to_start {
         let id = new_id.context("new container should have an id")?;
         if let Err(e) = img.pre_startup(docker).await {
             log::warn!("pre_startup failed {} {:?}", id, e);
         }
         start_container(docker, &id).await?;
+        if created_new_volume {
+            // download from s3 if it does not exist already, unzip and copy to volume
+            restore_backup_if_exist(docker, &node.name()).await;
+            //restart container
+            restart_container(&docker, &id).await?;
+        }
     }
     // post-startup steps (LND unlock)
     img.post_startup(proj, docker).await?;

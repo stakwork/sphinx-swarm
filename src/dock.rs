@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::env;
+use std::path::Path;
 
 // use crate::utils::user;
 use anyhow::{anyhow, Context, Result};
@@ -19,8 +20,15 @@ use rocket::tokio;
 use serde::Deserialize;
 use serde::Serialize;
 use std::default::Default;
+use std::error::Error;
+use tokio::process::Command;
 
-use crate::utils::{domain, sleep_ms};
+use crate::backup::bucket_name;
+use crate::builder::find_img;
+use crate::config::STATE;
+use crate::images::DockerHubImage;
+use crate::mount_backedup_volume::{download_from_s3, unzip_file};
+use crate::utils::{domain, getenv, sleep_ms};
 
 pub fn dockr() -> Docker {
     Docker::connect_with_unix_defaults().unwrap()
@@ -34,16 +42,16 @@ pub async fn create_and_init(
     docker: &Docker,
     c: Config<String>,
     skip: bool,
-) -> Result<(Option<String>, bool)> {
+) -> Result<(Option<String>, bool, bool)> {
     let hostname = c.hostname.clone().context("expected hostname")?;
     let current_id = id_by_name(docker, &hostname).await;
     if skip {
         log::info!("=> skip {}", &hostname);
         if let Some(id) = current_id {
-            return Ok((Some(id), false));
+            return Ok((Some(id), false, false));
         } else {
             // dont make the client
-            return Ok((None, false));
+            return Ok((None, false, false));
         }
     }
 
@@ -51,10 +59,10 @@ pub async fn create_and_init(
 
     if let Some(id) = current_id {
         log::info!("=> {} already exists", &hostname);
-        return Ok((Some(id), false));
+        return Ok((Some(id), false, false));
     }
 
-    create_volume(&docker, &hostname).await?;
+    let created_new_volume = create_volume(&docker, &hostname).await?;
 
     let img_tag = c.image.clone().context("expected image")?;
     // if it contains a "/" its from the registry
@@ -64,7 +72,7 @@ pub async fn create_and_init(
     }
     let id = create_container(&docker, c.clone()).await?;
     log::info!("=> created {}", &hostname);
-    Ok((Some(id), true))
+    Ok((Some(id), true, created_new_volume))
 }
 
 pub async fn pull_image(docker: &Docker, c: Config<String>) -> Result<bool> {
@@ -84,10 +92,17 @@ pub async fn create_and_start(
     c: Config<String>,
     skip: bool,
 ) -> Result<Option<String>> {
-    let (id_opt, need_to_start) = create_and_init(docker, c, skip).await?;
+    let (id_opt, need_to_start, created_new_volume) = create_and_init(docker, c, skip).await?;
     if need_to_start {
         let id = id_opt.clone().unwrap_or("".to_string());
         start_container(&docker, &id).await?;
+
+        if created_new_volume {
+            // download from s3 if it does not exist already, unzip and copy to volume
+            restore_backup_if_exist(docker, &id).await;
+            //restart container
+            restart_container(&docker, &id).await?;
+        }
     }
     Ok(id_opt)
 }
@@ -132,6 +147,12 @@ pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<Stri
 
 pub async fn start_container(docker: &Docker, id: &str) -> Result<()> {
     Ok(docker.start_container::<String>(id, None).await?)
+}
+
+pub async fn restart_container(docker: &Docker, id: &str) -> Result<()> {
+    docker.restart_container(&id, None).await?;
+
+    Ok(())
 }
 
 pub async fn list_containers(docker: &Docker) -> Result<Vec<ContainerSummary>> {
@@ -339,9 +360,9 @@ pub async fn sleep(millis: u64) {
     tokio::time::sleep(tokio::time::Duration::from_millis(millis)).await;
 }
 
-pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
+pub async fn create_volume(docker: &Docker, name: &str) -> Result<bool> {
     if let Ok(_v) = docker.inspect_volume(name).await {
-        return Ok(());
+        return Ok(false);
     }
     let vconf = CreateVolumeOptions {
         name: name.to_string(),
@@ -354,7 +375,7 @@ pub async fn create_volume(docker: &Docker, name: &str) -> Result<()> {
     //     vconf.driver_opts = driver_opts;
     // }
     docker.create_volume(vconf).await?;
-    Ok(())
+    Ok(true)
 }
 
 pub async fn remove_volume(docker: &Docker, name: &str) -> Result<()> {
@@ -550,4 +571,116 @@ impl ContainerStat {
             memory_max_usage: stats.memory_stats.max_usage.unwrap_or(0),
         }
     }
+}
+
+async fn copy_data_to_volume(
+    docker: &Docker,
+    name: &str,
+    data_path: &str,
+) -> Result<(), Box<dyn Error>> {
+    let state = STATE.lock().await;
+    let nodes = state.stack.nodes.clone();
+    let host = domain(name);
+
+    let img = find_img(&name, &nodes)?;
+
+    let root_volume = img.repo().root_volume.clone();
+
+    let temp_root = format!("/temp_{}", &name);
+
+    Command::new("docker")
+        .arg("cp")
+        .arg(data_path)
+        .arg(format!("{}:{}", host, &temp_root))
+        .status()
+        .await?;
+
+    new_exec(
+        &docker,
+        &host,
+        &format!(
+            "rm -rf {}/* && mv -f {}/* {}",
+            root_volume, temp_root, root_volume
+        ),
+    )
+    .await?;
+
+    Ok(())
+}
+
+fn directory_exists(path: &str) -> bool {
+    let path = Path::new(path);
+    path.is_dir()
+}
+
+pub async fn restore_backup_if_exist(docker: &Docker, name: &str) {
+    let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
+
+    if to_backup.contains(&name) {
+        //check if backup s3 link is passed
+        match getenv("BACKUP_KEY") {
+            Ok(backup_link) => {
+                let parent_directory = "unzipped";
+                let zip_path = format!("{}", &backup_link);
+                if !directory_exists(&parent_directory) {
+                    let _ = download_from_s3(&bucket_name(), &backup_link, &zip_path).await;
+                    let _ = unzip_file(&zip_path, &parent_directory);
+                    // let _ = unzip_file("tester.zip", &parent_directory);
+                } else {
+                    println!("Directory exist");
+                }
+                let mut data_path = format!("{}/{}/{}", &parent_directory, &name, &name);
+
+                if name == "neo4j" || name == "relay" {
+                    data_path = format!("{}/{}/data", &parent_directory, &name)
+                }
+
+                if directory_exists(&data_path) {
+                    //create temporary container
+                    let _ = copy_data_to_volume(&docker, &name, &data_path).await;
+                }
+            }
+            Err(_) => {
+                println!("we could not get backup name")
+            }
+        }
+    }
+}
+
+pub async fn new_exec(
+    docker: &Docker,
+    id: &str,
+    cmd: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let txts: Vec<&str> = vec!["sh", "-c", cmd];
+
+    let exec = docker
+        .create_exec(
+            id,
+            CreateExecOptions {
+                attach_stdout: Some(true),
+                attach_stderr: Some(true),
+                cmd: Some(txts),
+                ..Default::default()
+            },
+        )
+        .await?
+        .id;
+
+    let started = docker.start_exec(&exec, None).await?;
+    let mut ret = Vec::new();
+    sleep(400).await;
+
+    if let StartExecResults::Attached { mut output, .. } = started {
+        while let Some(Ok(msg)) = output.next().await {
+            ret.push(msg.to_string());
+        }
+    } else {
+        return Err("Failed to attach to the exec instance".into());
+    }
+
+    let output = ret.join("\n");
+    println!("Command output: {}", output);
+
+    Ok(output)
 }
