@@ -85,7 +85,7 @@ pub async fn download_and_zip_from_container(
     // Iterate over each container and download its volume
     for (container_id, volume_path, sub_directory) in containers {
         // Options for downloading the volume
-        let options = DownloadFromContainerOptions { path: volume_path };
+        let options = DownloadFromContainerOptions { path: &volume_path };
 
         // Stream the tar content from the container
         let mut stream = docker.download_from_container(&container_id, Some(options));
@@ -103,13 +103,13 @@ pub async fn download_and_zip_from_container(
         let mut archive = tar::Archive::new(tar_cursor);
 
         // Define the subdirectory for the current container
-        let subdirectory = format!("{}/{}", &parent_directory, sub_directory);
+        let subdirectory = format!("{}/{}", &parent_directory, &sub_directory);
 
         // Create the subdirectory if it doesn't exist
         fs::create_dir_all(&subdirectory)?;
 
         // Create a ZIP file to save the content
-        let zip_file_path = format!("{}/{}.zip", subdirectory, container_id);
+        let zip_file_path = format!("{}/{}.zip", subdirectory, &sub_directory);
         let zip_file = File::create(zip_file_path)?;
         let mut zip_writer = ZipWriter::new(zip_file);
         let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);

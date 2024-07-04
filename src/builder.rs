@@ -171,7 +171,7 @@ pub async fn add_node(
         start_container(docker, &id).await?;
         if created_new_volume {
             // download from s3 if it does not exist already, unzip and copy to volume
-            restore_backup_if_exist(docker, &node.name()).await;
+            restore_backup_if_exist(docker, &node.name()).await?;
             //restart container
             restart_container(&docker, &id).await?;
         }

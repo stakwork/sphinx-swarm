@@ -99,7 +99,7 @@ pub async fn create_and_start(
 
         if created_new_volume {
             // download from s3 if it does not exist already, unzip and copy to volume
-            restore_backup_if_exist(docker, &id).await;
+            restore_backup_if_exist(docker, &id).await?;
             //restart container
             restart_container(&docker, &id).await?;
         }
@@ -576,18 +576,10 @@ impl ContainerStat {
 async fn copy_data_to_volume(
     docker: &Docker,
     name: &str,
+    root_volume: &str,
     data_path: &str,
 ) -> Result<(), Box<dyn Error>> {
-    let state = STATE.lock().await;
-    let nodes = state.stack.nodes.clone();
-
-    drop(state);
-
     let host = domain(name);
-
-    let img = find_img(&name, &nodes)?;
-
-    let root_volume = img.repo().root_volume.clone();
 
     let temp_root = format!("/temp_{}", &name);
 
@@ -616,38 +608,49 @@ fn directory_exists(path: &str) -> bool {
     path.is_dir()
 }
 
-pub async fn restore_backup_if_exist(docker: &Docker, name: &str) {
+pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<()> {
     let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
 
-    if to_backup.contains(&name) {
+    Ok(if to_backup.contains(&name) {
         //check if backup s3 link is passed
-        match getenv("BACKUP_KEY") {
-            Ok(backup_link) => {
-                let parent_directory = "unzipped";
-                let zip_path = format!("{}", &backup_link);
-                if !directory_exists(&parent_directory) {
-                    let _ = download_from_s3(&bucket_name(), &backup_link, &zip_path).await;
-                    let _ = unzip_file(&zip_path, &parent_directory);
-                    // let _ = unzip_file("tester.zip", &parent_directory);
-                } else {
-                    log::info!("Directory exist");
-                }
-                let mut data_path = format!("{}/{}/{}", &parent_directory, &name, &name);
+        let state = STATE.lock().await;
 
-                if name == "neo4j" || name == "relay" {
-                    data_path = format!("{}/{}/data", &parent_directory, &name)
-                }
+        let nodes = state.stack.nodes.clone();
 
-                if directory_exists(&data_path) {
-                    //create temporary container
-                    let _ = copy_data_to_volume(&docker, &name, &data_path).await;
+        drop(state);
+
+        let img = find_img(&name, &nodes)?;
+        let backup_link = getenv("BACKUP_KEY")?;
+
+        let parent_directory = "unzipped";
+        let zip_path = format!("{}", &backup_link);
+        if !directory_exists(&parent_directory) {
+            let _ = download_from_s3(&bucket_name(), &backup_link, &zip_path).await;
+            let _ = unzip_file(&zip_path, &parent_directory);
+            // let _ = unzip_file("tester.zip", &parent_directory);
+        } else {
+            log::info!("Directory exist");
+        }
+
+        let root_volume = img.repo().root_volume.clone();
+
+        let outer_dir = get_last_segment(&root_volume);
+        let data_path = format!("{}/{}/{}", &parent_directory, &name, &outer_dir);
+
+        log::info!("Current Output Tribe: {}", &data_path);
+
+        if directory_exists(&data_path) {
+            //create temporary container
+            match copy_data_to_volume(&docker, &name, &root_volume, &data_path).await {
+                Ok(_) => {
+                    log::info!("Copied data to volume successfully")
                 }
-            }
-            Err(_) => {
-                log::error!("Backup key not provided")
+                Err(_) => {
+                    log::error!("Error copying data to volume")
+                }
             }
         }
-    }
+    })
 }
 
 pub async fn new_exec(
@@ -683,7 +686,14 @@ pub async fn new_exec(
     }
 
     let output = ret.join("\n");
-    println!("Command output: {}", output);
+    log::info!("Command output: {}", output);
 
     Ok(output)
+}
+
+fn get_last_segment(path: &str) -> &str {
+    match path.rfind('/') {
+        Some(pos) => &path[pos + 1..],
+        None => path,
+    }
 }
