@@ -7,6 +7,7 @@
   import { get_graph_accessibility } from "./api/swarm";
   import { stack, selectedNode } from "./store";
   import Roles from "./components/SecondBrain/roles/roles.svelte";
+  import Apikeys from "./components/SecondBrain/apikeys.svelte";
 
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
@@ -22,7 +23,7 @@
   $: firstTime = false;
   $: currentTab = "General";
 
-  const tabs = ["General", "Roles", "Payments"];
+  const tabs = ["General", "Roles", "Payments", "Api Keys"];
 
   function setActiveTab(tab) {
     currentTab = tab;
@@ -94,6 +95,8 @@
       {:else if currentTab === "Roles"}
         <!-- <SetupAdmin /> -->
         <Roles />
+      {:else if currentTab === "Api Keys"}
+        <Apikeys />
       {:else}
         <EnpointPermission />
       {/if}
