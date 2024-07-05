@@ -109,7 +109,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         host_config: host_config(&name, ports, root_vol, None, node.mem_limit),
         env: Some(vec![
             // format!("NEO4J_URI=neo4j://neo4j:{}", &node.bolt_port),
-            format!("NEO4J_AUTH=neo4j/test"),
+            format!("NEO4J_AUTH=neo4j/testtest"),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
