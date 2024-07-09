@@ -524,6 +524,7 @@
     flex-direction: column;
     margin-top: 1.38rem;
     gap: 1.38rem;
+    margin-bottom: 1.5rem;
   }
 
   .checkbox-container {
