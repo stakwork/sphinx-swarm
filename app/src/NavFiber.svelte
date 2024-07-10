@@ -97,8 +97,6 @@
         <Roles />
       {:else if currentTab === "Api Keys"}
         <Apikeys />
-      {:else if currentTab === "Test"}
-        <div>Testing new build Again and Again Tester Change DOcker build</div>
       {:else}
         <EnpointPermission />
       {/if}
