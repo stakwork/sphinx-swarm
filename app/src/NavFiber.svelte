@@ -98,7 +98,7 @@
       {:else if currentTab === "Api Keys"}
         <Apikeys />
       {:else if currentTab === "Test"}
-        <div>Testing new build</div>
+        <div>Testing new build Again and Again</div>
       {:else}
         <EnpointPermission />
       {/if}
