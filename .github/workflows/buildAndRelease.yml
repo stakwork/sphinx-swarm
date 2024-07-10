@@ -29,10 +29,10 @@ jobs:
           git commit -m "ci: automatic build" || echo -n
           git push --set-upstream origin master
       - name: Pull Latest Changes
-        run: |
-          git fetch origin
-          git checkout master
-          git pull origin master
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
           
       - name: Create New Release
         uses: rymndhng/release-on-push-action@master
