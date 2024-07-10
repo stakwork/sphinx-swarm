@@ -23,7 +23,7 @@
   $: firstTime = false;
   $: currentTab = "General";
 
-  const tabs = ["General", "Roles", "Payments", "Api Keys"];
+  const tabs = ["General", "Roles", "Payments", "Api Keys", "Test"];
 
   function setActiveTab(tab) {
     currentTab = tab;
@@ -97,6 +97,8 @@
         <Roles />
       {:else if currentTab === "Api Keys"}
         <Apikeys />
+      {:else if currentTab === "Test"}
+        <div>Testing new build</div>
       {:else}
         <EnpointPermission />
       {/if}
