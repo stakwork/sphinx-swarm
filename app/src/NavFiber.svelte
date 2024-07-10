@@ -23,7 +23,7 @@
   $: firstTime = false;
   $: currentTab = "General";
 
-  const tabs = ["General", "Roles", "Payments", "Api Keys", "Test"];
+  const tabs = ["General", "Roles", "Payments", "Api Keys"];
 
   function setActiveTab(tab) {
     currentTab = tab;
