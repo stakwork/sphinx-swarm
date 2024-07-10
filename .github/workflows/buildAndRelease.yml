@@ -28,6 +28,12 @@ jobs:
           git add ./dist -f
           git commit -m "ci: automatic build" || echo -n
           git push --set-upstream origin master
+      - name: Pull Latest Changes
+        run: |
+          git fetch origin
+          git checkout master
+          git pull origin master
+          
       - name: Create New Release
         uses: rymndhng/release-on-push-action@master
         with:
