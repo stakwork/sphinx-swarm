@@ -9,8 +9,28 @@
   async function getAllPaidEndpoint() {
     const endpoints = await list_all_paid_endpoint();
     const parsedEndpoints = JSON.parse(endpoints);
+    const endpointsObj = {};
+    const tempAllEndpoints = [];
     if (parsedEndpoints.success) {
-      allEndpoints = [...parsedEndpoints.endpoints];
+      for (let i = 0; i < parsedEndpoints.endpoints.length; i++) {
+        const parsedEndpoint = parsedEndpoints.endpoints[i];
+        const routeDescription = parsedEndpoint.route_description;
+        if (endpointsObj[routeDescription]) {
+          endpointsObj[routeDescription].id.push(parsedEndpoint.id);
+        } else {
+          endpointsObj[routeDescription] = {
+            id: [parsedEndpoint.id],
+            route_description: routeDescription,
+            price: parsedEndpoint.price,
+            endpoint: parsedEndpoint.endpoint,
+            status: parsedEndpoint.status,
+          };
+        }
+      }
+      for (let key in endpointsObj) {
+        tempAllEndpoints.push(endpointsObj[key]);
+      }
+      allEndpoints = [...tempAllEndpoints];
     }
   }
 
@@ -37,7 +57,7 @@
       </div>
     {/if}
   </div>
-  {#each allEndpoints as endpoint, index (endpoint.id)}
+  {#each allEndpoints as endpoint, index (endpoint.route_description)}
     <Endpoint
       on:customEvent={handleCustomEvent}
       description={endpoint.route_description}
