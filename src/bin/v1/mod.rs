@@ -87,7 +87,7 @@ pub async fn main() -> Result<()> {
         setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
         setup_cln_chans(&mut clients, &stack.nodes, CLN3, CLN2, BTC).await?;
         if do_test_lnd() {
-            setup_lnd_chans(&mut clients, &stack.nodes, CLN1, LND_1, BTC).await?;
+            setup_lnd_chans(&mut clients, &stack.nodes, CLN2, LND_1, BTC).await?;
         }
     }
 
@@ -254,7 +254,7 @@ fn make_stack() -> Stack {
         let mut lnd = LndImage::new(LND_1, v, &network, "10012", "9738");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec![BTC]);
-        nodes.extend_from_slice(&[Image::Lnd(lnd)]);
+        nodes.push(Image::Lnd(lnd));
     }
 
     let ns: Vec<Node> = nodes.iter().map(|n| Node::Internal(n.to_owned())).collect();
@@ -279,17 +279,6 @@ fn do_test_lnd() -> bool {
 }
 
 /*
-xlarge (16)
-==========
-pesto chicken
-very veggie + olives
-build own: tomato base, mozzarella cheese
-oasis
-vegan cheese - 1/2 veggie
-
-large (14)
-=========
-gluten free basil chicken
 
 2024-04-12T22:28:49.758Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "03eaa039e5e4ef6395301c793430c72ab3da29b956c114d3ac740b67979d7c39b2", "6230726279308962671", "req", "register"]
 2024-04-12T22:28:49.976Z INFO  [sphinx_mixer::handler] ========> ["029283fb0ecce179108c40b613a45c2c2bd418fa5bf13f756e553cf228c7ac063e", "034ba0d91a2c4ee61cd33d2a2c1c69d4d9b31cc53b69fbe2852e64c91016cfbdc4", "0", "req", "send", "8dbe586be27a4ad8bd9732f6c9ac21f89648d0873427ea73971496555d338ec7"]
