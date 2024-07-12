@@ -23,6 +23,8 @@ pub struct MixerImage {
     pub log_level: Option<String>,
     pub initial_peers: Option<String>, // alt brokers
     pub default_tribe_pubkey: Option<String>,
+    pub default_router: Option<String>,
+    pub hub_url: Option<String>,
     pub invite_price: Option<String>,
     pub timeout_ms: Option<String>,
 }
@@ -42,6 +44,8 @@ impl MixerImage {
             log_level: None,
             initial_peers: None,
             default_tribe_pubkey: None,
+            default_router: None,
+            hub_url: None,
             invite_price: None,
             timeout_ms: None,
         }
@@ -71,6 +75,12 @@ impl MixerImage {
     }
     pub fn set_default_tribe_pubkey(&mut self, pk: &str) {
         self.default_tribe_pubkey = Some(pk.to_string())
+    }
+    pub fn set_default_router(&mut self, dr: &str) {
+        self.default_router = Some(dr.to_string())
+    }
+    pub fn set_hub_url(&mut self, hu: &str) {
+        self.hub_url = Some(hu.to_string())
     }
 }
 
@@ -163,6 +173,12 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
 
     if let Some(dts) = &img.default_tribe_pubkey {
         env.push(format!("DEFAULT_TRIBE_PUBKEY={}", dts));
+    }
+    if let Some(dr) = &img.default_router {
+        env.push(format!("DEFAULT_ROUTER={}", dr));
+    }
+    if let Some(hu) = &img.hub_url {
+        env.push(format!("HUB_URL={}", hu));
     }
 
     let mut c = Config {
