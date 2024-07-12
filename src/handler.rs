@@ -6,6 +6,7 @@ use crate::builder;
 use crate::cmd::*;
 use crate::config;
 use crate::config::{Clients, Node, Stack, State, STATE};
+use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
 use crate::conn::swarm::get_image_tags;
 use crate::dock::*;
@@ -314,6 +315,12 @@ pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<
                 let boltwall = find_boltwall(&state.stack.nodes)?;
                 let response =
                     update_user(&boltwall, body.pubkey, body.name, body.id, body.role).await?;
+                return Ok(serde_json::to_string(&response)?);
+            }
+            SwarmCmd::GetApiToken => {
+                log::info!("Get API TOKEN");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = get_api_token(&boltwall).await?;
                 return Ok(serde_json::to_string(&response)?);
             }
         },

@@ -18,11 +18,18 @@
 
   async function handleUpdatePaidEndpoint(status) {
     disabled = true;
-    const result = await update_paid_endpoint(id, status);
-    const parsedResult = JSON.parse(result);
-    success = parsedResult.success;
-    disabled = false;
-    sendDataToParent(success);
+    for (let i = 0; i < id.length; i++) {
+      try {
+        const result = await update_paid_endpoint(id[i], status);
+        const parsedResult = JSON.parse(result);
+        success = parsedResult.success;
+      } catch (error) {
+        console.error(`Error Updating endpoint status: ${error}`);
+      }
+
+      disabled = false;
+      sendDataToParent(success);
+    }
   }
 </script>
 

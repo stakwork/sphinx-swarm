@@ -32,6 +32,9 @@
     settings: {
       value: true,
     },
+    chatInterface: {
+      value: true,
+    },
   };
   $: about = {};
   $: isSuccess = false;
@@ -43,6 +46,7 @@
     addItem: { value: true, isChange: false },
     addContent: { value: true, isChange: false },
     settings: { value: true, isChange: false },
+    chatInterface: { value: true, isChange: false },
   };
 
   const featureFlags = [
@@ -65,6 +69,11 @@
       key: "settings",
       label: "Settings",
       description: "Toggle Settings on the Graph",
+    },
+    {
+      key: "chatInterface",
+      label: "AI Summary",
+      description: "Toggle AI Summary Feature flag",
     },
   ];
 
@@ -248,6 +257,9 @@
       settings: {
         value: parsedFeatureFlag.data.settings.user,
       },
+      chatInterface: {
+        value: parsedFeatureFlag.data.chatInterface.user,
+      },
     };
 
     //update changedState
@@ -265,6 +277,10 @@
       addItem: { value: parsedFeatureFlag.data.addItem.user, isChange: false },
       settings: {
         value: parsedFeatureFlag.data.settings.user,
+        isChange: false,
+      },
+      chatInterface: {
+        value: parsedFeatureFlag.data.chatInterface.user,
         isChange: false,
       },
     };
@@ -508,6 +524,7 @@
     flex-direction: column;
     margin-top: 1.38rem;
     gap: 1.38rem;
+    margin-bottom: 1.5rem;
   }
 
   .checkbox-container {

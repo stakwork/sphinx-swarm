@@ -1,7 +1,7 @@
 use crate::cmd::FeatureFlagUserRoles;
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, Ok, Result};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
@@ -22,6 +22,11 @@ pub struct AddUserBody {
 pub struct UpdatePaidEndpointBody {
     id: u64,
     status: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ApiToken {
+    x_api_token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -343,4 +348,17 @@ pub async fn update_user(
     let response_text = response.text().await?;
 
     Ok(response_text)
+}
+
+pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
+    let api_token = boltwall
+        .stakwork_secret
+        .clone()
+        .context(anyhow!("No admin token"))?;
+
+    let response = ApiToken {
+        x_api_token: api_token,
+    };
+
+    Ok(response)
 }

@@ -3,6 +3,7 @@
   export let placeholder = "Enter text";
   export let onInput;
   export let label;
+  export let readonly = false;
 
   $: hide = true;
 
@@ -27,6 +28,7 @@
         class="input"
         {placeholder}
         on:input={handleInput}
+        {readonly}
       />
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <img
@@ -43,6 +45,7 @@
         class="input"
         {placeholder}
         on:input={handleInput}
+        {readonly}
       />
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <img

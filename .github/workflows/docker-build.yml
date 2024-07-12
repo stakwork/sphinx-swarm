@@ -3,9 +3,8 @@ env:
   DOCKER_CLI_EXPERIMENTAL: enabled
 
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -26,6 +25,15 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
       - name: Checkout project
         uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - name: Run Build
+        working-directory: ./app
+        run: |
+          yarn install
+          yarn run build
       - name: Setup Docker buildx action
         uses: crazy-max/ghaction-docker-buildx@v1
         id: buildx
