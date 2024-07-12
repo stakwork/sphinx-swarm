@@ -7,8 +7,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-// use std::time::Duration;
-// use tokio::time::sleep;
+use tar::Builder;
 use zip::ZipArchive;
 
 use crate::utils::getenv;
@@ -68,4 +67,16 @@ pub fn unzip_file(zip_path: &str, output_dir: &str) -> Result<(), Box<dyn Error>
     }
 
     Ok(())
+}
+
+pub fn create_tar(data_path: &str) -> Result<String, Box<dyn Error>> {
+    let tar_path = format!("{}.tar", data_path);
+    let tar_file = File::create(&tar_path)?;
+
+    let mut tar = Builder::new(tar_file);
+
+    tar.append_dir_all(".", data_path)?;
+    tar.finish()?;
+
+    Ok(tar_path)
 }

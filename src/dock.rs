@@ -21,14 +21,16 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::default::Default;
 use std::error::Error;
+use tokio::io::AsyncReadExt;
 use tokio::process::Command;
 
 use crate::backup::bucket_name;
 use crate::builder::find_img;
 use crate::config::STATE;
 use crate::images::DockerHubImage;
-use crate::mount_backedup_volume::{download_from_s3, unzip_file};
+use crate::mount_backedup_volume::{create_tar, download_from_s3, unzip_file};
 use crate::utils::{domain, getenv, sleep_ms};
+use tokio::fs::File;
 
 pub fn dockr() -> Docker {
     Docker::connect_with_unix_defaults().unwrap()
@@ -583,11 +585,28 @@ async fn copy_data_to_volume(
 
     let temp_root = format!("/temp_{}", &name);
 
-    Command::new("docker")
-        .arg("cp")
-        .arg(data_path)
-        .arg(format!("{}:{}", host, &temp_root))
-        .status()
+    exec(docker, &host, &format!("mkdir -p {}", &temp_root)).await?;
+
+    // Create a tar file of the data_path
+    let tar_path = create_tar(data_path)?;
+
+    // Open the tar file
+    let mut tar_file = File::open(tar_path).await?;
+
+    // Read the tar file into a buffer
+    let mut buffer = Vec::new();
+    tar_file.read_to_end(&mut buffer).await?;
+
+    // Upload the tar file to the container
+    docker
+        .upload_to_container(
+            &host,
+            Some(UploadToContainerOptions {
+                path: temp_root.clone(),
+                ..Default::default()
+            }),
+            buffer.into(),
+        )
         .await?;
 
     new_exec(
@@ -645,8 +664,9 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<()> 
                 Ok(_) => {
                     log::info!("Copied data to volume successfully")
                 }
-                Err(_) => {
-                    log::error!("Error copying data to volume")
+                Err(error) => {
+                    log::error!("Error details: {:?}", error);
+                    log::error!("Error copying data to volume");
                 }
             }
         }
