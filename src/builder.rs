@@ -171,9 +171,18 @@ pub async fn add_node(
         start_container(docker, &id).await?;
         if created_new_volume {
             // download from s3 if it does not exist already, unzip and copy to volume
-            restore_backup_if_exist(docker, &node.name()).await?;
+            let result = restore_backup_if_exist(docker, &node.name()).await;
             //restart container
-            restart_container(&docker, &id).await?;
+            match result {
+                Ok(status) => {
+                    if status == true {
+                        restart_container(&docker, &id).await?;
+                    }
+                }
+                Err(error) => {
+                    log::error!("Error restoring Backup: {}", error)
+                }
+            }
         }
     }
     // post-startup steps (LND unlock)

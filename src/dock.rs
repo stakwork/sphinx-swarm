@@ -626,10 +626,10 @@ fn directory_exists(path: &str) -> bool {
     path.is_dir()
 }
 
-pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<()> {
+pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool> {
     let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
 
-    Ok(if to_backup.contains(&name) {
+    if to_backup.contains(&name) {
         //check if backup s3 link is passed
         let state = STATE.lock().await;
 
@@ -638,38 +638,43 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<()> 
         drop(state);
 
         let img = find_img(&name, &nodes)?;
-        let backup_link = getenv("BACKUP_KEY")?;
 
-        let parent_directory = "unzipped";
-        let zip_path = format!("{}", &backup_link);
-        if !directory_exists(&parent_directory) {
-            let _ = download_from_s3(&bucket_name(), &backup_link, &zip_path).await;
-            let _ = unzip_file(&zip_path, &parent_directory);
-            // let _ = unzip_file("tester.zip", &parent_directory);
-        } else {
-            log::info!("Directory exist");
-        }
+        if let Ok(backup_link) = getenv("BACKUP_KEY") {
+            let parent_directory = "unzipped";
+            let zip_path = format!("{}", &backup_link);
+            if !directory_exists(&parent_directory) {
+                let _ = download_from_s3(&bucket_name(), &backup_link, &zip_path).await;
+                let _ = unzip_file(&zip_path, &parent_directory);
+                // let _ = unzip_file("tester.zip", &parent_directory);
+            } else {
+                log::info!("Directory exist");
+            }
 
-        let root_volume = img.repo().root_volume.clone();
+            let root_volume = img.repo().root_volume.clone();
 
-        let outer_dir = get_last_segment(&root_volume);
-        let data_path = format!("{}/{}/{}", &parent_directory, &name, &outer_dir);
+            let outer_dir = get_last_segment(&root_volume);
+            let data_path = format!("{}/{}/{}", &parent_directory, &name, &outer_dir);
 
-        log::info!("Current Output Tribe: {}", &data_path);
+            log::info!("Current Output path: {}", &data_path);
 
-        if directory_exists(&data_path) {
-            //create temporary container
-            match copy_data_to_volume(&docker, &name, &root_volume, &data_path).await {
-                Ok(_) => {
-                    log::info!("Copied data to volume successfully")
-                }
-                Err(error) => {
-                    log::error!("Error details: {:?}", error);
-                    log::error!("Error copying data to volume");
+            if directory_exists(&data_path) {
+                //create temporary container
+                match copy_data_to_volume(&docker, &name, &root_volume, &data_path).await {
+                    Ok(_) => {
+                        log::info!("Copied data to volume successfully");
+                        return Ok(true);
+                    }
+                    Err(error) => {
+                        log::error!("Error details: {:?}", error);
+                        log::error!("Error copying data to volume");
+                        return Ok(false);
+                    }
                 }
             }
         }
-    })
+        return Ok(false);
+    }
+    return Ok(false);
 }
 
 pub async fn new_exec(
