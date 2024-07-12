@@ -1,3 +1,11 @@
+if  [ $1 != "mixer" ] && \
+    [ $1 != "tribes" ] && \
+    [ $1 != "broker" ]
+then
+    echo "=> invalid image name! $1"
+    exit 1
+fi
+
 echo "pull images"
 docker pull sphinxlightning/sphinx-broker:latest
 docker pull sphinxlightning/sphinx-mixer:latest
