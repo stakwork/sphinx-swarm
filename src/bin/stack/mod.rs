@@ -4,6 +4,7 @@ use sphinx_swarm::backup::backup_and_delete_volumes_cron;
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
+use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
 use sphinx_swarm::routes;
 use sphinx_swarm::{dock::*, events, logs, rocket_utils::CmdRequest};
 use std::sync::Arc;
@@ -46,6 +47,9 @@ async fn main() -> Result<()> {
 
     let clients = builder::build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;
+
+    //delete downloaded backup file and folder
+    let _ = delete_zip_and_upzipped_files().await;
 
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;

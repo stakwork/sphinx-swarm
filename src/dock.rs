@@ -22,7 +22,6 @@ use serde::Serialize;
 use std::default::Default;
 use std::error::Error;
 use tokio::io::AsyncReadExt;
-use tokio::process::Command;
 
 use crate::backup::bucket_name;
 use crate::builder::find_img;

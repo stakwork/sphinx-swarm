@@ -1,13 +1,13 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::config::Region;
 use aws_sdk_s3::Client;
-// use bollard::volume::CreateVolumeOptions;
-// use bollard::Docker;
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use tar::Builder;
+use tokio::fs::remove_dir_all;
 use zip::ZipArchive;
 
 use crate::utils::getenv;
@@ -79,4 +79,20 @@ pub fn create_tar(data_path: &str) -> Result<String, Box<dyn Error>> {
     tar.finish()?;
 
     Ok(tar_path)
+}
+
+pub async fn delete_zip_and_upzipped_files() -> Result<(), Box<dyn std::error::Error>> {
+    let backup_link = getenv("BACKUP_KEY")?;
+    let unzipped_directory = "unzipped";
+
+    if Path::new(&backup_link).exists() {
+        fs::remove_file(&backup_link)?;
+    }
+
+    // Check if the directory exists before trying to remove it
+    if Path::new(&unzipped_directory).exists() {
+        remove_dir_all(unzipped_directory).await?;
+    }
+
+    Ok(())
 }
