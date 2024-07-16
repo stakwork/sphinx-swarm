@@ -62,6 +62,18 @@ impl Neo4jImage {
             APOC_CONF.as_bytes(),
         )
         .await?;
+
+        log::info!("=> download graph-data-science plugin for neo4j...");
+        let graph_data_science = "https://github.com/neo4j/graph-data-science/releases/download/2.6.8/neo4j-graph-data-science-2.6.8.jar";
+        let graph_data_science_bytes = reqwest::get(graph_data_science).await?.bytes().await?;
+        upload_to_container(
+            docker,
+            &self.name,
+            "/var/lib/neo4j/plugins",
+            "neo4j-graph-data-science-2.6.8.jar",
+            &graph_data_science_bytes,
+        )
+        .await?;
         Ok(())
     }
 }
