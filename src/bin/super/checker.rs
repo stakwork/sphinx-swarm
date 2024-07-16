@@ -1,7 +1,5 @@
 use anyhow::Result;
 use rocket::tokio;
-use rsa::pkcs8::der::asn1::PrintableStringRef;
-use std::error::Error;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -52,6 +50,7 @@ pub async fn check_all_swarms() -> Result<()> {
     let state = state::STATE.lock().await;
 
     let mut hosts: Vec<String> = vec![];
+    let mut message = "".to_string();
 
     for swarm in state.stacks.iter() {
         hosts.push(swarm.host.clone())
@@ -70,18 +69,25 @@ pub async fn check_all_swarms() -> Result<()> {
                     get_boltwall_or_jarvis_status(format!("{}stats", boltwall_url.clone())).await?;
                 let navfiber_status = get_navfiber_status(navfiber_url.clone()).await?;
 
-                println!(
-                    "Response from {}: Boltwall: {} Jarvis: {} Navfiber: {}",
-                    &host, boltwall_status, jarvis_status, navfiber_status
-                );
+                // if any is not responding configure error message
+                let new_message =
+                    configure_error_msg(boltwall_status, jarvis_status, navfiber_status, &host);
+                if !new_message.is_empty() {
+                    if message.is_empty() {
+                        message = format!("{}", new_message)
+                    } else {
+                        message = format!("{}\n\n{}", message, new_message)
+                    }
+                }
             }
             Err(err) => {
                 log::error!("Unable to get boltwall and navfiber url: {}", err)
             }
         }
     }
-    // if any is not responding configure error message
+
     // send to tribe
+    println!("{}", message);
     Ok(())
 }
 
@@ -129,4 +135,39 @@ async fn get_navfiber_status(url: String) -> Result<bool> {
     }
 
     Ok(false)
+}
+
+fn configure_error_msg(
+    boltwall_status: bool,
+    jarvis_status: bool,
+    navfiber_status: bool,
+    host: &str,
+) -> String {
+    let sub_heading = format!("The following services are down for {}", host);
+    let mut message = "".to_string();
+
+    if !boltwall_status {
+        message = configure_msg("Boltwall", message, &host);
+    }
+
+    if !jarvis_status {
+        message = configure_msg("Jarvis", message, &host);
+    }
+
+    if !navfiber_status {
+        message = configure_msg("Navfiber", message, &host);
+    }
+
+    message
+}
+
+fn configure_msg(service: &str, mut message: String, host: &str) -> String {
+    let sub_heading = format!("The following services are down for {}", host);
+
+    if message.is_empty() {
+        message = format!("{}", sub_heading.clone());
+    }
+    message = format!("{}\n{}", message, service);
+
+    message
 }
