@@ -1,3 +1,4 @@
+mod checker;
 mod state;
 use state::Super;
 
@@ -10,6 +11,8 @@ use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+
+use crate::checker::check_all_swarms;
 
 #[rocket::main]
 async fn main() -> Result<()> {
@@ -28,6 +31,8 @@ async fn main() -> Result<()> {
     let log_txs = Arc::new(Mutex::new(log_txs));
 
     spawn_super_handler(project, rx);
+
+    let _ = check_all_swarms().await;
 
     // launch rocket
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
