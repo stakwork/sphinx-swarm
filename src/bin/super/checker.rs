@@ -1,5 +1,6 @@
 use anyhow::Result;
 use rocket::tokio;
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -7,6 +8,15 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use crate::state;
 
 pub static SWARM_CHECKER: AtomicBool = AtomicBool::new(false);
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BotMsgBody {
+    action: String,
+    bot_id: String,
+    bot_secret: String,
+    chat_uuid: String,
+    content: String,
+}
 
 pub async fn swarm_checker() -> Result<JobScheduler> {
     log::info!(":Swarm Checker");
@@ -88,6 +98,9 @@ pub async fn check_all_swarms() -> Result<()> {
 
     // send to tribe
     println!("{}", message);
+    if !message.is_empty() {
+        send_message_to_tribe(message).await?;
+    }
     Ok(())
 }
 
@@ -170,4 +183,23 @@ fn configure_msg(service: &str, mut message: String, host: &str) -> String {
     message = format!("{}\n{}", message, service);
 
     message
+}
+
+async fn send_message_to_tribe(message: String) -> Result<()> {
+    let client = make_client();
+
+    let route = "http://localhost:3001/action";
+
+    let body = BotMsgBody {
+        content: message,
+        bot_id: "171E8407B2F7FE69719D7186".to_string(),
+        bot_secret: "58ABD069FA0B16142F23EA51B20B57DA".to_string(),
+        chat_uuid: "Zpbish9buc-mp4PuAxkXP1JM3Cj0XvLenRY5wypHonb0ep4qLWyaRBIjzPXITR0eg6fF0kgp0EfP12b62DADhklupWTx".to_string(),
+        action: "broadcast".to_string(),
+    };
+
+    let response = client.post(route).json(&body).send().await?;
+
+    println!("{:?}", response.json().await?);
+    Ok(())
 }
