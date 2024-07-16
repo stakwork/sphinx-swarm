@@ -92,6 +92,7 @@ impl DockerHubImage for LndImage {
         Repository {
             org: "lightninglabs".to_string(),
             repo: "lnd".to_string(),
+            root_volume: "/home/.lnd".to_string(),
         }
     }
 }
@@ -111,7 +112,7 @@ fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     let img = format!("{}/{}", repo.org, repo.repo);
     let mut ports = vec![lnd.peer_port.to_string(), lnd.rpc_port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
-    let root_vol = "/home/.lnd";
+    let root_vol = &repo.root_volume;
     // println!("LND LINKS {:?}", links);
     let btc_domain = domain(&btc.name);
     let mut cmd = vec![

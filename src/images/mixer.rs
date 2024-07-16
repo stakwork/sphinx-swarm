@@ -99,6 +99,7 @@ impl DockerHubImage for MixerImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-mixer".to_string(),
+            root_volume: "/home".to_string(),
         }
     }
 }
@@ -107,7 +108,7 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
-    let root_vol = "/home";
+    let root_vol = &repo.root_volume;
 
     let ports = vec![img.port.clone()];
 

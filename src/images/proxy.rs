@@ -84,6 +84,7 @@ impl DockerHubImage for ProxyImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-proxy".to_string(),
+            root_volume: "/app/proxy".to_string(),
         }
     }
 }
@@ -98,7 +99,7 @@ fn proxy(
     let version = proxy.version.clone();
     // let img = "sphinx-proxy";
     // let version = "latest";
-    let root_vol = "/app/proxy";
+    let root_vol = &repo.root_volume;
     let ports = vec![proxy.port.clone(), proxy.admin_port.clone()];
 
     // lnd or proxy uses "mainnet" instead of "bitcoin"

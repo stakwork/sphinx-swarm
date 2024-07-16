@@ -25,6 +25,7 @@ impl DockerHubImage for TraefikImage {
         Repository {
             org: "".to_string(),
             repo: "traefik".to_string(),
+            root_volume: "/data".to_string(),
         }
     }
 }

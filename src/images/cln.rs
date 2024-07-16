@@ -162,6 +162,7 @@ impl DockerHubImage for ClnImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "cln-sphinx".to_string(),
+            root_volume: "/root/.lightning".to_string(),
         }
     }
 }
@@ -255,9 +256,9 @@ pub fn hsmd_broker_ports(peer_port: &str) -> Result<HsmdBrokerPorts> {
 
 fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<String> {
     let mut ports = vec![img.peer_port.clone(), img.grpc_port.clone()];
-    let root_vol = "/root/.lightning";
-    // let version = "0.2.3";
     let repo = img.repo();
+    let root_vol = &repo.root_volume;
+    // let version = "0.2.3";
     let image = format!("{}/{}", repo.org, repo.repo);
 
     let mut environ = vec![
