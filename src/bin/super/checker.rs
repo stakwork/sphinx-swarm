@@ -1,5 +1,7 @@
 use anyhow::Result;
 use rocket::tokio;
+use rsa::pkcs8::der::asn1::PrintableStringRef;
+use std::error::Error;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -62,18 +64,22 @@ pub async fn check_all_swarms() -> Result<()> {
         // figure out what the correct host is for boltwall
         match get_boltwall_and_navfiber_url(host.clone()) {
             Ok((navfiber_url, boltwall_url)) => {
-                log::info!("Navfiber URL: {}", navfiber_url);
-                log::info!("Boltwall URL: {}", boltwall_url);
-                let boltwall_status = get_boltwall_or_jarvis_status(boltwall_url).await?;
+                // ping each of the services for their current status
+                let boltwall_status = get_boltwall_or_jarvis_status(boltwall_url.clone()).await?;
+                let jarvis_status =
+                    get_boltwall_or_jarvis_status(format!("{}stats", boltwall_url.clone())).await?;
+                let navfiber_status = get_navfiber_status(navfiber_url.clone()).await?;
 
-                log::info!("Boltwall STATUS: {}", boltwall_status);
+                println!(
+                    "Response from {}: Boltwall: {} Jarvis: {} Navfiber: {}",
+                    &host, boltwall_status, jarvis_status, navfiber_status
+                );
             }
             Err(err) => {
                 log::error!("Unable to get boltwall and navfiber url: {}", err)
             }
         }
     }
-    // ping each of the services for their current status
     // if any is not responding configure error message
     // send to tribe
     Ok(())
@@ -82,12 +88,15 @@ pub async fn check_all_swarms() -> Result<()> {
 fn get_boltwall_and_navfiber_url(host: String) -> Result<(String, String)> {
     if host.contains("swarm") {
         return Ok((
-            format!("nav.{}", host.clone()),
-            format!("boltwall.{}", host.clone()),
+            format!("https://nav.{}/", host.clone()),
+            format!("https://boltwall.{}/api/", host.clone()),
         ));
     }
 
-    return Ok((format!("{}", host), format!("{}/api", host)));
+    return Ok((
+        format!("https://{}/", host),
+        format!("https://{}/api/", host),
+    ));
 }
 
 fn make_client() -> reqwest::Client {
@@ -101,7 +110,7 @@ fn make_client() -> reqwest::Client {
 async fn get_boltwall_or_jarvis_status(url: String) -> Result<bool> {
     let client = make_client();
 
-    let response = client.get(url).send().await?;
+    let response = client.get(&url).send().await?;
 
     if response.status() == 200 || response.status() == 401 {
         return Ok(true);
@@ -110,4 +119,14 @@ async fn get_boltwall_or_jarvis_status(url: String) -> Result<bool> {
     Ok(false)
 }
 
-fn get_navfiber_status(url: String) {}
+async fn get_navfiber_status(url: String) -> Result<bool> {
+    let client = make_client();
+
+    let response = client.get(&url).send().await?;
+
+    if response.status() == 200 {
+        return Ok(true);
+    }
+
+    Ok(false)
+}
