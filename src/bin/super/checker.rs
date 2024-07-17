@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use crate::state;
+use crate::state::{self, BotCred};
 
 pub static SWARM_CHECKER: AtomicBool = AtomicBool::new(false);
 
@@ -97,7 +97,6 @@ pub async fn check_all_swarms() -> Result<()> {
     }
 
     // send to tribe
-    println!("{}", message);
     if !message.is_empty() {
         send_message_to_tribe(message).await?;
     }
@@ -156,7 +155,6 @@ fn configure_error_msg(
     navfiber_status: bool,
     host: &str,
 ) -> String {
-    let sub_heading = format!("The following services are down for {}", host);
     let mut message = "".to_string();
 
     if !boltwall_status {
@@ -186,20 +184,35 @@ fn configure_msg(service: &str, mut message: String, host: &str) -> String {
 }
 
 async fn send_message_to_tribe(message: String) -> Result<()> {
-    let client = make_client();
+    let state = state::STATE.lock().await;
 
-    let route = "http://localhost:3001/action";
+    let bots: Vec<BotCred> = state
+        .bots
+        .iter()
+        .map(|n| BotCred {
+            bot_id: n.bot_id.clone(),
+            bot_secret: n.bot_secret.clone(),
+            chat_uuid: n.chat_uuid.clone(),
+        })
+        .collect();
 
-    let body = BotMsgBody {
-        content: message,
-        bot_id: "171E8407B2F7FE69719D7186".to_string(),
-        bot_secret: "58ABD069FA0B16142F23EA51B20B57DA".to_string(),
-        chat_uuid: "Zpbish9buc-mp4PuAxkXP1JM3Cj0XvLenRY5wypHonb0ep4qLWyaRBIjzPXITR0eg6fF0kgp0EfP12b62DADhklupWTx".to_string(),
-        action: "broadcast".to_string(),
-    };
+    drop(state);
 
-    let response = client.post(route).json(&body).send().await?;
+    for bot in bots.iter() {
+        let client = make_client();
+        let route = "http://localhost:3001/action";
 
-    println!("{:?}", response.json().await?);
+        let body = BotMsgBody {
+            content: message.clone(),
+            bot_id: bot.bot_id.clone(),
+            bot_secret: bot.bot_secret.clone(),
+            chat_uuid: bot.chat_uuid.clone(),
+            action: "broadcast".to_string(),
+        };
+
+        let response = client.post(route).json(&body).send().await?;
+
+        println!("{:?}", response.status());
+    }
     Ok(())
 }
