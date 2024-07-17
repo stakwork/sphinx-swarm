@@ -169,4 +169,5 @@ echo 'EXTERNAL_LND_CERT=<ENTER_EXTERNAL_LND_CERT>' >> .env &&
 echo 'YOUTUBE_API_TOKEN=<ENTER_YOUTUBE_API_TOKEN>' >> .env &&
 echo 'SWARM_UPDATER_PASSWORD=-' >> .env &&
 echo 'JARVIS_FEATURE_FLAG_SCHEMA=true' >> .env
+echo 'BACKUP_KEY=<BACKUP_KEY>' >> .env
 ```

@@ -48,6 +48,7 @@ impl DockerHubImage for NavFiberImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-nav-fiber".to_string(),
+            root_volume: "/usr/src/app/".to_string(),
         }
     }
 }
@@ -56,14 +57,14 @@ fn navfiber(node: &NavFiberImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let img = format!("{}/{}", repo.org, repo.repo);
-    let root_vol = "/usr/src/app/";
+    let root_vol = repo.root_volume;
     let ports = vec![node.port.clone()];
 
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None, None),
+        host_config: host_config(&name, ports, &root_vol, None, None),
         env: None,
         ..Default::default()
     };

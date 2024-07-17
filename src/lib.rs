@@ -1,6 +1,6 @@
 pub mod app_login;
 pub mod auth;
-// pub mod backup;
+pub mod backup;
 pub mod builder;
 pub mod cmd;
 pub mod config;
@@ -12,6 +12,7 @@ pub mod events;
 pub mod handler;
 pub mod images;
 pub mod logs;
+pub mod mount_backedup_volume;
 pub mod rocket_utils;
 pub mod routes;
 pub mod rsa;
