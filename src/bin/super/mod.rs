@@ -2,6 +2,7 @@ mod checker;
 mod state;
 use state::Super;
 
+use crate::checker::swarm_checker;
 use anyhow::{Context, Result};
 use rocket::tokio;
 use serde::{Deserialize, Serialize};
@@ -11,8 +12,6 @@ use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-
-use crate::checker::check_all_swarms;
 
 #[rocket::main]
 async fn main() -> Result<()> {
@@ -32,7 +31,10 @@ async fn main() -> Result<()> {
 
     spawn_super_handler(project, rx);
 
-    let _ = check_all_swarms().await;
+    let cron_handler_res = swarm_checker().await;
+    if let Err(e) = cron_handler_res {
+        log::error!("CRON failed {:?}", e);
+    }
 
     // launch rocket
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());

@@ -21,14 +21,10 @@ pub struct BotMsgBody {
 pub async fn swarm_checker() -> Result<JobScheduler> {
     log::info!(":Swarm Checker");
     let sched = JobScheduler::new().await?;
-    // every day at 2 am
-    // 0 2 * * *
-    // every 6 hours
-    // 0 */6 * * *
-    // every hour
-    // 0 0 * * * *
+
+    // this runs very 5 mins
     sched
-        .add(Job::new_async("@daily", |_uuid, _l| {
+        .add(Job::new_async("*/5 * * * *", |_uuid, _l| {
             Box::pin(async move {
                 if !SWARM_CHECKER.load(Ordering::Relaxed) {
                     SWARM_CHECKER.store(true, Ordering::Relaxed);
