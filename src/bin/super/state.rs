@@ -9,6 +9,7 @@ pub struct Super {
     pub stacks: Vec<RemoteStack>,
     pub users: Vec<User>,
     pub jwt_key: String,
+    pub bots: Vec<BotCred>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -20,12 +21,20 @@ pub struct RemoteStack {
     pub pass: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+pub struct BotCred {
+    pub bot_id: String,
+    pub bot_secret: String,
+    pub chat_uuid: String,
+}
+
 impl Default for Super {
     fn default() -> Self {
         Self {
             stacks: Vec::new(),
             users: vec![default_superuser()],
             jwt_key: secrets::random_word(16),
+            bots: Vec::new(),
         }
     }
 }
@@ -63,10 +72,20 @@ impl Super {
                 pass: None,
             })
             .collect();
+        let bots = self
+            .bots
+            .iter()
+            .map(|n| BotCred {
+                bot_id: n.bot_id.clone(),
+                bot_secret: "".to_string(),
+                chat_uuid: n.chat_uuid.clone(),
+            })
+            .collect();
         Super {
             stacks: stacks,
             users: vec![],
             jwt_key: "".to_string(),
+            bots: bots,
         }
     }
 }
