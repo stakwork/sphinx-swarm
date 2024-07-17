@@ -193,6 +193,7 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
             bot_id: n.bot_id.clone(),
             bot_secret: n.bot_secret.clone(),
             chat_uuid: n.chat_uuid.clone(),
+            bot_url: n.bot_url.clone(),
         })
         .collect();
 
@@ -200,7 +201,6 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
 
     for bot in bots.iter() {
         let client = make_client();
-        let route = "http://localhost:3001/action";
 
         let body = BotMsgBody {
             content: message.clone(),
@@ -210,9 +210,7 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
             action: "broadcast".to_string(),
         };
 
-        let response = client.post(route).json(&body).send().await?;
-
-        println!("{:?}", response.status());
+        let _response = client.post(bot.bot_url.as_str()).json(&body).send().await?;
     }
     Ok(())
 }

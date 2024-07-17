@@ -26,6 +26,7 @@ pub struct BotCred {
     pub bot_id: String,
     pub bot_secret: String,
     pub chat_uuid: String,
+    pub bot_url: String,
 }
 
 impl Default for Super {
@@ -79,6 +80,7 @@ impl Super {
                 bot_id: n.bot_id.clone(),
                 bot_secret: "".to_string(),
                 chat_uuid: n.chat_uuid.clone(),
+                bot_url: n.bot_url.clone(),
             })
             .collect();
         Super {
