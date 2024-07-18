@@ -208,6 +208,5 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
 
         let _response = client.post(bot.bot_url.as_str()).json(&body).send().await?;
     }
-    log::info!("Happy to test");
     Ok(())
 }
