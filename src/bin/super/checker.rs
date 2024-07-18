@@ -24,7 +24,7 @@ pub async fn swarm_checker() -> Result<JobScheduler> {
 
     // this runs very 5 mins
     sched
-        .add(Job::new_async("*/5 * * * *", |_uuid, _l| {
+        .add(Job::new_async("0 1/5 * * * *", |_uuid, _l| {
             Box::pin(async move {
                 if !SWARM_CHECKER.load(Ordering::Relaxed) {
                     SWARM_CHECKER.store(true, Ordering::Relaxed);
@@ -208,5 +208,6 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
 
         let _response = client.post(bot.bot_url.as_str()).json(&body).send().await?;
     }
+    log::info!("Happy to test");
     Ok(())
 }
