@@ -1,6 +1,7 @@
 if  [ $1 != "mixer" ] && \
     [ $1 != "tribes" ] && \
-    [ $1 != "broker" ]
+    [ $1 != "broker" ] && \
+    [ $1 != "cln" ]
 then
     echo "=> invalid image name! $1"
     exit 1
