@@ -1,6 +1,8 @@
+mod checker;
 mod state;
 use state::Super;
 
+use crate::checker::swarm_checker;
 use anyhow::{Context, Result};
 use rocket::tokio;
 use serde::{Deserialize, Serialize};
@@ -28,6 +30,11 @@ async fn main() -> Result<()> {
     let log_txs = Arc::new(Mutex::new(log_txs));
 
     spawn_super_handler(project, rx);
+
+    let cron_handler_res = swarm_checker().await;
+    if let Err(e) = cron_handler_res {
+        log::error!("CRON failed {:?}", e);
+    }
 
     // launch rocket
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
