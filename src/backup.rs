@@ -31,7 +31,7 @@ pub fn bucket_name() -> String {
 
 fn backup_retention_days() -> i64 {
     match getenv("BACKUP_RETENTION_DAYS")
-        .unwrap_or("2".to_string())
+        .unwrap_or("10".to_string())
         .parse()
     {
         Ok(float_value) => return float_value,
@@ -300,10 +300,9 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
 pub async fn backup_and_delete_volumes_cron() -> Result<JobScheduler> {
     log::info!(":backup and delete volumes");
     let sched = JobScheduler::new().await?;
-    // @daily
 
     sched
-        .add(Job::new_async("0 0 * * * *", |_uuid, _l| {
+        .add(Job::new_async("@daily", |_uuid, _l| {
             Box::pin(async move {
                 if !BACK_AND_DELETE.load(Ordering::Relaxed) {
                     BACK_AND_DELETE.store(true, Ordering::Relaxed);
