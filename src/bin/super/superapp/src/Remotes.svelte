@@ -5,6 +5,8 @@
     Toolbar,
     ToolbarContent,
     ToolbarSearch,
+    Modal,
+    TextInput,
   } from "carbon-components-svelte";
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
@@ -14,6 +16,11 @@
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
   import { splitHost } from "./utils/index";
+
+  let open = false;
+  let new_host = "";
+  let new_description = "";
+  let new_instance = "";
 
   let selectedRowIds = [];
 
@@ -67,8 +74,8 @@
     return () => clearInterval(interval);
   });
 
-  function something() {
-    console.log("something");
+  function openAddSwarmModal() {
+    open = true;
   }
 
   async function getTribes(r: Remote[]) {
@@ -100,6 +107,20 @@
   function remoterow(r: Remote) {
     return { ...r, id: r.host };
   }
+
+  function handleSubmitAddSwarm() {
+    const data = {
+      host: new_host,
+      intance: new_instance,
+      description: new_description,
+    };
+
+    console.log(data);
+    //send data to backened
+    //get config again
+    //clear host, instance, description
+    //add notification for success
+  }
 </script>
 
 <main>
@@ -123,8 +144,8 @@
             <ToolbarMenuItem hasDivider>API documentation</ToolbarMenuItem>
             <ToolbarMenuItem hasDivider>Stop all</ToolbarMenuItem>
           </ToolbarMenu> -->
-        <Button kind="tertiary" on:click={something} icon={UploadIcon}>
-          Do something
+        <Button kind="tertiary" on:click={openAddSwarmModal} icon={UploadIcon}>
+          Add New Swarm
         </Button>
       </ToolbarContent>
     </Toolbar>
@@ -138,6 +159,44 @@
       {/if}
     </svelte:fragment>
   </DataTable>
+
+  <Modal
+    bind:open
+    modalHeading="Add new Swarm"
+    primaryButtonText="Confirm"
+    secondaryButtonText="Cancel"
+    selectorPrimaryFocus="#db-name"
+    on:click:button--secondary={() => (open = false)}
+    on:open
+    on:close
+    on:submit={handleSubmitAddSwarm}
+  >
+    <p>Add a new swarm to the list of swarms.</p>
+    <div class="text_input_container">
+      <TextInput
+        id="host"
+        labelText="Host"
+        placeholder="Enter Swarm Host..."
+        bind:value={new_host}
+      />
+    </div>
+    <div class="text_input_container">
+      <TextInput
+        id="description"
+        labelText="Description"
+        placeholder="Enter Swarm Description..."
+        bind:value={new_description}
+      />
+    </div>
+    <div class="text_input_container">
+      <TextInput
+        id="instance"
+        labelText="Instance"
+        placeholder="Enter Swarm Instance Size..."
+        bind:value={new_instance}
+      />
+    </div>
+  </Modal>
 </main>
 
 <style>
@@ -145,5 +204,9 @@
     overflow: auto;
     max-height: var(--body-height);
     width: 100%;
+  }
+
+  .text_input_container {
+    margin-top: 1rem;
   }
 </style>
