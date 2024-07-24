@@ -20,13 +20,14 @@
   import { splitHost } from "./utils/index";
 
   let open = false;
-  let new_host = "";
-  let new_description = "";
-  let new_instance = "";
+  let host = "";
+  let description = "";
+  let instance = "";
   let show_notification = false;
   let message = "";
   let isSubmitting = false;
   let error_notification = false;
+  let isUpdate = false;
 
   let selectedRowIds = [];
 
@@ -113,21 +114,25 @@
   async function handleSubmitAddSwarm() {
     isSubmitting = true;
     const data = {
-      host: new_host,
-      instance: new_instance,
-      description: new_description,
+      host: host,
+      instance: instance,
+      description: description,
     };
 
     //send data to backened
-    const response = await api.swarm.add_new_swarm(data);
-    if (response.success === "true") {
+    let response;
+    if (isUpdate) {
+    } else {
+      response = await api.swarm.add_new_swarm(data);
+    }
+    message = response?.message;
+
+    if (response?.success === "true") {
       //get config again
       await getConfigSortByUnhealthy();
 
       //clear host, instance, description
-      new_host = "";
-      new_description = "";
-      new_instance = "";
+      clear_swarm_data();
       isSubmitting = false;
 
       //close modal
@@ -135,12 +140,43 @@
 
       //add notification for success
       show_notification = true;
-      message = response.message;
     } else {
       isSubmitting = false;
-      message = response.message;
       error_notification = true;
     }
+  }
+
+  function clear_swarm_data() {
+    host = "";
+    instance = "";
+    description = "";
+    isUpdate = false;
+  }
+
+  function findSwarm(id: string) {
+    for (let i = 0; i < $remotes.length; i++) {
+      const swarm = $remotes[i];
+      if (swarm.host === id) {
+        return swarm;
+      }
+    }
+
+    return { host: "", ec2: "", note: "" };
+  }
+
+  function handleEditSwarm(id: string) {
+    isUpdate = true;
+    const swarm = findSwarm(id);
+    if (swarm.host) {
+      open = true;
+      host = swarm.host;
+      description = swarm.note;
+      instance = swarm.ec2;
+    }
+  }
+
+  function handleOnClose() {
+    clear_swarm_data();
   }
 </script>
 
@@ -168,6 +204,7 @@
       { key: "ec2", value: "Instance" },
       { key: "tribes", value: "Tribes" },
       { key: "health", value: "Health" },
+      { key: "edit", value: "Edit" },
     ]}
     rows={$remotes.map(remoterow)}
     selectable
@@ -191,6 +228,10 @@
         <Healthcheck host={row.id} />
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
+      {:else if cell.key === "edit"}
+        <Button size={"small"} on:click={() => handleEditSwarm(row.id)}
+          >Edit</Button
+        >
       {:else}
         {cell.value}
       {/if}
@@ -199,14 +240,14 @@
 
   <Modal
     bind:open
-    modalHeading="Add new Swarm"
+    modalHeading={isUpdate ? "Update Swarm" : "Add new Swarm"}
     primaryButtonDisabled={isSubmitting}
     primaryButtonText={isSubmitting ? "Loading..." : "Confirm"}
     secondaryButtonText="Cancel"
     selectorPrimaryFocus="#db-name"
     on:click:button--secondary={() => (open = false)}
     on:open
-    on:close
+    on:close={handleOnClose}
     on:submit={handleSubmitAddSwarm}
   >
     {#if error_notification}
@@ -221,13 +262,17 @@
         }}
       />
     {/if}
-    <p>Add a new swarm to the list of swarms.</p>
+    {#if isUpdate}
+      <p>Update Swarm details.</p>
+    {:else}
+      <p>Add a new swarm to the list of swarms.</p>
+    {/if}
     <div class="text_input_container">
       <TextInput
         id="host"
         labelText="Host"
         placeholder="Enter Swarm Host..."
-        bind:value={new_host}
+        bind:value={host}
       />
     </div>
     <div class="text_input_container">
@@ -235,7 +280,7 @@
         id="description"
         labelText="Description"
         placeholder="Enter Swarm Description..."
-        bind:value={new_description}
+        bind:value={description}
       />
     </div>
     <div class="text_input_container">
@@ -243,7 +288,7 @@
         id="instance"
         labelText="Instance"
         placeholder="Enter Swarm Instance Size..."
-        bind:value={new_instance}
+        bind:value={instance}
       />
     </div>
   </Modal>
