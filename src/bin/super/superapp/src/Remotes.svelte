@@ -7,6 +7,7 @@
     ToolbarSearch,
     Modal,
     TextInput,
+    ToastNotification,
   } from "carbon-components-svelte";
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
@@ -21,6 +22,9 @@
   let new_host = "";
   let new_description = "";
   let new_instance = "";
+  let show_notification = false;
+  let message = "";
+  let isSubmitting = false;
 
   let selectedRowIds = [];
 
@@ -67,11 +71,7 @@
   }
 
   onMount(() => {
-    getConfig();
-
-    const interval = setInterval(getConfigSortByUnhealthy, 3000);
     getConfigSortByUnhealthy();
-    return () => clearInterval(interval);
   });
 
   function openAddSwarmModal() {
@@ -108,22 +108,51 @@
     return { ...r, id: r.host };
   }
 
-  function handleSubmitAddSwarm() {
+  async function handleSubmitAddSwarm() {
+    isSubmitting = true;
     const data = {
       host: new_host,
-      intance: new_instance,
+      instance: new_instance,
       description: new_description,
     };
 
-    console.log(data);
     //send data to backened
-    //get config again
-    //clear host, instance, description
-    //add notification for success
+    const response = await api.swarm.add_new_swarm(data);
+    if (response.success) {
+      //get config again
+      await getConfigSortByUnhealthy();
+      //clear host, instance, description
+      new_host = "";
+      new_description = "";
+      new_instance = "";
+      isSubmitting = false;
+      //close modal
+      open = false;
+      //add notification for success
+      show_notification = true;
+      message = "Swarms added successfully";
+    }
+    isSubmitting = false;
   }
 </script>
 
 <main>
+  {#if show_notification}
+    <div class="success_toast_container">
+      <ToastNotification
+        lowContrast
+        kind="success"
+        title="Success"
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+        }}
+        fullWidth={true}
+      />
+    </div>
+  {/if}
   <DataTable
     headers={[
       { key: "host", value: "Host" },
@@ -163,7 +192,8 @@
   <Modal
     bind:open
     modalHeading="Add new Swarm"
-    primaryButtonText="Confirm"
+    primaryButtonDisabled={isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Confirm"}
     secondaryButtonText="Cancel"
     selectorPrimaryFocus="#db-name"
     on:click:button--secondary={() => (open = false)}
@@ -208,5 +238,9 @@
 
   .text_input_container {
     margin-top: 1rem;
+  }
+
+  .success_toast_container {
+    margin-bottom: 1.2rem;
   }
 </style>

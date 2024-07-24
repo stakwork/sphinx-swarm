@@ -117,6 +117,14 @@ export async function get_api_token() {
   return await swarmCmd("GetApiToken");
 }
 
+export async function add_new_swarm(new_swarm: {
+  host: string;
+  instance: string;
+  description: string;
+}) {
+  return await swarmCmd("AddNewSwarm", { ...new_swarm });
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

@@ -1,5 +1,6 @@
 mod checker;
 mod state;
+use state::RemoteStack;
 use state::Super;
 
 use crate::checker::swarm_checker;
@@ -78,11 +79,19 @@ pub struct ChangePasswordInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddNewSwarmInfo {
+    pub host: String,
+    pub instance: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
+    AddNewSwarm(AddNewSwarmInfo),
 }
 
 // tag is the service name
@@ -128,6 +137,21 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                     }
                     None => Some("".to_string()),
                 }
+            }
+            SwarmCmd::AddNewSwarm(swarm) => {
+                let new_swarm = RemoteStack {
+                    host: swarm.host,
+                    note: Some(swarm.description),
+                    ec2: Some(swarm.instance),
+                    user: None,
+                    pass: None,
+                };
+                state.add_remote_stack(new_swarm);
+                must_save_stack = true;
+                let mut hm = HashMap::new();
+                hm.insert("success", true);
+
+                Some(serde_json::to_string(&hm)?)
             }
         },
     };

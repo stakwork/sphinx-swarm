@@ -75,7 +75,8 @@ export type Cmd =
   | "GetImageDigest"
   | "GetDockerImageTags"
   | "UpdateUser"
-  | "GetApiToken";
+  | "GetApiToken"
+  | "AddNewSwarm";
 
 interface CmdData {
   cmd: Cmd;

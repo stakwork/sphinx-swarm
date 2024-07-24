@@ -90,4 +90,8 @@ impl Super {
             bots: bots,
         }
     }
+
+    pub fn add_remote_stack(&mut self, new_stack: RemoteStack) {
+        self.stacks.push(new_stack);
+    }
 }
