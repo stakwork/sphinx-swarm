@@ -8,6 +8,7 @@
     Modal,
     TextInput,
     ToastNotification,
+    InlineNotification,
   } from "carbon-components-svelte";
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
@@ -25,6 +26,7 @@
   let show_notification = false;
   let message = "";
   let isSubmitting = false;
+  let error_notification = false;
 
   let selectedRowIds = [];
 
@@ -118,21 +120,27 @@
 
     //send data to backened
     const response = await api.swarm.add_new_swarm(data);
-    if (response.success) {
+    if (response.success === "true") {
       //get config again
       await getConfigSortByUnhealthy();
+
       //clear host, instance, description
       new_host = "";
       new_description = "";
       new_instance = "";
       isSubmitting = false;
+
       //close modal
       open = false;
+
       //add notification for success
       show_notification = true;
-      message = "Swarms added successfully";
+      message = response.message;
+    } else {
+      isSubmitting = false;
+      message = response.message;
+      error_notification = true;
     }
-    isSubmitting = false;
   }
 </script>
 
@@ -201,6 +209,18 @@
     on:close
     on:submit={handleSubmitAddSwarm}
   >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
     <p>Add a new swarm to the list of swarms.</p>
     <div class="text_input_container">
       <TextInput

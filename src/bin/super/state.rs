@@ -94,4 +94,16 @@ impl Super {
     pub fn add_remote_stack(&mut self, new_stack: RemoteStack) {
         self.stacks.push(new_stack);
     }
+
+    pub fn find_swarm_by_host(&self, host: &str) -> Result<&RemoteStack, bool> {
+        let pos = self.stacks.iter().position(|s| s.host == host);
+        if let None = pos {
+            return Err(false);
+        }
+        let pos = pos.unwrap();
+
+        let swarm = &self.stacks[pos];
+
+        Ok(swarm)
+    }
 }

@@ -139,17 +139,31 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                 }
             }
             SwarmCmd::AddNewSwarm(swarm) => {
-                let new_swarm = RemoteStack {
-                    host: swarm.host,
-                    note: Some(swarm.description),
-                    ec2: Some(swarm.instance),
-                    user: None,
-                    pass: None,
-                };
-                state.add_remote_stack(new_swarm);
-                must_save_stack = true;
                 let mut hm = HashMap::new();
-                hm.insert("success", true);
+                match state.find_swarm_by_host(&swarm.host) {
+                    Ok(_swarm) => {
+                        hm.insert("success", "false");
+                        hm.insert("message", "swarm already exist");
+                    }
+                    Err(value) => {
+                        if !value {
+                            let new_swarm = RemoteStack {
+                                host: swarm.host,
+                                note: Some(swarm.description),
+                                ec2: Some(swarm.instance),
+                                user: None,
+                                pass: None,
+                            };
+                            state.add_remote_stack(new_swarm);
+                            must_save_stack = true;
+                            hm.insert("success", "true");
+                            hm.insert("message", "Swarm added successfully");
+                        } else {
+                            hm.insert("success", "false");
+                            hm.insert("message", "internal server error");
+                        }
+                    }
+                }
 
                 Some(serde_json::to_string(&hm)?)
             }
