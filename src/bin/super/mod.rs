@@ -86,12 +86,21 @@ pub struct AddNewSwarmInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSwarmInfo {
+    pub id: String,
+    pub host: String,
+    pub instance: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
     AddNewSwarm(AddNewSwarmInfo),
+    UpdateSwarm(UpdateSwarmInfo),
 }
 
 // tag is the service name
@@ -162,6 +171,29 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                             hm.insert("success", "false");
                             hm.insert("message", "internal server error");
                         }
+                    }
+                }
+
+                Some(serde_json::to_string(&hm)?)
+            }
+            SwarmCmd::UpdateSwarm(swarm) => {
+                let mut hm = HashMap::new();
+                match state.stacks.iter().position(|u| u.host == swarm.id) {
+                    Some(ui) => {
+                        state.stacks[ui] = RemoteStack {
+                            host: swarm.host,
+                            ec2: Some(swarm.instance),
+                            note: Some(swarm.description),
+                            user: state.stacks[ui].user.clone(),
+                            pass: state.stacks[ui].pass.clone(),
+                        };
+                        must_save_stack = true;
+                        hm.insert("success", "true");
+                        hm.insert("message", "Swarm updated successfully");
+                    }
+                    None => {
+                        hm.insert("success", "false");
+                        hm.insert("message", "swarm does not exist");
                     }
                 }
 
