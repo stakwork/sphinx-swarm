@@ -28,6 +28,7 @@
   let isSubmitting = false;
   let error_notification = false;
   let isUpdate = false;
+  let swarm_id = "";
 
   let selectedRowIds = [];
 
@@ -113,16 +114,23 @@
 
   async function handleSubmitAddSwarm() {
     isSubmitting = true;
-    const data = {
-      host: host,
-      instance: instance,
-      description: description,
-    };
 
     //send data to backened
     let response;
     if (isUpdate) {
+      const data = {
+        id: swarm_id,
+        host: host,
+        instance: instance,
+        description: description,
+      };
+      response = await api.swarm.update_swarm_details(data);
     } else {
+      const data = {
+        host: host,
+        instance: instance,
+        description: description,
+      };
       response = await api.swarm.add_new_swarm(data);
     }
     message = response?.message;
@@ -151,6 +159,7 @@
     instance = "";
     description = "";
     isUpdate = false;
+    swarm_id = "";
   }
 
   function findSwarm(id: string) {
@@ -172,6 +181,7 @@
       host = swarm.host;
       description = swarm.note;
       instance = swarm.ec2;
+      swarm_id = id;
     }
   }
 

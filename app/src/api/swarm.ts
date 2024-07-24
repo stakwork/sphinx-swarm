@@ -125,6 +125,15 @@ export async function add_new_swarm(new_swarm: {
   return await swarmCmd("AddNewSwarm", { ...new_swarm });
 }
 
+export async function update_swarm_details(swarm_info: {
+  id: string;
+  host: string;
+  description: string;
+  instance: string;
+}) {
+  return await swarmCmd("UpdateSwarm", { ...swarm_info });
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",
