@@ -203,6 +203,7 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                 let mut hm = HashMap::new();
                 match state.delete_swarm_by_host(&swarm.host) {
                     Ok(()) => {
+                        must_save_stack = true;
                         hm.insert("success", "true".to_string());
                         hm.insert("message", "Swarm deleted successfully".to_string());
                     }
