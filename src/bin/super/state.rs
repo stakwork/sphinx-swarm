@@ -90,4 +90,31 @@ impl Super {
             bots: bots,
         }
     }
+
+    pub fn add_remote_stack(&mut self, new_stack: RemoteStack) {
+        self.stacks.push(new_stack);
+    }
+
+    pub fn find_swarm_by_host(&self, host: &str) -> Option<&RemoteStack> {
+        let pos = self.stacks.iter().position(|s| s.host == host);
+        if let None = pos {
+            return None;
+        }
+        let pos = pos.unwrap();
+
+        let swarm = &self.stacks[pos];
+
+        Some(swarm)
+    }
+
+    pub fn delete_swarm_by_host(&mut self, host: &str) -> Result<(), String> {
+        let initial_len = self.stacks.len();
+        self.stacks.retain(|stack| stack.host != host);
+
+        if self.stacks.len() == initial_len {
+            Err(format!("Host '{}' does not exist.", host))
+        } else {
+            Ok(())
+        }
+    }
 }

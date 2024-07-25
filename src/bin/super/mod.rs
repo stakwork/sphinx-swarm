@@ -1,5 +1,6 @@
 mod checker;
 mod state;
+use state::RemoteStack;
 use state::Super;
 
 use crate::checker::swarm_checker;
@@ -78,11 +79,34 @@ pub struct ChangePasswordInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddNewSwarmInfo {
+    pub host: String,
+    pub instance: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSwarmInfo {
+    pub id: String,
+    pub host: String,
+    pub instance: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeleteSwarmInfo {
+    pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
+    AddNewSwarm(AddNewSwarmInfo),
+    UpdateSwarm(UpdateSwarmInfo),
+    DeleteSwarm(DeleteSwarmInfo),
 }
 
 // tag is the service name
@@ -128,6 +152,67 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                     }
                     None => Some("".to_string()),
                 }
+            }
+            SwarmCmd::AddNewSwarm(swarm) => {
+                let mut hm = HashMap::new();
+                match state.find_swarm_by_host(&swarm.host) {
+                    Some(_swarm) => {
+                        hm.insert("success", "false");
+                        hm.insert("message", "swarm already exist");
+                    }
+                    None => {
+                        let new_swarm = RemoteStack {
+                            host: swarm.host,
+                            note: Some(swarm.description),
+                            ec2: Some(swarm.instance),
+                            user: None,
+                            pass: None,
+                        };
+                        state.add_remote_stack(new_swarm);
+                        must_save_stack = true;
+                        hm.insert("success", "true");
+                        hm.insert("message", "Swarm added successfully");
+                    }
+                }
+                Some(serde_json::to_string(&hm)?)
+            }
+            SwarmCmd::UpdateSwarm(swarm) => {
+                let mut hm = HashMap::new();
+                match state.stacks.iter().position(|u| u.host == swarm.id) {
+                    Some(ui) => {
+                        state.stacks[ui] = RemoteStack {
+                            host: swarm.host,
+                            ec2: Some(swarm.instance),
+                            note: Some(swarm.description),
+                            user: state.stacks[ui].user.clone(),
+                            pass: state.stacks[ui].pass.clone(),
+                        };
+                        must_save_stack = true;
+                        hm.insert("success", "true");
+                        hm.insert("message", "Swarm updated successfully");
+                    }
+                    None => {
+                        hm.insert("success", "false");
+                        hm.insert("message", "swarm does not exist");
+                    }
+                }
+
+                Some(serde_json::to_string(&hm)?)
+            }
+            SwarmCmd::DeleteSwarm(swarm) => {
+                let mut hm = HashMap::new();
+                match state.delete_swarm_by_host(&swarm.host) {
+                    Ok(()) => {
+                        must_save_stack = true;
+                        hm.insert("success", "true".to_string());
+                        hm.insert("message", "Swarm deleted successfully".to_string());
+                    }
+                    Err(msg) => {
+                        hm.insert("message", msg.clone());
+                        hm.insert("success", "false".to_string());
+                    }
+                }
+                Some(serde_json::to_string(&hm)?)
             }
         },
     };
