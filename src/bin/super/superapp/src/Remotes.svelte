@@ -147,6 +147,11 @@
   }
 
   async function handleSubmitAddSwarm() {
+    if (!host) {
+      message = "Host is a required field";
+      error_notification = true;
+      return;
+    }
     isSubmitting = true;
 
     //send data to backened
