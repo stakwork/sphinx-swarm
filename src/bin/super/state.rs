@@ -106,4 +106,15 @@ impl Super {
 
         Some(swarm)
     }
+
+    pub fn delete_swarm_by_host(&mut self, host: &str) -> Result<(), String> {
+        let initial_len = self.stacks.len();
+        self.stacks.retain(|stack| stack.host != host);
+
+        if self.stacks.len() == initial_len {
+            Err(format!("Host '{}' does not exist.", host))
+        } else {
+            Ok(())
+        }
+    }
 }

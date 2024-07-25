@@ -94,6 +94,11 @@ pub struct UpdateSwarmInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeleteSwarmInfo {
+    pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -101,6 +106,7 @@ pub enum SwarmCmd {
     ChangePassword(ChangePasswordInfo),
     AddNewSwarm(AddNewSwarmInfo),
     UpdateSwarm(UpdateSwarmInfo),
+    DeleteSwarm(DeleteSwarmInfo),
 }
 
 // tag is the service name
@@ -191,6 +197,20 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                     }
                 }
 
+                Some(serde_json::to_string(&hm)?)
+            }
+            SwarmCmd::DeleteSwarm(swarm) => {
+                let mut hm = HashMap::new();
+                match state.delete_swarm_by_host(&swarm.host) {
+                    Ok(()) => {
+                        hm.insert("success", "true".to_string());
+                        hm.insert("message", "Swarm deleted successfully".to_string());
+                    }
+                    Err(msg) => {
+                        hm.insert("message", msg.clone());
+                        hm.insert("success", "false".to_string());
+                    }
+                }
                 Some(serde_json::to_string(&hm)?)
             }
         },
