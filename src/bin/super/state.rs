@@ -95,15 +95,15 @@ impl Super {
         self.stacks.push(new_stack);
     }
 
-    pub fn find_swarm_by_host(&self, host: &str) -> Result<&RemoteStack, bool> {
+    pub fn find_swarm_by_host(&self, host: &str) -> Option<&RemoteStack> {
         let pos = self.stacks.iter().position(|s| s.host == host);
         if let None = pos {
-            return Err(false);
+            return None;
         }
         let pos = pos.unwrap();
 
         let swarm = &self.stacks[pos];
 
-        Ok(swarm)
+        Some(swarm)
     }
 }
