@@ -4,6 +4,16 @@
   import { activeUser, saveUserToStore, logoutUser } from "./store";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
+  import ChangePassword from "./ChangePassword.svelte";
+  let page = "main";
+
+  async function backToMain() {
+    page = "main";
+  }
+
+  function handleChangePassword() {
+    page = "change_password";
+  }
 </script>
 
 <main>
@@ -18,11 +28,19 @@
       <section class="menu-btn">
         <OverflowMenu icon={User} flipped>
           <OverflowMenuItem on:click={logoutUser} text="Logout" />
+          <OverflowMenuItem
+            on:click={handleChangePassword}
+            text="Change Password"
+          />
         </OverflowMenu>
       </section>
     </header>
     <div class="body">
-      <Remotes />
+      {#if page === "change_password"}
+        <ChangePassword back={backToMain} />
+      {:else}
+        <Remotes />
+      {/if}
     </div>
   {/if}
 </main>
