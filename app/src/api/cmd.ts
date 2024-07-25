@@ -77,7 +77,8 @@ export type Cmd =
   | "UpdateUser"
   | "GetApiToken"
   | "AddNewSwarm"
-  | "UpdateSwarm";
+  | "UpdateSwarm"
+  | "DeleteSwarm";
 
 interface CmdData {
   cmd: Cmd;

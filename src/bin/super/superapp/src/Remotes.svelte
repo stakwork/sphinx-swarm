@@ -19,7 +19,8 @@
   import type { Remote } from "./types/types";
   import { splitHost } from "./utils/index";
 
-  let open = false;
+  let open_create_edit = false;
+  let open_delete = false;
   let host = "";
   let description = "";
   let instance = "";
@@ -29,6 +30,8 @@
   let error_notification = false;
   let isUpdate = false;
   let swarm_id = "";
+  let delete_host = "";
+  let errorMessage = false;
 
   let selectedRowIds = [];
 
@@ -79,7 +82,38 @@
   });
 
   function openAddSwarmModal() {
-    open = true;
+    open_create_edit = true;
+  }
+
+  function handleDeleteSwarm(id: string) {
+    open_delete = true;
+    delete_host = id;
+  }
+
+  async function submitDeleteSwarm() {
+    isSubmitting = true;
+    try {
+      const response = await api.swarm.delete_swarm({
+        host: delete_host,
+      });
+      message = response?.message;
+      if (response?.success === "true") {
+        await getConfigSortByUnhealthy();
+      } else {
+        errorMessage = true;
+      }
+    } catch (error) {
+      errorMessage = true;
+      message = "An internal Error occurred";
+      console.log(`Swarm Delete Error: ${error}`);
+    }
+    open_delete = false;
+    isSubmitting = false;
+    show_notification = true;
+  }
+
+  function handleOnCloseDelete() {
+    delete_host = "";
   }
 
   async function getTribes(r: Remote[]) {
@@ -144,7 +178,7 @@
       isSubmitting = false;
 
       //close modal
-      open = false;
+      open_create_edit = false;
 
       //add notification for success
       show_notification = true;
@@ -177,7 +211,7 @@
     isUpdate = true;
     const swarm = findSwarm(id);
     if (swarm.host) {
-      open = true;
+      open_create_edit = true;
       host = swarm.host;
       description = swarm.note;
       instance = swarm.ec2;
@@ -195,13 +229,14 @@
     <div class="success_toast_container">
       <ToastNotification
         lowContrast
-        kind="success"
-        title="Success"
+        kind={errorMessage ? "error" : "success"}
+        title={errorMessage ? "Error" : "Success"}
         subtitle={message}
         timeout={3000}
         on:close={(e) => {
           e.preventDefault();
           show_notification = false;
+          errorMessage = false;
         }}
         fullWidth={true}
       />
@@ -215,6 +250,7 @@
       { key: "tribes", value: "Tribes" },
       { key: "health", value: "Health" },
       { key: "edit", value: "Edit" },
+      { key: "delete", value: "Delete" },
     ]}
     rows={$remotes.map(remoterow)}
     selectable
@@ -239,9 +275,17 @@
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
       {:else if cell.key === "edit"}
-        <Button size={"small"} on:click={() => handleEditSwarm(row.id)}
-          >Edit</Button
+        <Button size={"small"} on:click={() => handleEditSwarm(row.id)}>
+          Edit
+        </Button>
+      {:else if cell.key === "delete"}
+        <Button
+          kind="danger"
+          size={"small"}
+          on:click={() => handleDeleteSwarm(row.id)}
         >
+          Delete
+        </Button>
       {:else}
         {cell.value}
       {/if}
@@ -249,13 +293,13 @@
   </DataTable>
 
   <Modal
-    bind:open
+    bind:open={open_create_edit}
     modalHeading={isUpdate ? "Update Swarm" : "Add new Swarm"}
     primaryButtonDisabled={isSubmitting}
     primaryButtonText={isSubmitting ? "Loading..." : "Confirm"}
     secondaryButtonText="Cancel"
     selectorPrimaryFocus="#db-name"
-    on:click:button--secondary={() => (open = false)}
+    on:click:button--secondary={() => (open_create_edit = false)}
     on:open
     on:close={handleOnClose}
     on:submit={handleSubmitAddSwarm}
@@ -301,6 +345,20 @@
         bind:value={instance}
       />
     </div>
+  </Modal>
+  <Modal
+    danger
+    bind:open={open_delete}
+    modalHeading={`Delete ${delete_host}`}
+    primaryButtonDisabled={isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Delete"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_delete = false)}
+    on:open
+    on:close={handleOnCloseDelete}
+    on:submit={submitDeleteSwarm}
+  >
+    <p>This is a permanent action and cannot be undone.</p>
   </Modal>
 </main>
 
