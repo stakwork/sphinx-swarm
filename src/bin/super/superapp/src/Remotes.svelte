@@ -77,8 +77,10 @@
     }
   }
 
-  onMount(() => {
-    getConfigSortByUnhealthy();
+  onMount(async () => {
+    await getConfig();
+
+    await getConfigSortByUnhealthy();
   });
 
   function openAddSwarmModal() {
@@ -98,7 +100,7 @@
       });
       message = response?.message;
       if (response?.success === "true") {
-        await getConfigSortByUnhealthy();
+        await getConfig();
       } else {
         errorMessage = true;
       }
@@ -176,7 +178,7 @@
 
     if (response?.success === "true") {
       //get config again
-      await getConfigSortByUnhealthy();
+      await getConfig();
 
       //clear host, instance, description
       clear_swarm_data();
