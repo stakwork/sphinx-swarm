@@ -123,26 +123,44 @@ fn make_client() -> reqwest::Client {
 
 async fn get_boltwall_or_jarvis_status(url: String) -> Result<bool> {
     let client = make_client();
+    let status;
 
-    let response = client.get(&url).send().await?;
-
-    if response.status() == 200 || response.status() == 401 {
-        return Ok(true);
+    match client.get(&url).send().await {
+        Ok(response) => {
+            if response.status() == 200 || response.status() == 401 {
+                status = true
+            } else {
+                status = false
+            }
+        }
+        Err(error) => {
+            log::error!("Error: {}", error);
+            status = false
+        }
     }
 
-    Ok(false)
+    Ok(status)
 }
 
 async fn get_navfiber_status(url: String) -> Result<bool> {
     let client = make_client();
+    let status;
 
-    let response = client.get(&url).send().await?;
-
-    if response.status() == 200 {
-        return Ok(true);
+    match client.get(&url).send().await {
+        Ok(response) => {
+            if response.status() == 200 {
+                status = true
+            } else {
+                status = false
+            }
+        }
+        Err(error) => {
+            log::error!("Error: {}", error);
+            status = false
+        }
     }
 
-    Ok(false)
+    Ok(status)
 }
 
 fn configure_error_msg(
