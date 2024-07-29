@@ -6,6 +6,7 @@ use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
 use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
 use sphinx_swarm::routes;
+use sphinx_swarm::utils::getenv;
 use sphinx_swarm::{dock::*, events, logs, rocket_utils::CmdRequest};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -61,7 +62,16 @@ async fn main() -> Result<()> {
         }
     }
 
-    backup_and_delete_volumes_cron().await?;
+    match getenv("BACKUP") {
+        Ok(value) => {
+            if value == "true" {
+                backup_and_delete_volumes_cron().await?;
+            }
+        }
+        Err(_) => {
+            log::info!("BACKUP is not set!!")
+        }
+    }
 
     tokio::signal::ctrl_c().await?;
 
