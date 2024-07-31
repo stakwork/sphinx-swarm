@@ -65,7 +65,10 @@ pub async fn backup_containers() -> Result<()> {
 
     let (parent_directory, parent_zip) = download_and_zip_from_container(containers).await?;
 
-    upload_final_zip_to_s3(parent_directory, parent_zip).await?;
+    // delete parent directory content after zip
+    let _ = remove_dir_all(&parent_directory).await;
+
+    upload_final_zip_to_s3(parent_zip).await?;
 
     Ok(())
 }
@@ -146,13 +149,12 @@ pub async fn download_and_zip_from_container(
     Ok((parent_directory, parent_zip))
 }
 
-async fn upload_final_zip_to_s3(parent_directory: String, parent_zip: String) -> Result<()> {
+async fn upload_final_zip_to_s3(parent_zip: String) -> Result<()> {
     let parent_zip_file = PathBuf::from(&parent_zip);
     let status = upload_to_s3(&bucket_name(), &parent_zip, parent_zip_file).await?;
 
     if status == true {
         let _ = fs::remove_file(parent_zip);
-        let _ = remove_dir_all(parent_directory).await;
     }
     Ok(())
 }
