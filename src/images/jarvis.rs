@@ -71,7 +71,7 @@ fn jarvis(
             domain(&neo4j.name), neo4j.bolt_port
         ),
         format!("NEO4J_USER=neo4j"),
-        format!("NEO4J_PASS=testtest"),
+        format!("NEO4J_PASS=test"),
         format!("STAKWORK_REQUEST_LOG_PATH=./"),
         format!("STAKWORK_ADD_NODE_URL=https://api.stakwork.com/api/v1/knowledge_graph_projects"),
         format!("JARVIS_BACKEND_PORT={}", node.port),

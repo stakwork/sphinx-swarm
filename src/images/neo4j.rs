@@ -43,7 +43,7 @@ impl Neo4jImage {
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
         log::info!("=> download apoc plugin for neo4j...");
-        let apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.4.0.11/apoc-4.4.0.11-all.jar";
+        let apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
         let bytes = reqwest::get(apoc_url).await?.bytes().await?;
         upload_to_container(
             docker,
@@ -109,7 +109,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         host_config: host_config(&name, ports, root_vol, None, node.mem_limit),
         env: Some(vec![
             // format!("NEO4J_URI=neo4j://neo4j:{}", &node.bolt_port),
-            format!("NEO4J_AUTH=neo4j/testtest"),
+            format!("NEO4J_AUTH=neo4j/test"),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
@@ -123,6 +123,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             ),
             format!("NEO4J_dbms_allow__upgrade=true"),
             format!("NEO4J_dbms_default__database=neo4j"),
+            format!("NEO4J_dbms_security_auth_minimum_password_length=4"),
         ]),
         ..Default::default()
     };

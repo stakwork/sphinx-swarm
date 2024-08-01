@@ -44,7 +44,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm
+    image: sphinxlightning/sphinx-swarm:upgradeNeo4j
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
