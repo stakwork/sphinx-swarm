@@ -305,6 +305,12 @@ pub fn setup_logs() {
         .with_module_level("rustls", log::LevelFilter::Error)
         .with_module_level("tower", log::LevelFilter::Error)
         .with_module_level("reqwest", log::LevelFilter::Error)
+        .with_module_level("aws-sdk-s3", log::LevelFilter::Error)
+        .with_module_level("aws-config", log::LevelFilter::Error)
+        .with_module_level("aws-smithy-types", log::LevelFilter::Error)
+        .with_module_level("aws_smithy_runtime", log::LevelFilter::Error)
+        .with_module_level("aws_runtime", log::LevelFilter::Error)
+        .with_module_level("aws_sdk_sts", log::LevelFilter::Error)
         .with_module_level("_", log::LevelFilter::Error)
         .init()
         .unwrap();
