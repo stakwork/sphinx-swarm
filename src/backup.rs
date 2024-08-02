@@ -4,9 +4,11 @@ use crate::utils::{domain, getenv};
 use anyhow::{Context, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
-use aws_sdk_s3::primitives::ByteStream;
-use aws_sdk_s3::types::{Delete, ObjectIdentifier};
+use aws_sdk_s3::operation::create_multipart_upload::CreateMultipartUploadOutput;
+use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart, Delete, ObjectIdentifier};
 use aws_sdk_s3::Client;
+use aws_smithy_types::byte_stream::{ByteStream, Length};
+use aws_smithy_types::retry::RetryConfig;
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
 use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
@@ -14,7 +16,7 @@ use futures_util::stream::TryStreamExt;
 use std::fs::{self, File};
 use std::io::Cursor;
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::fs::remove_dir_all;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -150,12 +152,17 @@ pub async fn download_and_zip_from_container(
 }
 
 async fn upload_final_zip_to_s3(parent_zip: String) -> Result<()> {
-    let parent_zip_file = PathBuf::from(&parent_zip);
-    let status = upload_to_s3(&bucket_name(), &parent_zip, parent_zip_file).await?;
-
-    if status == true {
-        let _ = fs::remove_file(parent_zip);
+    match upload_to_s3_multi(&bucket_name(), &parent_zip.clone()).await {
+        Ok(status) => {
+            if status == true {
+                let _ = fs::remove_file(parent_zip);
+            }
+        }
+        Err(err) => {
+            log::error!("We are getting somewhere: {}", err)
+        }
     }
+
     Ok(())
 }
 
@@ -187,37 +194,126 @@ fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
     Ok(())
 }
 
-// Uploads the zip file to S3
-async fn upload_to_s3(bucket: &str, zip_file_name: &str, zip_file: PathBuf) -> Result<bool> {
+async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
+    //In bytes, minimum chunk size of 150MB.
+    const CHUNK_SIZE: u64 = 1024 * 1024 * 150;
+    const MAX_CHUNKS: u64 = 10000;
+
     // Read the custom region environment variable
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = match getenv("AWS_S3_REGION_NAME") {
+        Ok(value) => value,
+        Err(_msg) => {
+            log::error!("AWS_S3_REGION_NAME is not provided in environment variable");
+            return Ok(false);
+        }
+    };
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
     // Load the AWS configuration
-    let config = aws_config::from_env().region(region_provider).load().await;
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
     let client = Client::new(&config);
 
-    // Read the file into a ByteStream
-    match ByteStream::from_path(&zip_file).await {
-        Ok(body) => {
-            // Prepare the PutObjectRequest
-            let request = client
-                .put_object()
-                .bucket(bucket)
-                .key(zip_file_name)
-                .body(body);
+    let multipart_upload_res: CreateMultipartUploadOutput = client
+        .create_multipart_upload()
+        .bucket(bucket)
+        .key(key)
+        .send()
+        .await?;
 
-            // Send the request
-            request.send().await?;
-            return Ok(true);
-        }
-        Err(_) => {
-            log::error!("Error streaming zip file");
+    let upload_id = match multipart_upload_res.upload_id() {
+        Some(id) => id,
+        None => {
+            log::error!("Upload ID not found");
             return Ok(false);
         }
     };
+
+    let path = Path::new(&key);
+    let file_size = tokio::fs::metadata(path)
+        .await
+        .expect("it exists I swear")
+        .len();
+
+    let mut chunk_count = (file_size / CHUNK_SIZE) + 1;
+    let mut size_of_last_chunk = file_size % CHUNK_SIZE;
+    if size_of_last_chunk == 0 {
+        size_of_last_chunk = CHUNK_SIZE;
+        chunk_count -= 1;
+    }
+
+    if file_size == 0 {
+        log::error!("Invalid file, file size is 0");
+        return Ok(false);
+    }
+    if chunk_count > MAX_CHUNKS {
+        log::error!("Too many chunks! Try increasing your chunk size.");
+        return Ok(false);
+    }
+
+    log::info!("Total number of chunks: {}", chunk_count);
+
+    let mut upload_parts: Vec<CompletedPart> = Vec::new();
+
+    for chunk_index in 0..chunk_count {
+        let this_chunk = if chunk_count - 1 == chunk_index {
+            size_of_last_chunk
+        } else {
+            CHUNK_SIZE
+        };
+        let stream = ByteStream::read_from()
+            .path(path)
+            .offset(chunk_index * CHUNK_SIZE)
+            .length(Length::Exact(this_chunk))
+            .build()
+            .await?;
+
+        //Chunk index needs to start at 0, but part numbers start at 1.
+        let part_number = (chunk_index as i32) + 1;
+
+        let upload_part_res = match client
+            .upload_part()
+            .key(key)
+            .bucket(bucket)
+            .upload_id(upload_id)
+            .body(stream)
+            .part_number(part_number)
+            .send()
+            .await
+        {
+            Ok(res) => res,
+            Err(e) => {
+                log::error!("Error uploading part: {}", e);
+                return Ok(false);
+            }
+        };
+        upload_parts.push(
+            CompletedPart::builder()
+                .e_tag(upload_part_res.e_tag.unwrap_or_default())
+                .part_number(part_number)
+                .build(),
+        );
+    }
+
+    let completed_multipart_upload: CompletedMultipartUpload = CompletedMultipartUpload::builder()
+        .set_parts(Some(upload_parts))
+        .build();
+
+    let _complete_multipart_upload_res = client
+        .complete_multipart_upload()
+        .bucket(bucket)
+        .key(key)
+        .multipart_upload(completed_multipart_upload)
+        .upload_id(upload_id)
+        .send()
+        .await?;
+
+    Ok(true)
 }
 
 // Deletes old backups from the S3 bucket
