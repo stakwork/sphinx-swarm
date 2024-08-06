@@ -147,8 +147,19 @@ apoc.import.file.enabled=true
 apoc.export.file.enabled=true
 apoc.initializer.neo4j.1=CREATE FULLTEXT INDEX titles_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.show_title, n.episode_title]
 apoc.initializer.neo4j.2=CREATE FULLTEXT INDEX person_full_index IF NOT EXISTS FOR (n:Person) ON EACH [n.name]
-apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.topic]
-apoc.initializer.neo4j.4=CREATE FULLTEXT INDEX text_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.text]
+apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.name]
+apoc.initializer.neo4j.4=CREATE FULLTEXT INDEX text_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.namespace]
 apoc.initializer.neo4j.5=CREATE FULLTEXT INDEX data_bank_full_index IF NOT EXISTS FOR (n:Data_Bank) ON EACH [n.Data_Bank]
-apoc.initializer.neo4j.6=MATCH (n) WHERE NOT EXISTS(n.namespace) OR n.namespace = '' SET n.namespace = 'default'
+apoc.initializer.neo4j.6=CREATE FULLTEXT INDEX aliasEntityIndex IF NOT EXISTS FOR (n:Alias) ON EACH [n.entity]
+apoc.initializer.neo4j.7=CREATE TEXT INDEX entity_lower_string_exact_index IF NOT EXISTS FOR (a:Alias) ON (a.entity_lower)
+apoc.initializer.neo4j.8=CREATE TEXT INDEX name_lower_string_exact_index IF NOT EXISTS FOR (t:Topic) ON (t.name_lower)
+apoc.initializer.neo4j.9=CREATE INDEX match_entity_namespace_alias_index IF NOT EXISTS FOR (a:Alias) ON (a.entity, a.namespace)
+apoc.initializer.neo4j.10=CREATE INDEX match_all_alias_index IF NOT EXISTS FOR (a:Alias) ON (a.entity, a.namespace, a.replacement, a.context)
+apoc.initializer.neo4j.11=CREATE INDEX ON :Entity(entity)
+apoc.initializer.neo4j.12=CREATE INDEX ON :Context(context)
+apoc.initializer.neo4j.13=CREATE INDEX ON :Topic(name)
+apoc.initializer.neo4j.14=CREATE INDEX ON :Chunk(chunk)
+apoc.initializer.neo4j.15=CREATE INDEX ON :Replacement_Entity(replacement)
+apoc.initializer.neo4j.16=CREATE FULLTEXT INDEX schema_full_index IF NOT EXISTS FOR (n:Schema) ON EACH [n.type]
+apoc.initializer.neo4j.17=CREATE FULLTEXT INDEX query_full_index IF NOT EXISTS FOR (n:Query) ON EACH [n.query]
 "#;
