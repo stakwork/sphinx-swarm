@@ -123,9 +123,11 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             ),
             format!("NEO4J_dbms_allow__upgrade=true"),
             format!("NEO4J_dbms_default__database=neo4j"),
+            format!("NEO4J_dbms.security.procedures.allowlist=gds.*"),
         ]),
         ..Default::default()
     };
+
     if let Some(_host) = node.host.clone() {
         // production tls extra domain
         // c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, true));
