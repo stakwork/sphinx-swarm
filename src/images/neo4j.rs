@@ -1,7 +1,7 @@
 // use super::traefik::{neo4j_labels, traefik_labels};
 use super::*;
 use crate::config::Node;
-use crate::dock::upload_to_container;
+use crate::dock::{exec, upload_to_container};
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
