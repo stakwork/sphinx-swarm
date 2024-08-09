@@ -27,7 +27,7 @@ use crate::backup::bucket_name;
 use crate::builder::find_img;
 use crate::config::STATE;
 use crate::images::DockerHubImage;
-use crate::mount_backedup_volume::{create_tar, download_from_s3, unzip_file};
+use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
 use tokio::fs::File;
 
@@ -586,11 +586,8 @@ async fn copy_data_to_volume(
 
     exec(docker, &host, &format!("mkdir -p {}", &temp_root)).await?;
 
-    // Create a tar file of the data_path
-    let tar_path = create_tar(data_path)?;
-
     // Open the tar file
-    let mut tar_file = File::open(tar_path).await?;
+    let mut tar_file = File::open(data_path).await?;
 
     // Read the tar file into a buffer
     let mut buffer = Vec::new();
@@ -612,8 +609,8 @@ async fn copy_data_to_volume(
         &docker,
         &host,
         &format!(
-            "rm -rf {}/* && mv -f {}/* {}",
-            root_volume, temp_root, root_volume
+            "rm -rf {}/* && mv -f {}/{}/* {}",
+            root_volume, temp_root, root_volume, root_volume
         ),
     )
     .await?;
@@ -624,6 +621,11 @@ async fn copy_data_to_volume(
 fn directory_exists(path: &str) -> bool {
     let path = Path::new(path);
     path.is_dir()
+}
+
+fn file_exists(path: &str) -> bool {
+    let path = Path::new(path);
+    path.exists() && path.is_file()
 }
 
 pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool> {
@@ -640,24 +642,19 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool
         let img = find_img(&name, &nodes)?;
 
         if let Ok(backup_link) = getenv("BACKUP_KEY") {
-            let parent_directory = "unzipped";
-            let zip_path = format!("{}", &backup_link);
-            if !directory_exists(&parent_directory) {
-                let _ = download_from_s3(&bucket_name(), &backup_link, &zip_path).await;
-                let _ = unzip_file(&zip_path, &parent_directory);
-                // let _ = unzip_file("tester.zip", &parent_directory);
+            if !directory_exists(&backup_link) {
+                let _ = download_from_s3(&bucket_name(), &backup_link).await;
             } else {
                 log::info!("Directory exist");
             }
 
             let root_volume = img.repo().root_volume.clone();
 
-            let outer_dir = get_last_segment(&root_volume);
-            let data_path = format!("{}/{}/{}", &parent_directory, &name, &outer_dir);
+            let data_path = format!("{}/{}/{}.tar", &backup_link, &name, &name);
 
             log::info!("Current Output path: {}", &data_path);
 
-            if directory_exists(&data_path) {
+            if file_exists(&data_path) {
                 //create temporary container
                 match copy_data_to_volume(&docker, &name, &root_volume, &data_path).await {
                     Ok(_) => {
@@ -715,7 +712,7 @@ pub async fn new_exec(
     Ok(output)
 }
 
-fn get_last_segment(path: &str) -> &str {
+pub fn get_last_segment(path: &str) -> &str {
     match path.rfind('/') {
         Some(pos) => &path[pos + 1..],
         None => path,
