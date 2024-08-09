@@ -1,7 +1,7 @@
 // use super::traefik::{neo4j_labels, traefik_labels};
 use super::*;
 use crate::config::Node;
-use crate::dock::upload_to_container;
+use crate::dock::{upload_to_container, exec};
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -42,8 +42,26 @@ impl Neo4jImage {
         self.links = strarr(links)
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
+        //Migrate Neo4j to 5.19.0
+        log::info!("=> Checking neo4j version and migrating to 5.19.0...");
+        let command = "/var/lib/neo4j/bin/neo4j-admin --version";
+        let neo4j_admin_version = exec(docker, &domain(&self.name), command).await?;
+
+        let mut apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
+        let version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
+        let required_version = "5.0.0".to_string();
+        if version_output >= required_version {
+            log::info!("=> migrating to 5.19.0...");
+            apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
+
+            let command = "/var/lib/neo4j/bin/neo4j-admin database migrate neo4j/system --force-btree-index-to-parse";
+            exec(docker, &domain(&self.name), command).await?;
+
+            let command = "/var/lib/neo4j/bin/neo4j-admin database migrate neo4j/neo4j --force-btree-index-to-parse";
+            exec(docker, &domain(&self.name), command).await?;
+        }
+
         log::info!("=> download apoc plugin for neo4j...");
-        let apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
         let bytes = reqwest::get(apoc_url).await?.bytes().await?;
         upload_to_container(
             docker,
