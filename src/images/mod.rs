@@ -1,6 +1,8 @@
 pub mod boltwall;
+pub mod bot;
 pub mod broker;
 pub mod btc;
+pub mod builtin;
 pub mod cache;
 pub mod cln;
 pub mod config_server;
@@ -43,6 +45,8 @@ pub enum Image {
     Mixer(mixer::MixerImage),
     Tribes(tribes::TribesImage),
     Config(config_server::ConfigImage),
+    Bot(bot::BotImage),
+    Builtin(builtin::BuiltinImage),
 }
 
 pub struct Repository {
@@ -85,6 +89,8 @@ impl Image {
             Image::Mixer(n) => n.name.clone(),
             Image::Tribes(n) => n.name.clone(),
             Image::Config(n) => n.name.clone(),
+            Image::Bot(n) => n.name.clone(),
+            Image::Builtin(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -105,6 +111,8 @@ impl Image {
             Image::Mixer(_n) => "Mixer",
             Image::Tribes(_n) => "Tribes",
             Image::Config(_n) => "Config",
+            Image::Bot(_n) => "Bot",
+            Image::Builtin(_n) => "Builtin",
         }
         .to_string()
     }
@@ -126,6 +134,8 @@ impl Image {
             Image::Mixer(n) => n.version = version.to_string(),
             Image::Tribes(n) => n.version = version.to_string(),
             Image::Config(n) => n.version = version.to_string(),
+            Image::Bot(n) => n.version = version.to_string(),
+            Image::Builtin(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -206,6 +216,8 @@ impl DockerConfig for Image {
             Image::Mixer(n) => n.make_config(nodes, docker).await,
             Image::Tribes(n) => n.make_config(nodes, docker).await,
             Image::Config(n) => n.make_config(nodes, docker).await,
+            Image::Bot(n) => n.make_config(nodes, docker).await,
+            Image::Builtin(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -229,6 +241,8 @@ impl DockerHubImage for Image {
             Image::Mixer(n) => n.repo(),
             Image::Tribes(n) => n.repo(),
             Image::Config(n) => n.repo(),
+            Image::Bot(n) => n.repo(),
+            Image::Builtin(n) => n.repo(),
         }
     }
 }
@@ -328,6 +342,22 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_bot(&self) -> Option<bot::BotImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_bot() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_builtin(&self) -> Option<builtin::BuiltinImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_builtin() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -407,6 +437,18 @@ impl Image {
         match self {
             Image::Broker(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Broker".to_string())),
+        }
+    }
+    pub fn as_bot(&self) -> anyhow::Result<bot::BotImage> {
+        match self {
+            Image::Bot(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Bot".to_string())),
+        }
+    }
+    pub fn as_builtin(&self) -> anyhow::Result<builtin::BuiltinImage> {
+        match self {
+            Image::Builtin(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Builtin".to_string())),
         }
     }
 }

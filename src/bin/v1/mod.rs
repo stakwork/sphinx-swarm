@@ -4,8 +4,8 @@ use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{
-    broker::BrokerImage, btc::BtcImage, cln::ClnImage, lnd::LndImage, mixer::MixerImage,
-    tribes::TribesImage, Image,
+    bot::BotImage, broker::BrokerImage, btc::BtcImage, builtin::BuiltinImage, cln::ClnImage,
+    lnd::LndImage, mixer::MixerImage, tribes::TribesImage, Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::setup::{get_pubkey_cln, mine_blocks, setup_cln_chans, setup_lnd_chans};
@@ -35,6 +35,8 @@ const TRIBES1: &str = "tribes_1";
 const TRIBES3: &str = "tribes_3";
 const JWT_KEY: &str = "f8int45s0pofgtye";
 const LND_1: &str = "lnd_1";
+const BOT_1: &str = "bot_1";
+const BUILTIN_1: &str = "builtin_1";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -166,8 +168,14 @@ fn make_stack() -> Stack {
     mixer1.set_log_level("debug");
     let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
+    let mut bot1 = BotImage::new(BOT_1, v, "3002");
+    bot1.links(vec![BROKER1]);
+
+    let mut builtin1 = BuiltinImage::new(BUILTIN_1, v, "3030");
+    builtin1.links(vec![BOT_1]);
+
     let mut tribes1 = TribesImage::new(TRIBES1, v, &network, "8801");
-    tribes1.links(vec![BROKER1]);
+    tribes1.links(vec![BROKER1, BUILTIN_1]);
 
     // CLN2
     let seed2 = "2c".repeat(32); //[44; 32];
@@ -238,6 +246,8 @@ fn make_stack() -> Stack {
         Image::Broker(broker1),
         Image::Mixer(mixer1),
         Image::Tribes(tribes1),
+        Image::Bot(bot1),
+        Image::Builtin(builtin1),
         // 2 (routing)
         Image::Cln(cln2),
         Image::Broker(broker2),

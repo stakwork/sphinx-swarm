@@ -244,6 +244,12 @@ impl Stack {
                 Image::Mixer(m) => Node::Internal(Image::Mixer(m)),
                 Image::Tribes(t) => Node::Internal(Image::Tribes(t)),
                 Image::Config(c) => Node::Internal(Image::Config(c)),
+                Image::Bot(mut b) => {
+                    b.seed = "".to_string();
+                    b.admin_token = "".to_string();
+                    Node::Internal(Image::Bot(b))
+                }
+                Image::Builtin(b) => Node::Internal(Image::Builtin(b)),
             },
         });
         Stack {
