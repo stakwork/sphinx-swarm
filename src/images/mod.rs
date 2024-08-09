@@ -140,6 +140,7 @@ impl Image {
             // unlock LND
             Image::Lnd(n) => n.post_startup(proj, docker).await?,
             Image::Elastic(n) => n.post_startup(proj, docker).await?,
+            Image::Neo4j(n) => n.post_startup(proj, docker).await?,
             _ => (),
         })
     }
