@@ -577,6 +577,7 @@ impl ContainerStat {
 async fn copy_data_to_volume(
     docker: &Docker,
     name: &str,
+    inner_root_path: &str,
     root_volume: &str,
     data_path: &str,
 ) -> Result<(), Box<dyn Error>> {
@@ -610,7 +611,7 @@ async fn copy_data_to_volume(
         &host,
         &format!(
             "rm -rf {}/* && mv -f {}/{}/* {}",
-            root_volume, temp_root, root_volume, root_volume
+            root_volume, temp_root, inner_root_path, root_volume
         ),
     )
     .await?;
@@ -652,11 +653,21 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool
 
             let data_path = format!("{}/{}/{}.tar", &backup_link, &name, &name);
 
+            let inner_root_path = get_last_segment(&root_volume);
+
             log::info!("Current Output path: {}", &data_path);
 
             if file_exists(&data_path) {
                 //create temporary container
-                match copy_data_to_volume(&docker, &name, &root_volume, &data_path).await {
+                match copy_data_to_volume(
+                    &docker,
+                    &name,
+                    &inner_root_path,
+                    &root_volume,
+                    &data_path,
+                )
+                .await
+                {
                     Ok(_) => {
                         log::info!("Copied data to volume successfully");
                         return Ok(true);

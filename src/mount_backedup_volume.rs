@@ -3,6 +3,7 @@ use aws_sdk_s3::config::Region;
 use aws_sdk_s3::operation::get_object::GetObjectOutput;
 use aws_sdk_s3::Client;
 use aws_smithy_types::byte_stream::ByteStream;
+use aws_smithy_types::retry::RetryConfig;
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -20,7 +21,11 @@ pub async fn download_from_s3(bucket: &str, key: &str) -> Result<(), Box<dyn Err
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
-    let config = aws_config::from_env().region(region_provider).load().await;
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
     let client = Client::new(&config);
 
     match client
