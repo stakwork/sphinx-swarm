@@ -142,11 +142,9 @@ fn make_stack() -> Stack {
 
     // CLN1
     let seed1 = "2b".repeat(32); //[43; 32];
-    let clnv = "v24-fix-gossip-2";
-    let clngitv = "4cfbd6a";
+    let clnv = "latest";
     let clndev = true;
     let mut cln1 = ClnImage::new(CLN1, clnv, &network, "9735", "10009");
-    cln1.set_git_version(clngitv);
     if clndev {
         cln1.set_dev();
     }
@@ -157,7 +155,7 @@ fn make_stack() -> Stack {
     let v = "latest";
     let mut broker1 = BrokerImage::new(BROKER1, v, &network, "1883", None);
     broker1.set_seed(&seed1);
-    broker1.set_logs("login,pubsub");
+    broker1.set_logs("login");
     let broker1ip = format!("{}:{}", domain(&broker1.name), &broker1.mqtt_port);
 
     let mut mixer1 = MixerImage::new(MIXER1, v, &network, "8080");
@@ -180,7 +178,6 @@ fn make_stack() -> Stack {
     // CLN2
     let seed2 = "2c".repeat(32); //[44; 32];
     let mut cln2 = ClnImage::new(CLN2, clnv, &network, "9736", "10010");
-    cln2.set_git_version(clngitv);
     if clndev {
         cln2.set_dev();
     }
@@ -204,7 +201,6 @@ fn make_stack() -> Stack {
     // CLN3
     let seed3 = "2d".repeat(32); //[45; 32];
     let mut cln3 = ClnImage::new(CLN3, clnv, &network, "9737", "10011");
-    cln3.set_git_version(clngitv);
     if clndev {
         cln3.set_dev();
     }
