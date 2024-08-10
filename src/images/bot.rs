@@ -55,7 +55,7 @@ impl DockerHubImage for BotImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-bot".to_string(),
-            root_volume: "/usr/src/app/bot".to_string(),
+            root_volume: "/home/.bot".to_string(),
         }
     }
 }
@@ -73,6 +73,7 @@ fn bot(img: &BotImage, broker: &BrokerImage) -> Result<Config<String>> {
         format!("PORT={}", img.port),
         format!("SEED={}", img.seed),
         format!("ADMIN_TOKEN={}", img.admin_token),
+        format!("STORE_FILE={}", "/home/.bot/db"),
         format!(
             "BROKER=http://{}:{}",
             domain(&broker.name),

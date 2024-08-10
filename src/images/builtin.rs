@@ -13,8 +13,6 @@ pub struct BuiltinImage {
     pub name: String,
     pub version: String,
     pub port: String,
-    pub seed: String,
-    pub admin_token: String,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -25,8 +23,6 @@ impl BuiltinImage {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
-            seed: crate::secrets::hex_secret_32(),
-            admin_token: crate::secrets::hex_secret_32(),
             host: None,
             links: vec![],
         }
@@ -55,7 +51,7 @@ impl DockerHubImage for BuiltinImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "sphinx-builtin-bots".to_string(),
-            root_volume: "/usr/src/app".to_string(),
+            root_volume: "/home/.builtin".to_string(),
         }
     }
 }
@@ -69,8 +65,10 @@ fn builtin(img: &BuiltinImage, bot: &BotImage) -> Result<Config<String>> {
     let ports = vec![img.port.clone()];
 
     let env = vec![
+        format!("DB_PATH={}", "/home/.builtin/bots.db"),
         format!("MIXER_ADMIN_TOKEN={}", bot.admin_token),
         format!("MIXER_URL=http://{}:{}", domain(&bot.name), bot.port),
+        format!("PORT={}", img.port),
     ];
 
     let mut c = Config {
