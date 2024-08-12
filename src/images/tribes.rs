@@ -92,11 +92,12 @@ fn tribes(
         format!("ROCKET_PORT={}", img.port),
     ];
     if let Some(bbs) = builtin {
-        format!(
+        env.push(format!(
             "BOT_SERVER=http://{}:{}/api/msg",
             domain(&bbs.name),
             bbs.port
-        );
+        ));
+        env.push(format!("BOT_TOKEN={}", bbs.msg_token));
     }
 
     if let Some(th) = &img.tribes_host {

@@ -13,6 +13,7 @@ pub struct BuiltinImage {
     pub name: String,
     pub version: String,
     pub port: String,
+    pub msg_token: String,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -23,6 +24,7 @@ impl BuiltinImage {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
+            msg_token: crate::secrets::hex_secret_32(),
             host: None,
             links: vec![],
         }
@@ -69,6 +71,7 @@ fn builtin(img: &BuiltinImage, bot: &BotImage) -> Result<Config<String>> {
         format!("MIXER_ADMIN_TOKEN={}", bot.admin_token),
         format!("MIXER_URL=http://{}:{}", domain(&bot.name), bot.port),
         format!("PORT={}", img.port),
+        format!("MSG_TOKEN={}", img.msg_token),
     ];
 
     let mut c = Config {

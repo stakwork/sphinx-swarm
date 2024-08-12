@@ -46,6 +46,10 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     log::info!("STACK {:?}", stack);
 
+    // let st = serde_yaml::to_string(&stack).expect("failed to make yaml string");
+    // println!("{}", st);
+    // return Ok(());
+
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
     handler::hydrate_stack(stack.clone()).await;
 
