@@ -68,8 +68,8 @@ fn builtin(img: &BuiltinImage, bot: &BotImage) -> Result<Config<String>> {
 
     let env = vec![
         format!("DB_PATH={}", "/home/.builtin/bots.db"),
-        format!("MIXER_ADMIN_TOKEN={}", bot.admin_token),
-        format!("MIXER_URL=http://{}:{}", domain(&bot.name), bot.port),
+        format!("BOT_ADMIN_TOKEN={}", bot.admin_token),
+        format!("BOT_URL=http://{}:{}", domain(&bot.name), bot.port),
         format!("PORT={}", img.port),
         format!("MSG_TOKEN={}", img.msg_token),
     ];

@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::broker::BrokerImage;
+use crate::images::tribes::TribesImage;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -46,7 +47,8 @@ impl DockerConfig for BotImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let broker = li.find_broker().context("Bot: No Broker")?;
-        Ok(bot(self, &broker)?)
+        let tribes = li.find_tribes();
+        Ok(bot(self, &broker, &tribes)?)
     }
 }
 
@@ -60,7 +62,11 @@ impl DockerHubImage for BotImage {
     }
 }
 
-fn bot(img: &BotImage, broker: &BrokerImage) -> Result<Config<String>> {
+fn bot(
+    img: &BotImage,
+    broker: &BrokerImage,
+    tribes_opt: &Option<TribesImage>,
+) -> Result<Config<String>> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -68,7 +74,7 @@ fn bot(img: &BotImage, broker: &BrokerImage) -> Result<Config<String>> {
 
     let ports = vec![img.port.clone()];
 
-    let env = vec![
+    let mut env = vec![
         format!("MY_ALIAS={}", "bot"),
         format!("PORT={}", img.port),
         format!("SEED={}", img.seed),
@@ -80,6 +86,13 @@ fn bot(img: &BotImage, broker: &BrokerImage) -> Result<Config<String>> {
             broker.mqtt_port
         ),
     ];
+    if let Some(tribes) = tribes_opt {
+        env.push(format!(
+            "TRIBES_URL=http://{}:{}",
+            domain(&tribes.name),
+            tribes.port
+        ));
+    }
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),

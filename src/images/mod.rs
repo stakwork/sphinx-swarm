@@ -342,6 +342,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_tribes(&self) -> Option<tribes::TribesImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_tribes() {
+                return Some(i);
+            }
+        }
+        None
+    }
     pub fn find_bot(&self) -> Option<bot::BotImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_bot() {
@@ -437,6 +445,12 @@ impl Image {
         match self {
             Image::Broker(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Broker".to_string())),
+        }
+    }
+    pub fn as_tribes(&self) -> anyhow::Result<tribes::TribesImage> {
+        match self {
+            Image::Tribes(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Tribes".to_string())),
         }
     }
     pub fn as_bot(&self) -> anyhow::Result<bot::BotImage> {
