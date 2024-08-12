@@ -1,7 +1,9 @@
 if  [ $1 != "mixer" ] && \
     [ $1 != "tribes" ] && \
     [ $1 != "broker" ] && \
-    [ $1 != "cln" ]
+    [ $1 != "cln" ] && \
+    [ $1 != "bot" ] && \
+    [ $1 != "builtin" ]
 then
     echo "=> invalid image name! $1"
     exit 1
@@ -12,6 +14,8 @@ docker pull sphinxlightning/sphinx-broker:latest
 docker pull sphinxlightning/sphinx-mixer:latest
 docker pull sphinxlightning/sphinx-swarm:latest
 docker pull sphinxlightning/sphinx-tribes-v2:latest
+docker pull sphinxlightning/sphinx-bot:latest
+docker pull sphinxlightning/sphinx-builtin-bots:latest
 docker pull sphinxlightning/cln-sphinx:latest
 
 echo "stop swarm.sphinx"
