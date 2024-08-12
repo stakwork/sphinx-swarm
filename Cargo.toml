@@ -59,6 +59,8 @@ aws-sdk-s3 = "1.38.0"
 chrono = "0.4"
 bytes = "1.0"
 aws-smithy-types = "1.2.0"
+tokio-util = { version = "*", features = ["io-util", "io"] }
+futures = "*"
 
 [lib]
 name = "sphinx_swarm"

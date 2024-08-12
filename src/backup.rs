@@ -14,14 +14,14 @@ use bollard::Docker;
 use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use futures_util::stream::TryStreamExt;
 use std::fs::{self, File};
-use std::io::Cursor;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::fs::remove_dir_all;
+use tokio::io::BufWriter;
 use tokio_cron_scheduler::{Job, JobScheduler};
+use tokio_util::io::StreamReader;
 use walkdir::WalkDir;
-use zip::write::FileOptions;
 use zip::CompressionMethod;
 use zip::ZipWriter;
 
@@ -65,27 +65,27 @@ pub async fn backup_containers() -> Result<()> {
         }
     }
 
-    let (parent_directory, parent_zip) = download_and_zip_from_container(containers).await?;
-
-    // delete parent directory content after zip
-    let _ = remove_dir_all(&parent_directory).await;
-
-    upload_final_zip_to_s3(parent_zip).await?;
+    download_and_zip_from_container(containers).await?;
 
     Ok(())
 }
 
 pub async fn download_and_zip_from_container(
     containers: Vec<(String, String, String)>,
-) -> Result<(String, String)> {
+) -> Result<()> {
     // Initialize the Docker client
     let docker = Docker::connect_with_local_defaults()?;
 
     // Define the parent directory where all the container volumes will be saved
     let parent_directory = getenv("HOST")?;
 
+    let current_timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+    let s3_parent_directory = format!("{}_{}", &parent_directory, current_timestamp);
+
     // Create the parent directory if it doesn't exist
-    fs::create_dir_all(&parent_directory)?;
+    fs::create_dir_all(&s3_parent_directory)?;
+
+    log::info!("Directory was created!!!");
 
     // Iterate over each container and download its volume
     for (container_id, volume_path, sub_directory) in containers {
@@ -93,62 +93,42 @@ pub async fn download_and_zip_from_container(
         let options = DownloadFromContainerOptions { path: &volume_path };
 
         // Stream the tar content from the container
-        let mut stream = docker.download_from_container(&container_id, Some(options));
+        let stream = docker.download_from_container(&container_id, Some(options));
 
-        // Collect the streamed data into a vector
-        let mut tar_data = Vec::new();
-        while let Some(chunk) = stream.try_next().await? {
-            tar_data.extend(&chunk);
-        }
+        let body_with_io_error =
+            stream.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
 
-        // Create a cursor for the tar data
-        let tar_cursor = Cursor::new(tar_data);
+        let body_reader = StreamReader::new(body_with_io_error);
 
-        // Create a tar archive from the cursor
-        let mut archive = tar::Archive::new(tar_cursor);
+        futures::pin_mut!(body_reader);
 
-        // Define the subdirectory for the current container
-        let subdirectory = format!("{}/{}", &parent_directory, &sub_directory);
+        let subdirectory = format!("{}/{}", &s3_parent_directory, &sub_directory);
 
-        // Create the subdirectory if it doesn't exist
         fs::create_dir_all(&subdirectory)?;
 
-        // Create a ZIP file to save the content
-        let zip_file_path = format!("{}/{}.zip", subdirectory, &sub_directory);
-        let zip_file = File::create(zip_file_path)?;
-        let mut zip_writer = ZipWriter::new(zip_file);
-        let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let tar_file_name = format!("{}/{}.tar", subdirectory, &sub_directory);
 
-        // Iterate over the entries in the tar archive and write them to the ZIP file
-        for entry in archive.entries()? {
-            let mut entry = entry?;
-            let path = entry.path()?.to_owned();
+        let mut file = BufWriter::new(tokio::fs::File::create(tar_file_name).await?);
 
-            if path.is_dir() {
-                zip_writer.add_directory(path.to_string_lossy(), options)?;
-            } else {
-                zip_writer.start_file(path.to_string_lossy(), options)?;
-                let mut buffer = Vec::new();
-                entry.read_to_end(&mut buffer)?;
-                zip_writer.write_all(&buffer)?;
-            }
-        }
+        tokio::io::copy(&mut body_reader, &mut file).await?;
 
-        zip_writer.finish()?;
+        upload_final_zip_to_s3(format!(
+            "{}/{}/{}.tar",
+            &s3_parent_directory, &sub_directory, &sub_directory
+        ))
+        .await?;
 
         log::info!(
-            "Volume from container {} downloaded and saved as a ZIP file in directory {}",
+            "Volume from container {} downloaded, saved as a TAR file in directory {} and pushed to AWS S3 Buckey",
             container_id,
             subdirectory
         );
     }
 
-    let current_timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-    let parent_zip = format!("{}_{}.zip", &parent_directory, current_timestamp);
+    // delete folder
+    let _ = remove_dir_all(&s3_parent_directory).await;
 
-    zip_directory(&parent_directory, &parent_zip)?;
-
-    Ok((parent_directory, parent_zip))
+    Ok(())
 }
 
 async fn upload_final_zip_to_s3(parent_zip: String) -> Result<()> {
@@ -166,7 +146,7 @@ async fn upload_final_zip_to_s3(parent_zip: String) -> Result<()> {
     Ok(())
 }
 
-fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
+pub fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
     let file = File::create(zip_file)?;
     let mut zip = ZipWriter::new(file);
     let options = zip::write::FileOptions::default().compression_method(CompressionMethod::Stored);
@@ -340,7 +320,7 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
 
     let objects = resp.contents();
 
-    if objects.len() > 3 {
+    if objects.len() > 12 {
         // Filter objects older than retention_days
         let retention_date = Utc::now() - Duration::days(retention_days);
         let mut objects_to_delete = Vec::new();
