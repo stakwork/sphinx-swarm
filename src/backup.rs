@@ -320,7 +320,7 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
 
     let objects = resp.contents();
 
-    if objects.len() > 3 {
+    if objects.len() > 12 {
         // Filter objects older than retention_days
         let retention_date = Utc::now() - Duration::days(retention_days);
         let mut objects_to_delete = Vec::new();
