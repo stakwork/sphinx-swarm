@@ -2,7 +2,9 @@
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
+use crate::dock::exec_with_array;
 use crate::dock::exec;
+use crate::dock::sleep;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -80,19 +82,48 @@ impl Neo4jImage {
     }
     pub async fn post_startup(&self, _proj: &str, docker: &Docker) -> Result<()> {
         //Migrate Neo4j to 5.19.0
+
+        // First stop neo4j
+        //log::info!("=> Stopping neo4j in container");
+        //exec(docker, &domain(&self.name), "/var/lib/neo4j/bin/neo4j stop").await?;
+        
+        //========================================================
         log::info!("=> Checking neo4j version and migrating to 5.19.0...");
-        //let command = "/var/lib/neo4j/bin/neo4j-admin --version";
-        let command = "/bin/echo 4.0.0";
         log::info!("=> getting neo4j version...");
-        let neo4j_admin_version = exec(docker, &domain(&self.name), command).await?;
+        let command = ["cypher-shell", "-u", "neo4j", "-p", "test", "CALL dbms.components()"];
+        let mut neo4j_admin_version = exec_with_array(docker, &domain(&self.name), command.to_vec()).await?;
 
-        log::info!("=> got neo4j version...");
 
-        let version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
+        //========================================================
+
+        //let command2 = r#"grep 'Neo4j Kernel' | awk -F'\\[|\\]|"' '{print $5}'"#
+
+        //let neo4j_admin_version = exec(docker, &domain(&self.name), command).await?;
+        let mut version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
+
+        while version_output == "Connection refused" {
+            neo4j_admin_version = exec_with_array(docker, &domain(&self.name), command.to_vec()).await?;
+            version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
+            sleep(20000).await;
+
+        }
+        log::info!("Current Version: {}", version_output);
+        //let command2 = [
+        //    "echo",
+        //    &version_output,
+        //    "|",
+        //    "awk",
+        //    r#"-F'[\\[\\]"]' '{print $4}'"#,
+        //];
+        //neo4j_admin_version = exec_with_array(docker, &domain(&self.name), command2.to_vec()).await?;
+        //version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
+        let parts: Vec<&str> = version_output.split('"').collect();
+        version_output = parts[3].to_string();
+
         log::info!("=> got neo4j version string...");
         let required_version = "5.0.0".to_string();
-        log::info!("{}", version_output);
-        log::info!("{}", required_version);
+        log::info!("Current Version: {}", version_output);
+        log::info!("Minimum Verision: {}", required_version);
         log::info!("{}", version_output >= required_version);
         if version_output <= required_version {
             log::info!("=> migrating to 5.19.0...");
@@ -104,6 +135,9 @@ impl Neo4jImage {
             exec(docker, &domain(&self.name), command).await?;
             log::info!("=> finished migrating to 5.19.0...");
         }
+
+        // Start neo4j again
+        exec(docker, &domain(&self.name), "/var/lib/neo4j/bin/neo4j stop").await?;
         Ok(())
     }
 
