@@ -170,5 +170,4 @@ echo 'YOUTUBE_API_TOKEN=<ENTER_YOUTUBE_API_TOKEN>' >> .env &&
 echo 'SWARM_UPDATER_PASSWORD=-' >> .env &&
 echo 'JARVIS_FEATURE_FLAG_SCHEMA=true' >> .env
 echo 'BACKUP_KEY=<BACKUP_KEY>' >> .env
-echo 'FEATURE_FLAG_ADD_NODE_KEY' >> .env
 ```
