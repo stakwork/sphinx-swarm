@@ -7,6 +7,7 @@ use crate::checker::swarm_checker;
 use anyhow::{Context, Result};
 use rocket::tokio;
 use serde::{Deserialize, Serialize};
+use sphinx_swarm::config::State;
 use sphinx_swarm::routes;
 use sphinx_swarm::utils;
 use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
@@ -99,6 +100,13 @@ pub struct DeleteSwarmInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChildSwarm {
+    pub password: String,
+    pub host: String,
+    pub token: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -107,10 +115,51 @@ pub enum SwarmCmd {
     AddNewSwarm(AddNewSwarmInfo),
     UpdateSwarm(UpdateSwarmInfo),
     DeleteSwarm(DeleteSwarmInfo),
+    SetChildSwarm(ChildSwarm),
+}
+
+fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
+    // login needs no auth
+    if let Cmd::Swarm(c) = cmd {
+        if let SwarmCmd::Login(_) = c {
+            return true;
+        }
+    }
+    // user id required if not SwarmCmd::Login
+    if user_id.is_none() {
+        return false;
+    }
+    let user_id = user_id.unwrap();
+    let user = state.stack.users.iter().find(|u| u.id == user_id);
+    // user required
+    if user.is_none() {
+        return false;
+    }
+    match cmd {
+        Cmd::Swarm(c) => match c {
+            SwarmCmd::SetChildSwarm(c) => {
+                // user can only change their own password
+                let envtoken = std::env::var("SUPER_TOKEN").ok();
+                if envtoken.is_none() {
+                    return false;
+                }
+                if c.token != envtoken.unwrap() {
+                    return true;
+                }
+            }
+            _ => {}
+        },
+    };
+    true
 }
 
 // tag is the service name
-pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
+pub async fn super_handle(
+    proj: &str,
+    cmd: Cmd,
+    _tag: &str,
+    user_id: &Option<u32>,
+) -> Result<String> {
     // conf can be mutated in place
     let mut state = state::STATE.lock().await;
     // println!("STACK {:?}", stack);
@@ -214,6 +263,10 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                 }
                 Some(serde_json::to_string(&hm)?)
             }
+            SwarmCmd::SetChildSwarm(_c) => {
+                // do the thing
+                None
+            }
         },
     };
 
@@ -228,7 +281,7 @@ pub fn spawn_super_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>) {
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                match super_handle(&project, cmd, &msg.tag).await {
+                match super_handle(&project, cmd, &msg.tag, &msg.user_id).await {
                     Ok(res) => {
                         let _ = msg.reply_tx.send(res);
                     }

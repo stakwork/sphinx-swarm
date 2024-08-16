@@ -73,6 +73,7 @@ services:
       - TESTING_ONLY_ADD_TO_SENDER=$TESTING_ONLY_ADD_TO_SENDER # mixer testing
       - SWARM_UPDATER_PASSWORD=$SWARM_UPDATER_PASSWORD
       - TRIBES_HOST=$TRIBES_HOST
+      - SUPER_TOKEN=$SUPER_TOKEN
 
 networks:
   sphinx-swarm:

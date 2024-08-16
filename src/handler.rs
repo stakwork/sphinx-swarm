@@ -5,6 +5,7 @@ use crate::auth;
 use crate::builder;
 use crate::cmd::*;
 use crate::config;
+use crate::config::Role;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
@@ -20,11 +21,53 @@ use rocket::tokio::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
+fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
+    // login needs no auth
+    if let Cmd::Swarm(c) = cmd {
+        if let SwarmCmd::Login(_) = c {
+            return true;
+        }
+    }
+    // user id required if not SwarmCmd::Login
+    if user_id.is_none() {
+        return false;
+    }
+    let user_id = user_id.unwrap();
+    let user = state.stack.users.iter().find(|u| u.id == user_id);
+    // user required
+    if user.is_none() {
+        return false;
+    }
+    match user.unwrap().role {
+        Role::Admin => true,
+        Role::Super => match cmd {
+            Cmd::Swarm(c) => match c {
+                SwarmCmd::StartContainer(_) => true,
+                SwarmCmd::StopContainer(_) => true,
+                SwarmCmd::GetConfig => true,
+                SwarmCmd::UpdateSwarm => true,
+                _ => false,
+            },
+            _ => false,
+        },
+    }
+}
+
 // tag is the service name
-pub async fn handle(proj: &str, cmd: Cmd, tag: &str, docker: &Docker) -> Result<String> {
+pub async fn handle(
+    proj: &str,
+    cmd: Cmd,
+    tag: &str,
+    docker: &Docker,
+    user_id: &Option<u32>,
+) -> Result<String> {
     // conf can be mutated in place
     let mut state = config::STATE.lock().await;
     // println!("STACK {:?}", stack);
+
+    if !access(&cmd, &state, user_id) {
+        return Err(anyhow!("access denied"));
+    }
 
     let mut must_save_stack = false;
 
@@ -591,7 +634,7 @@ pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Doc
             let response = if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
                 match tokio::time::timeout(
                     Duration::from_secs(timeout_duration.parse().unwrap_or(60)),
-                    handle(&project, cmd, &msg.tag, &docker),
+                    handle(&project, cmd, &msg.tag, &docker, &msg.user_id),
                 )
                 .await
                 {

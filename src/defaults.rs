@@ -184,17 +184,38 @@ impl Default for Stack {
         // final nodes array
         nodes.extend(external_nodes);
 
+        let mut users = vec![User::default()];
+        let superuser = create_super_user();
+        users.push(superuser);
+
         Stack {
             network,
             nodes,
             host,
-            users: vec![Default::default()],
+            users,
             jwt_key: secrets::random_word(16),
             ready: false,
             ip: env_no_empty("IP"),
             auto_update: None,
             custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         }
+    }
+}
+
+pub fn create_super_user() -> User {
+    let password = crate::secrets::hex_secret_32();
+    let password_ = password.clone();
+    tokio::spawn(async move {
+        // use password_
+        // reqwest post
+        // add header x-super-token (from env var)
+    });
+    User {
+        id: 2,
+        username: "super".to_string(),
+        pass_hash: bcrypt::hash(&password, bcrypt::DEFAULT_COST).expect("failed to bcrypt"),
+        pubkey: None,
+        role: Role::Super,
     }
 }
 

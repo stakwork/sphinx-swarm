@@ -9,14 +9,20 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct CmdRequest {
     pub tag: String,
     pub message: String,
+    pub user_id: Option<u32>,
     pub reply_tx: oneshot::Sender<String>,
 }
 impl CmdRequest {
-    pub fn new(tag: &str, message: &str) -> (Self, oneshot::Receiver<String>) {
+    pub fn new(
+        tag: &str,
+        message: &str,
+        user_id: Option<u32>,
+    ) -> (Self, oneshot::Receiver<String>) {
         let (reply_tx, reply_rx) = oneshot::channel();
         let cr = CmdRequest {
             tag: tag.to_string(),
             message: message.to_string(),
+            user_id,
             reply_tx,
         };
         (cr, reply_rx)

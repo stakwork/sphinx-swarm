@@ -65,6 +65,7 @@ services:
       - DOCKER_RUN=true 
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
+      - SUPER_TOKEN=$SUPER_TOKEN
     
 networks:
   sphinx-swarm:

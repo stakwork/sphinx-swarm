@@ -61,9 +61,9 @@ pub async fn cmd(
     sender: &State<mpsc::Sender<CmdRequest>>,
     tag: &str,
     txt: &str,
-    _claims: auth::AdminJwtClaims,
+    claims: auth::AdminJwtClaims,
 ) -> Result<String> {
-    let (request, reply_rx) = CmdRequest::new(tag, txt);
+    let (request, reply_rx) = CmdRequest::new(tag, txt, Some(claims.user));
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     Ok(reply)
@@ -164,7 +164,7 @@ pub async fn login(
         password: body.password.clone(),
     }));
     let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     // empty string means unauthorized
@@ -200,7 +200,7 @@ pub async fn update_password(
         password: body.password.clone(),
     }));
     let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     // empty string means unauthorized
@@ -230,7 +230,7 @@ pub async fn update_admin(
         email: body.email.clone(),
     }));
     let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     // empty string means unauthorized
@@ -289,7 +289,7 @@ pub async fn update_admin_pubkey(
         pubkey: body.pubkey.clone(),
     }));
     let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     // empty string means unauthorized
@@ -323,7 +323,7 @@ pub async fn check_signup_challenge(
         username: username.to_string(),
     }));
     let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt);
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
     // empty string means unauthorized
