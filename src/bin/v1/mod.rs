@@ -37,6 +37,7 @@ const JWT_KEY: &str = "f8int45s0pofgtye";
 const LND_1: &str = "lnd_1";
 const BOT_1: &str = "bot_1";
 const BUILTIN_1: &str = "builtin_1";
+const BOT_3: &str = "bot_3";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -225,6 +226,9 @@ fn make_stack() -> Stack {
     mixer3.set_log_level("debug");
     let mixer3pk = "030f5205642b40c64ac5c575f4f365ca90b692f13808b46d827fdb1b6026a3e6c2";
 
+    let mut bot3 = BotImage::new(BOT_3, v, "3003");
+    bot3.links(vec![BROKER3]);
+
     let mut tribes3 = TribesImage::new(TRIBES3, v, &network, "8803");
     tribes3.links(vec![BROKER3]);
 
@@ -257,6 +261,7 @@ fn make_stack() -> Stack {
         Image::Broker(broker3),
         Image::Mixer(mixer3),
         Image::Tribes(tribes3),
+        Image::Bot(bot3),
     ];
 
     if do_test_lnd() {
