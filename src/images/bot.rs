@@ -17,6 +17,8 @@ pub struct BotImage {
     pub seed: String,
     pub admin_token: String,
     pub host: Option<String>,
+    pub router_url: Option<String>,
+    pub initial_delay: Option<String>,
     pub links: Links,
 }
 
@@ -29,6 +31,8 @@ impl BotImage {
             seed: crate::secrets::hex_secret_32(),
             admin_token: crate::secrets::hex_secret_32(),
             host: None,
+            router_url: None,
+            initial_delay: None,
             links: vec![],
         }
     }
@@ -36,6 +40,15 @@ impl BotImage {
         if let Some(h) = eh {
             self.host = Some(format!("{}.{}", self.name, h));
         }
+    }
+    pub fn set_admin_token(&mut self, at: &str) {
+        self.admin_token = at.to_string();
+    }
+    pub fn set_router_url(&mut self, ru: &str) {
+        self.router_url = Some(ru.to_string());
+    }
+    pub fn set_initial_delay(&mut self, id: &str) {
+        self.initial_delay = Some(id.to_string())
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
@@ -92,6 +105,12 @@ fn bot(
             domain(&tribes.name),
             tribes.port
         ));
+    }
+    if let Some(router_url) = &img.router_url {
+        env.push(format!("ROUTER_URL={}", router_url));
+    }
+    if let Some(initial_delay) = &img.initial_delay {
+        env.push(format!("INITIAL_DELAY={}", initial_delay));
     }
 
     let mut c = Config {
