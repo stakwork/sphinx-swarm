@@ -1,4 +1,4 @@
-#./scripts/pull_secondbrain.sh
+./scripts/pull_secondbrain.sh
 
 docker stop sphinx-swarm && docker rm sphinx-swarm
 

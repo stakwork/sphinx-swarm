@@ -357,32 +357,6 @@ pub async fn exec(docker: &Docker, id: &str, cmd: &str) -> Result<String> {
     Ok(ret.join("/n"))
 }
 
-pub async fn exec_with_array(docker: &Docker, id: &str, cmd: Vec<&str>) -> Result<String> {
-    let exec = docker
-        .create_exec(
-            id,
-            CreateExecOptions {
-                attach_stdout: Some(true),
-                attach_stderr: Some(true),
-                cmd: Some(cmd),
-                ..Default::default()
-            },
-        )
-        .await?
-        .id;
-    let started = docker.start_exec(&exec, None).await?;
-    let mut ret = Vec::new();
-    sleep(400).await;
-    if let StartExecResults::Attached { mut output, .. } = started {
-        while let Some(Ok(msg)) = output.next().await {
-            ret.push(msg.to_string());
-        }
-    } else {
-        unreachable!();
-    }
-    Ok(ret.join("/n"))
-}
-
 pub async fn sleep(millis: u64) {
     tokio::time::sleep(tokio::time::Duration::from_millis(millis)).await;
 }
