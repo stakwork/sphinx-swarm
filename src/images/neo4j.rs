@@ -2,9 +2,6 @@
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
-use crate::dock::exec_with_array;
-use crate::dock::exec;
-use crate::dock::sleep;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -45,14 +42,25 @@ impl Neo4jImage {
         self.links = strarr(links)
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
-        let apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
+        let apoc_extended_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
+        log::info!("=> download apoc-extended plugin for neo4j...");
+        let bytes = reqwest::get(apoc_extended_url).await?.bytes().await?;
+        upload_to_container(
+            docker,
+            &self.name,
+            "/var/lib/neo4j/plugins",
+            "apoc-5.19.0-extended.jar",
+            &bytes,
+        )
+        .await?;
+        let apoc_url = "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
         log::info!("=> download apoc plugin for neo4j...");
         let bytes = reqwest::get(apoc_url).await?.bytes().await?;
         upload_to_container(
             docker,
             &self.name,
             "/var/lib/neo4j/plugins",
-            "apoc-4.4.0.11-all.jar",
+            "apoc-5.19.0-core.jar",
             &bytes,
         )
         .await?;
@@ -80,67 +88,6 @@ impl Neo4jImage {
 
         Ok(())
     }
-    pub async fn post_startup(&self, _proj: &str, docker: &Docker) -> Result<()> {
-        //Migrate Neo4j to 5.19.0
-
-        // First stop neo4j
-        //log::info!("=> Stopping neo4j in container");
-        //exec(docker, &domain(&self.name), "/var/lib/neo4j/bin/neo4j stop").await?;
-        
-        //========================================================
-        log::info!("=> Checking neo4j version and migrating to 5.19.0...");
-        log::info!("=> getting neo4j version...");
-        let command = ["cypher-shell", "-u", "neo4j", "-p", "test", "CALL dbms.components()"];
-        let mut neo4j_admin_version = exec_with_array(docker, &domain(&self.name), command.to_vec()).await?;
-
-
-        //========================================================
-
-        //let command2 = r#"grep 'Neo4j Kernel' | awk -F'\\[|\\]|"' '{print $5}'"#
-
-        //let neo4j_admin_version = exec(docker, &domain(&self.name), command).await?;
-        let mut version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
-
-        while version_output == "Connection refused" {
-            neo4j_admin_version = exec_with_array(docker, &domain(&self.name), command.to_vec()).await?;
-            version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
-            sleep(20000).await;
-
-        }
-        log::info!("Current Version: {}", version_output);
-        //let command2 = [
-        //    "echo",
-        //    &version_output,
-        //    "|",
-        //    "awk",
-        //    r#"-F'[\\[\\]"]' '{print $4}'"#,
-        //];
-        //neo4j_admin_version = exec_with_array(docker, &domain(&self.name), command2.to_vec()).await?;
-        //version_output = String::from_utf8_lossy(&neo4j_admin_version.as_bytes()).trim().to_string();
-        let parts: Vec<&str> = version_output.split('"').collect();
-        version_output = parts[3].to_string();
-
-        log::info!("=> got neo4j version string...");
-        let required_version = "5.0.0".to_string();
-        log::info!("Current Version: {}", version_output);
-        log::info!("Minimum Verision: {}", required_version);
-        log::info!("{}", version_output >= required_version);
-        if version_output <= required_version {
-            log::info!("=> migrating to 5.19.0...");
-
-            let command = "/var/lib/neo4j/bin/neo4j-admin database migrate system --force-btree-indexes-to-range";
-            exec(docker, &domain(&self.name), command).await?;
-
-            let command = "/var/lib/neo4j/bin/neo4j-admin database migrate neo4j --force-btree-indexes-to-range";
-            exec(docker, &domain(&self.name), command).await?;
-            log::info!("=> finished migrating to 5.19.0...");
-        }
-
-        // Start neo4j again
-        exec(docker, &domain(&self.name), "/var/lib/neo4j/bin/neo4j stop").await?;
-        Ok(())
-    }
-
 }
 
 #[async_trait]
@@ -167,6 +114,26 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
+    let mut server_memory_heap_initial_size = "NEO4J_dbms_memory_heap_initial__size";
+    let mut dbms_memory_heap_max_size = "NEO4J_dbms_memory_heap_max__size";
+    let mut dbms_default_listen_address = "NEO4J_dbms_default__listen__address";
+    let mut dbms_connector_bolt_listen_address = "NEO4J_dbms_connector_bolt_listen__address";
+    let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
+    let mut dbms_default_database = "NEO4J_dbms_default__database=neo4j";
+    let mut dbms_security_procedures_unrestricted = "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+    let mut dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
+    let mut dbms_security_auth_minimum_password_length = "NEO4J_dbms_security_auth__minimum__password__length=4";
+    if *node.version > *"4.4.9" {
+        server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size";
+        dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size";
+        dbms_default_listen_address = "NEO4J_server_default__listen__address";
+        dbms_connector_bolt_listen_address = "NEO4J_server_bolt_listen__address";
+        dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
+        dbms_security_auth_minimum_password_length = "NEO4J_dbms_security_auth__minimum__password__length=4";
+        dbms_security_procedures_unrestricted = "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+        dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
+    }
+
     let c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
@@ -178,16 +145,20 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
-            format!("NEO4J_server_memory_heap_initial__size=64m"),
-            format!("NEO4J_server_memory_heap_max__size=512m"),
+            format!("{}=64m", server_memory_heap_initial_size),
+            format!("{}=512m", dbms_memory_heap_max_size),
             format!("NEO4J_apoc_uuid_enabled=true"),
-            format!("NEO4J_server_default__listen__address=0.0.0.0"),
+            format!("{}=0.0.0.0", dbms_default_listen_address),
             format!(
-                "NEO4J_server_bolt_listen__address=0.0.0.0:{}",
+                "{}=0.0.0.0:{}",
+                dbms_connector_bolt_listen_address,
                 &node.bolt_port
             ),
-            format!("NEO4J_initial_dbms_default__database=neo4j"),
+            format!("{}", dbms_allow_upgrade),
+            format!("{}", dbms_default_database),
             format!("NEO4J_dbms_security_auth__minimum__password__length=4"),
+            format!("{}", dbms_security_procedures_unrestricted),
+            format!("{}", dbms_security_procedures_whitelist)
         ]),
         ..Default::default()
     };
