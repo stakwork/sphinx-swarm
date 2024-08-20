@@ -42,37 +42,53 @@ impl Neo4jImage {
         self.links = strarr(links)
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
-        let apoc_extended_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
-        log::info!("=> download apoc-extended plugin for neo4j...");
-        let bytes = reqwest::get(apoc_extended_url).await?.bytes().await?;
-        upload_to_container(
-            docker,
-            &self.name,
-            "/var/lib/neo4j/plugins",
-            "apoc-5.19.0-extended.jar",
-            &bytes,
-        )
-        .await?;
-        let apoc_url = "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
-        log::info!("=> download apoc plugin for neo4j...");
-        let bytes = reqwest::get(apoc_url).await?.bytes().await?;
-        upload_to_container(
-            docker,
-            &self.name,
-            "/var/lib/neo4j/plugins",
-            "apoc-5.19.0-core.jar",
-            &bytes,
-        )
-        .await?;
-        log::info!("=> copy apoc.conf into container...");
-        upload_to_container(
-            docker,
-            &self.name,
-            "/var/lib/neo4j/conf",
-            "apoc.conf",
-            APOC_CONF.as_bytes(),
-        )
-        .await?;
+        if *self.version <= *"4.4.9" {
+            let apoc_version_4 = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.4.0.11/apoc-4.4.0.11-all.jar";
+            log::info!("=> download apoc version 4 plugin for neo4j...");
+            let bytes = reqwest::get(apoc_version_4).await?.bytes().await?;
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/plugins",
+                "apoc-4.4.0.11-all.jar",
+                &bytes,
+            )
+            .await?;
+        } else {
+            let apoc_extended_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
+            log::info!("=> download apoc-extended plugin for neo4j...");
+            let bytes = reqwest::get(apoc_extended_url).await?.bytes().await?;
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/plugins",
+                "apoc-5.19.0-extended.jar",
+                &bytes,
+            )
+            .await?;
+
+            let apoc_url = "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
+            log::info!("=> download apoc plugin for neo4j...");
+            let bytes = reqwest::get(apoc_url).await?.bytes().await?;
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/plugins",
+                "apoc-5.19.0-core.jar",
+                &bytes,
+            )
+            .await?;
+
+            log::info!("=> copy apoc.conf into container...");
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/conf",
+                "apoc.conf",
+                APOC_CONF.as_bytes(),
+            )
+            .await?;
+        }
 
         log::info!("=> download graph-data-science plugin for neo4j...");
         let graph_data_science = "https://github.com/neo4j/graph-data-science/releases/download/2.6.8/neo4j-graph-data-science-2.6.8.jar";
