@@ -1,6 +1,9 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::config::Region;
+use aws_sdk_s3::operation::get_object::GetObjectOutput;
 use aws_sdk_s3::Client;
+use aws_smithy_types::byte_stream::ByteStream;
+use aws_smithy_types::retry::RetryConfig;
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -12,24 +15,40 @@ use zip::ZipArchive;
 
 use crate::utils::getenv;
 
-pub async fn download_from_s3(
-    bucket: &str,
-    key: &str,
-    output_path: &str,
-) -> Result<(), Box<dyn Error>> {
+pub async fn download_from_s3(bucket: &str, key: &str) -> Result<(), Box<dyn Error>> {
     let region = getenv("AWS_S3_REGION_NAME")?;
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
-    let config = aws_config::from_env().region(region_provider).load().await;
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
     let client = Client::new(&config);
 
-    let resp = client.get_object().bucket(bucket).key(key).send().await?;
+    match client
+        .list_objects_v2()
+        .bucket(bucket)
+        .prefix(key)
+        .send()
+        .await
+    {
+        Ok(list_resp) => {
+            log::info!("Lists: {:?}", &list_resp);
+            for object in list_resp.contents() {
+                let key = object.key().unwrap();
+                log::info!("This is the key: {}", key);
 
-    let mut file = File::create(output_path)?;
-    let data = resp.body.collect().await?;
-    file.write_all(&data.into_bytes())?;
+                // Download the file
+                download_file(&client, bucket, &key, &key).await?;
+            }
+        }
+        Err(err) => {
+            log::error!("Get objects error: {}", err)
+        }
+    }
 
     Ok(())
 }
@@ -93,6 +112,26 @@ pub async fn delete_zip_and_upzipped_files() -> Result<(), Box<dyn std::error::E
     if Path::new(&unzipped_directory).exists() {
         remove_dir_all(unzipped_directory).await?;
     }
+
+    Ok(())
+}
+
+async fn download_file(
+    client: &Client,
+    bucket: &str,
+    key: &str,
+    output_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let resp: GetObjectOutput = client.get_object().bucket(bucket).key(key).send().await?;
+    let data: ByteStream = resp.body;
+
+    if let Some(parent_dir) = Path::new(output_path).parent() {
+        fs::create_dir_all(parent_dir)?;
+    }
+
+    let mut file = File::create(output_path)?;
+    let bytes = data.collect().await?.into_bytes();
+    file.write_all(&bytes)?;
 
     Ok(())
 }

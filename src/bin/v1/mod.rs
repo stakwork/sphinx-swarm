@@ -4,8 +4,8 @@ use sphinx_swarm::config::{Clients, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{
-    broker::BrokerImage, btc::BtcImage, cln::ClnImage, lnd::LndImage, mixer::MixerImage,
-    tribes::TribesImage, Image,
+    bot::BotImage, broker::BrokerImage, btc::BtcImage, builtin::BuiltinImage, cln::ClnImage,
+    lnd::LndImage, mixer::MixerImage, tribes::TribesImage, Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::setup::{get_pubkey_cln, mine_blocks, setup_cln_chans, setup_lnd_chans};
@@ -35,6 +35,9 @@ const TRIBES1: &str = "tribes_1";
 const TRIBES3: &str = "tribes_3";
 const JWT_KEY: &str = "f8int45s0pofgtye";
 const LND_1: &str = "lnd_1";
+const BOT_1: &str = "bot_1";
+const BUILTIN_1: &str = "builtin_1";
+const BOT_3: &str = "bot_3";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -43,6 +46,10 @@ pub async fn main() -> Result<()> {
 
     let stack = make_stack();
     log::info!("STACK {:?}", stack);
+
+    // let st = serde_yaml::to_string(&stack).expect("failed to make yaml string");
+    // println!("{}", st);
+    // return Ok(());
 
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
     handler::hydrate_stack(stack.clone()).await;
@@ -89,9 +96,8 @@ pub async fn main() -> Result<()> {
         if do_test_lnd() {
             setup_lnd_chans(&mut clients, &stack.nodes, CLN2, LND_1, BTC).await?;
         }
+        try_check_2_hops(&mut clients, CLN1, CLN3).await;
     }
-
-    try_check_2_hops(&mut clients, CLN1, CLN3).await;
 
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
@@ -140,11 +146,9 @@ fn make_stack() -> Stack {
 
     // CLN1
     let seed1 = "2b".repeat(32); //[43; 32];
-    let clnv = "v24-fix-gossip-2";
-    let clngitv = "4cfbd6a";
+    let clnv = "latest";
     let clndev = true;
     let mut cln1 = ClnImage::new(CLN1, clnv, &network, "9735", "10009");
-    cln1.set_git_version(clngitv);
     if clndev {
         cln1.set_dev();
     }
@@ -155,7 +159,7 @@ fn make_stack() -> Stack {
     let v = "latest";
     let mut broker1 = BrokerImage::new(BROKER1, v, &network, "1883", None);
     broker1.set_seed(&seed1);
-    broker1.set_logs("login,pubsub");
+    broker1.set_logs("login");
     let broker1ip = format!("{}:{}", domain(&broker1.name), &broker1.mqtt_port);
 
     let mut mixer1 = MixerImage::new(MIXER1, v, &network, "8080");
@@ -166,13 +170,20 @@ fn make_stack() -> Stack {
     mixer1.set_log_level("debug");
     let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
+    let mut bot1 = BotImage::new(BOT_1, v, "3001");
+    bot1.set_admin_token("xyzxyzxyz");
+    bot1.set_initial_delay("120000");
+    bot1.links(vec![BROKER1]);
+
+    let mut builtin1 = BuiltinImage::new(BUILTIN_1, v, "3030");
+    builtin1.links(vec![BOT_1]);
+
     let mut tribes1 = TribesImage::new(TRIBES1, v, &network, "8801");
-    tribes1.links(vec![BROKER1]);
+    tribes1.links(vec![BROKER1, BUILTIN_1]);
 
     // CLN2
     let seed2 = "2c".repeat(32); //[44; 32];
     let mut cln2 = ClnImage::new(CLN2, clnv, &network, "9736", "10010");
-    cln2.set_git_version(clngitv);
     if clndev {
         cln2.set_dev();
     }
@@ -192,11 +203,13 @@ fn make_stack() -> Stack {
     // NO GRPC WITH GATEWAY NEEDED FOR ROUTING NODE
     mixer2.set_no_gateway();
     let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
+    let router_url = format!("http://{}.sphinx:{}", MIXER2, mixer2.port);
+
+    bot1.set_router_url(&router_url);
 
     // CLN3
     let seed3 = "2d".repeat(32); //[45; 32];
     let mut cln3 = ClnImage::new(CLN3, clnv, &network, "9737", "10011");
-    cln3.set_git_version(clngitv);
     if clndev {
         cln3.set_dev();
     }
@@ -216,6 +229,12 @@ fn make_stack() -> Stack {
     );
     mixer3.set_log_level("debug");
     let mixer3pk = "030f5205642b40c64ac5c575f4f365ca90b692f13808b46d827fdb1b6026a3e6c2";
+
+    let mut bot3 = BotImage::new(BOT_3, v, "3002");
+    bot3.set_admin_token("xyzxyzxyz");
+    bot3.set_initial_delay("120000");
+    bot3.set_router_url(&router_url);
+    bot3.links(vec![BROKER3]);
 
     let mut tribes3 = TribesImage::new(TRIBES3, v, &network, "8803");
     tribes3.links(vec![BROKER3]);
@@ -238,6 +257,8 @@ fn make_stack() -> Stack {
         Image::Broker(broker1),
         Image::Mixer(mixer1),
         Image::Tribes(tribes1),
+        Image::Bot(bot1),
+        Image::Builtin(builtin1),
         // 2 (routing)
         Image::Cln(cln2),
         Image::Broker(broker2),
@@ -247,6 +268,7 @@ fn make_stack() -> Stack {
         Image::Broker(broker3),
         Image::Mixer(mixer3),
         Image::Tribes(tribes3),
+        Image::Bot(bot3),
     ];
 
     if do_test_lnd() {

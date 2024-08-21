@@ -156,6 +156,12 @@ fn jarvis(
             jarvis_feature_flag_schema
         ));
     }
+    if let Ok(feature_flag_add_node_key) = getenv("FEATURE_FLAG_ADD_NODE_KEY") {
+        env.push(format!(
+            "FEATURE_FLAG_ADD_NODE_KEY={}",
+            feature_flag_add_node_key
+        ));
+    }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),

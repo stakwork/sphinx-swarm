@@ -15,6 +15,7 @@ pub struct BotMsgBody {
     bot_id: String,
     bot_secret: String,
     chat_uuid: String,
+    chat_pubkey: String,
     content: String,
 }
 
@@ -206,7 +207,7 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
         .map(|n| BotCred {
             bot_id: n.bot_id.clone(),
             bot_secret: n.bot_secret.clone(),
-            chat_uuid: n.chat_uuid.clone(),
+            chat_pubkey: n.chat_pubkey.clone(),
             bot_url: n.bot_url.clone(),
         })
         .collect();
@@ -220,7 +221,8 @@ async fn send_message_to_tribe(message: String) -> Result<()> {
             content: message.clone(),
             bot_id: bot.bot_id.clone(),
             bot_secret: bot.bot_secret.clone(),
-            chat_uuid: bot.chat_uuid.clone(),
+            chat_uuid: bot.chat_pubkey.clone(), // for v1 this is chat_uuid
+            chat_pubkey: bot.chat_pubkey.clone(),
             action: "broadcast".to_string(),
         };
 

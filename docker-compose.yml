@@ -1,5 +1,3 @@
-version: "2"
-
 services:
   load_balancer:
     image: traefik:v2.2.1
@@ -61,6 +59,10 @@ services:
       - "traefik.http.routers.elements.tls.certresolver=myresolver"
       - "traefik.http.routers.elements.entrypoints=websecure"
     restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 300M
     environment:
       - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
       - IP=$IP
@@ -85,6 +87,7 @@ services:
       - JARVIS_FEATURE_FLAG_SCHEMA=$JARVIS_FEATURE_FLAG_SCHEMA
       - BACKUP_KEY=$BACKUP_KEY
       - BACKUP=$BACKUP
+      - FEATURE_FLAG_ADD_NODE_KEY=$FEATURE_FLAG_ADD_NODE_KEY
 
 networks:
   sphinx-swarm:

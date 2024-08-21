@@ -47,6 +47,8 @@ impl BtcImage {
             .get(&self.name)
             .context("no bitcoind client")?;
         client.load_wallet()?;
+        log::info!("mine 20 blocks");
+        client.test_mine(20, None)?;
         Ok(())
     }
     pub fn remove_client(&self, clients: &mut Clients) {

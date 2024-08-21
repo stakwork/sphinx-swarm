@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::broker::BrokerImage;
+use crate::images::builtin::BuiltinImage;
 use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -57,7 +58,8 @@ impl DockerConfig for TribesImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let broker = li.find_broker().context("Tribes: No Broker")?;
-        Ok(tribes(self, &broker)?)
+        let builtin = li.find_builtin();
+        Ok(tribes(self, &broker, &builtin)?)
     }
 }
 
@@ -71,7 +73,11 @@ impl DockerHubImage for TribesImage {
     }
 }
 
-fn tribes(img: &TribesImage, broker: &BrokerImage) -> Result<Config<String>> {
+fn tribes(
+    img: &TribesImage,
+    broker: &BrokerImage,
+    builtin: &Option<BuiltinImage>,
+) -> Result<Config<String>> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -85,6 +91,14 @@ fn tribes(img: &TribesImage, broker: &BrokerImage) -> Result<Config<String>> {
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
     ];
+    if let Some(bbs) = builtin {
+        env.push(format!(
+            "BOTS_SERVER=http://{}:{}",
+            domain(&bbs.name),
+            bbs.port
+        ));
+        env.push(format!("BOTS_MSG_TOKEN={}", bbs.msg_token));
+    }
 
     if let Some(th) = &img.tribes_host {
         env.push(format!("HOST={}", th));
