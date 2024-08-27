@@ -171,6 +171,8 @@
         host: host,
         instance: instance,
         description: description,
+        username: "",
+        password: "",
       };
       response = await api.swarm.add_new_swarm(data);
     }
