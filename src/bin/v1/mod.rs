@@ -37,6 +37,7 @@ const JWT_KEY: &str = "f8int45s0pofgtye";
 const LND_1: &str = "lnd_1";
 const BOT_1: &str = "bot_1";
 const BUILTIN_1: &str = "builtin_1";
+const BOT_3: &str = "bot_3";
 
 #[rocket::main]
 pub async fn main() -> Result<()> {
@@ -95,9 +96,8 @@ pub async fn main() -> Result<()> {
         if do_test_lnd() {
             setup_lnd_chans(&mut clients, &stack.nodes, CLN2, LND_1, BTC).await?;
         }
+        try_check_2_hops(&mut clients, CLN1, CLN3).await;
     }
-
-    try_check_2_hops(&mut clients, CLN1, CLN3).await;
 
     println!("hydrate clients now!");
     handler::hydrate_clients(clients).await;
@@ -170,7 +170,9 @@ fn make_stack() -> Stack {
     mixer1.set_log_level("debug");
     let mixer1pk = "03e6fe3af927476bcb80f2bc52bc0012c5ea92cc03f9165a4af83dbb214e296d08";
 
-    let mut bot1 = BotImage::new(BOT_1, v, "3002");
+    let mut bot1 = BotImage::new(BOT_1, v, "3001");
+    bot1.set_admin_token("xyzxyzxyz");
+    bot1.set_initial_delay("120000");
     bot1.links(vec![BROKER1]);
 
     let mut builtin1 = BuiltinImage::new(BUILTIN_1, v, "3030");
@@ -201,6 +203,9 @@ fn make_stack() -> Stack {
     // NO GRPC WITH GATEWAY NEEDED FOR ROUTING NODE
     mixer2.set_no_gateway();
     let mixer2pk = "036bebdc8ad27b5d9bd14163e9fea5617ac8618838aa7c0cae19d43391a9feb9db";
+    let router_url = format!("http://{}.sphinx:{}", MIXER2, mixer2.port);
+
+    bot1.set_router_url(&router_url);
 
     // CLN3
     let seed3 = "2d".repeat(32); //[45; 32];
@@ -224,6 +229,12 @@ fn make_stack() -> Stack {
     );
     mixer3.set_log_level("debug");
     let mixer3pk = "030f5205642b40c64ac5c575f4f365ca90b692f13808b46d827fdb1b6026a3e6c2";
+
+    let mut bot3 = BotImage::new(BOT_3, v, "3002");
+    bot3.set_admin_token("xyzxyzxyz");
+    bot3.set_initial_delay("120000");
+    bot3.set_router_url(&router_url);
+    bot3.links(vec![BROKER3]);
 
     let mut tribes3 = TribesImage::new(TRIBES3, v, &network, "8803");
     tribes3.links(vec![BROKER3]);
@@ -257,6 +268,7 @@ fn make_stack() -> Stack {
         Image::Broker(broker3),
         Image::Mixer(mixer3),
         Image::Tribes(tribes3),
+        Image::Bot(bot3),
     ];
 
     if do_test_lnd() {

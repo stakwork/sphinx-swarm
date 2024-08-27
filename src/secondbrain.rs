@@ -31,7 +31,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
 
 pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Image> {
     // neo4j
-    let v = "4.4.9";
+    let v = "5.19.0";
     let mut neo4j = Neo4jImage::new("neo4j", v);
     neo4j.host(host.clone());
 

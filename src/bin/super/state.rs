@@ -25,7 +25,7 @@ pub struct RemoteStack {
 pub struct BotCred {
     pub bot_id: String,
     pub bot_secret: String,
-    pub chat_uuid: String,
+    pub chat_pubkey: String,
     pub bot_url: String,
 }
 
@@ -80,7 +80,7 @@ impl Super {
             .map(|n| BotCred {
                 bot_id: n.bot_id.clone(),
                 bot_secret: "".to_string(),
-                chat_uuid: n.chat_uuid.clone(),
+                chat_pubkey: n.chat_pubkey.clone(),
                 bot_url: n.bot_url.clone(),
             })
             .collect();
