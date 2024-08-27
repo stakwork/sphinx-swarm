@@ -270,6 +270,12 @@ impl Stack {
                     Node::Internal(Image::Bot(b))
                 }
                 Image::Builtin(b) => Node::Internal(Image::Builtin(b)),
+                Image::Dufs(d) => Node::Internal(Image::Dufs(d)),
+                Image::Tome(mut m) => {
+                    m.jwt_secret = "".to_string();
+                    Node::Internal(Image::Tome(m))
+                }
+                Image::Rqbit(r) => Node::Internal(Image::Rqbit(r)),
             },
         });
         Stack {

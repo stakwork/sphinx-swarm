@@ -6,6 +6,7 @@ pub mod builtin;
 pub mod cache;
 pub mod cln;
 pub mod config_server;
+pub mod dufs;
 pub mod elastic;
 pub mod jarvis;
 pub mod lnd;
@@ -16,6 +17,8 @@ pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
 pub mod relay;
+pub mod rqbit;
+pub mod tome;
 pub mod traefik;
 pub mod tribes;
 
@@ -47,6 +50,9 @@ pub enum Image {
     Config(config_server::ConfigImage),
     Bot(bot::BotImage),
     Builtin(builtin::BuiltinImage),
+    Dufs(dufs::DufsImage),
+    Tome(tome::TomeImage),
+    Rqbit(rqbit::RqbitImage),
 }
 
 pub struct Repository {
@@ -91,6 +97,9 @@ impl Image {
             Image::Config(n) => n.name.clone(),
             Image::Bot(n) => n.name.clone(),
             Image::Builtin(n) => n.name.clone(),
+            Image::Dufs(n) => n.name.clone(),
+            Image::Tome(n) => n.name.clone(),
+            Image::Rqbit(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -113,6 +122,9 @@ impl Image {
             Image::Config(_n) => "Config",
             Image::Bot(_n) => "Bot",
             Image::Builtin(_n) => "Builtin",
+            Image::Dufs(_n) => "Dufs",
+            Image::Tome(_n) => "Tome",
+            Image::Rqbit(_n) => "Rqbit",
         }
         .to_string()
     }
@@ -136,6 +148,9 @@ impl Image {
             Image::Config(n) => n.version = version.to_string(),
             Image::Bot(n) => n.version = version.to_string(),
             Image::Builtin(n) => n.version = version.to_string(),
+            Image::Dufs(n) => n.version = version.to_string(),
+            Image::Tome(n) => n.version = version.to_string(),
+            Image::Rqbit(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -218,6 +233,9 @@ impl DockerConfig for Image {
             Image::Config(n) => n.make_config(nodes, docker).await,
             Image::Bot(n) => n.make_config(nodes, docker).await,
             Image::Builtin(n) => n.make_config(nodes, docker).await,
+            Image::Dufs(n) => n.make_config(nodes, docker).await,
+            Image::Tome(n) => n.make_config(nodes, docker).await,
+            Image::Rqbit(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -243,6 +261,9 @@ impl DockerHubImage for Image {
             Image::Config(n) => n.repo(),
             Image::Bot(n) => n.repo(),
             Image::Builtin(n) => n.repo(),
+            Image::Dufs(n) => n.repo(),
+            Image::Tome(n) => n.repo(),
+            Image::Rqbit(n) => n.repo(),
         }
     }
 }
@@ -366,6 +387,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_dufs(&self) -> Option<dufs::DufsImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_dufs() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -463,6 +492,12 @@ impl Image {
         match self {
             Image::Builtin(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Builtin".to_string())),
+        }
+    }
+    pub fn as_dufs(&self) -> anyhow::Result<dufs::DufsImage> {
+        match self {
+            Image::Dufs(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Dufs".to_string())),
         }
     }
 }

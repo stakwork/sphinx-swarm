@@ -92,6 +92,7 @@ services:
       - BACKUP_KEY=$BACKUP_KEY
       - BACKUP=$BACKUP
       - SUPER_TOKEN=$SUPER_TOKEN
+      - FEATURE_FLAG_TEXT_EMBEDDINGS=$FEATURE_FLAG_TEXT_EMBEDDINGS
 
 networks:
   sphinx-swarm:
