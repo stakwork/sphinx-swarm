@@ -109,3 +109,7 @@ path = "src/bin/super/mod.rs"
 [[bin]]
 name = "sphinx"
 path = "src/bin/v1/mod.rs"
+
+[[bin]]
+name = "tome"
+path = "src/bin/tome/mod.rs"
