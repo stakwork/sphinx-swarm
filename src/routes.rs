@@ -3,17 +3,24 @@ use crate::auth;
 use crate::cmd::SignUpAdminPubkeyDetails;
 use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
+use crate::config::SendSwarmDetailsBody;
+use crate::config::SendSwarmDetailsResponse;
 use crate::events::{get_event_tx, EventChan};
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use crate::rocket_utils::{CmdRequest, Error, Result, CORS};
+use crate::super_cmd::{AddNewSwarmInfo, Cmd as SuperCmd, SwarmCmd as SuperSwarmCmd};
+use crate::super_token_auth::VerifySuperToken;
 use fs::{relative, FileServer};
 use response::stream::{Event, EventStream};
+use rocket::http::Status;
+use rocket::response::status::Custom;
 use rocket::serde::{
     json::{json, Json},
     Deserialize, Serialize,
 };
 use rocket::*;
 use sphinx_auther::secp256k1::PublicKey;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 
@@ -40,7 +47,8 @@ pub async fn launch_rocket(
                 update_admin_pubkey,
                 check_challenge,
                 get_signup_challenge,
-                check_signup_challenge
+                check_signup_challenge,
+                add_new_swarm
             ],
         )
         .attach(CORS)
@@ -331,4 +339,87 @@ pub async fn check_signup_challenge(
         return Err(Error::Unauthorized);
     }
     Ok(reply)
+}
+
+#[rocket::post("/super/add_new_swarm", data = "<body>")]
+pub async fn add_new_swarm(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    body: Json<SendSwarmDetailsBody>,
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<SendSwarmDetailsResponse>>> {
+    if verify_super_token.verified == false {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(SendSwarmDetailsResponse {
+                message: "unauthorized, invalid token".to_string(),
+            }),
+        ));
+    }
+
+    let cmd: SuperCmd = SuperCmd::Swarm(SuperSwarmCmd::AddNewSwarm(AddNewSwarmInfo {
+        host: body.host.clone(),
+        instance: "".to_string(),
+        description: "".to_string(),
+        username: body.username.clone(),
+        password: body.password.clone(),
+    }));
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    // // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+
+    match serde_json::from_str::<HashMap<String, String>>(reply.as_str()) {
+        Ok(data) => match data.get("success") {
+            Some(status) => {
+                if status != "true" {
+                    match data.get("message") {
+                        Some(message) => {
+                            return Ok(Custom(
+                                Status::Conflict,
+                                Json(SendSwarmDetailsResponse {
+                                    message: message.as_str().to_string(),
+                                }),
+                            ));
+                        }
+                        None => {
+                            return Ok(Custom(
+                                Status::InternalServerError,
+                                Json(SendSwarmDetailsResponse {
+                                    message: "internal server error".to_string(),
+                                }),
+                            ));
+                        }
+                    }
+                }
+                return Ok(Custom(
+                    Status::Created,
+                    Json(SendSwarmDetailsResponse {
+                        message: "swarm added successfully".to_string(),
+                    }),
+                ));
+            }
+            None => {
+                ::log::error!("No valid status was returned from add Swarm command");
+                return Ok(Custom(
+                    Status::InternalServerError,
+                    Json(SendSwarmDetailsResponse {
+                        message: "internal server error".to_string(),
+                    }),
+                ));
+            }
+        },
+        Err(err) => {
+            ::log::error!("Could not parse HashMap for Add New Swarm: {:?}", err);
+            return Ok(Custom(
+                Status::InternalServerError,
+                Json(SendSwarmDetailsResponse {
+                    message: "internal server error".to_string(),
+                }),
+            ));
+        }
+    };
 }

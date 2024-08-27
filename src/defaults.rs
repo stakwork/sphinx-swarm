@@ -238,9 +238,9 @@ pub fn create_super_user() -> User {
 
         let client = make_reqwest_client();
 
-        let route = format!("{}/add_new_swarm", super_url);
+        let route = format!("{}/super/add_new_swarm", super_url);
 
-        let body = SendUserBody {
+        let body = SendSwarmDetailsBody {
             username: "super".to_string(),
             password: password_,
             host: my_domain,
@@ -255,7 +255,7 @@ pub fn create_super_user() -> User {
         {
             Ok(res) => {
                 if res.status().clone() != 201 {
-                    match res.json::<SendUserResponse>().await {
+                    match res.json::<SendSwarmDetailsResponse>().await {
                         Ok(data) => {
                             log::error!("{}", data.message)
                         }

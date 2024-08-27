@@ -6,9 +6,9 @@ use state::Super;
 use crate::checker::swarm_checker;
 use anyhow::{Context, Result};
 use rocket::tokio;
-use serde::{Deserialize, Serialize};
 use sphinx_swarm::config::State;
 use sphinx_swarm::routes;
+use sphinx_swarm::super_cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils;
 use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
 use std::collections::HashMap;
@@ -17,6 +17,8 @@ use tokio::sync::{mpsc, Mutex};
 
 #[rocket::main]
 async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
+
     sphinx_swarm::utils::setup_logs();
 
     let project = "super";
@@ -60,62 +62,8 @@ pub async fn put_config_file(project: &str, rs: &Super) {
     utils::put_yaml(&path, rs).await;
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", content = "data")]
-pub enum Cmd {
-    Swarm(SwarmCmd),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct LoginInfo {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChangePasswordInfo {
-    pub user_id: u32,
-    pub old_pass: String,
-    pub password: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AddNewSwarmInfo {
-    pub host: String,
-    pub instance: String,
-    pub description: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UpdateSwarmInfo {
-    pub id: String,
-    pub host: String,
-    pub instance: String,
-    pub description: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DeleteSwarmInfo {
-    pub host: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChildSwarm {
-    pub password: String,
-    pub host: String,
-    pub token: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "cmd", content = "content")]
-pub enum SwarmCmd {
-    GetConfig,
-    Login(LoginInfo),
-    ChangePassword(ChangePasswordInfo),
-    AddNewSwarm(AddNewSwarmInfo),
-    UpdateSwarm(UpdateSwarmInfo),
-    DeleteSwarm(DeleteSwarmInfo),
-    SetChildSwarm(ChildSwarm),
+pub fn test_tobi_the() {
+    println!("What we got here")
 }
 
 fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
@@ -214,8 +162,8 @@ pub async fn super_handle(
                             host: swarm.host,
                             note: Some(swarm.description),
                             ec2: Some(swarm.instance),
-                            user: None,
-                            pass: None,
+                            user: Some(swarm.username),
+                            pass: Some(swarm.password),
                         };
                         state.add_remote_stack(new_swarm);
                         must_save_stack = true;

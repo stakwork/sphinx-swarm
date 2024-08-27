@@ -82,14 +82,14 @@ pub struct User {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
-pub struct SendUserBody {
+pub struct SendSwarmDetailsBody {
     pub username: String,
     pub password: String,
     pub host: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
-pub struct SendUserResponse {
+pub struct SendSwarmDetailsResponse {
     pub message: String,
 }
 
