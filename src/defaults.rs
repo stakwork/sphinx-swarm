@@ -7,6 +7,7 @@ use crate::images::{
 use crate::secondbrain::*;
 use crate::secrets;
 use crate::sphinxv2::*;
+use crate::utils::{getenv, make_reqwest_client};
 
 // NETWORK = "bitcoin", "regtest"
 // HOST = hostname for this server (swarmx.sphinx.chat)
@@ -206,9 +207,70 @@ pub fn create_super_user() -> User {
     let password = crate::secrets::hex_secret_32();
     let password_ = password.clone();
     tokio::spawn(async move {
-        // use password_
-        // reqwest post
-        // add header x-super-token (from env var)
+        let error_msg = "is not set in the environment variable for setting up superadmin";
+        //get x-super-token
+        let x_super_key = getenv("X_SUPER_KEY").unwrap_or("".to_string());
+
+        if x_super_key.is_empty() {
+            log::error!("X_SUPER_KEY {}", &error_msg);
+            return;
+        }
+
+        //get super url
+        let super_url = getenv("SUPER_URL").unwrap_or("".to_string());
+
+        if super_url.is_empty() {
+            log::error!("SUPER_URL {}", &error_msg);
+            return;
+        }
+
+        //get swarm host
+        let mut my_domain = getenv("NAV_BOLTWALL_SHARED_HOST").unwrap_or("".to_string());
+
+        if my_domain.is_empty() {
+            my_domain = getenv("HOST").unwrap_or("".to_string())
+        }
+
+        if my_domain.is_empty() {
+            log::error!("HOST {}", &error_msg);
+            return;
+        }
+
+        let client = make_reqwest_client();
+
+        let route = format!("{}/add_new_swarm", super_url);
+
+        let body = SendUserBody {
+            username: "super".to_string(),
+            password: password_,
+            host: my_domain,
+        };
+
+        match client
+            .post(route.as_str())
+            .header("x-super-token", x_super_key)
+            .json(&body)
+            .send()
+            .await
+        {
+            Ok(res) => {
+                if res.status().clone() != 201 {
+                    match res.json::<SendUserResponse>().await {
+                        Ok(data) => {
+                            log::error!("{}", data.message)
+                        }
+                        Err(err) => {
+                            log::error!("Error parsing JSON response: {:?}", err);
+                        }
+                    }
+                    return;
+                }
+                log::info!("Swarm details sent to super admin successfully")
+            }
+            Err(err) => {
+                log::error!("Error sending Swarm details to admin: {:?}", err)
+            }
+        }
     });
     User {
         id: 2,

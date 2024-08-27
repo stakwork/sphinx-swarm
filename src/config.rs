@@ -81,6 +81,18 @@ pub struct User {
     pub role: Role,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct SendUserBody {
+    pub username: String,
+    pub password: String,
+    pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct SendUserResponse {
+    pub message: String,
+}
+
 // optional node, could be external
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 #[serde(tag = "place")]

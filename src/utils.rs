@@ -8,8 +8,8 @@ use bollard_stubs::models::{
 };
 use rocket::tokio;
 use serde::{de::DeserializeOwned, Serialize};
-use std::collections::HashMap;
 use std::os::unix::fs::PermissionsExt;
+use std::{collections::HashMap, time::Duration};
 use tokio::{fs, io::AsyncWriteExt};
 
 pub fn host_config(
@@ -287,6 +287,14 @@ pub async fn wait_for_file(path: &str, iterations: usize) -> Result<()> {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     Err(anyhow!(format!("{} does not exists", path)))
+}
+
+pub fn make_reqwest_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build reqwest client")
 }
 
 pub fn setup_logs() {
