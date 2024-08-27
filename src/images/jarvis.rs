@@ -157,6 +157,12 @@ fn jarvis(
             jarvis_feature_flag_schema
         ));
     }
+    if let Ok(feature_flag_text_embeddings) = getenv("FEATURE_FLAG_TEXT_EMBEDDINGS") {
+        env.push(format!(
+            "FEATURE_FLAG_TEXT_EMBEDDINGS={}",
+            feature_flag_text_embeddings
+        ));
+    }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
