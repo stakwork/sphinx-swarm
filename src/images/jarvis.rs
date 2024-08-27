@@ -80,6 +80,7 @@ fn jarvis(
         format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_JOB=1"),
+        format!("FEATURE_FLAG_ADD_NODE_KEY=true")
     ];
     if let Some(elastic) = elastic {
         env.push(format!(
@@ -154,12 +155,6 @@ fn jarvis(
         env.push(format!(
             "FEATURE_FLAG_SCHEMA={}",
             jarvis_feature_flag_schema
-        ));
-    }
-    if let Ok(feature_flag_add_node_key) = getenv("FEATURE_FLAG_ADD_NODE_KEY") {
-        env.push(format!(
-            "FEATURE_FLAG_ADD_NODE_KEY={}",
-            feature_flag_add_node_key
         ));
     }
     Config {

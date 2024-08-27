@@ -42,26 +42,53 @@ impl Neo4jImage {
         self.links = strarr(links)
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
-        log::info!("=> download apoc plugin for neo4j...");
-        let apoc_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.4.0.11/apoc-4.4.0.11-all.jar";
-        let bytes = reqwest::get(apoc_url).await?.bytes().await?;
-        upload_to_container(
-            docker,
-            &self.name,
-            "/var/lib/neo4j/plugins",
-            "apoc-4.4.0.11-all.jar",
-            &bytes,
-        )
-        .await?;
-        log::info!("=> copy apoc.conf into container...");
-        upload_to_container(
-            docker,
-            &self.name,
-            "/var/lib/neo4j/conf",
-            "apoc.conf",
-            APOC_CONF.as_bytes(),
-        )
-        .await?;
+        if *self.version <= *"4.4.9" {
+            let apoc_version_4 = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.4.0.11/apoc-4.4.0.11-all.jar";
+            log::info!("=> download apoc version 4 plugin for neo4j...");
+            let bytes = reqwest::get(apoc_version_4).await?.bytes().await?;
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/plugins",
+                "apoc-4.4.0.11-all.jar",
+                &bytes,
+            )
+            .await?;
+        } else {
+            let apoc_extended_url = "https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/5.19.0/apoc-5.19.0-extended.jar";
+            log::info!("=> download apoc-extended plugin for neo4j...");
+            let bytes = reqwest::get(apoc_extended_url).await?.bytes().await?;
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/plugins",
+                "apoc-5.19.0-extended.jar",
+                &bytes,
+            )
+            .await?;
+
+            let apoc_url = "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
+            log::info!("=> download apoc plugin for neo4j...");
+            let bytes = reqwest::get(apoc_url).await?.bytes().await?;
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/plugins",
+                "apoc-5.19.0-core.jar",
+                &bytes,
+            )
+            .await?;
+
+            log::info!("=> copy apoc.conf into container...");
+            upload_to_container(
+                docker,
+                &self.name,
+                "/var/lib/neo4j/conf",
+                "apoc.conf",
+                APOC_CONF.as_bytes(),
+            )
+            .await?;
+        }
 
         log::info!("=> download graph-data-science plugin for neo4j...");
         let graph_data_science = "https://github.com/neo4j/graph-data-science/releases/download/2.6.8/neo4j-graph-data-science-2.6.8.jar";
@@ -74,6 +101,7 @@ impl Neo4jImage {
             &graph_data_science_bytes,
         )
         .await?;
+
         Ok(())
     }
 }
@@ -102,6 +130,26 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
+    let mut server_memory_heap_initial_size = "NEO4J_dbms_memory_heap_initial__size";
+    let mut dbms_memory_heap_max_size = "NEO4J_dbms_memory_heap_max__size";
+    let mut dbms_default_listen_address = "NEO4J_dbms_default__listen__address";
+    let mut dbms_connector_bolt_listen_address = "NEO4J_dbms_connector_bolt_listen__address";
+    let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
+    let mut dbms_default_database = "NEO4J_dbms_default__database=neo4j";
+    let mut dbms_security_procedures_unrestricted = "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+    let mut dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
+    let mut dbms_security_auth_minimum_password_length = "NEO4J_dbms_security_auth__minimum__password__length=4";
+    if *node.version > *"4.4.9" {
+        server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size";
+        dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size";
+        dbms_default_listen_address = "NEO4J_server_default__listen__address";
+        dbms_connector_bolt_listen_address = "NEO4J_server_bolt_listen__address";
+        dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
+        dbms_security_auth_minimum_password_length = "NEO4J_dbms_security_auth__minimum__password__length=4";
+        dbms_security_procedures_unrestricted = "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+        dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
+    }
+
     let c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
@@ -113,19 +161,25 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
-            format!("NEO4J_dbms_memory_heap_initial__size=64m"),
-            format!("NEO4J_dbms_memory_heap_max__size=512m"),
+            format!("{}=64m", server_memory_heap_initial_size),
+            format!("{}=512m", dbms_memory_heap_max_size),
             format!("NEO4J_apoc_uuid_enabled=true"),
-            format!("NEO4J_dbms_default__listen__address=0.0.0.0"),
+            format!("{}=0.0.0.0", dbms_default_listen_address),
             format!(
-                "NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:{}",
+                "{}=0.0.0.0:{}",
+                dbms_connector_bolt_listen_address,
                 &node.bolt_port
             ),
-            format!("NEO4J_dbms_allow__upgrade=true"),
-            format!("NEO4J_dbms_default__database=neo4j"),
+            format!("NEO4J_dbms.security.procedures.allowlist=gds.*"),
+            format!("{}", dbms_allow_upgrade),
+            format!("{}", dbms_default_database),
+            format!("NEO4J_dbms_security_auth__minimum__password__length=4"),
+            format!("{}", dbms_security_procedures_unrestricted),
+            format!("{}", dbms_security_procedures_whitelist)
         ]),
         ..Default::default()
     };
+
     if let Some(_host) = node.host.clone() {
         // production tls extra domain
         // c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, true));
@@ -145,8 +199,19 @@ apoc.import.file.enabled=true
 apoc.export.file.enabled=true
 apoc.initializer.neo4j.1=CREATE FULLTEXT INDEX titles_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.show_title, n.episode_title]
 apoc.initializer.neo4j.2=CREATE FULLTEXT INDEX person_full_index IF NOT EXISTS FOR (n:Person) ON EACH [n.name]
-apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.topic]
-apoc.initializer.neo4j.4=CREATE FULLTEXT INDEX text_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.text]
-apoc.initializer.neo4j.5=CREATE FULLTEXT INDEX data_bank_full_index IF NOT EXISTS FOR (n:Data_Bank) ON EACH [n.Data_Bank]
-apoc.initializer.neo4j.6=MATCH (n) WHERE NOT EXISTS(n.namespace) OR n.namespace = '' SET n.namespace = 'default'
+apoc.initializer.neo4j.3=CREATE FULLTEXT INDEX topic_full_index IF NOT EXISTS FOR (n:Topic) ON EACH [n.name]
+apoc.initializer.neo4j.4=CREATE FULLTEXT INDEX text_full_index IF NOT EXISTS FOR (n:Content) ON EACH [n.namespace]
+apoc.initializer.neo4j.5=CREATE FULLTEXT INDEX data_bank_full_index IF NOT EXISTS FOR (n:Data_Bank) ON EACH [n.Data_Bank] OPTIONS { indexConfig: { `fulltext.analyzer`: 'english' }}
+apoc.initializer.neo4j.6=CREATE FULLTEXT INDEX aliasEntityIndex IF NOT EXISTS FOR (n:Alias) ON EACH [n.entity]
+apoc.initializer.neo4j.7=CREATE TEXT INDEX entity_lower_string_exact_index IF NOT EXISTS FOR (a:Alias) ON (a.entity_lower)
+apoc.initializer.neo4j.8=CREATE TEXT INDEX name_lower_string_exact_index IF NOT EXISTS FOR (t:Topic) ON (t.name_lower)
+apoc.initializer.neo4j.9=CREATE INDEX match_entity_namespace_alias_index IF NOT EXISTS FOR (a:Alias) ON (a.entity, a.namespace)
+apoc.initializer.neo4j.10=CREATE INDEX match_all_alias_index IF NOT EXISTS FOR (a:Alias) ON (a.entity, a.namespace, a.replacement, a.context)
+apoc.initializer.neo4j.11=CREATE INDEX ON :Entity(entity)
+apoc.initializer.neo4j.12=CREATE INDEX ON :Context(context)
+apoc.initializer.neo4j.13=CREATE INDEX ON :Topic(name)
+apoc.initializer.neo4j.14=CREATE INDEX ON :Chunk(chunk)
+apoc.initializer.neo4j.15=CREATE INDEX ON :Replacement_Entity(replacement)
+apoc.initializer.neo4j.16=CREATE FULLTEXT INDEX schema_full_index IF NOT EXISTS FOR (n:Schema) ON EACH [n.type]
+apoc.initializer.neo4j.17=CREATE FULLTEXT INDEX query_full_index IF NOT EXISTS FOR (n:Query) ON EACH [n.query]
 "#;
