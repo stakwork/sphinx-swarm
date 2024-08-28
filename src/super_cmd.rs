@@ -24,8 +24,16 @@ pub struct AddNewSwarmInfo {
     pub host: String,
     pub instance: String,
     pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddNewSwarmInfoAPI {
+    pub host: String,
+    pub instance: String,
+    pub description: String,
     pub username: String,
     pub password: String,
+    pub token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -45,6 +53,7 @@ pub struct DeleteSwarmInfo {
 pub struct ChildSwarm {
     pub password: String,
     pub host: String,
+    pub username: String,
     pub token: String,
 }
 

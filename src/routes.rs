@@ -8,7 +8,7 @@ use crate::config::SendSwarmDetailsResponse;
 use crate::events::{get_event_tx, EventChan};
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use crate::rocket_utils::{CmdRequest, Error, Result, CORS};
-use crate::super_cmd::{AddNewSwarmInfo, Cmd as SuperCmd, SwarmCmd as SuperSwarmCmd};
+use crate::super_cmd::{ChildSwarm, Cmd as SuperCmd, SwarmCmd as SuperSwarmCmd};
 use crate::super_token_auth::VerifySuperToken;
 use fs::{relative, FileServer};
 use response::stream::{Event, EventStream};
@@ -356,18 +356,19 @@ pub async fn add_new_swarm(
         ));
     }
 
-    let cmd: SuperCmd = SuperCmd::Swarm(SuperSwarmCmd::AddNewSwarm(AddNewSwarmInfo {
+    let cmd: SuperCmd = SuperCmd::Swarm(SuperSwarmCmd::SetChildSwarm(ChildSwarm {
         host: body.host.clone(),
-        instance: "".to_string(),
-        description: "".to_string(),
         username: body.username.clone(),
         password: body.password.clone(),
+        token: verify_super_token.token,
     }));
+
     let txt = serde_json::to_string(&cmd)?;
     let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
     let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
     let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    // // empty string means unauthorized
+
+    // empty string means unauthorized
     if reply.len() == 0 {
         return Err(Error::Unauthorized);
     }

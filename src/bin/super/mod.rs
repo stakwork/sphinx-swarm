@@ -1,7 +1,10 @@
 mod checker;
 mod state;
+mod util;
+use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
+use util::add_new_swarm_details;
 
 use crate::checker::swarm_checker;
 use anyhow::{anyhow, Context, Result};
@@ -66,6 +69,20 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
     // login needs no auth
     if let Cmd::Swarm(c) = cmd {
         if let SwarmCmd::Login(_) = c {
+            return true;
+        }
+
+        if let SwarmCmd::SetChildSwarm(info) = c {
+            //get x-super-token
+            let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+            if token.is_empty() {
+                return false;
+            }
+            //verify token
+            if token != info.token {
+                return false;
+            }
+
             return true;
         }
     }
@@ -140,26 +157,16 @@ pub async fn super_handle(
                 }
             }
             SwarmCmd::AddNewSwarm(swarm) => {
-                let mut hm = HashMap::new();
-                match state.find_swarm_by_host(&swarm.host) {
-                    Some(_swarm) => {
-                        hm.insert("success", "false");
-                        hm.insert("message", "swarm already exist");
-                    }
-                    None => {
-                        let new_swarm = RemoteStack {
-                            host: swarm.host,
-                            note: Some(swarm.description),
-                            ec2: Some(swarm.instance),
-                            user: Some(swarm.username),
-                            pass: Some(swarm.password),
-                        };
-                        state.add_remote_stack(new_swarm);
-                        must_save_stack = true;
-                        hm.insert("success", "true");
-                        hm.insert("message", "Swarm added successfully");
-                    }
-                }
+                let swarm_detail = RemoteStack {
+                    host: swarm.host,
+                    user: Some("".to_string()),
+                    pass: Some("".to_string()),
+                    ec2: Some(swarm.instance),
+                    note: Some(swarm.description),
+                };
+
+                let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
+
                 Some(serde_json::to_string(&hm)?)
             }
             SwarmCmd::UpdateSwarm(swarm) => {
@@ -200,9 +207,17 @@ pub async fn super_handle(
                 }
                 Some(serde_json::to_string(&hm)?)
             }
-            SwarmCmd::SetChildSwarm(_c) => {
-                // do the thing
-                None
+            SwarmCmd::SetChildSwarm(c) => {
+                let swarm_details = RemoteStack {
+                    host: c.host,
+                    note: Some("".to_string()),
+                    pass: Some(c.password),
+                    user: Some(c.username),
+                    ec2: Some("".to_string()),
+                };
+                let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
+
+                Some(serde_json::to_string(&hm)?)
             }
         },
     };

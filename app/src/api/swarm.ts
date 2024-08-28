@@ -121,8 +121,6 @@ export async function add_new_swarm(new_swarm: {
   host: string;
   instance: string;
   description: string;
-  password: string;
-  username: string;
 }) {
   return await swarmCmd("AddNewSwarm", { ...new_swarm });
 }
