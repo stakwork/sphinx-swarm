@@ -17,13 +17,13 @@ impl<'r> FromRequest<'r> for VerifySuperToken {
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(token) = request.headers().get_one("x-super-token") {
-            let x_super_key = getenv("X_SUPER_KEY").unwrap_or("".to_string());
+            let super_token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
 
-            if x_super_key.is_empty() {
-                log::error!("X_SUPER_KEY is not set, please set ASAP");
+            if super_token.is_empty() {
+                log::error!("SUPER_TOKEN is not set, please set ASAP");
                 return Outcome::Success(VerifySuperToken { verified: false });
             }
-            if x_super_key.as_str() != token {
+            if super_token.as_str() != token {
                 log::error!("Invalid super key passed");
                 return Outcome::Success(VerifySuperToken { verified: false });
             }

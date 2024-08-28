@@ -209,10 +209,10 @@ pub fn create_super_user() -> User {
     tokio::spawn(async move {
         let error_msg = "is not set in the environment variable for setting up superadmin";
         //get x-super-token
-        let x_super_key = getenv("X_SUPER_KEY").unwrap_or("".to_string());
+        let super_token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
 
-        if x_super_key.is_empty() {
-            log::error!("X_SUPER_KEY {}", &error_msg);
+        if super_token.is_empty() {
+            log::error!("SUPER_TOKEN {}", &error_msg);
             return;
         }
 
@@ -248,7 +248,7 @@ pub fn create_super_user() -> User {
 
         match client
             .post(route.as_str())
-            .header("x-super-token", x_super_key)
+            .header("x-super-token", super_token)
             .json(&body)
             .send()
             .await
