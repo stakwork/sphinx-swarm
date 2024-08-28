@@ -4,9 +4,9 @@ use state::RemoteStack;
 use state::Super;
 
 use crate::checker::swarm_checker;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
-use sphinx_swarm::config::State;
+use sphinx_swarm::config::Role;
 use sphinx_swarm::routes;
 use sphinx_swarm::super_cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils;
@@ -62,11 +62,7 @@ pub async fn put_config_file(project: &str, rs: &Super) {
     utils::put_yaml(&path, rs).await;
 }
 
-pub fn test_tobi_the() {
-    println!("What we got here")
-}
-
-fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
+fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
     // login needs no auth
     if let Cmd::Swarm(c) = cmd {
         if let SwarmCmd::Login(_) = c {
@@ -78,27 +74,16 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
         return false;
     }
     let user_id = user_id.unwrap();
-    let user = state.stack.users.iter().find(|u| u.id == user_id);
+    let user = state.users.iter().find(|u| u.id == user_id);
     // user required
     if user.is_none() {
         return false;
     }
-    match cmd {
-        Cmd::Swarm(c) => match c {
-            SwarmCmd::SetChildSwarm(c) => {
-                // user can only change their own password
-                let envtoken = std::env::var("SUPER_TOKEN").ok();
-                if envtoken.is_none() {
-                    return false;
-                }
-                if c.token != envtoken.unwrap() {
-                    return true;
-                }
-            }
-            _ => {}
-        },
+
+    return match user.unwrap().role {
+        Role::Super => true,
+        Role::Admin => false,
     };
-    true
 }
 
 // tag is the service name
@@ -113,6 +98,10 @@ pub async fn super_handle(
     // println!("STACK {:?}", stack);
 
     let mut must_save_stack = false;
+
+    if !access(&cmd, &state, user_id) {
+        return Err(anyhow!("access denied"));
+    }
 
     let ret = match cmd {
         Cmd::Swarm(swarm_cmd) => match swarm_cmd {
