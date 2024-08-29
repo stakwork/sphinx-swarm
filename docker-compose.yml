@@ -88,6 +88,8 @@ services:
       - BACKUP_KEY=$BACKUP_KEY
       - BACKUP=$BACKUP
       - FEATURE_FLAG_TEXT_EMBEDDINGS=$FEATURE_FLAG_TEXT_EMBEDDINGS
+      - SUPER_URL=$SUPER_URL
+      - SUPER_TOKEN=$SUPER_TOKEN
 
 networks:
   sphinx-swarm:

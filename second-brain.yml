@@ -93,6 +93,7 @@ services:
       - BACKUP=$BACKUP
       - SUPER_TOKEN=$SUPER_TOKEN
       - FEATURE_FLAG_TEXT_EMBEDDINGS=$FEATURE_FLAG_TEXT_EMBEDDINGS
+      - SUPER_URL=$SUPER_URL
 
 networks:
   sphinx-swarm:
