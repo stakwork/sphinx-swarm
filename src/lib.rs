@@ -20,6 +20,5 @@ pub mod secondbrain;
 pub mod secrets;
 pub mod setup;
 pub mod sphinxv2;
-pub mod super_cmd;
 pub mod super_token_auth;
 pub mod utils;

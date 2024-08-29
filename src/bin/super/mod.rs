@@ -1,6 +1,11 @@
+mod auth_token;
 mod checker;
+mod cmd;
+mod routes;
 mod state;
 mod util;
+
+use cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
@@ -9,9 +14,8 @@ use util::add_new_swarm_details;
 use crate::checker::swarm_checker;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
+use routes::launch_rocket;
 use sphinx_swarm::config::Role;
-use sphinx_swarm::routes;
-use sphinx_swarm::super_cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils;
 use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
 use std::collections::HashMap;
@@ -49,7 +53,7 @@ async fn main() -> Result<()> {
 
     let event_tx = events::new_event_chan();
 
-    let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx).await?;
+    let _r = launch_rocket(tx.clone(), log_txs, event_tx).await?;
 
     Ok(())
 }
