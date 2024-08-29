@@ -15,7 +15,6 @@ use rocket::*;
 use sphinx_swarm::config::SendSwarmDetailsBody;
 use sphinx_swarm::config::SendSwarmDetailsResponse;
 use sphinx_swarm::rocket_utils::{CmdRequest, Error, Result, CORS};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
 

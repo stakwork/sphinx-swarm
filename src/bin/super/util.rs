@@ -1,6 +1,5 @@
 use crate::cmd::AddSwarmResponse;
 use crate::state::{RemoteStack, Super};
-use std::collections::HashMap;
 
 pub fn add_new_swarm_details(
     state: &mut Super,
