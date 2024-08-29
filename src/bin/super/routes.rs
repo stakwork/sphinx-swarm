@@ -1,6 +1,6 @@
 use crate::auth;
 use crate::auth_token::VerifySuperToken;
-use crate::cmd::{ChangePasswordInfo, ChildSwarm, Cmd, LoginInfo, SwarmCmd};
+use crate::cmd::{AddSwarmResponse, ChangePasswordInfo, ChildSwarm, Cmd, LoginInfo, SwarmCmd};
 use crate::events::{get_event_tx, EventChan};
 use crate::logs::{get_log_tx, LogChans, LOGS};
 use fs::{relative, FileServer};
@@ -191,7 +191,7 @@ pub async fn add_new_swarm(
     body: Json<SendSwarmDetailsBody>,
     verify_super_token: VerifySuperToken,
 ) -> Result<Custom<Json<SendSwarmDetailsResponse>>> {
-    if verify_super_token.verified == false {
+    if let None = verify_super_token.token {
         return Ok(Custom(
             Status::Unauthorized,
             Json(SendSwarmDetailsResponse {
@@ -204,7 +204,7 @@ pub async fn add_new_swarm(
         host: body.host.clone(),
         username: body.username.clone(),
         password: body.password.clone(),
-        token: verify_super_token.token,
+        token: verify_super_token.token.unwrap(),
     }));
 
     let txt = serde_json::to_string(&cmd)?;
@@ -217,54 +217,18 @@ pub async fn add_new_swarm(
         return Err(Error::Unauthorized);
     }
 
-    match serde_json::from_str::<HashMap<String, String>>(reply.as_str()) {
-        Ok(data) => match data.get("success") {
-            Some(status) => {
-                if status != "true" {
-                    match data.get("message") {
-                        Some(message) => {
-                            return Ok(Custom(
-                                Status::Conflict,
-                                Json(SendSwarmDetailsResponse {
-                                    message: message.as_str().to_string(),
-                                }),
-                            ));
-                        }
-                        None => {
-                            return Ok(Custom(
-                                Status::InternalServerError,
-                                Json(SendSwarmDetailsResponse {
-                                    message: "internal server error".to_string(),
-                                }),
-                            ));
-                        }
-                    }
-                }
-                return Ok(Custom(
-                    Status::Created,
-                    Json(SendSwarmDetailsResponse {
-                        message: "swarm added successfully".to_string(),
-                    }),
-                ));
-            }
-            None => {
-                ::log::error!("No valid status was returned from add Swarm command");
-                return Ok(Custom(
-                    Status::InternalServerError,
-                    Json(SendSwarmDetailsResponse {
-                        message: "internal server error".to_string(),
-                    }),
-                ));
-            }
-        },
-        Err(err) => {
-            ::log::error!("Could not parse HashMap for Add New Swarm: {:?}", err);
-            return Ok(Custom(
-                Status::InternalServerError,
-                Json(SendSwarmDetailsResponse {
-                    message: "internal server error".to_string(),
-                }),
-            ));
-        }
-    };
+    let response: AddSwarmResponse = serde::json::from_str(reply.as_str())?;
+
+    let mut status = Status::Conflict;
+
+    if response.success == true {
+        status = Status::Created
+    }
+
+    return Ok(Custom(
+        status,
+        Json(SendSwarmDetailsResponse {
+            message: response.message,
+        }),
+    ));
 }

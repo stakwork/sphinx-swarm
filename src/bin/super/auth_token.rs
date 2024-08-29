@@ -1,14 +1,11 @@
 use rocket::request::{FromRequest, Outcome, Request};
 
 #[derive(Debug)]
-pub enum SuperAuthError {
-    Unauthorized,
-}
+pub enum SuperAuthError {}
 
 #[derive(Clone)]
 pub struct VerifySuperToken {
-    pub token: String,
-    pub verified: bool,
+    pub token: Option<String>,
 }
 
 #[rocket::async_trait]
@@ -18,14 +15,10 @@ impl<'r> FromRequest<'r> for VerifySuperToken {
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         if let Some(token) = request.headers().get_one("x-super-token") {
             return Outcome::Success(VerifySuperToken {
-                token: token.to_string(),
-                verified: true,
+                token: Some(token.to_string()),
             });
         } else {
-            Outcome::Success(VerifySuperToken {
-                token: "".to_string(),
-                verified: false,
-            })
+            Outcome::Success(VerifySuperToken { token: None })
         }
     }
 }
