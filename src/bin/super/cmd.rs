@@ -68,3 +68,9 @@ pub enum SwarmCmd {
     DeleteSwarm(DeleteSwarmInfo),
     SetChildSwarm(ChildSwarm),
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddSwarmResponse {
+    pub success: bool,
+    pub message: String,
+}

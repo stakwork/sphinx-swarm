@@ -176,7 +176,7 @@
     }
     message = response?.message;
 
-    if (response?.success === "true") {
+    if (response?.success === true) {
       //get config again
       await getConfig();
 

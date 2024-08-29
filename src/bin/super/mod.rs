@@ -5,6 +5,7 @@ mod routes;
 mod state;
 mod util;
 
+use cmd::AddSwarmResponse;
 use cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
@@ -174,7 +175,7 @@ pub async fn super_handle(
                 Some(serde_json::to_string(&hm)?)
             }
             SwarmCmd::UpdateSwarm(swarm) => {
-                let mut hm = HashMap::new();
+                let hm: AddSwarmResponse;
                 match state.stacks.iter().position(|u| u.host == swarm.id) {
                     Some(ui) => {
                         state.stacks[ui] = RemoteStack {
@@ -185,12 +186,16 @@ pub async fn super_handle(
                             pass: state.stacks[ui].pass.clone(),
                         };
                         must_save_stack = true;
-                        hm.insert("success", "true");
-                        hm.insert("message", "Swarm updated successfully");
+                        hm = AddSwarmResponse {
+                            success: true,
+                            message: "Swarm updated successfully".to_string(),
+                        };
                     }
                     None => {
-                        hm.insert("success", "false");
-                        hm.insert("message", "swarm does not exist");
+                        hm = AddSwarmResponse {
+                            success: false,
+                            message: "swarm does not exist".to_string(),
+                        };
                     }
                 }
 
