@@ -1,7 +1,11 @@
+use anyhow::Error;
+use reqwest::Response;
 use std::collections::HashMap;
 
-use crate::images::Image;
+use crate::{images::Image, utils::make_reqwest_client};
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sphinx_auther::secp256k1::PublicKey;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -215,6 +219,19 @@ pub struct GetInvoice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SendCmdData {
+    pub cmd: String,
+    pub content: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct CmdRequest {
+    #[serde(rename = "type")]
+    cmd_type: String,
+    data: SendCmdData,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum BitcoindCmd {
     GetInfo,
@@ -280,6 +297,39 @@ impl Cmd {
             _ => false,
         }
     }
+}
+
+pub async fn send_cmd_request(
+    cmd_type: String,
+    data: SendCmdData,
+    tag: &str,
+    url: &str,
+    header_name: Option<&str>,
+    header_value: Option<&str>,
+) -> Result<Response, Error> {
+    let request = CmdRequest { cmd_type, data };
+    let txt = serde_json::to_string(&request).context("could not stringify request")?;
+
+    let client = make_reqwest_client();
+
+    let route = format!("{}/cmd", url);
+
+    if let (Some(name), Some(value)) = (header_name, header_value) {
+        return Ok(client
+            .get(&route)
+            .header(name, value)
+            .query(&[("txt", txt.as_str()), ("tag", tag)])
+            .send()
+            .await?);
+    }
+
+    let res = client
+        .get(route)
+        .query(&[("txt", txt.as_str()), ("tag", tag)])
+        .send()
+        .await?;
+
+    Ok(res)
 }
 
 #[cfg(test)]

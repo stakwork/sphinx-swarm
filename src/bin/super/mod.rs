@@ -1,13 +1,22 @@
+mod auth_token;
 mod checker;
+mod cmd;
+mod routes;
 mod state;
+mod util;
+
+use cmd::AddSwarmResponse;
+use cmd::{Cmd, SwarmCmd};
+use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
+use util::add_new_swarm_details;
 
 use crate::checker::swarm_checker;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
-use serde::{Deserialize, Serialize};
-use sphinx_swarm::routes;
+use routes::launch_rocket;
+use sphinx_swarm::config::Role;
 use sphinx_swarm::utils;
 use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
 use std::collections::HashMap;
@@ -16,6 +25,8 @@ use tokio::sync::{mpsc, Mutex};
 
 #[rocket::main]
 async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
+
     sphinx_swarm::utils::setup_logs();
 
     let project = "super";
@@ -43,7 +54,7 @@ async fn main() -> Result<()> {
 
     let event_tx = events::new_event_chan();
 
-    let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx).await?;
+    let _r = launch_rocket(tx.clone(), log_txs, event_tx).await?;
 
     Ok(())
 }
@@ -59,63 +70,60 @@ pub async fn put_config_file(project: &str, rs: &Super) {
     utils::put_yaml(&path, rs).await;
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", content = "data")]
-pub enum Cmd {
-    Swarm(SwarmCmd),
-}
+fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
+    // login needs no auth
+    if let Cmd::Swarm(c) = cmd {
+        if let SwarmCmd::Login(_) = c {
+            return true;
+        }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct LoginInfo {
-    pub username: String,
-    pub password: String,
-}
+        if let SwarmCmd::SetChildSwarm(info) = c {
+            //get x-super-token
+            let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+            if token.is_empty() {
+                return false;
+            }
+            //verify token
+            if token != info.token {
+                return false;
+            }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChangePasswordInfo {
-    pub user_id: u32,
-    pub old_pass: String,
-    pub password: String,
-}
+            return true;
+        }
+    }
+    // user id required if not SwarmCmd::Login
+    if user_id.is_none() {
+        return false;
+    }
+    let user_id = user_id.unwrap();
+    let user = state.users.iter().find(|u| u.id == user_id);
+    // user required
+    if user.is_none() {
+        return false;
+    }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AddNewSwarmInfo {
-    pub host: String,
-    pub instance: String,
-    pub description: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UpdateSwarmInfo {
-    pub id: String,
-    pub host: String,
-    pub instance: String,
-    pub description: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DeleteSwarmInfo {
-    pub host: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "cmd", content = "content")]
-pub enum SwarmCmd {
-    GetConfig,
-    Login(LoginInfo),
-    ChangePassword(ChangePasswordInfo),
-    AddNewSwarm(AddNewSwarmInfo),
-    UpdateSwarm(UpdateSwarmInfo),
-    DeleteSwarm(DeleteSwarmInfo),
+    return match user.unwrap().role {
+        Role::Super => true,
+        Role::Admin => false,
+    };
 }
 
 // tag is the service name
-pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
+pub async fn super_handle(
+    proj: &str,
+    cmd: Cmd,
+    _tag: &str,
+    user_id: &Option<u32>,
+) -> Result<String> {
     // conf can be mutated in place
     let mut state = state::STATE.lock().await;
     // println!("STACK {:?}", stack);
 
     let mut must_save_stack = false;
+
+    if !access(&cmd, &state, user_id) {
+        return Err(anyhow!("access denied"));
+    }
 
     let ret = match cmd {
         Cmd::Swarm(swarm_cmd) => match swarm_cmd {
@@ -154,30 +162,20 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                 }
             }
             SwarmCmd::AddNewSwarm(swarm) => {
-                let mut hm = HashMap::new();
-                match state.find_swarm_by_host(&swarm.host) {
-                    Some(_swarm) => {
-                        hm.insert("success", "false");
-                        hm.insert("message", "swarm already exist");
-                    }
-                    None => {
-                        let new_swarm = RemoteStack {
-                            host: swarm.host,
-                            note: Some(swarm.description),
-                            ec2: Some(swarm.instance),
-                            user: None,
-                            pass: None,
-                        };
-                        state.add_remote_stack(new_swarm);
-                        must_save_stack = true;
-                        hm.insert("success", "true");
-                        hm.insert("message", "Swarm added successfully");
-                    }
-                }
+                let swarm_detail = RemoteStack {
+                    host: swarm.host,
+                    user: Some("".to_string()),
+                    pass: Some("".to_string()),
+                    ec2: Some(swarm.instance),
+                    note: Some(swarm.description),
+                };
+
+                let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
+
                 Some(serde_json::to_string(&hm)?)
             }
             SwarmCmd::UpdateSwarm(swarm) => {
-                let mut hm = HashMap::new();
+                let hm: AddSwarmResponse;
                 match state.stacks.iter().position(|u| u.host == swarm.id) {
                     Some(ui) => {
                         state.stacks[ui] = RemoteStack {
@@ -188,12 +186,16 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                             pass: state.stacks[ui].pass.clone(),
                         };
                         must_save_stack = true;
-                        hm.insert("success", "true");
-                        hm.insert("message", "Swarm updated successfully");
+                        hm = AddSwarmResponse {
+                            success: true,
+                            message: "Swarm updated successfully".to_string(),
+                        };
                     }
                     None => {
-                        hm.insert("success", "false");
-                        hm.insert("message", "swarm does not exist");
+                        hm = AddSwarmResponse {
+                            success: false,
+                            message: "swarm does not exist".to_string(),
+                        };
                     }
                 }
 
@@ -214,6 +216,18 @@ pub async fn super_handle(proj: &str, cmd: Cmd, _tag: &str) -> Result<String> {
                 }
                 Some(serde_json::to_string(&hm)?)
             }
+            SwarmCmd::SetChildSwarm(c) => {
+                let swarm_details = RemoteStack {
+                    host: c.host,
+                    note: Some("".to_string()),
+                    pass: Some(c.password),
+                    user: Some(c.username),
+                    ec2: Some("".to_string()),
+                };
+                let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
+
+                Some(serde_json::to_string(&hm)?)
+            }
         },
     };
 
@@ -228,7 +242,7 @@ pub fn spawn_super_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>) {
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                match super_handle(&project, cmd, &msg.tag).await {
+                match super_handle(&project, cmd, &msg.tag, &msg.user_id).await {
                     Ok(res) => {
                         let _ = msg.reply_tx.send(res);
                     }

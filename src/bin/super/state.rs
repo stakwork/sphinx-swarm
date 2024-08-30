@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
-use sphinx_swarm::config::User;
+use sphinx_swarm::config::{Role, User};
 use sphinx_swarm::secrets;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
@@ -57,6 +57,7 @@ fn default_superuser() -> User {
         username: username.to_string(),
         pass_hash,
         pubkey: None,
+        role: Role::Super,
     }
 }
 

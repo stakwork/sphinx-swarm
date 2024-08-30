@@ -7,6 +7,7 @@ use crate::images::{
 use crate::secondbrain::*;
 use crate::secrets;
 use crate::sphinxv2::*;
+use crate::utils::{getenv, make_reqwest_client};
 
 // NETWORK = "bitcoin", "regtest"
 // HOST = hostname for this server (swarmx.sphinx.chat)
@@ -184,17 +185,99 @@ impl Default for Stack {
         // final nodes array
         nodes.extend(external_nodes);
 
+        let mut users = vec![User::default()];
+        let superuser = create_super_user();
+        users.push(superuser);
+
         Stack {
             network,
             nodes,
             host,
-            users: vec![Default::default()],
+            users,
             jwt_key: secrets::random_word(16),
             ready: false,
             ip: env_no_empty("IP"),
             auto_update: None,
             custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         }
+    }
+}
+
+pub fn create_super_user() -> User {
+    let password = crate::secrets::hex_secret_32();
+    let password_ = password.clone();
+    tokio::spawn(async move {
+        let error_msg = "is not set in the environment variable for setting up superadmin";
+        //get x-super-token
+        let super_token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+
+        if super_token.is_empty() {
+            log::error!("SUPER_TOKEN {}", &error_msg);
+            return;
+        }
+
+        //get super url
+        let super_url = getenv("SUPER_URL").unwrap_or("".to_string());
+
+        if super_url.is_empty() {
+            log::error!("SUPER_URL {}", &error_msg);
+            return;
+        }
+
+        //get swarm host
+        let mut my_domain = getenv("NAV_BOLTWALL_SHARED_HOST").unwrap_or("".to_string());
+
+        if my_domain.is_empty() {
+            my_domain = getenv("HOST").unwrap_or("".to_string())
+        }
+
+        if my_domain.is_empty() {
+            log::error!("HOST {}", &error_msg);
+            return;
+        }
+
+        let client = make_reqwest_client();
+
+        let route = format!("{}/super/add_new_swarm", super_url);
+
+        let body = SendSwarmDetailsBody {
+            username: "super".to_string(),
+            password: password_,
+            host: my_domain,
+        };
+
+        match client
+            .post(route.as_str())
+            .header("x-super-token", super_token)
+            .json(&body)
+            .send()
+            .await
+        {
+            Ok(res) => {
+                if res.status().clone() != 201 {
+                    match res.json::<SendSwarmDetailsResponse>().await {
+                        Ok(data) => {
+                            log::error!("{}", data.message)
+                        }
+                        Err(err) => {
+                            log::error!("Error parsing JSON response: {:?}", err);
+                        }
+                    }
+                    return;
+                }
+                log::info!("Swarm details sent to super admin successfully")
+            }
+            Err(err) => {
+                log::error!("Error sending Swarm details to admin: {:?}", err)
+            }
+        }
+    });
+    User {
+        id: 2,
+        username: "super".to_string(),
+        pass_hash: bcrypt::hash(&password, bcrypt::DEFAULT_COST).expect("failed to bcrypt"),
+        pubkey: None,
+        role: Role::Super,
     }
 }
 

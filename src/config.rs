@@ -67,11 +67,30 @@ pub struct Stack {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub enum Role {
+    Admin,
+    Super,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct User {
     pub id: u32,
     pub username: String,
     pub pass_hash: String,
     pub pubkey: Option<String>,
+    pub role: Role,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct SendSwarmDetailsBody {
+    pub username: String,
+    pub password: String,
+    pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct SendSwarmDetailsResponse {
+    pub message: String,
 }
 
 // optional node, could be external
@@ -131,6 +150,7 @@ impl Default for User {
             username: username.to_string(),
             pass_hash,
             pubkey: None,
+            role: Role::Admin,
         }
     }
 }
