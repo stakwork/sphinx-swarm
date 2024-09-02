@@ -5,12 +5,12 @@ mod routes;
 mod state;
 mod util;
 
-use cmd::AddSwarmResponse;
+use cmd::{AddSwarmResponse, SuperSwarmResponse};
 use cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
-use util::add_new_swarm_details;
+use util::{add_new_swarm_details, get_child_swarm_config};
 
 use crate::checker::swarm_checker;
 use anyhow::{anyhow, Context, Result};
@@ -227,6 +227,25 @@ pub async fn super_handle(
                 let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
 
                 Some(serde_json::to_string(&hm)?)
+            }
+            SwarmCmd::GetChildSwarmConfig(info) => {
+                let res: SuperSwarmResponse;
+                //find node
+                match state.find_swarm_by_host(&info.host) {
+                    Some(swarm) => {
+                        //login
+                        res = get_child_swarm_config(&swarm).await;
+                        // get config
+                    }
+                    None => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: "Swarm does not exist".to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
             }
         },
     };
