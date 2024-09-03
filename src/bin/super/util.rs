@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Error};
-use sphinx_swarm::cmd::LoginInfo;
+use reqwest::Response;
+use sphinx_swarm::cmd::{send_cmd_request, LoginInfo, SendCmdData};
+use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::make_reqwest_client;
 
 use crate::cmd::{AddSwarmResponse, LoginResponse, SuperSwarmResponse};
@@ -68,13 +70,53 @@ pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String,
 
 pub async fn get_child_swarm_config(swarm_details: &RemoteStack) -> SuperSwarmResponse {
     return match login_to_child_swarm(swarm_details).await {
-        Ok(details) => {
-            log::info!("{}", details);
-            SuperSwarmResponse {
-                success: true,
-                message: "tobi success".to_string(),
-                data: None,
+        Ok(token) => {
+            let response: SuperSwarmResponse;
+            //get config
+            match handle_get_child_swarm_config(&swarm_details.host, &token).await {
+                Ok(res) => {
+                    if res.status().clone() != 200 {
+                        return SuperSwarmResponse {
+                            success: false,
+                            message: format!(
+                                "{} status code gotten from get child swarm config",
+                                res.status()
+                            ),
+                            data: None,
+                        };
+                    }
+                    match res.json::<Stack>().await {
+                        Ok(stack) => {
+                            let nodes = serde_json::to_value(stack.nodes).unwrap();
+                            response = SuperSwarmResponse {
+                                success: true,
+                                message: "child swarm config successfully retrieved".to_string(),
+                                data: Some(nodes),
+                            }
+                        }
+                        Err(err) => {
+                            log::error!(
+                                "Error parsing response from child swarm config: {:?}",
+                                err
+                            );
+                            response = SuperSwarmResponse {
+                                success: false,
+                                message: "unable to parse child swarm config".to_string(),
+                                data: None,
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    log::error!("Error getting child swarm: {:?}", err);
+                    response = SuperSwarmResponse {
+                        success: false,
+                        message: "error getting child swarm configs".to_string(),
+                        data: None,
+                    }
+                }
             }
+            response
         }
         Err(err) => {
             log::error!("{}", err);
@@ -85,4 +127,24 @@ pub async fn get_child_swarm_config(swarm_details: &RemoteStack) -> SuperSwarmRe
             }
         }
     };
+}
+
+pub async fn handle_get_child_swarm_config(host: &str, token: &str) -> Result<Response, Error> {
+    let data = SendCmdData {
+        cmd: "GetConfig".to_string(),
+        content: None,
+    };
+    // let url = format!("https://app.{}/api");
+    let url = format!("http://{}/api", host);
+    let cmd_res = send_cmd_request(
+        "Swarm".to_string(),
+        data,
+        "SWARM",
+        &url,
+        Some("x-jwt"),
+        Some(&token),
+    )
+    .await?;
+
+    Ok(cmd_res)
 }
