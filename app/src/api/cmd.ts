@@ -80,7 +80,8 @@ export type Cmd =
   | "AddNewSwarm"
   | "UpdateSwarm"
   | "DeleteSwarm"
-  | "GetChildSwarmConfig";
+  | "GetChildSwarmConfig"
+  | "GetChildSwarmContainers";
 
 interface CmdData {
   cmd: Cmd;

@@ -2,7 +2,10 @@
   import { ArrowLeft } from "carbon-icons-svelte";
   import { selectedNode } from "./store";
   import { onMount } from "svelte";
-  import { get_child_swarm_config } from "../../../../../app/src/api/swarm";
+  import {
+    get_child_swarm_config,
+    get_child_swarm_containers,
+  } from "../../../../../app/src/api/swarm";
   import {
     Button,
     DataTable,
@@ -22,6 +25,12 @@
     // get internal node for this service
     const result = await get_child_swarm_config({ host: $selectedNode });
     nodes = [...result.data];
+    console.log("Tobi bams", nodes);
+    const swarm_containers = await get_child_swarm_containers({
+      host: $selectedNode,
+    });
+
+    console.log("Tibe jere please: ", swarm_containers);
     loading = false;
   });
 

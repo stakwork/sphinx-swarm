@@ -68,11 +68,12 @@ pub enum SwarmCmd {
     UpdateSwarm(UpdateSwarmInfo),
     DeleteSwarm(DeleteSwarmInfo),
     SetChildSwarm(ChildSwarm),
-    GetChildSwarmConfig(GetChildSwarmConfigInfo),
+    GetChildSwarmConfig(ChildSwarmIdentifier),
+    GetChildSwarmContainers(ChildSwarmIdentifier),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GetChildSwarmConfigInfo {
+pub struct ChildSwarmIdentifier {
     pub host: String,
 }
 

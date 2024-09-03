@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Error};
 use reqwest::Response;
+use serde_json::Value;
 use sphinx_swarm::cmd::{send_cmd_request, LoginInfo, SendCmdData};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::make_reqwest_client;
@@ -33,8 +34,8 @@ pub fn add_new_swarm_details(
 pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String, Error> {
     let client = make_reqwest_client();
 
-    // let route = format!("https://app.{}/api/login", swarm_details.host);
-    let route = format!("http://{}/api/login", swarm_details.host);
+    let base_route = get_child_base_route(&swarm_details.host);
+    let route = format!("{}/login", base_route);
 
     if let None = &swarm_details.user {
         return Err(anyhow!("Swarm Username is missing"));
@@ -134,8 +135,95 @@ pub async fn handle_get_child_swarm_config(host: &str, token: &str) -> Result<Re
         cmd: "GetConfig".to_string(),
         content: None,
     };
-    // let url = format!("https://app.{}/api");
-    let url = format!("http://{}/api", host);
+
+    let url = get_child_base_route(host);
+    let cmd_res = send_cmd_request(
+        "Swarm".to_string(),
+        data,
+        "SWARM",
+        &url,
+        Some("x-jwt"),
+        Some(&token),
+    )
+    .await?;
+
+    Ok(cmd_res)
+}
+
+pub fn get_child_base_route(host: &str) -> String {
+    // let url = format!("https://app.{}/api", host);
+
+    return format!("http://{}/api", host);
+}
+
+pub async fn get_child_swarm_containers(swarm_details: &RemoteStack) -> SuperSwarmResponse {
+    match login_to_child_swarm(swarm_details).await {
+        Ok(token) => {
+            let response: SuperSwarmResponse;
+            match handle_get_child_swarm_containers(&swarm_details.host, &token).await {
+                Ok(res) => {
+                    if res.status().clone() != 200 {
+                        return SuperSwarmResponse {
+                            success: false,
+                            message: format!(
+                                "{} status code gotten from get child swarm config",
+                                res.status()
+                            ),
+                            data: None,
+                        };
+                    }
+
+                    match res.json::<Value>().await {
+                        Ok(containers) => {
+                            response = SuperSwarmResponse {
+                                success: true,
+                                message: "child swarm containers successfully retrieved"
+                                    .to_string(),
+                                data: Some(containers),
+                            }
+                        }
+                        Err(err) => {
+                            log::error!(
+                                "Error parsing response from child swarm containers: {:?}",
+                                err
+                            );
+                            response = SuperSwarmResponse {
+                                success: false,
+                                message: "unable to parse child swarm containers".to_string(),
+                                data: None,
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    log::error!("Error getting child swarm: {:?}", err);
+                    response = SuperSwarmResponse {
+                        success: false,
+                        message: "error getting child swarm containers".to_string(),
+                        data: None,
+                    }
+                }
+            }
+            response
+        }
+        Err(err) => {
+            log::error!("{}", err);
+            SuperSwarmResponse {
+                success: false,
+                message: "error occured while trying to login".to_string(),
+                data: None,
+            }
+        }
+    }
+}
+
+async fn handle_get_child_swarm_containers(host: &str, token: &str) -> Result<Response, Error> {
+    let data = SendCmdData {
+        cmd: "ListContainers".to_string(),
+        content: None,
+    };
+
+    let url = get_child_base_route(host);
     let cmd_res = send_cmd_request(
         "Swarm".to_string(),
         data,

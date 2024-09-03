@@ -5,12 +5,13 @@ mod routes;
 mod state;
 mod util;
 
+use bollard_stubs::models::Swarm;
 use cmd::{AddSwarmResponse, SuperSwarmResponse};
 use cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
-use util::{add_new_swarm_details, get_child_swarm_config};
+use util::{add_new_swarm_details, get_child_swarm_config, get_child_swarm_containers};
 
 use crate::checker::swarm_checker;
 use anyhow::{anyhow, Context, Result};
@@ -236,6 +237,22 @@ pub async fn super_handle(
                         //login
                         res = get_child_swarm_config(&swarm).await;
                         // get config
+                    }
+                    None => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: "Swarm does not exist".to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetChildSwarmContainers(info) => {
+                let res: SuperSwarmResponse;
+                match state.find_swarm_by_host(&info.host) {
+                    Some(swarm) => {
+                        res = get_child_swarm_containers(&swarm).await;
                     }
                     None => {
                         res = SuperSwarmResponse {

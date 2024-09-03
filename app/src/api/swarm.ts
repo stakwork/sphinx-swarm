@@ -255,3 +255,8 @@ export async function update_user({
 export async function get_child_swarm_config({ host }: { host: string }) {
   return await swarmCmd("GetChildSwarmConfig", { host });
 }
+
+export async function get_child_swarm_containers({ host }: { host: string }) {
+  console.log("Tobi testing");
+  return await swarmCmd("GetChildSwarmContainers", { host });
+}
