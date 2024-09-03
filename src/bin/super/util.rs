@@ -2,7 +2,7 @@ use anyhow::{anyhow, Error};
 use sphinx_swarm::cmd::LoginInfo;
 use sphinx_swarm::utils::make_reqwest_client;
 
-use crate::cmd::{AddSwarmResponse, SuperSwarmResponse};
+use crate::cmd::{AddSwarmResponse, LoginResponse, SuperSwarmResponse};
 use crate::state::{RemoteStack, Super};
 
 pub fn add_new_swarm_details(
@@ -55,9 +55,9 @@ pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String,
                     res.status().clone()
                 ));
             }
+            let login_json: LoginResponse = res.json().await?;
 
-            log::info!("Login successful: {:?}", res);
-            Ok("JWT token gottens".to_string())
+            Ok(login_json.token)
         }
         Err(err) => {
             log::error!("Error trying to login: {:?}", err);
@@ -68,8 +68,8 @@ pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String,
 
 pub async fn get_child_swarm_config(swarm_details: &RemoteStack) -> SuperSwarmResponse {
     return match login_to_child_swarm(swarm_details).await {
-        Ok(_details) => {
-            log::info!("Seems we are getting login right");
+        Ok(details) => {
+            log::info!("{}", details);
             SuperSwarmResponse {
                 success: true,
                 message: "tobi success".to_string(),
@@ -80,7 +80,7 @@ pub async fn get_child_swarm_config(swarm_details: &RemoteStack) -> SuperSwarmRe
             log::error!("{}", err);
             SuperSwarmResponse {
                 success: false,
-                message: "could not login".to_string(),
+                message: "error occured while trying to login".to_string(),
                 data: None,
             }
         }

@@ -251,3 +251,7 @@ export async function update_user({
 }) {
   return await swarmCmd("UpdateUser", { pubkey, name, role, id });
 }
+
+export async function get_child_swarm_config({ host }: { host: string }) {
+  return await swarmCmd("GetChildSwarmConfig", { host });
+}

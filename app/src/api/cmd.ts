@@ -79,7 +79,8 @@ export type Cmd =
   | "GetApiToken"
   | "AddNewSwarm"
   | "UpdateSwarm"
-  | "DeleteSwarm";
+  | "DeleteSwarm"
+  | "GetChildSwarmConfig";
 
 interface CmdData {
   cmd: Cmd;

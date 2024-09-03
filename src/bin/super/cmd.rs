@@ -88,3 +88,8 @@ pub struct SuperSwarmResponse {
     pub message: String,
     pub data: Option<Value>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LoginResponse {
+    pub token: String,
+}

@@ -2,9 +2,12 @@
   import { ArrowLeft } from "carbon-icons-svelte";
   import { selectedNode } from "./store";
   import { onMount } from "svelte";
+  import { get_child_swarm_config } from "../../../../../app/src/api/swarm";
 
-  onMount(() => {
+  onMount(async () => {
     // get internal node for this service
+    const result = await get_child_swarm_config({ host: $selectedNode });
+    console.log(result);
   });
 
   export let back = () => {};
