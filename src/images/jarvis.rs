@@ -167,46 +167,46 @@ fn jarvis(
             feature_flag_text_embeddings
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("RADAR_RSS_SCHEDULER_TIME_IN_SEC") {
+    if let Ok(radar_rss_scheduler_time_in_sec) = getenv("RADAR_RSS_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
             "RADAR_RSS_SCHEDULER_TIME_IN_SEC={}",
-            feature_flag_text_embeddings
+            radar_rss_scheduler_time_in_sec
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("RADAR_YOUTUBE_SCHEDULER_JOB") {
+    if let Ok(radar_youtube_scheduler_job) = getenv("RADAR_YOUTUBE_SCHEDULER_JOB") {
         env.push(format!(
             "RADAR_YOUTUBE_SCHEDULER_JOB={}",
-            feature_flag_text_embeddings
+            radar_youtube_scheduler_job
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("RADAR_TWITTER_SCHEDULER_JOB") {
+    if let Ok(radar_twitter_scheduler_job) = getenv("RADAR_TWITTER_SCHEDULER_JOB") {
         env.push(format!(
             "RADAR_TWITTER_SCHEDULER_JOB={}",
-            feature_flag_text_embeddings
+            radar_twitter_scheduler_job
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("MAX_PAYMENT_HIERARCY_DEPTH") {
+    if let Ok(max_payment_hierarcy_depth) = getenv("MAX_PAYMENT_HIERARCY_DEPTH") {
         env.push(format!(
             "MAX_PAYMENT_HIERARCY_DEPTH={}",
-            feature_flag_text_embeddings
+            max_payment_hierarcy_depth
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("DYNAMO_DB_AWS_ACCESS_KEY_ID") {
+    if let Ok(dynamo_db_aws_access_key_id) = getenv("DYNAMO_DB_AWS_ACCESS_KEY_ID") {
         env.push(format!(
             "DYNAMO_DB_AWS_ACCESS_KEY_ID={}",
-            feature_flag_text_embeddings
+            dynamo_db_aws_access_key_id
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("DYNAMO_DB_AWS_REGION") {
+    if let Ok(dynamo_db_aws_region) = getenv("DYNAMO_DB_AWS_REGION") {
         env.push(format!(
             "DYNAMO_DB_AWS_REGION={}",
-            feature_flag_text_embeddings
+            dynamo_db_aws_region
         ));
     }
-    if let Ok(feature_flag_text_embeddings) = getenv("WEBPAGE_TEXT_WORKFLOW_ID") {
+    if let Ok(webpage_text_workflow_id) = getenv("WEBPAGE_TEXT_WORKFLOW_ID") {
         env.push(format!(
             "WEBPAGE_TEXT_WORKFLOW_ID={}",
-            feature_flag_text_embeddings
+            webpage_text_workflow_id 
         ));
     }
     Config {
