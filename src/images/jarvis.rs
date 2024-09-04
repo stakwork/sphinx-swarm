@@ -203,6 +203,12 @@ fn jarvis(
             dynamo_db_aws_region
         ));
     }
+    if let Ok(dynamo_db_aws_secret_access_key) = getenv("DYNAMO_DB_AWS_SECRET_ACCESS_KEY") {
+        env.push(format!(
+            "DYNAMO_DB_AWS_SECRET_ACCESS_KEY={}",
+            dynamo_db_aws_secret_access_key 
+        ));
+    }
     if let Ok(webpage_text_workflow_id) = getenv("WEBPAGE_TEXT_WORKFLOW_ID") {
         env.push(format!(
             "WEBPAGE_TEXT_WORKFLOW_ID={}",
