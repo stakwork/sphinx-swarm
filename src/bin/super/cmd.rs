@@ -70,6 +70,7 @@ pub enum SwarmCmd {
     SetChildSwarm(ChildSwarm),
     GetChildSwarmConfig(ChildSwarmIdentifier),
     GetChildSwarmContainers(ChildSwarmIdentifier),
+    StopChildSwarmContainers(AccessNodesInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -93,4 +94,10 @@ pub struct SuperSwarmResponse {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoginResponse {
     pub token: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AccessNodesInfo {
+    pub host: String,
+    pub nodes: Vec<String>,
 }

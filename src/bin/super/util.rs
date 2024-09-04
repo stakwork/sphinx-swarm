@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Error};
 use reqwest::Response;
 use serde_json::Value;
@@ -221,6 +223,97 @@ async fn handle_get_child_swarm_containers(host: &str, token: &str) -> Result<Re
     let data = SendCmdData {
         cmd: "ListContainers".to_string(),
         content: None,
+    };
+
+    let url = get_child_base_route(host);
+    let cmd_res = send_cmd_request(
+        "Swarm".to_string(),
+        data,
+        "SWARM",
+        &url,
+        Some("x-jwt"),
+        Some(&token),
+    )
+    .await?;
+
+    Ok(cmd_res)
+}
+
+pub async fn stop_child_swarm_containers(
+    swarm_details: &RemoteStack,
+    nodes: Vec<String>,
+) -> SuperSwarmResponse {
+    match login_to_child_swarm(swarm_details).await {
+        Ok(token) => {
+            let mut errors: HashMap<String, String> = HashMap::new();
+            for node in nodes {
+                match handle_stop_child_container(&swarm_details.host, &token, &node).await {
+                    Ok(res) => {
+                        if res.status().clone() != 200 {
+                            errors.insert(
+                                node.clone(),
+                                format!(
+                                    "{} status error trying to stop {} container",
+                                    res.status(),
+                                    node.clone()
+                                ),
+                            );
+                        }
+                    }
+                    Err(err) => {
+                        log::error!("Error trying to stop child containers: {}", &err);
+                        errors.insert(node, err.to_string());
+                    }
+                }
+            }
+
+            if !errors.is_empty() {
+                match serde_json::to_value(errors) {
+                    Ok(error_map) => {
+                        return SuperSwarmResponse {
+                            success: false,
+                            message: "Error occured stopping some containers".to_string(),
+                            data: Some(error_map),
+                        };
+                    }
+                    Err(err) => {
+                        return SuperSwarmResponse {
+                            success: false,
+                            message: format!(
+                                "Error parsing containers that were not stopped: {}",
+                                err.to_string()
+                            ),
+                            data: None,
+                        }
+                    }
+                };
+            }
+            SuperSwarmResponse {
+                success: true,
+                message: "containers stopped successfully".to_string(),
+                data: None,
+            }
+        }
+        Err(err) => {
+            log::error!("{}", err);
+            SuperSwarmResponse {
+                success: false,
+                message: "error occured while trying to login".to_string(),
+                data: None,
+            }
+        }
+    }
+}
+
+async fn handle_stop_child_container(
+    host: &str,
+    token: &str,
+    node: &str,
+) -> Result<Response, Error> {
+    let value = serde_json::to_value(node)?;
+    let data = SendCmdData {
+        cmd: "ListContainers".to_string(),
+        content: Some(value),
     };
 
     let url = get_child_base_route(host);
