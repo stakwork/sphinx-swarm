@@ -5,7 +5,6 @@ mod routes;
 mod state;
 mod util;
 
-use bollard_stubs::models::Swarm;
 use cmd::{AddSwarmResponse, SuperSwarmResponse};
 use cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils::getenv;
