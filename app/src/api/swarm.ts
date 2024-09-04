@@ -257,6 +257,15 @@ export async function get_child_swarm_config({ host }: { host: string }) {
 }
 
 export async function get_child_swarm_containers({ host }: { host: string }) {
-  console.log("Tobi testing");
   return await swarmCmd("GetChildSwarmContainers", { host });
+}
+
+export async function stop_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("StopChildSwarmContainers", { nodes, host });
 }

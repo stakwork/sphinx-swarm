@@ -5,6 +5,7 @@
   import {
     get_child_swarm_config,
     get_child_swarm_containers,
+    stop_child_swarm_containers,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -15,6 +16,7 @@
     Loading,
     ToolbarMenu,
     ToolbarMenuItem,
+    ToastNotification,
   } from "carbon-components-svelte";
 
   let loading = true;
@@ -23,10 +25,10 @@
   let containers = [];
   let message = "";
   let errorMessage = false;
-  const sortedNodes = [];
+  $: sortedNodes = [];
+  let show_notification = false;
 
-  onMount(async () => {
-    // get internal node for this service
+  async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
     if (result.success && result.data.stack_error) {
       message = result.data.stack_error;
@@ -57,9 +59,13 @@
       return;
     }
     containers = [...swarm_containers.data];
-    console.log(containers);
     sortNodes();
     loading = false;
+  }
+
+  onMount(async () => {
+    // get internal node for this service
+    setupNodes();
   });
 
   function findContainer(node_name: string) {
@@ -72,13 +78,14 @@
   }
 
   function sortNodes() {
+    const tempSortedNodes = [];
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       if (node.place === "External") {
         continue;
       }
       const container = findContainer(node.name);
-      sortedNodes.push({
+      tempSortedNodes.push({
         ...node,
         id: node.name,
         sn: `${i + 1}.`,
@@ -87,6 +94,22 @@
         stop: container?.State,
       });
     }
+    sortedNodes = [...tempSortedNodes];
+  }
+
+  async function stopChildContainers(nodes: string[]) {
+    loading = true;
+    const result = await stop_child_swarm_containers({
+      nodes,
+      host: $selectedNode,
+    });
+    if (!result.success) {
+      errorMessage = true;
+    }
+    message = result.message;
+    await setupNodes();
+    show_notification = true;
+    loading = false;
   }
 
   export let back = () => {};
@@ -98,9 +121,27 @@
     <ArrowLeft size={32} />
   </div>
   <h2 class="node_host">{$selectedNode}</h2>
-  {#if loading === true}
+  {#if show_notification}
+    <div class="success_toast_container">
+      <ToastNotification
+        lowContrast
+        kind={errorMessage ? "error" : "success"}
+        title={errorMessage ? "Error" : "Success"}
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_notification = false;
+          errorMessage = false;
+        }}
+        fullWidth={true}
+      />
+    </div>
+  {/if}
+  {#if loading}
     <Loading />
-  {:else}
+  {/if}
+  {#if sortedNodes.length > 0}
     <DataTable
       headers={[
         { key: "sn", value: "S/N" },
@@ -130,7 +171,9 @@
           {:else if cell.value === "exited"}
             <Button>Start</Button>
           {:else}
-            <Button>Stop</Button>
+            <Button on:click={() => stopChildContainers([`${row.id}.sphinx`])}
+              >Stop</Button
+            >
           {/if}
         {:else if cell.key === "upgrade"}
           <Button>Upgrade</Button>

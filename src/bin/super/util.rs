@@ -312,7 +312,7 @@ async fn handle_stop_child_container(
 ) -> Result<Response, Error> {
     let value = serde_json::to_value(node)?;
     let data = SendCmdData {
-        cmd: "ListContainers".to_string(),
+        cmd: "StopContainer".to_string(),
         content: Some(value),
     };
 
