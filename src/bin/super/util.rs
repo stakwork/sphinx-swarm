@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Error};
 use reqwest::Response;
 use serde_json::Value;
-use sphinx_swarm::cmd::{send_cmd_request, LoginInfo, SendCmdData};
+use sphinx_swarm::cmd::{send_cmd_request, LoginInfo, SendCmdData, UpdateNode};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::make_reqwest_client;
 
@@ -172,7 +172,31 @@ pub async fn access_child_swarm_containers(
     let mut errors: HashMap<String, String> = HashMap::new();
 
     for node in nodes {
-        match handle_access_child_container(&swarm_details.host, &token, &node, &cmd).await {
+        let data: Value;
+        if cmd == "UpdateContainer" {
+            match serde_json::to_value(UpdateNode {
+                id: node.clone(),
+                version: "latest".to_string(),
+            }) {
+                Ok(value) => data = value,
+                Err(err) => {
+                    log::error!("Error trying to convert to value: {}", &err);
+                    errors.insert(node, err.to_string());
+                    continue;
+                }
+            }
+        } else {
+            match serde_json::to_value(node.clone()) {
+                Ok(value) => data = value,
+                Err(err) => {
+                    log::error!("Error trying to convert to value: {}", &err);
+                    errors.insert(node, err.to_string());
+                    continue;
+                }
+            }
+        }
+
+        match handle_access_child_container(&swarm_details.host, &token, data, &cmd).await {
             Ok(res) => {
                 if res.status().clone() != 200 {
                     errors.insert(
@@ -217,13 +241,12 @@ pub async fn access_child_swarm_containers(
 async fn handle_access_child_container(
     host: &str,
     token: &str,
-    node: &str,
+    data: Value,
     cmd: &str,
 ) -> Result<Response, Error> {
-    let value = serde_json::to_value(node)?;
     let data = SendCmdData {
         cmd: cmd.to_string(),
-        content: Some(value),
+        content: Some(data),
     };
 
     let url = get_child_base_route(host);
