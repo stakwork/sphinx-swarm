@@ -279,3 +279,13 @@ export async function start_child_swarm_containers({
 }) {
   return await swarmCmd("StartChildSwarmContainers", { nodes, host });
 }
+
+export async function update_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("UpdateChildSwarmContainers", { nodes, host });
+}

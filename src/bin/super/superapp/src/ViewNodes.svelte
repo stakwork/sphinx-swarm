@@ -7,6 +7,7 @@
     get_child_swarm_containers,
     start_child_swarm_containers,
     stop_child_swarm_containers,
+    update_child_swarm_containers,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -128,6 +129,21 @@
     loading = false;
   }
 
+  async function updateContainers(nodes: string[]) {
+    loading = true;
+    const result = await update_child_swarm_containers({
+      nodes,
+      host: $selectedNode,
+    });
+    if (!result.success) {
+      errorMessage = true;
+    }
+    message = result.message;
+    await setupNodes();
+    show_notification = true;
+    loading = false;
+  }
+
   export let back = () => {};
 </script>
 
@@ -196,7 +212,9 @@
             >
           {/if}
         {:else if cell.key === "upgrade"}
-          <Button>Upgrade</Button>
+          <Button on:click={() => updateContainers([`${row.id}`])}
+            >Upgrade</Button
+          >
         {:else}
           {cell.value}
         {/if}

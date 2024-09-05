@@ -173,7 +173,7 @@ pub async fn access_child_swarm_containers(
 
     for node in nodes {
         let data: Value;
-        if cmd == "UpdateContainer" {
+        if cmd == "UpdateNode" {
             match serde_json::to_value(UpdateNode {
                 id: node.clone(),
                 version: "latest".to_string(),

@@ -47,6 +47,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::GetConfig => true,
                 SwarmCmd::UpdateSwarm => true,
                 SwarmCmd::ListContainers => true,
+                SwarmCmd::UpdateNode(_) => true,
                 _ => false,
             },
             _ => false,

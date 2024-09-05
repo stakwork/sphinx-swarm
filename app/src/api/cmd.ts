@@ -83,7 +83,8 @@ export type Cmd =
   | "GetChildSwarmConfig"
   | "GetChildSwarmContainers"
   | "StopChildSwarmContainers"
-  | "StartChildSwarmContainers";
+  | "StartChildSwarmContainers"
+  | "UpdateChildSwarmContainers";
 
 interface CmdData {
   cmd: Cmd;
