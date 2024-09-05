@@ -16,7 +16,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             .map(|n| Node::Internal(n.to_owned()))
             .collect(),
         host,
-        users: vec![Default::default()],
+        users: vec![Default::default(), create_super_user()],
         jwt_key: secrets::random_word(16),
         ready: false,
         ip: env_no_empty("IP"),
