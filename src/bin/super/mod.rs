@@ -11,8 +11,8 @@ use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
 use util::{
-    add_new_swarm_details, get_child_swarm_config, get_child_swarm_containers,
-    stop_child_swarm_containers,
+    access_child_swarm_containers, add_new_swarm_details, get_child_swarm_config,
+    get_child_swarm_containers,
 };
 
 use crate::checker::swarm_checker;
@@ -270,7 +270,8 @@ pub async fn super_handle(
                 let res: SuperSwarmResponse;
                 match state.find_swarm_by_host(&info.host) {
                     Some(swarm) => {
-                        res = stop_child_swarm_containers(&swarm, info.nodes).await;
+                        res = access_child_swarm_containers(&swarm, info.nodes, "StopContainer")
+                            .await;
                     }
                     None => {
                         res = SuperSwarmResponse {

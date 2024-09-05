@@ -209,29 +209,32 @@ async fn handle_get_child_swarm_containers(host: &str, token: &str) -> Result<Re
     Ok(cmd_res)
 }
 
-pub async fn stop_child_swarm_containers(
+pub async fn access_child_swarm_containers(
     swarm_details: &RemoteStack,
     nodes: Vec<String>,
+    cmd: &str,
 ) -> SuperSwarmResponse {
     match login_to_child_swarm(swarm_details).await {
         Ok(token) => {
             let mut errors: HashMap<String, String> = HashMap::new();
             for node in nodes {
-                match handle_stop_child_container(&swarm_details.host, &token, &node).await {
+                match handle_access_child_container(&swarm_details.host, &token, &node, &cmd).await
+                {
                     Ok(res) => {
                         if res.status().clone() != 200 {
                             errors.insert(
                                 node.clone(),
                                 format!(
-                                    "{} status error trying to stop {} container",
+                                    "{} status error trying to {} {}",
                                     res.status(),
+                                    &cmd,
                                     node.clone()
                                 ),
                             );
                         }
                     }
                     Err(err) => {
-                        log::error!("Error trying to stop child containers: {}", &err);
+                        log::error!("Error trying to {}: {}", &cmd, &err);
                         errors.insert(node, err.to_string());
                     }
                 }
@@ -242,21 +245,18 @@ pub async fn stop_child_swarm_containers(
                     Ok(error_map) => {
                         return SuperSwarmResponse {
                             success: false,
-                            message: "Error occured stopping some containers".to_string(),
+                            message: format!("Error occured trying to {}", cmd),
                             data: Some(error_map),
                         };
                     }
                     Err(err) => {
-                        return err_response(format!(
-                            "Error parsing containers that were not stopped: {}",
-                            err.to_string()
-                        ));
+                        return err_response(format!("Error parsing error: {}", err.to_string()));
                     }
                 };
             }
             SuperSwarmResponse {
                 success: true,
-                message: "containers stopped successfully".to_string(),
+                message: format!("{} executed successfully", cmd),
                 data: None,
             }
         }
@@ -267,14 +267,15 @@ pub async fn stop_child_swarm_containers(
     }
 }
 
-async fn handle_stop_child_container(
+async fn handle_access_child_container(
     host: &str,
     token: &str,
     node: &str,
+    cmd: &str,
 ) -> Result<Response, Error> {
     let value = serde_json::to_value(node)?;
     let data = SendCmdData {
-        cmd: "StopContainer".to_string(),
+        cmd: cmd.to_string(),
         content: Some(value),
     };
 
