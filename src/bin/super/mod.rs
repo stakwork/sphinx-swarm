@@ -235,11 +235,16 @@ pub async fn super_handle(
                 let res: SuperSwarmResponse;
                 //find node
                 match state.find_swarm_by_host(&info.host) {
-                    Some(swarm) => {
-                        //login
-                        res = get_child_swarm_config(&swarm).await;
-                        // get config
-                    }
+                    Some(swarm) => match get_child_swarm_config(&swarm).await {
+                        Ok(result) => res = result,
+                        Err(err) => {
+                            res = SuperSwarmResponse {
+                                success: false,
+                                message: err.to_string(),
+                                data: None,
+                            }
+                        }
+                    },
                     None => {
                         res = SuperSwarmResponse {
                             success: false,
@@ -253,9 +258,16 @@ pub async fn super_handle(
             SwarmCmd::GetChildSwarmContainers(info) => {
                 let res: SuperSwarmResponse;
                 match state.find_swarm_by_host(&info.host) {
-                    Some(swarm) => {
-                        res = get_child_swarm_containers(&swarm).await;
-                    }
+                    Some(swarm) => match get_child_swarm_containers(&swarm).await {
+                        Ok(result) => res = result,
+                        Err(err) => {
+                            res = SuperSwarmResponse {
+                                success: false,
+                                message: err.to_string(),
+                                data: None,
+                            }
+                        }
+                    },
                     None => {
                         res = SuperSwarmResponse {
                             success: false,
@@ -270,8 +282,18 @@ pub async fn super_handle(
                 let res: SuperSwarmResponse;
                 match state.find_swarm_by_host(&info.host) {
                     Some(swarm) => {
-                        res = access_child_swarm_containers(&swarm, info.nodes, "StopContainer")
-                            .await;
+                        match access_child_swarm_containers(&swarm, info.nodes, "StopContainer")
+                            .await
+                        {
+                            Ok(result) => res = result,
+                            Err(err) => {
+                                res = SuperSwarmResponse {
+                                    success: false,
+                                    message: err.to_string(),
+                                    data: None,
+                                }
+                            }
+                        }
                     }
                     None => {
                         res = SuperSwarmResponse {
@@ -287,8 +309,18 @@ pub async fn super_handle(
                 let res: SuperSwarmResponse;
                 match state.find_swarm_by_host(&info.host) {
                     Some(swarm) => {
-                        res = access_child_swarm_containers(&swarm, info.nodes, "StartContainer")
-                            .await;
+                        match access_child_swarm_containers(&swarm, info.nodes, "StartContainer")
+                            .await
+                        {
+                            Ok(result) => res = result,
+                            Err(err) => {
+                                res = SuperSwarmResponse {
+                                    success: false,
+                                    message: err.to_string(),
+                                    data: None,
+                                }
+                            }
+                        }
                     }
                     None => {
                         res = SuperSwarmResponse {

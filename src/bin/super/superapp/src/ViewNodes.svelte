@@ -5,6 +5,7 @@
   import {
     get_child_swarm_config,
     get_child_swarm_containers,
+    start_child_swarm_containers,
     stop_child_swarm_containers,
   } from "../../../../../app/src/api/swarm";
   import {
@@ -112,6 +113,21 @@
     loading = false;
   }
 
+  async function startChildContainer(nodes: string[]) {
+    loading = true;
+    const result = await start_child_swarm_containers({
+      nodes,
+      host: $selectedNode,
+    });
+    if (!result.success) {
+      errorMessage = true;
+    }
+    message = result.message;
+    await setupNodes();
+    show_notification = true;
+    loading = false;
+  }
+
   export let back = () => {};
 </script>
 
@@ -169,9 +185,13 @@
           {#if cell.value === "restarting"}
             <Button disabled={true}>Restarting...</Button>
           {:else if cell.value === "exited"}
-            <Button>Start</Button>
+            <Button on:click={() => startChildContainer([`${row.id}.sphinx`])}
+              >Start</Button
+            >
           {:else}
-            <Button on:click={() => stopChildContainers([`${row.id}.sphinx`])}
+            <Button
+              kind={"danger"}
+              on:click={() => stopChildContainers([`${row.id}.sphinx`])}
               >Stop</Button
             >
           {/if}
