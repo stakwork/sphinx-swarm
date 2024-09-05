@@ -105,13 +105,7 @@
       nodes,
       host: $selectedNode,
     });
-    if (!result.success) {
-      errorMessage = true;
-    }
-    message = result.message;
-    await setupNodes();
-    show_notification = true;
-    loading = false;
+    await handle_after_request(result);
   }
 
   async function startChildContainer(nodes: string[]) {
@@ -120,13 +114,7 @@
       nodes,
       host: $selectedNode,
     });
-    if (!result.success) {
-      errorMessage = true;
-    }
-    message = result.message;
-    await setupNodes();
-    show_notification = true;
-    loading = false;
+    await handle_after_request(result);
   }
 
   async function updateContainers(nodes: string[]) {
@@ -135,6 +123,10 @@
       nodes,
       host: $selectedNode,
     });
+    await handle_after_request(result);
+  }
+
+  async function handle_after_request(result) {
     if (!result.success) {
       errorMessage = true;
     }
