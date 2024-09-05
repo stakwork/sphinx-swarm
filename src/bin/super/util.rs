@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Error};
-use reqwest::Response;
+use reqwest::{Response, StatusCode};
 use serde_json::Value;
 use sphinx_swarm::cmd::{send_cmd_request, LoginInfo, SendCmdData};
 use sphinx_swarm::config::Stack;
@@ -79,14 +79,10 @@ pub async fn get_child_swarm_config(swarm_details: &RemoteStack) -> SuperSwarmRe
             match handle_get_child_swarm_config(&swarm_details.host, &token).await {
                 Ok(res) => {
                     if res.status().clone() != 200 {
-                        return SuperSwarmResponse {
-                            success: false,
-                            message: format!(
-                                "{} status code gotten from get child swarm config",
-                                res.status()
-                            ),
-                            data: None,
-                        };
+                        return non_success_status_code(
+                            res.status(),
+                            "status code gotten from get child swarm config",
+                        );
                     }
                     match res.json::<Stack>().await {
                         Ok(stack) => {
@@ -102,32 +98,21 @@ pub async fn get_child_swarm_config(swarm_details: &RemoteStack) -> SuperSwarmRe
                                 "Error parsing response from child swarm config: {:?}",
                                 err
                             );
-                            response = SuperSwarmResponse {
-                                success: false,
-                                message: "unable to parse child swarm config".to_string(),
-                                data: None,
-                            }
+                            response =
+                                err_response("unable to parse child swarm config".to_string())
                         }
                     }
                 }
                 Err(err) => {
                     log::error!("Error getting child swarm: {:?}", err);
-                    response = SuperSwarmResponse {
-                        success: false,
-                        message: "error getting child swarm configs".to_string(),
-                        data: None,
-                    }
+                    response = err_response("error getting child swarm configs".to_string())
                 }
             }
             response
         }
         Err(err) => {
             log::error!("{}", err);
-            SuperSwarmResponse {
-                success: false,
-                message: "error occured while trying to login".to_string(),
-                data: None,
-            }
+            err_response(err.to_string())
         }
     };
 }
@@ -165,14 +150,10 @@ pub async fn get_child_swarm_containers(swarm_details: &RemoteStack) -> SuperSwa
             match handle_get_child_swarm_containers(&swarm_details.host, &token).await {
                 Ok(res) => {
                     if res.status().clone() != 200 {
-                        return SuperSwarmResponse {
-                            success: false,
-                            message: format!(
-                                "{} status code gotten from get child swarm config",
-                                res.status()
-                            ),
-                            data: None,
-                        };
+                        return non_success_status_code(
+                            res.status(),
+                            "status code gotten from get child swarm container",
+                        );
                     }
 
                     match res.json::<Value>().await {
@@ -189,32 +170,21 @@ pub async fn get_child_swarm_containers(swarm_details: &RemoteStack) -> SuperSwa
                                 "Error parsing response from child swarm containers: {:?}",
                                 err
                             );
-                            response = SuperSwarmResponse {
-                                success: false,
-                                message: "unable to parse child swarm containers".to_string(),
-                                data: None,
-                            }
+                            response =
+                                err_response("unable to parse child swarm containers".to_string())
                         }
                     }
                 }
                 Err(err) => {
                     log::error!("Error getting child swarm: {:?}", err);
-                    response = SuperSwarmResponse {
-                        success: false,
-                        message: "error getting child swarm containers".to_string(),
-                        data: None,
-                    }
+                    response = err_response(err.to_string());
                 }
             }
             response
         }
         Err(err) => {
             log::error!("{}", err);
-            SuperSwarmResponse {
-                success: false,
-                message: "error occured while trying to login".to_string(),
-                data: None,
-            }
+            err_response(err.to_string())
         }
     }
 }
@@ -277,14 +247,10 @@ pub async fn stop_child_swarm_containers(
                         };
                     }
                     Err(err) => {
-                        return SuperSwarmResponse {
-                            success: false,
-                            message: format!(
-                                "Error parsing containers that were not stopped: {}",
-                                err.to_string()
-                            ),
-                            data: None,
-                        }
+                        return err_response(format!(
+                            "Error parsing containers that were not stopped: {}",
+                            err.to_string()
+                        ));
                     }
                 };
             }
@@ -296,11 +262,7 @@ pub async fn stop_child_swarm_containers(
         }
         Err(err) => {
             log::error!("{}", err);
-            SuperSwarmResponse {
-                success: false,
-                message: "error occured while trying to login".to_string(),
-                data: None,
-            }
+            err_response(err.to_string())
         }
     }
 }
@@ -328,4 +290,20 @@ async fn handle_stop_child_container(
     .await?;
 
     Ok(cmd_res)
+}
+
+fn err_response(err: String) -> SuperSwarmResponse {
+    SuperSwarmResponse {
+        success: false,
+        message: err,
+        data: None,
+    }
+}
+
+fn non_success_status_code(status_code: StatusCode, msg: &str) -> SuperSwarmResponse {
+    SuperSwarmResponse {
+        success: false,
+        message: format!("{} {}", status_code, msg),
+        data: None,
+    }
 }
