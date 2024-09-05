@@ -171,7 +171,7 @@
         { key: "sn", value: "S/N" },
         { key: "name", value: "Name" },
         // { key: "version", value: "Version" },
-        { key: "upgrade", value: "Upgrade" },
+        { key: "update", value: "Update" },
         { key: "stop", value: "Stop/Start" },
       ]}
       selectable
@@ -203,9 +203,9 @@
               >Stop</Button
             >
           {/if}
-        {:else if cell.key === "upgrade"}
+        {:else if cell.key === "update"}
           <Button on:click={() => updateContainers([`${row.id}`])}
-            >Upgrade</Button
+            >Update</Button
           >
         {:else}
           {cell.value}
