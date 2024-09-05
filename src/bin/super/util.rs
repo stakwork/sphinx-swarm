@@ -116,9 +116,9 @@ pub async fn handle_get_child_swarm_config(host: &str, token: &str) -> Result<Re
 }
 
 pub fn get_child_base_route(host: &str) -> String {
-    // let url = format!("https://app.{}/api", host);
+    let url = format!("https://app.{}/api", host);
 
-    return format!("http://{}/api", host);
+    // return format!("http://{}/api", host);
 }
 
 pub async fn get_child_swarm_containers(
