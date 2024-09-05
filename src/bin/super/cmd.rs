@@ -71,6 +71,7 @@ pub enum SwarmCmd {
     GetChildSwarmConfig(ChildSwarmIdentifier),
     GetChildSwarmContainers(ChildSwarmIdentifier),
     StopChildSwarmContainers(AccessNodesInfo),
+    StartChildSwarmContainers(AccessNodesInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

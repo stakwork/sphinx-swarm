@@ -283,6 +283,23 @@ pub async fn super_handle(
                 }
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::StartChildSwarmContainers(info) => {
+                let res: SuperSwarmResponse;
+                match state.find_swarm_by_host(&info.host) {
+                    Some(swarm) => {
+                        res = access_child_swarm_containers(&swarm, info.nodes, "StartContainer")
+                            .await;
+                    }
+                    None => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: "Swarm does not exist".to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
         },
     };
 
