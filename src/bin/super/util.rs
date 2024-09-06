@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Error};
 use reqwest::Response;
 use serde_json::Value;
-use sphinx_swarm::cmd::{send_cmd_request, LoginInfo, SendCmdData, UpdateNode};
+use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SendCmdData, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::make_reqwest_client;
 
@@ -75,7 +75,9 @@ pub async fn get_child_swarm_config(
     swarm_details: &RemoteStack,
 ) -> Result<SuperSwarmResponse, Error> {
     let token = login_to_child_swarm(swarm_details).await?;
-    let res = handle_get_child_swarm_config(&swarm_details.host, &token).await?;
+    // let res = handle_get_child_swarm_config(&swarm_details.host, &token).await?;
+    let cmd = Cmd::Swarm(SwarmCmd::GetConfig);
+    let res = swarm_cmd(cmd, &swarm_details.host, &token).await?;
 
     if res.status().clone() != 200 {
         return Err(anyhow!(format!(
@@ -93,6 +95,12 @@ pub async fn get_child_swarm_config(
         message: "child swarm config successfully retrieved".to_string(),
         data: Some(nodes),
     })
+}
+
+async fn swarm_cmd(cmd: Cmd, host: &str, token: &str) -> Result<Response, Error> {
+    let url = get_child_base_route(host);
+    let cmd_res = send_cmd_request(cmd, "SWARM", &url, Some("x-jwt"), Some(&token)).await?;
+    Ok(cmd_res)
 }
 
 pub async fn handle_get_child_swarm_config(host: &str, token: &str) -> Result<Response, Error> {

@@ -300,15 +300,14 @@ impl Cmd {
 }
 
 pub async fn send_cmd_request(
-    cmd_type: String,
-    data: SendCmdData,
+    cmd: Cmd,
     tag: &str,
     url: &str,
     header_name: Option<&str>,
     header_value: Option<&str>,
 ) -> Result<Response, Error> {
-    let request = CmdRequest { cmd_type, data };
-    let txt = serde_json::to_string(&request).context("could not stringify request")?;
+    // let request = CmdRequest { cmd_type, data };
+    let txt = serde_json::to_string(&cmd).context("could not stringify request")?;
 
     let client = make_reqwest_client();
 
