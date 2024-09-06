@@ -11,8 +11,8 @@ use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
 use util::{
-    access_child_swarm_containers, accessing_child_container_controller, add_new_swarm_details,
-    get_child_swarm_config, get_child_swarm_containers,
+    accessing_child_container_controller, add_new_swarm_details, get_child_swarm_config,
+    get_child_swarm_containers,
 };
 
 use crate::checker::swarm_checker;
@@ -75,24 +75,22 @@ pub async fn put_config_file(project: &str, rs: &Super) {
 
 fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
     // login needs no auth
-    if let Cmd::Swarm(c) = cmd {
-        if let SwarmCmd::Login(_) = c {
-            return true;
-        }
-
-        if let SwarmCmd::SetChildSwarm(info) = c {
-            //get x-super-token
-            let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
-            if token.is_empty() {
-                return false;
+    match cmd {
+        Cmd::Swarm(c) => match c {
+            SwarmCmd::Login(_) => return true,
+            SwarmCmd::SetChildSwarm(info) => {
+                //get x-super-token
+                let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+                if token.is_empty() {
+                    return false;
+                }
+                if token != info.token {
+                    return false;
+                }
+                return true;
             }
-            //verify token
-            if token != info.token {
-                return false;
-            }
-
-            return true;
-        }
+            _ => {}
+        },
     }
     // user id required if not SwarmCmd::Login
     if user_id.is_none() {

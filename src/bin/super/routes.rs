@@ -47,7 +47,7 @@ pub async fn launch_rocket(
 }
 
 #[get("/cmd?<tag>&<txt>")]
-pub async fn cmd(
+async fn cmd(
     sender: &State<mpsc::Sender<CmdRequest>>,
     tag: &str,
     txt: &str,
@@ -60,7 +60,7 @@ pub async fn cmd(
 }
 
 #[rocket::post("/super/add_new_swarm", data = "<body>")]
-pub async fn add_new_swarm(
+async fn add_new_swarm(
     sender: &State<mpsc::Sender<CmdRequest>>,
     body: Json<SendSwarmDetailsBody>,
     verify_super_token: VerifySuperToken,

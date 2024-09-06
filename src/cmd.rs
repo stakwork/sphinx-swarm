@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use crate::{images::Image, utils::make_reqwest_client};
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sphinx_auther::secp256k1::PublicKey;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -216,19 +215,6 @@ pub struct AddChannel {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetInvoice {
     pub payment_hash: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SendCmdData {
-    pub cmd: String,
-    pub content: Option<Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct CmdRequest {
-    #[serde(rename = "type")]
-    cmd_type: String,
-    data: SendCmdData,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
