@@ -12,6 +12,7 @@ const mode = import.meta.env.MODE;
 
 if (mode === "super") {
   root = "https://app.superadmin.sphinx.chat/api";
+  // root = "http://localhost:8005/api";
 }
 
 type CmdType =
@@ -78,7 +79,12 @@ export type Cmd =
   | "GetApiToken"
   | "AddNewSwarm"
   | "UpdateSwarm"
-  | "DeleteSwarm";
+  | "DeleteSwarm"
+  | "GetChildSwarmConfig"
+  | "GetChildSwarmContainers"
+  | "StopChildSwarmContainers"
+  | "StartChildSwarmContainers"
+  | "UpdateChildSwarmContainers";
 
 interface CmdData {
   cmd: Cmd;

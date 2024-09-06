@@ -8,6 +8,8 @@ export const remotes = writable<Remote[]>([]);
 
 export const activeUser = writable<string>();
 
+export const selectedNode = writable<string>();
+
 export const tribes = writable<{ [k: string]: Tribe[] }>({});
 
 export const saveUserToStore = async (user: string = "") => {

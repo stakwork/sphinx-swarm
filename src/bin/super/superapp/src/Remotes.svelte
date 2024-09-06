@@ -18,6 +18,7 @@
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
   import { splitHost } from "./utils/index";
+  import { selectedNode } from "./store";
 
   let open_create_edit = false;
   let open_delete = false;
@@ -34,6 +35,8 @@
   let errorMessage = false;
 
   let selectedRowIds = [];
+
+  export let viewNode = () => {};
 
   async function getConfig() {
     const conf = await api.swarm.get_config();
@@ -229,6 +232,12 @@
   function handleOnClose() {
     clear_swarm_data();
   }
+
+  function handleViewNodes(id: string) {
+    console.log(id);
+    selectedNode.set(id);
+    viewNode();
+  }
 </script>
 
 <main>
@@ -256,6 +265,7 @@
       { key: "ec2", value: "Instance" },
       { key: "tribes", value: "Tribes" },
       { key: "health", value: "Health" },
+      { key: "nodes", value: "Nodes" },
       { key: "edit", value: "Edit" },
       { key: "delete", value: "Delete" },
     ]}
@@ -284,6 +294,10 @@
       {:else if cell.key === "edit"}
         <Button size={"small"} on:click={() => handleEditSwarm(row.id)}>
           Edit
+        </Button>
+      {:else if cell.key === "nodes"}
+        <Button size={"small"} on:click={() => handleViewNodes(row.id)}>
+          View Nodes
         </Button>
       {:else if cell.key === "delete"}
         <Button

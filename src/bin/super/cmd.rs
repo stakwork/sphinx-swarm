@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -67,10 +68,38 @@ pub enum SwarmCmd {
     UpdateSwarm(UpdateSwarmInfo),
     DeleteSwarm(DeleteSwarmInfo),
     SetChildSwarm(ChildSwarm),
+    GetChildSwarmConfig(ChildSwarmIdentifier),
+    GetChildSwarmContainers(ChildSwarmIdentifier),
+    StopChildSwarmContainers(AccessNodesInfo),
+    StartChildSwarmContainers(AccessNodesInfo),
+    UpdateChildSwarmContainers(AccessNodesInfo),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChildSwarmIdentifier {
+    pub host: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddSwarmResponse {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SuperSwarmResponse {
+    pub success: bool,
+    pub message: String,
+    pub data: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LoginResponse {
+    pub token: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AccessNodesInfo {
+    pub host: String,
+    pub nodes: Vec<String>,
 }

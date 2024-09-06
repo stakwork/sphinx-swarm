@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use crate::{images::Image, utils::make_reqwest_client};
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sphinx_auther::secp256k1::PublicKey;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -219,19 +218,6 @@ pub struct GetInvoice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SendCmdData {
-    pub cmd: String,
-    pub content: Option<Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct CmdRequest {
-    #[serde(rename = "type")]
-    cmd_type: String,
-    data: SendCmdData,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum BitcoindCmd {
     GetInfo,
@@ -300,15 +286,14 @@ impl Cmd {
 }
 
 pub async fn send_cmd_request(
-    cmd_type: String,
-    data: SendCmdData,
+    cmd: Cmd,
     tag: &str,
     url: &str,
     header_name: Option<&str>,
     header_value: Option<&str>,
 ) -> Result<Response, Error> {
-    let request = CmdRequest { cmd_type, data };
-    let txt = serde_json::to_string(&request).context("could not stringify request")?;
+    // let request = CmdRequest { cmd_type, data };
+    let txt = serde_json::to_string(&cmd).context("could not stringify request")?;
 
     let client = make_reqwest_client();
 

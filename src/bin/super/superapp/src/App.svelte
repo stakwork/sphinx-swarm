@@ -5,10 +5,15 @@
   import User from "carbon-icons-svelte/lib/User.svelte";
   import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
   import ChangePassword from "./ChangePassword.svelte";
+  import ViewNodes from "./ViewNodes.svelte";
   let page = "main";
 
   async function backToMain() {
     page = "main";
+  }
+
+  async function viewNode() {
+    page = "view_nodes";
   }
 
   function handleChangePassword() {
@@ -38,8 +43,10 @@
     <div class="body">
       {#if page === "change_password"}
         <ChangePassword back={backToMain} />
+      {:else if page === "view_nodes"}
+        <ViewNodes back={backToMain} />
       {:else}
-        <Remotes />
+        <Remotes {viewNode} />
       {/if}
     </div>
   {/if}

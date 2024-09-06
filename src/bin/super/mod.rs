@@ -5,12 +5,15 @@ mod routes;
 mod state;
 mod util;
 
-use cmd::AddSwarmResponse;
+use cmd::{AddSwarmResponse, SuperSwarmResponse};
 use cmd::{Cmd, SwarmCmd};
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
-use util::add_new_swarm_details;
+use util::{
+    accessing_child_container_controller, add_new_swarm_details, get_child_swarm_config,
+    get_child_swarm_containers,
+};
 
 use crate::checker::swarm_checker;
 use anyhow::{anyhow, Context, Result};
@@ -72,24 +75,22 @@ pub async fn put_config_file(project: &str, rs: &Super) {
 
 fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
     // login needs no auth
-    if let Cmd::Swarm(c) = cmd {
-        if let SwarmCmd::Login(_) = c {
-            return true;
-        }
-
-        if let SwarmCmd::SetChildSwarm(info) = c {
-            //get x-super-token
-            let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
-            if token.is_empty() {
-                return false;
+    match cmd {
+        Cmd::Swarm(c) => match c {
+            SwarmCmd::Login(_) => return true,
+            SwarmCmd::SetChildSwarm(info) => {
+                //get x-super-token
+                let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+                if token.is_empty() {
+                    return false;
+                }
+                if token != info.token {
+                    return false;
+                }
+                return true;
             }
-            //verify token
-            if token != info.token {
-                return false;
-            }
-
-            return true;
-        }
+            _ => {}
+        },
     }
     // user id required if not SwarmCmd::Login
     if user_id.is_none() {
@@ -227,6 +228,69 @@ pub async fn super_handle(
                 let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
 
                 Some(serde_json::to_string(&hm)?)
+            }
+            SwarmCmd::GetChildSwarmConfig(info) => {
+                let res: SuperSwarmResponse;
+                //find node
+                match state.find_swarm_by_host(&info.host) {
+                    Some(swarm) => match get_child_swarm_config(&swarm).await {
+                        Ok(result) => res = result,
+                        Err(err) => {
+                            res = SuperSwarmResponse {
+                                success: false,
+                                message: err.to_string(),
+                                data: None,
+                            }
+                        }
+                    },
+                    None => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: "Swarm does not exist".to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetChildSwarmContainers(info) => {
+                let res: SuperSwarmResponse;
+                match state.find_swarm_by_host(&info.host) {
+                    Some(swarm) => match get_child_swarm_containers(&swarm).await {
+                        Ok(result) => res = result,
+                        Err(err) => {
+                            res = SuperSwarmResponse {
+                                success: false,
+                                message: err.to_string(),
+                                data: None,
+                            }
+                        }
+                    },
+                    None => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: "Swarm does not exist".to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::StopChildSwarmContainers(info) => {
+                let res = accessing_child_container_controller(&state, info, "StopContainer").await;
+
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::StartChildSwarmContainers(info) => {
+                let res =
+                    accessing_child_container_controller(&state, info, "StartContainer").await;
+
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateChildSwarmContainers(info) => {
+                let res = accessing_child_container_controller(&state, info, "UpdateNode").await;
+
+                Some(serde_json::to_string(&res)?)
             }
         },
     };

@@ -251,3 +251,41 @@ export async function update_user({
 }) {
   return await swarmCmd("UpdateUser", { pubkey, name, role, id });
 }
+
+export async function get_child_swarm_config({ host }: { host: string }) {
+  return await swarmCmd("GetChildSwarmConfig", { host });
+}
+
+export async function get_child_swarm_containers({ host }: { host: string }) {
+  return await swarmCmd("GetChildSwarmContainers", { host });
+}
+
+export async function stop_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("StopChildSwarmContainers", { nodes, host });
+}
+
+export async function start_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("StartChildSwarmContainers", { nodes, host });
+}
+
+export async function update_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("UpdateChildSwarmContainers", { nodes, host });
+}
