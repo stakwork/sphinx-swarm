@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Error};
 use reqwest::Response;
 use serde_json::Value;
-use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SendCmdData, SwarmCmd, UpdateNode};
+use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::make_reqwest_client;
 
@@ -103,28 +103,8 @@ async fn swarm_cmd(cmd: Cmd, host: &str, token: &str) -> Result<Response, Error>
     Ok(cmd_res)
 }
 
-pub async fn handle_get_child_swarm_config(host: &str, token: &str) -> Result<Response, Error> {
-    let data = SendCmdData {
-        cmd: "GetConfig".to_string(),
-        content: None,
-    };
-
-    let url = get_child_base_route(host);
-    let cmd_res = send_cmd_request(
-        "Swarm".to_string(),
-        data,
-        "SWARM",
-        &url,
-        Some("x-jwt"),
-        Some(&token),
-    )
-    .await?;
-
-    Ok(cmd_res)
-}
-
 pub fn get_child_base_route(host: &str) -> String {
-    let url = format!("https://app.{}/api", host);
+    return format!("https://app.{}/api", host);
 
     // return format!("http://{}/api", host);
 }
@@ -133,7 +113,8 @@ pub async fn get_child_swarm_containers(
     swarm_details: &RemoteStack,
 ) -> Result<SuperSwarmResponse, Error> {
     let token = login_to_child_swarm(swarm_details).await?;
-    let res = handle_get_child_swarm_containers(&swarm_details.host, &token).await?;
+    let cmd = Cmd::Swarm(SwarmCmd::ListContainers);
+    let res = swarm_cmd(cmd, &swarm_details.host, &token).await?;
 
     if res.status().clone() != 200 {
         return Err(anyhow!(format!(
@@ -151,60 +132,28 @@ pub async fn get_child_swarm_containers(
     })
 }
 
-async fn handle_get_child_swarm_containers(host: &str, token: &str) -> Result<Response, Error> {
-    let data = SendCmdData {
-        cmd: "ListContainers".to_string(),
-        content: None,
-    };
-
-    let url = get_child_base_route(host);
-    let cmd_res = send_cmd_request(
-        "Swarm".to_string(),
-        data,
-        "SWARM",
-        &url,
-        Some("x-jwt"),
-        Some(&token),
-    )
-    .await?;
-
-    Ok(cmd_res)
-}
-
 pub async fn access_child_swarm_containers(
     swarm_details: &RemoteStack,
     nodes: Vec<String>,
-    cmd: &str,
+    cmd_text: &str,
 ) -> Result<SuperSwarmResponse, Error> {
     let token = login_to_child_swarm(swarm_details).await?;
     let mut errors: HashMap<String, String> = HashMap::new();
 
     for node in nodes {
-        let data: Value;
-        if cmd == "UpdateNode" {
-            match serde_json::to_value(UpdateNode {
+        let cmd: Cmd;
+        if cmd_text == "UpdateNode" {
+            cmd = Cmd::Swarm(SwarmCmd::UpdateNode(UpdateNode {
                 id: node.clone(),
                 version: "latest".to_string(),
-            }) {
-                Ok(value) => data = value,
-                Err(err) => {
-                    log::error!("Error trying to convert to value: {}", &err);
-                    errors.insert(node, err.to_string());
-                    continue;
-                }
-            }
+            }));
+        } else if cmd_text == "StartContainer" {
+            cmd = Cmd::Swarm(SwarmCmd::StartContainer(node.clone()))
         } else {
-            match serde_json::to_value(node.clone()) {
-                Ok(value) => data = value,
-                Err(err) => {
-                    log::error!("Error trying to convert to value: {}", &err);
-                    errors.insert(node, err.to_string());
-                    continue;
-                }
-            }
+            cmd = Cmd::Swarm(SwarmCmd::StopContainer(node.clone()))
         }
 
-        match handle_access_child_container(&swarm_details.host, &token, data, &cmd).await {
+        match swarm_cmd(cmd, &swarm_details.host, &token).await {
             Ok(res) => {
                 if res.status().clone() != 200 {
                     errors.insert(
@@ -212,14 +161,14 @@ pub async fn access_child_swarm_containers(
                         format!(
                             "{} status error trying to {} {}",
                             res.status(),
-                            &cmd,
+                            &cmd_text,
                             node.clone()
                         ),
                     );
                 }
             }
             Err(err) => {
-                log::error!("Error trying to {}: {}", &cmd, &err);
+                log::error!("Error trying to {}: {}", &cmd_text, &err);
                 errors.insert(node, err.to_string());
             }
         }
@@ -230,7 +179,7 @@ pub async fn access_child_swarm_containers(
             Ok(error_map) => {
                 return Ok(SuperSwarmResponse {
                     success: false,
-                    message: format!("Error occured trying to {}", cmd),
+                    message: format!("Error occured trying to {}", cmd_text),
                     data: Some(error_map),
                 });
             }
@@ -241,34 +190,9 @@ pub async fn access_child_swarm_containers(
     }
     Ok(SuperSwarmResponse {
         success: true,
-        message: format!("{} executed successfully", cmd),
+        message: format!("{} executed successfully", cmd_text),
         data: None,
     })
-}
-
-async fn handle_access_child_container(
-    host: &str,
-    token: &str,
-    data: Value,
-    cmd: &str,
-) -> Result<Response, Error> {
-    let data = SendCmdData {
-        cmd: cmd.to_string(),
-        content: Some(data),
-    };
-
-    let url = get_child_base_route(host);
-    let cmd_res = send_cmd_request(
-        "Swarm".to_string(),
-        data,
-        "SWARM",
-        &url,
-        Some("x-jwt"),
-        Some(&token),
-    )
-    .await?;
-
-    Ok(cmd_res)
 }
 
 pub async fn accessing_child_container_controller(
