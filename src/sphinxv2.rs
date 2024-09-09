@@ -75,6 +75,7 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
         ip: env_no_empty("IP"),
         auto_update: None,
         custom_2b_domain: None,
+        global_mem_limit: None,
     }
 }
 
@@ -109,6 +110,7 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
         ip: env_no_empty("IP"),
         auto_update: None,
         custom_2b_domain: None,
+        global_mem_limit: None,
     }
 }
 
@@ -125,5 +127,6 @@ pub fn config_only(host: Option<String>) -> Stack {
         ip: env_no_empty("IP"),
         auto_update: None,
         custom_2b_domain: None,
+        global_mem_limit: None,
     }
 }

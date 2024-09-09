@@ -23,6 +23,11 @@ pub fn shutdown_now() {
 
 // return a map of name:docker_id
 pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<Clients> {
+    // set global mem limit if it exists
+    if let Some(limit) = &stack.global_mem_limit {
+        use std::sync::atomic::Ordering;
+        crate::config::GLOBAL_MEM_LIMIT.store(*limit, Ordering::Relaxed);
+    }
     // first create the default network
     create_network(docker, None).await?;
     // then add the containers

@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use crate::config::*;
 use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::{
@@ -201,6 +199,7 @@ impl Default for Stack {
             ip: env_no_empty("IP"),
             auto_update: None,
             custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
+            global_mem_limit: None,
         }
     }
 }
