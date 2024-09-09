@@ -324,3 +324,16 @@ pub fn env_no_empty(varname: &str) -> Option<String> {
         None => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn create_password_and_password_hash() {
+        let password = crate::secrets::hex_secret_32();
+        println!("Logging Password: {}", password);
+        let hashed_password =
+            bcrypt::hash(&password, bcrypt::DEFAULT_COST).expect("failed to bcrypt");
+        println!("Hashed Password: {}", hashed_password);
+    }
+}
