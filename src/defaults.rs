@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 use crate::config::*;
 use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::{
@@ -255,9 +257,9 @@ pub fn create_super_user() -> User {
         {
             Ok(res) => {
                 if res.status().clone() != 201 {
-                    match res.json::<SendSwarmDetailsResponse>().await {
+                    match res.json::<Value>().await {
                         Ok(data) => {
-                            log::error!("{}", data.message)
+                            log::error!("{:?}", data)
                         }
                         Err(err) => {
                             log::error!("Error parsing JSON response: {:?}", err);
