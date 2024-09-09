@@ -369,7 +369,9 @@ pub async fn handle(
                 return Ok(serde_json::to_string(&response)?);
             }
             SwarmCmd::SetGlobalMemLimit(gbm) => {
-                return Ok(crate::config::set_global_mem_limit(gbm)?)
+                state.stack.global_mem_limit = Some(gbm);
+                must_save_stack = true;
+                Some(crate::config::set_global_mem_limit(gbm)?)
             }
         },
         Cmd::Relay(c) => {
