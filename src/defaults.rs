@@ -257,14 +257,16 @@ pub fn create_super_user() -> User {
         {
             Ok(res) => {
                 if res.status().clone() != 201 {
-                    match res.json::<Value>().await {
-                        Ok(data) => {
-                            log::error!("{:?}", data)
-                        }
-                        Err(err) => {
-                            log::error!("Error parsing JSON response: {:?}", err);
-                        }
-                    }
+                    log::error!("Response code: {:?}", res.status().clone());
+                    log::error!("Response: {:?}", res);
+                    // match res.json::<Value>().await {
+                    //     Ok(data) => {
+                    //         log::error!("{:?}", data)
+                    //     }
+                    //     Err(err) => {
+                    //         log::error!("Error parsing JSON response: {:?}", err);
+                    //     }
+                    // }
                     return;
                 }
                 log::info!("Swarm details sent to super admin successfully")
