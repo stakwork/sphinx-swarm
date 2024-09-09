@@ -26,6 +26,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "navfiber".to_string(),
         ]),
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
+        global_mem_limit: None,
     }
 }
 

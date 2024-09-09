@@ -36,6 +36,12 @@ pub fn host_config(
     };
     if let Some(ml) = mem_limit {
         hc.memory = Some(ml);
+    } else {
+        use std::sync::atomic::Ordering;
+        let global_mem_limit = crate::config::GLOBAL_MEM_LIMIT.load(Ordering::Relaxed);
+        if global_mem_limit > 0 {
+            hc.memory = Some(global_mem_limit as i64);
+        }
     }
     Some(hc)
 }
