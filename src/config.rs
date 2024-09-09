@@ -297,3 +297,16 @@ impl Stack {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+struct GbmRes {
+    global_mem_limit: u64,
+}
+pub fn set_global_mem_limit(gbm: u64) -> Result<String> {
+    log::info!("Set Global Memory Limit ===> {:?}", gbm);
+    use std::sync::atomic::Ordering;
+    GLOBAL_MEM_LIMIT.store(gbm, Ordering::Relaxed);
+    Ok(serde_json::to_string(&GbmRes {
+        global_mem_limit: gbm,
+    })?)
+}
