@@ -12,7 +12,8 @@
   export let host = "";
   let link = host ? `https://${host}` : "http://localhost:8001";
   if ($stack && $stack.custom_2b_domain) {
-    link = `https://${$stack.custom_2b_domain}`;
+    const first = $stack.custom_2b_domain.split(",")[0];
+    link = `https://${first}`;
   }
 
   let toggled = false;

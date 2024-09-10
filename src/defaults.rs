@@ -226,13 +226,15 @@ pub fn create_super_user() -> User {
         }
 
         //get swarm host
-        let mut my_domain = getenv("NAV_BOLTWALL_SHARED_HOST").unwrap_or("".to_string());
+        let my_domain = getenv("NAV_BOLTWALL_SHARED_HOST").unwrap_or("".to_string());
+        let host = if my_domain.is_empty() {
+            getenv("HOST").unwrap_or("".to_string())
+        } else {
+            let my_domain_split = my_domain.split(",").collect::<Vec<&str>>();
+            my_domain_split.get(0).unwrap_or(&"").to_string()
+        };
 
-        if my_domain.is_empty() {
-            my_domain = getenv("HOST").unwrap_or("".to_string())
-        }
-
-        if my_domain.is_empty() {
+        if host.is_empty() {
             log::error!("HOST {}", &error_msg);
             return;
         }
@@ -244,7 +246,7 @@ pub fn create_super_user() -> User {
         let body = SendSwarmDetailsBody {
             username: "super".to_string(),
             password: password_,
-            host: my_domain,
+            host: host,
         };
 
         match client

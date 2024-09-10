@@ -143,20 +143,29 @@ pub fn traefik_labels(
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
-    if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
-        let shared_host = navfiber_boltwall_shared_host().unwrap();
+    if navfiber_boltwall_shared_hosts().is_some() && is_navfiber_or_boltwall(name) {
+        let shared_hosts = navfiber_boltwall_shared_hosts().unwrap();
+        let mut shared_host_string = "Host(".to_string();
+        for (i, sh) in shared_hosts.iter().enumerate() {
+            let is_last = i == shared_hosts.len() - 1;
+            shared_host_string.push_str(&format!("`{}`", sh));
+            if !is_last {
+                shared_host_string.push_str(",");
+            }
+        }
+        shared_host_string.push_str(")");
         if name == "navfiber" {
             // anything except /api (local resources)
             def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`)",
-                name, shared_host
+                "traefik.http.routers.{}.rule={}",
+                name, shared_host_string
             ));
             def.push(format!("traefik.http.routers.{}.priority=1", name));
         } else {
             // if /api then all should go here
             def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
-                name, shared_host
+                "traefik.http.routers.{}.rule={} && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
+                name, shared_host_string
             ));
             def.push(format!("traefik.http.routers.{}.priority=2", name));
         }
@@ -175,13 +184,15 @@ pub fn traefik_labels(
 fn is_navfiber_or_boltwall(name: &str) -> bool {
     name == "navfiber" || name == "boltwall"
 }
-pub fn navfiber_boltwall_shared_host() -> Option<String> {
+// always will have at least one element of non-empty string if its Some
+pub fn navfiber_boltwall_shared_hosts() -> Option<Vec<String>> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();
     match sh {
         Some(h) => {
             // remove empty string
             if h.len() > 0 {
-                Some(h)
+                let hts = h.split(",").into_iter().map(|s| s.to_string()).collect();
+                Some(hts)
             } else {
                 None
             }
