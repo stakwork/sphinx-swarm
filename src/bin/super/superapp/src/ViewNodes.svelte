@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowLeft, Save, UpdateNow, Stop } from "carbon-icons-svelte";
+  import { ArrowLeft, UpdateNow, Stop } from "carbon-icons-svelte";
   import { selectedNode } from "./store";
   import { onMount } from "svelte";
   import {
@@ -370,7 +370,10 @@
     height: 100%;
   }
   .back {
+    display: flex;
     margin-bottom: 1rem;
+    cursor: pointer;
+    max-width: fit-content;
   }
 
   .node_host {
