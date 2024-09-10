@@ -138,6 +138,7 @@
   }
 
   async function restartAllContainer() {
+    nodes_to_be_modified = [];
     for (let i = 0; i < sortedNodes.length; i++) {
       nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
     }
@@ -175,6 +176,30 @@
       errorMessage = true;
     }
     show_notification = true;
+  }
+
+  async function stopAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+    }
+    await stopChildContainers(nodes_to_be_modified);
+  }
+
+  async function startAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+    }
+    await startChildContainer(nodes_to_be_modified);
+  }
+
+  async function upgradeAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}`);
+    }
+    await updateContainers(nodes_to_be_modified);
   }
 
   export let back = () => {};
@@ -227,7 +252,15 @@
             <ToolbarMenuItem on:click={() => restartAllContainer()}
               >Restart all</ToolbarMenuItem
             >
-            <ToolbarMenuItem hasDivider>API documentation</ToolbarMenuItem>
+            <ToolbarMenuItem on:click={() => stopAllContainer()} hasDivider
+              >Stop All</ToolbarMenuItem
+            >
+            <ToolbarMenuItem on:click={() => startAllContainer()} hasDivider
+              >Start All</ToolbarMenuItem
+            >
+            <ToolbarMenuItem on:click={() => upgradeAllContainer()} hasDivider
+              >Upgrade All</ToolbarMenuItem
+            >
           </ToolbarMenu>
         </ToolbarContent>
       </Toolbar>
