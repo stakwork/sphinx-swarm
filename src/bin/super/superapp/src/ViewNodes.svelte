@@ -28,6 +28,7 @@
   let message = "";
   let errorMessage = false;
   $: sortedNodes = [];
+  $: nodes_to_be_modified = [];
   let show_notification = false;
 
   async function setupNodes() {
@@ -136,6 +137,46 @@
     loading = false;
   }
 
+  async function restartAllContainer() {
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+    }
+
+    loading = true;
+
+    const stop_result = await stop_child_swarm_containers({
+      nodes: nodes_to_be_modified,
+      host: $selectedNode,
+    });
+
+    const start_result = await start_child_swarm_containers({
+      nodes: nodes_to_be_modified,
+      host: $selectedNode,
+    });
+
+    await setupNodes();
+
+    loading = false;
+
+    message = "Restarted All node successfully";
+
+    if (start_result === false || stop_result === false) {
+      errorMessage = true;
+      message = start_result.message || stop_result.message;
+    }
+
+    if (start_result.success && start_result.data.stack_error) {
+      message = `Start Containers: ${start_result.data.stack_error}`;
+      errorMessage = true;
+    }
+
+    if (stop_result.success && stop_result.data.stack_error) {
+      message = `Stop Containers: ${stop_result.data.stack_error}`;
+      errorMessage = true;
+    }
+    show_notification = true;
+  }
+
   export let back = () => {};
 </script>
 
@@ -183,7 +224,9 @@
         <ToolbarContent>
           <ToolbarSearch value="" shouldFilterRows />
           <ToolbarMenu disabled={false}>
-            <ToolbarMenuItem>Restart all</ToolbarMenuItem>
+            <ToolbarMenuItem on:click={() => restartAllContainer()}
+              >Restart all</ToolbarMenuItem
+            >
             <ToolbarMenuItem hasDivider>API documentation</ToolbarMenuItem>
           </ToolbarMenu>
         </ToolbarContent>

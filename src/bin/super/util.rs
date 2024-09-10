@@ -104,9 +104,9 @@ async fn swarm_cmd(cmd: Cmd, host: &str, token: &str) -> Result<Response, Error>
 }
 
 pub fn get_child_base_route(host: &str) -> String {
-    return format!("https://app.{}/api", host);
+    // return format!("https://app.{}/api", host);
 
-    // return format!("http://{}/api", host);
+    return format!("http://{}/api", host);
 }
 
 pub async fn get_child_swarm_containers(
