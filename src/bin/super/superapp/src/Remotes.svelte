@@ -297,7 +297,7 @@
         </Button>
       {:else if cell.key === "nodes"}
         <Button size={"small"} on:click={() => handleViewNodes(row.id)}>
-          View Nodes
+          View Services
         </Button>
       {:else if cell.key === "delete"}
         <Button
