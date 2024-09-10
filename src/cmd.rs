@@ -149,6 +149,7 @@ pub enum SwarmCmd {
     GetDockerImageTags(GetDockerImageTagsDetails),
     UpdateUser(UpdateUserDetails),
     GetApiToken,
+    SetGlobalMemLimit(u64),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

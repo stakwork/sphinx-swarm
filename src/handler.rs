@@ -368,6 +368,11 @@ pub async fn handle(
                 let response = get_api_token(&boltwall).await?;
                 return Ok(serde_json::to_string(&response)?);
             }
+            SwarmCmd::SetGlobalMemLimit(gbm) => {
+                state.stack.global_mem_limit = Some(gbm);
+                must_save_stack = true;
+                Some(crate::config::set_global_mem_limit(gbm)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

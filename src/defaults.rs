@@ -199,6 +199,7 @@ impl Default for Stack {
             ip: env_no_empty("IP"),
             auto_update: None,
             custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
+            global_mem_limit: None,
         }
     }
 }
@@ -255,9 +256,10 @@ pub fn create_super_user() -> User {
         {
             Ok(res) => {
                 if res.status().clone() != 201 {
-                    match res.json::<SendSwarmDetailsResponse>().await {
+                    log::error!("Response code: {:?}", res.status().clone());
+                    match res.text().await {
                         Ok(data) => {
-                            log::error!("{}", data.message)
+                            log::error!("{:?}", data)
                         }
                         Err(err) => {
                             log::error!("Error parsing JSON response: {:?}", err);

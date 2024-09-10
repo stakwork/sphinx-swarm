@@ -12,8 +12,11 @@ use rocket::tokio;
 use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::AtomicU64;
 
 pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
+
+pub static GLOBAL_MEM_LIMIT: AtomicU64 = AtomicU64::new(0);
 
 pub struct State {
     pub stack: Stack,
@@ -64,6 +67,8 @@ pub struct Stack {
     pub auto_update: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_2b_domain: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global_mem_limit: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -288,6 +293,20 @@ impl Stack {
             ip: self.ip.clone(),
             auto_update: self.auto_update.clone(),
             custom_2b_domain: self.custom_2b_domain.clone(),
+            global_mem_limit: self.global_mem_limit,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+struct GbmRes {
+    global_mem_limit: u64,
+}
+pub fn set_global_mem_limit(gbm: u64) -> Result<String> {
+    log::info!("Set Global Memory Limit ===> {:?}", gbm);
+    use std::sync::atomic::Ordering;
+    GLOBAL_MEM_LIMIT.store(gbm, Ordering::Relaxed);
+    Ok(serde_json::to_string(&GbmRes {
+        global_mem_limit: gbm,
+    })?)
 }
