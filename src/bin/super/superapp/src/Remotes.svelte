@@ -9,7 +9,11 @@
     TextInput,
     ToastNotification,
     InlineNotification,
+    Loading,
+    ToolbarBatchActions,
   } from "carbon-components-svelte";
+  import { UpdateNow, Stop } from "carbon-icons-svelte";
+
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import Tribes from "./Tribes.svelte";
@@ -19,6 +23,12 @@
   import type { Remote } from "./types/types";
   import { splitHost } from "./utils/index";
   import { selectedNode } from "./store";
+  import {
+    get_child_swarm_config,
+    start_child_swarm_containers,
+    stop_child_swarm_containers,
+    update_child_swarm_containers,
+  } from "../../../../../app/src/api/swarm";
 
   let open_create_edit = false;
   let open_delete = false;
@@ -33,6 +43,8 @@
   let swarm_id = "";
   let delete_host = "";
   let errorMessage = false;
+  let loading = false;
+  let errors = [];
 
   let selectedRowIds = [];
 
@@ -238,6 +250,182 @@
     selectedNode.set(id);
     viewNode();
   }
+
+  async function updateSelectedSwarms() {
+    loading = true;
+    let errors = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      const host = selectedRowIds[i];
+
+      try {
+        const services = await getServices(host, true);
+
+        if (services.length === 0) {
+          errors.push(`${host}: Does not have valid service`);
+          break;
+        }
+
+        const update_result = await update_child_swarm_containers({
+          nodes: services,
+          host,
+        });
+
+        handle_api_res(host, update_result);
+      } catch (error) {
+        console.log("Error: ", error);
+        errors.push(`${host}: Unexpected Error occured`);
+      }
+    }
+
+    message = "All services updated successfully";
+    handle_after_request(errors);
+  }
+
+  async function restartSelectedSwarms() {
+    loading = true;
+    let errors = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      const host = selectedRowIds[i];
+
+      try {
+        const services = await getServices(host, false);
+
+        if (services.length === 0) {
+          errors.push(`${host}: Does not have valid service`);
+          break;
+        }
+
+        const stop_result = await stop_child_swarm_containers({
+          nodes: services,
+          host,
+        });
+
+        handle_api_res(host, stop_result);
+
+        const start_result = await start_child_swarm_containers({
+          nodes: services,
+          host,
+        });
+
+        handle_api_res(host, start_result);
+      } catch (error) {
+        console.log("Error: ", error);
+        errors.push(`${host}: Unexpected Error occured`);
+      }
+    }
+
+    message = "All services Restarted successfully";
+    handle_after_request(errors);
+  }
+
+  async function stopSlectedSwarms() {
+    loading = true;
+    let errors = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      const host = selectedRowIds[i];
+
+      try {
+        const services = await getServices(host, false);
+
+        if (services.length === 0) {
+          errors.push(`${host}: Does not have valid service`);
+          break;
+        }
+
+        const stop_result = await stop_child_swarm_containers({
+          nodes: services,
+          host,
+        });
+
+        handle_api_res(host, stop_result);
+      } catch (error) {
+        console.log("Error: ", error);
+        errors.push(`${host}: Unexpected Error occured`);
+      }
+    }
+
+    message = "All services Stopped successfully";
+    handle_after_request(errors);
+  }
+
+  async function startSlectedSwarms() {
+    loading = true;
+    let errors = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      const host = selectedRowIds[i];
+
+      try {
+        const services = await getServices(host, false);
+
+        if (services.length === 0) {
+          errors.push(`${host}: Does not have valid service`);
+          break;
+        }
+
+        const start_result = await start_child_swarm_containers({
+          nodes: services,
+          host,
+        });
+
+        handle_api_res(host, start_result);
+      } catch (error) {
+        console.log("Error: ", error);
+        errors.push(`${host}: Unexpected Error occured`);
+      }
+    }
+
+    message = "All services Started successfully";
+    handle_after_request(errors);
+  }
+
+  async function getServices(
+    host: string,
+    isUpdateService: boolean
+  ): Promise<string[]> {
+    const services = [];
+    try {
+      const services_response = await get_child_swarm_config({ host });
+      if (
+        services_response.success === true &&
+        services_response.data &&
+        Array.isArray(services_response.data)
+      ) {
+        for (let i = 0; i < services_response.data.length; i++) {
+          services.push(
+            isUpdateService
+              ? services_response.data[i].name
+              : `${services_response.data[i].name}.sphinx`
+          );
+        }
+      } else {
+        errors.push(`${host}: ${services_response.message}`);
+      }
+    } catch (error) {
+      console.log("Error getting services: ", error);
+      errors.push(`${host}: error getting services`);
+    }
+    return services;
+  }
+
+  function handle_after_request(errors: string[]) {
+    if (errors.length > 0) {
+      errorMessage = true;
+      message = errors.join(", ");
+    }
+    loading = false;
+    show_notification = true;
+    selectedRowIds = [];
+  }
+
+  function handle_api_res(
+    host: string,
+    response: { success: boolean; message: string; data: any }
+  ) {
+    if (response.success === false) {
+      // handle error later
+      errors.push(`${host}: ${response.message}`);
+    }
+  }
 </script>
 
 <main>
@@ -258,6 +446,9 @@
       />
     </div>
   {/if}
+  {#if loading}
+    <Loading />
+  {/if}
   <DataTable
     headers={[
       { key: "host", value: "Host" },
@@ -274,13 +465,20 @@
     bind:selectedRowIds
   >
     <Toolbar>
+      <ToolbarBatchActions>
+        <Button
+          on:click={() => updateSelectedSwarms()}
+          kind={"secondary"}
+          icon={UpdateNow}>Update</Button
+        >
+        <Button on:click={() => restartSelectedSwarms()}>Restart</Button>
+        <Button on:click={() => stopSlectedSwarms()} kind={"danger"} icon={Stop}
+          >Stop</Button
+        >
+        <Button on:click={() => startSlectedSwarms()}>Start</Button>
+      </ToolbarBatchActions>
       <ToolbarContent>
         <ToolbarSearch value="" shouldFilterRows />
-        <!-- <ToolbarMenu disabled={false}>
-            <ToolbarMenuItem>Restart all</ToolbarMenuItem>
-            <ToolbarMenuItem hasDivider>API documentation</ToolbarMenuItem>
-            <ToolbarMenuItem hasDivider>Stop all</ToolbarMenuItem>
-          </ToolbarMenu> -->
         <Button kind="tertiary" on:click={openAddSwarmModal} icon={UploadIcon}>
           Add New Swarm
         </Button>
@@ -297,7 +495,7 @@
         </Button>
       {:else if cell.key === "nodes"}
         <Button size={"small"} on:click={() => handleViewNodes(row.id)}>
-          View Nodes
+          View Services
         </Button>
       {:else if cell.key === "delete"}
         <Button

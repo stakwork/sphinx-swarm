@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowLeft } from "carbon-icons-svelte";
+  import { ArrowLeft, UpdateNow, Stop } from "carbon-icons-svelte";
   import { selectedNode } from "./store";
   import { onMount } from "svelte";
   import {
@@ -19,6 +19,7 @@
     ToolbarMenu,
     ToolbarMenuItem,
     ToastNotification,
+    ToolbarBatchActions,
   } from "carbon-components-svelte";
 
   let loading = true;
@@ -28,11 +29,12 @@
   let message = "";
   let errorMessage = false;
   $: sortedNodes = [];
+  $: nodes_to_be_modified = [];
   let show_notification = false;
 
   async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
-    if (result.success && result.data.stack_error) {
+    if (result.success && result.data && result.data.stack_error) {
       message = result.data.stack_error;
       errorMessage = true;
       loading = false;
@@ -49,7 +51,11 @@
       host: $selectedNode,
     });
 
-    if (swarm_containers.success && swarm_containers.data.stack_error) {
+    if (
+      swarm_containers.success &&
+      swarm_containers.data &&
+      swarm_containers.data.stack_error
+    ) {
       message = swarm_containers.data.stack_error;
       errorMessage = true;
       loading = false;
@@ -136,6 +142,123 @@
     loading = false;
   }
 
+  async function restartAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+    }
+
+    await restart_all_node_handler(nodes_to_be_modified);
+  }
+
+  async function stopAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+    }
+    await stopChildContainers(nodes_to_be_modified);
+  }
+
+  async function startAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+    }
+    await startChildContainer(nodes_to_be_modified);
+  }
+
+  async function upgradeAllContainer() {
+    nodes_to_be_modified = [];
+    for (let i = 0; i < sortedNodes.length; i++) {
+      nodes_to_be_modified.push(`${sortedNodes[i].id}`);
+    }
+    await updateContainers(nodes_to_be_modified);
+  }
+
+  async function updateSelectedNodes() {
+    let formatted_node_ids = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      formatted_node_ids.push(`${selectedRowIds[i]}`);
+    }
+    await updateContainers(formatted_node_ids);
+    selectedRowIds = [];
+  }
+
+  async function stopSlectedNodes() {
+    let formatted_node_ids = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      formatted_node_ids.push(`${selectedRowIds[i]}.sphinx`);
+    }
+
+    await stopChildContainers(formatted_node_ids);
+    selectedRowIds = [];
+  }
+
+  async function startSelectedNodes() {
+    let formatted_node_ids = [];
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      formatted_node_ids.push(`${selectedRowIds[i]}.sphinx`);
+    }
+
+    await startChildContainer(formatted_node_ids);
+    selectedRowIds = [];
+  }
+
+  async function restartSelectedNodes() {
+    let formatted_node_ids = [];
+
+    for (let i = 0; i < selectedRowIds.length; i++) {
+      formatted_node_ids.push(`${selectedRowIds[i]}.sphinx`);
+    }
+
+    await restart_all_node_handler(formatted_node_ids);
+    selectedRowIds = [];
+  }
+
+  async function restart_all_node_handler(nodes: string[]) {
+    loading = true;
+
+    const stop_result = await stop_child_swarm_containers({
+      nodes,
+      host: $selectedNode,
+    });
+
+    const start_result = await start_child_swarm_containers({
+      nodes,
+      host: $selectedNode,
+    });
+
+    await setupNodes();
+
+    loading = false;
+
+    message = "Restarted All node successfully";
+
+    if (start_result === false || stop_result === false) {
+      errorMessage = true;
+      message = start_result.message || stop_result.message;
+    }
+
+    if (
+      start_result.success &&
+      start_result.data &&
+      start_result.data.stack_error
+    ) {
+      message = `Start Containers: ${start_result.data.stack_error}`;
+      errorMessage = true;
+    }
+
+    if (
+      stop_result.success &&
+      stop_result.data &&
+      stop_result.data.stack_error
+    ) {
+      message = `Stop Containers: ${stop_result.data.stack_error}`;
+      errorMessage = true;
+    }
+    show_notification = true;
+  }
+
   export let back = () => {};
 </script>
 
@@ -180,11 +303,35 @@
       zebra
     >
       <Toolbar>
+        <ToolbarBatchActions>
+          <Button
+            on:click={() => updateSelectedNodes()}
+            kind={"secondary"}
+            icon={UpdateNow}>Update</Button
+          >
+          <Button on:click={() => restartSelectedNodes()}>Restart</Button>
+          <Button
+            on:click={() => stopSlectedNodes()}
+            kind={"danger"}
+            icon={Stop}>Stop</Button
+          >
+          <Button on:click={() => startSelectedNodes()}>Start</Button>
+        </ToolbarBatchActions>
         <ToolbarContent>
           <ToolbarSearch value="" shouldFilterRows />
           <ToolbarMenu disabled={false}>
-            <ToolbarMenuItem>Restart all</ToolbarMenuItem>
-            <ToolbarMenuItem hasDivider>API documentation</ToolbarMenuItem>
+            <ToolbarMenuItem on:click={() => restartAllContainer()}
+              >Restart all</ToolbarMenuItem
+            >
+            <ToolbarMenuItem on:click={() => stopAllContainer()} hasDivider
+              >Stop All</ToolbarMenuItem
+            >
+            <ToolbarMenuItem on:click={() => startAllContainer()} hasDivider
+              >Start All</ToolbarMenuItem
+            >
+            <ToolbarMenuItem on:click={() => upgradeAllContainer()} hasDivider
+              >Upgrade All</ToolbarMenuItem
+            >
           </ToolbarMenu>
         </ToolbarContent>
       </Toolbar>
@@ -223,7 +370,10 @@
     height: 100%;
   }
   .back {
+    display: flex;
     margin-bottom: 1rem;
+    cursor: pointer;
+    max-width: fit-content;
   }
 
   .node_host {
