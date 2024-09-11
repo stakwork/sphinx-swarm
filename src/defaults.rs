@@ -225,16 +225,18 @@ pub fn create_super_user() -> User {
             return;
         }
 
+        let default_host = getenv("HOST").unwrap_or("".to_string());
+
+        if default_host.is_empty() {
+            log::error!("HOST {}", &error_msg);
+            return;
+        }
+
         //get swarm host
         let mut my_domain = getenv("NAV_BOLTWALL_SHARED_HOST").unwrap_or("".to_string());
 
         if my_domain.is_empty() {
-            my_domain = getenv("HOST").unwrap_or("".to_string())
-        }
-
-        if my_domain.is_empty() {
-            log::error!("HOST {}", &error_msg);
-            return;
+            my_domain = default_host.clone();
         }
 
         let client = make_reqwest_client();
@@ -245,6 +247,7 @@ pub fn create_super_user() -> User {
             username: "super".to_string(),
             password: password_,
             host: my_domain,
+            default_host: default_host,
         };
 
         match client
