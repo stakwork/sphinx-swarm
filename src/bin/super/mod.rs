@@ -169,6 +169,7 @@ pub async fn super_handle(
                     pass: Some("".to_string()),
                     ec2: Some(swarm.instance),
                     note: Some(swarm.description),
+                    default_host: Some("".to_string()),
                 };
 
                 let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
@@ -185,6 +186,7 @@ pub async fn super_handle(
                             note: Some(swarm.description),
                             user: state.stacks[ui].user.clone(),
                             pass: state.stacks[ui].pass.clone(),
+                            default_host: state.stacks[ui].default_host.clone(),
                         };
                         must_save_stack = true;
                         hm = AddSwarmResponse {
@@ -224,6 +226,7 @@ pub async fn super_handle(
                     pass: Some(c.password),
                     user: Some(c.username),
                     ec2: Some("".to_string()),
+                    default_host: Some(c.default_host),
                 };
                 let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
 

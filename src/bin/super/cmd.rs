@@ -56,6 +56,7 @@ pub struct ChildSwarm {
     pub host: String,
     pub username: String,
     pub token: String,
+    pub default_host: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
