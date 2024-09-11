@@ -32,6 +32,7 @@ pub fn host_config(
             name: Some(RestartPolicyNameEnum::ON_FAILURE),
             maximum_retry_count: None,
         }),
+        log_config: local_log_config(),
         ..Default::default()
     };
     if let Some(ml) = mem_limit {
@@ -44,6 +45,16 @@ pub fn host_config(
         }
     }
     Some(hc)
+}
+
+fn local_log_config() -> Option<HostConfigLogConfig> {
+    let mut h = HashMap::new();
+    h.insert("max-size".to_string(), "10m".to_string());
+    h.insert("max-file".to_string(), "5".to_string());
+    Some(HostConfigLogConfig {
+        typ: Some("local".to_string()),
+        config: Some(h),
+    })
 }
 
 pub fn manual_host_config(
