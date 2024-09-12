@@ -91,6 +91,7 @@ pub struct SendSwarmDetailsBody {
     pub username: String,
     pub password: String,
     pub host: String,
+    pub default_host: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]

@@ -19,6 +19,7 @@ pub struct RemoteStack {
     pub ec2: Option<String>,
     pub user: Option<String>,
     pub pass: Option<String>,
+    pub default_host: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -72,6 +73,7 @@ impl Super {
                 ec2: n.ec2.clone(),
                 user: None,
                 pass: None,
+                default_host: n.default_host.clone(),
             })
             .collect();
         let bots = self
