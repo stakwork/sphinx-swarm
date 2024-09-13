@@ -378,10 +378,24 @@ async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
         return Err(anyhow!("Failed to create instance"));
     }
 
-    log::info!("Result from IP: {:?}", result.reservations()[0].instances());
+    if result.reservations()[0].instances().is_empty() {
+        return Err(anyhow!("Could not get ec2 instance"));
+    }
 
-    // Ok(public_ip.to_string())
-    Ok("".to_string())
+    if result.reservations()[0].instances()[0]
+        .public_ip_address()
+        .is_none()
+    {
+        return Err(anyhow!("No public ip address for the new instance"));
+    }
+
+    let public_ip_address = result.reservations()[0].instances()[0]
+        .public_ip_address()
+        .unwrap();
+
+    log::info!("Instance Public IP Address: {}", public_ip_address);
+
+    Ok(public_ip_address.to_string())
 }
 
 pub async fn create_swarm_ec2() -> Result<(), Error> {
