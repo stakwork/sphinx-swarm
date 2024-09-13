@@ -259,6 +259,14 @@ async fn create_ec2_instance() -> Result<String, Error> {
 
     let swarm_name = "swarm48";
 
+    let device_name = getenv("AWS_DEVICE_NAME")?;
+
+    let image_id = getenv("AWS_IMAGE_ID")?;
+
+    let security_group_id = getenv("AWS_SECURITY_GROUP_ID")?;
+
+    let key_name = getenv("AWS_KEY_NAME")?;
+
     // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
@@ -337,16 +345,16 @@ async fn create_ec2_instance() -> Result<String, Error> {
         .build();
 
     let block_device = BlockDeviceMapping::builder()
-        .device_name("/dev/xvda") // Valid for Debian
+        .device_name(device_name) // Valid for Debian
         .ebs(EbsBlockDevice::builder().volume_size(100).build())
         .build();
 
     let result = client
         .run_instances()
-        .image_id("ami-064519b8c76274859")
+        .image_id(image_id)
         .instance_type(InstanceType::T3Medium)
-        .security_group_ids("sg-0968c683977f8323e")
-        .key_name("sphinx-instances".to_string())
+        .security_group_ids(security_group_id)
+        .key_name(key_name)
         .min_count(1)
         .max_count(1)
         .user_data(base64::encode(user_data_script))
@@ -451,6 +459,7 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
     Ok(())
 }
 
+//Sample execution function
 pub async fn create_swarm_ec2() -> Result<(), Error> {
     let ec2_intance_id = create_ec2_instance().await?;
     let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
