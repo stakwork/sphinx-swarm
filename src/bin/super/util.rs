@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
-use aws_sdk_ec2::types::{BlockDeviceMapping, EbsBlockDevice, InstanceType};
+use aws_sdk_ec2::types::{BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag, TagSpecification};
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
 use futures_util::TryFutureExt;
@@ -253,6 +253,8 @@ async fn create_ec2_instance() -> Result<String, Error> {
 
     let super_token = getenv("SUPER_TOKEN")?;
 
+    let swarm_name = "swarm46";
+
     // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
@@ -281,7 +283,7 @@ async fn create_ec2_instance() -> Result<String, Error> {
         docker network create sphinx-swarm && \
         touch .env && \
 
-        echo "HOST=swarm{}.sphinx.chat" >> .env && \
+        echo "HOST={}.sphinx.chat" >> .env && \
     echo 'NETWORK=bitcoin' >> .env && \
     echo 'AWS_ACCESS_KEY_ID={}' >> .env && \
     echo 'AWS_SECRET_ACCESS_KEY={}' >> .env && \
@@ -305,7 +307,7 @@ async fn create_ec2_instance() -> Result<String, Error> {
     sleep 30 && \
     ./restart-second-brain.sh
         "#,
-        45,
+        swarm_name,
         aws_access_key_id,
         aws_access_token,
         stakwork_token,
@@ -318,6 +320,17 @@ async fn create_ec2_instance() -> Result<String, Error> {
         super_token,
         super_url
     );
+
+    let tag = Tag::builder()
+        .key("Name")
+        .value(swarm_name) // Replace with the desired instance name
+        .build();
+
+    // Define the TagSpecification to apply the tags when the instance is created
+    let tag_specification = TagSpecification::builder()
+        .resource_type("instance".into()) // Tag the instance
+        .tags(tag)
+        .build();
 
     let block_device = BlockDeviceMapping::builder()
         .device_name("/dev/xvda") // Valid for Debian
@@ -334,6 +347,7 @@ async fn create_ec2_instance() -> Result<String, Error> {
         .max_count(1)
         .user_data(base64::encode(user_data_script))
         .block_device_mappings(block_device)
+        .tag_specifications(tag_specification)
         .send()
         .await?;
 
