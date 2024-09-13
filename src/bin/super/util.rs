@@ -46,7 +46,7 @@ pub fn add_new_swarm_details(
 pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String, Error> {
     let client = make_reqwest_client();
 
-    let base_route = get_child_base_route(&swarm_details.host);
+    let base_route = get_child_base_route(swarm_details.default_host.clone())?;
     let route = format!("{}/login", base_route);
 
     if let None = &swarm_details.user {
@@ -87,7 +87,7 @@ pub async fn get_child_swarm_config(
     let token = login_to_child_swarm(swarm_details).await?;
     // let res = handle_get_child_swarm_config(&swarm_details.host, &token).await?;
     let cmd = Cmd::Swarm(SwarmCmd::GetConfig);
-    let res = swarm_cmd(cmd, &swarm_details.host, &token).await?;
+    let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
 
     if res.status().clone() != 200 {
         return Err(anyhow!(format!(
@@ -107,16 +107,20 @@ pub async fn get_child_swarm_config(
     })
 }
 
-async fn swarm_cmd(cmd: Cmd, host: &str, token: &str) -> Result<Response, Error> {
-    let url = get_child_base_route(host);
+async fn swarm_cmd(cmd: Cmd, host: Option<String>, token: &str) -> Result<Response, Error> {
+    let url = get_child_base_route(host)?;
     let cmd_res = send_cmd_request(cmd, "SWARM", &url, Some("x-jwt"), Some(&token)).await?;
     Ok(cmd_res)
 }
 
-pub fn get_child_base_route(host: &str) -> String {
-    return format!("https://app.{}/api", host);
+pub fn get_child_base_route(host: Option<String>) -> Result<String, Error> {
+    if host.is_none() {
+        return Err(anyhow!("child swarm default host not provided"));
+    };
 
-    // return format!("http://{}/api", host);
+    return Ok(format!("https://app.{}/api", host.unwrap()));
+
+    // return Ok(format!("http://{}/api", host.unwrap()));
 }
 
 pub async fn get_child_swarm_containers(
@@ -124,7 +128,7 @@ pub async fn get_child_swarm_containers(
 ) -> Result<SuperSwarmResponse, Error> {
     let token = login_to_child_swarm(swarm_details).await?;
     let cmd = Cmd::Swarm(SwarmCmd::ListContainers);
-    let res = swarm_cmd(cmd, &swarm_details.host, &token).await?;
+    let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
 
     if res.status().clone() != 200 {
         return Err(anyhow!(format!(
@@ -163,7 +167,7 @@ pub async fn access_child_swarm_containers(
             cmd = Cmd::Swarm(SwarmCmd::StopContainer(node.clone()))
         }
 
-        match swarm_cmd(cmd, &swarm_details.host, &token).await {
+        match swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await {
             Ok(res) => {
                 if res.status().clone() != 200 {
                     errors.insert(
