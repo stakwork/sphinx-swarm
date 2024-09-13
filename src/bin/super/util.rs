@@ -1,11 +1,17 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Error};
+use aws_config::meta::region::RegionProviderChain;
+use aws_config::Region;
+use aws_sdk_ec2::types::{BlockDeviceMapping, EbsBlockDevice, InstanceType};
+use aws_sdk_ec2::Client;
+use aws_smithy_types::retry::RetryConfig;
+use futures_util::TryFutureExt;
 use reqwest::Response;
 use serde_json::Value;
 use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
-use sphinx_swarm::utils::make_reqwest_client;
+use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::cmd::{AccessNodesInfo, AddSwarmResponse, LoginResponse, SuperSwarmResponse};
 use crate::state::{RemoteStack, Super};
@@ -221,4 +227,153 @@ pub async fn accessing_child_container_controller(
         }
     }
     res
+}
+
+async fn create_ec2_instance() -> Result<String, Error> {
+    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+
+    let aws_access_key_id = getenv("AWS_ACCESS_KEY_ID")?;
+
+    let aws_access_token = getenv("AWS_SECRET_ACCESS_KEY")?;
+
+    let stakwork_token = getenv("STAKWORK_ADD_NODE_TOKEN")?;
+
+    let lnd_macaroon = getenv("EXTERNAL_LND_MACAROON")?;
+
+    let lnd_address = getenv("EXTERNAL_LND_ADDRESS")?;
+
+    let lnd_cert = getenv("EXTERNAL_LND_CERT")?;
+
+    let youtube_token = getenv("YOUTUBE_API_TOKEN")?;
+
+    let twitter_token = getenv("TWITTER_BEARER")?;
+
+    let super_url = getenv("SUPER_URL")?;
+
+    let super_token = getenv("SUPER_TOKEN")?;
+
+    // Load the AWS configuration
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
+    let client = Client::new(&config);
+
+    let user_data_script = format!(
+        r#"#!/bin/bash
+        cd /home/admin &&
+        pwd &&
+        echo "INSTALLING DEPENDENCIES..." && \
+        curl -fsSL https://get.docker.com/ -o get-docker.sh && \
+        sh get-docker.sh && \
+        sudo usermod -aG docker $(whoami) && \
+        sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose && \
+        sudo chmod +x /usr/local/bin/docker-compose && \
+        docker-compose version && \
+        sudo apt update && \
+        sudo apt install git && \
+        sleep 10 && \
+        pwd && \
+        git clone https://github.com/stakwork/sphinx-swarm.git && \
+        cd sphinx-swarm && \
+        docker network create sphinx-swarm && \
+        touch .env && \
+
+        echo "HOST=swarm{}.sphinx.chat" >> .env && \
+    echo 'NETWORK=bitcoin' >> .env && \
+    echo 'AWS_ACCESS_KEY_ID={}' >> .env && \
+    echo 'AWS_SECRET_ACCESS_KEY={}' >> .env && \
+    echo 'AWS_REGION=us-east-1a' >> .env && \
+    echo 'AWS_S3_REGION_NAME=us-east-1' >> .env && \
+    echo 'STAKWORK_ADD_NODE_TOKEN={}' >> .env && \
+    echo 'STAKWORK_RADAR_REQUEST_TOKEN={}' >> .env && \
+    echo 'NO_REMOTE_SIGNER=true' >> .env && \
+    echo 'EXTERNAL_LND_MACAROON={}' >> .env && \
+    echo 'EXTERNAL_LND_ADDRESS={}' >> .env && \
+    echo 'EXTERNAL_LND_CERT={}' >> .env && \
+    echo 'YOUTUBE_API_TOKEN={}' >> .env && \
+    echo 'SWARM_UPDATER_PASSWORD=-' >> .env && \
+    echo 'JARVIS_FEATURE_FLAG_SCHEMA=true' >> .env && \
+    echo 'BACKUP_KEY=' >> .env && \
+    echo 'FEATURE_FLAG_TEXT_EMBEDDINGS=true' >> .env && \
+    echo 'TWITTER_BEARER={}' >> .env && \
+    echo 'SUPER_TOKEN={}' >> .env && \
+    echo 'SUPER_URL={}' >> .env && \
+
+    sleep 30 && \
+    ./restart-second-brain.sh
+        "#,
+        45,
+        aws_access_key_id,
+        aws_access_token,
+        stakwork_token,
+        stakwork_token,
+        lnd_macaroon,
+        lnd_address,
+        lnd_cert,
+        youtube_token,
+        twitter_token,
+        super_token,
+        super_url
+    );
+
+    let block_device = BlockDeviceMapping::builder()
+        .device_name("/dev/xvda") // Valid for Debian
+        .ebs(EbsBlockDevice::builder().volume_size(100).build())
+        .build();
+
+    let result = client
+        .run_instances()
+        .image_id("ami-064519b8c76274859")
+        .instance_type(InstanceType::T3Medium)
+        .security_group_ids("sg-0968c683977f8323e")
+        .key_name("sphinx-instances".to_string())
+        .min_count(1)
+        .max_count(1)
+        .user_data(base64::encode(user_data_script))
+        .block_device_mappings(block_device)
+        .send()
+        .await?;
+
+    log::info!("Result from creating instance is back");
+
+    if result.instances().is_empty() {
+        return Err(anyhow!("Failed to create instance"));
+    }
+
+    let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
+    println!("Created instance with ID: {}", instance_id);
+
+    Ok(instance_id)
+}
+
+async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
+    let config = aws_config::load_from_env().await;
+    let client = Client::new(&config);
+
+    let result = client
+        .describe_instances()
+        .instance_ids(instance_id)
+        .send()
+        .map_err(|err| anyhow!(err.to_string()))
+        .await?;
+
+    if result.reservations().is_empty() {
+        return Err(anyhow!("Failed to create instance"));
+    }
+
+    log::info!("Result from IP: {:?}", result.reservations()[0].instances());
+
+    // Ok(public_ip.to_string())
+    Ok("".to_string())
+}
+
+pub async fn create_swarm_ec2() -> Result<(), Error> {
+    log::info!("About to get into the creating ec2 instance");
+    let ec2_intance_id = create_ec2_instance().await?;
+    let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
+    log::info!("{}", ec2_ip_address);
+    Ok(())
 }

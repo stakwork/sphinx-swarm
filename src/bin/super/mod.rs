@@ -16,6 +16,7 @@ use util::{
 };
 
 use crate::checker::swarm_checker;
+use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
 use routes::launch_rocket;
@@ -49,6 +50,15 @@ async fn main() -> Result<()> {
     let cron_handler_res = swarm_checker().await;
     if let Err(e) = cron_handler_res {
         log::error!("CRON failed {:?}", e);
+    }
+
+    match create_swarm_ec2().await {
+        Ok(_reslt) => {
+            log::info!("Happy to see how far")
+        }
+        Err(err) => {
+            log::error!("Error from Creating EC2 instance: {:?}", err)
+        }
     }
 
     // launch rocket
