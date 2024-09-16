@@ -21,3 +21,5 @@ somefile.md
 ecosystem.config.js
 tester.zip
 unzipped
+models/*
+!models/.gitkeep

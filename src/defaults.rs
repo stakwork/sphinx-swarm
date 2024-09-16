@@ -33,47 +33,28 @@ impl Default for Stack {
             host = None
         }
 
-        // choose only sphinx v1 tester
-        let sphinxv1 = match std::env::var("SPHINXV1").ok() {
-            Some(sbo) => sbo == "true",
-            None => false,
-        };
-        if sphinxv1 {
+        if env_is_true("SPHINXV1") {
             return sphinxv1_only(&network, host);
         }
 
-        // choose only sphinx v2 tester
-        let sphinxv2 = match std::env::var("SPHINXV2").ok() {
-            Some(sbo) => sbo == "true",
-            None => false,
-        };
-        if sphinxv2 {
+        if env_is_true("SPHINXV2") {
             return sphinxv2_only(&network, host);
         }
 
-        // choose only config server
-        let configonly = match std::env::var("IS_CONFIG").ok() {
-            Some(sbo) => sbo == "true",
-            None => false,
-        };
-        if configonly {
+        if env_is_true("LLAMA_ONLY") {
+            return llama_only(&network, host);
+        }
+
+        if env_is_true("IS_CONFIG") {
             return config_only(host);
         }
 
-        let use_lnd = match std::env::var("USE_LND").ok() {
-            Some(sbo) => sbo == "true",
-            None => false,
-        };
+        let use_lnd = env_is_true("USE_LND");
         // choose cln or lnd
         let is_cln = !use_lnd;
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
-        // choose only second brain
-        let second_brain_only = match std::env::var("SECOND_BRAIN_ONLY").ok() {
-            Some(sbo) => sbo == "true",
-            None => false,
-        };
-        if second_brain_only {
+        if env_is_true("SECOND_BRAIN_ONLY") {
             return only_second_brain(&network, host.clone(), lightning_provider);
         }
 
@@ -83,10 +64,7 @@ impl Default for Stack {
         add_btc(&network, &mut internal_nodes, &mut external_nodes);
 
         if is_cln {
-            let skip_remote_signer = match std::env::var("NO_REMOTE_SIGNER").ok() {
-                Some(nsb) => nsb == "true",
-                None => false,
-            };
+            let skip_remote_signer = env_is_true("NO_REMOTE_SIGNER");
             if !skip_remote_signer {
                 // lightning storage server
                 let lss = LssImage::new("lss", "latest", "55551");
@@ -156,10 +134,7 @@ impl Default for Stack {
         internal_nodes.extend(other_internal_nodes);
 
         // NO_SECOND_BRAIN=true will skip these nodes
-        let skip_second_brain = match std::env::var("NO_SECOND_BRAIN").ok() {
-            Some(nsb) => nsb == "true",
-            None => false,
-        };
+        let skip_second_brain = env_is_true("NO_SECOND_BRAIN");
         if !skip_second_brain {
             let second_brain_nodes = second_brain_imgs(host.clone(), lightning_provider);
             internal_nodes.extend(second_brain_nodes);
@@ -327,6 +302,34 @@ pub fn env_no_empty(varname: &str) -> Option<String> {
             s => Some(s.to_string()),
         },
         None => None,
+    }
+}
+
+fn env_is_true(v: &str) -> bool {
+    match std::env::var(v).ok() {
+        Some(sbo) => sbo == "true",
+        None => false,
+    }
+}
+
+// for testing
+pub fn llama_only(network: &str, host: Option<String>) -> Stack {
+    let mut llama = crate::images::llama::LlamaImage::new("llama", "8080");
+    llama.host(host.clone());
+    Stack {
+        network: network.to_string(),
+        nodes: vec![Image::Llama(llama)]
+            .iter()
+            .map(|n| Node::Internal(n.to_owned()))
+            .collect(),
+        host,
+        users: vec![Default::default()],
+        jwt_key: secrets::random_word(16),
+        ready: false,
+        ip: None,
+        auto_update: None,
+        custom_2b_domain: None,
+        global_mem_limit: None,
     }
 }
 
