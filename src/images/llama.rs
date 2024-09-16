@@ -81,12 +81,9 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
     ];
 
     let cwd = get_current_working_dir()?;
-    let extra_vols = vec![format!(
-        "{}/{}:/{}",
-        cwd.to_string_lossy(),
-        img.model,
-        model_path
-    )];
+    let model_vol = format!("{}/{}:/{}", cwd.to_string_lossy(), img.model, model_path);
+    log::info!("model_vol: {}", model_vol);
+    let extra_vols = vec![model_vol];
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
@@ -105,7 +102,7 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
 /*
 
 curl --request POST \
-    --url http://localhost:8080/completion \
+    --url http://localhost:8787/completion \
     --header "Content-Type: application/json" \
     --data '{"prompt": "The national animals of the USA are","n_predict": 128}'
 
