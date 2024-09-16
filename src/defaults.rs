@@ -305,7 +305,7 @@ pub fn env_no_empty(varname: &str) -> Option<String> {
     }
 }
 
-fn env_is_true(v: &str) -> bool {
+pub fn env_is_true(v: &str) -> bool {
     match std::env::var(v).ok() {
         Some(sbo) => sbo == "true",
         None => false,

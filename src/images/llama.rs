@@ -16,6 +16,7 @@ pub struct LlamaImage {
     pub port: String,
     pub model: String,
     pub host: Option<String>,
+    pub pwd: Option<String>,
     pub links: Links,
 }
 
@@ -30,8 +31,12 @@ impl LlamaImage {
             port: port.to_string(),
             model: DEFAULT_MODEL.to_string(),
             host: None,
+            pwd: None,
             links: Vec::new(),
         }
+    }
+    pub fn set_pwd(&mut self, pwd: &str) {
+        self.pwd = Some(pwd.to_string());
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
@@ -80,8 +85,14 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
         format!("LLAMA_ARG_MODEL={}", model_path),
     ];
 
-    let cwd = get_current_working_dir()?;
-    let model_vol = format!("{}/{}:/{}", cwd.to_string_lossy(), img.model, model_path);
+    let pwd = match &img.pwd {
+        Some(p) => p.clone(),
+        None => {
+            let cwd = get_current_working_dir()?;
+            cwd.to_string_lossy().to_string()
+        }
+    };
+    let model_vol = format!("{}/{}:/{}", pwd, img.model, model_path);
     log::info!("model_vol: {}", model_vol);
     let extra_vols = vec![model_vol];
 
@@ -105,5 +116,7 @@ curl --request POST \
     --url http://localhost:8787/completion \
     --header "Content-Type: application/json" \
     --data '{"prompt": "The national animals of the USA are","n_predict": 128}'
+
+curl http://localhost:8787/health
 
 */

@@ -3,6 +3,7 @@ use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
 use crate::images::elastic::ElasticImage;
 use crate::images::jarvis::JarvisImage;
+use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::Image;
@@ -63,13 +64,23 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
 
-    vec![
+    let mut imgs = vec![
         Image::NavFiber(nav),
         Image::Neo4j(neo4j),
         Image::Elastic(elastic),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),
-    ]
+    ];
+
+    if env_is_true("LOCAL_LLAMA") {
+        let mut llama = LlamaImage::new("llama", "8787");
+        llama.links(vec!["jarvis"]);
+        llama.host(host.clone());
+        llama.set_pwd("/home/admin/sphinx-swarm");
+        imgs.push(Image::Llama(llama));
+    }
+
+    imgs
 }
 
 pub fn external_lnd() -> Option<ExternalLnd> {

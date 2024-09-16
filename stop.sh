@@ -17,7 +17,9 @@ if  [ $1 == "btc" ] || \
     [ $1 == "config" ] || \
     [ $1 == "swarm" ] || \
     [ $1 == "bot" ] || \
-    [ $1 == "builtin" ]
+    [ $1 == "builtin" ] \
+    [ $1 == "llama" ]
+
 then
     echo "=> stop $1.sphinx"
     docker stop $1.sphinx
