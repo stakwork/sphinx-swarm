@@ -299,42 +299,30 @@ async fn create_ec2_instance() -> Result<String, Error> {
         docker network create sphinx-swarm && \
         touch .env && \
 
-        echo "HOST={}.sphinx.chat" >> .env && \
+        echo "HOST={swarm_name}.sphinx.chat" >> .env && \
     echo 'NETWORK=bitcoin' >> .env && \
-    echo 'AWS_ACCESS_KEY_ID={}' >> .env && \
-    echo 'AWS_SECRET_ACCESS_KEY={}' >> .env && \
+    echo 'AWS_ACCESS_KEY_ID={aws_access_key_id}' >> .env && \
+    echo 'AWS_SECRET_ACCESS_KEY={aws_access_token}' >> .env && \
     echo 'AWS_REGION=us-east-1a' >> .env && \
     echo 'AWS_S3_REGION_NAME=us-east-1' >> .env && \
-    echo 'STAKWORK_ADD_NODE_TOKEN={}' >> .env && \
-    echo 'STAKWORK_RADAR_REQUEST_TOKEN={}' >> .env && \
+    echo 'STAKWORK_ADD_NODE_TOKEN={stakwork_token}' >> .env && \
+    echo 'STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}' >> .env && \
     echo 'NO_REMOTE_SIGNER=true' >> .env && \
-    echo 'EXTERNAL_LND_MACAROON={}' >> .env && \
-    echo 'EXTERNAL_LND_ADDRESS={}' >> .env && \
-    echo 'EXTERNAL_LND_CERT={}' >> .env && \
-    echo 'YOUTUBE_API_TOKEN={}' >> .env && \
+    echo 'EXTERNAL_LND_MACAROON={lnd_macaroon}' >> .env && \
+    echo 'EXTERNAL_LND_ADDRESS={lnd_address}' >> .env && \
+    echo 'EXTERNAL_LND_CERT={lnd_cert}' >> .env && \
+    echo 'YOUTUBE_API_TOKEN={youtube_token}' >> .env && \
     echo 'SWARM_UPDATER_PASSWORD=-' >> .env && \
     echo 'JARVIS_FEATURE_FLAG_SCHEMA=true' >> .env && \
     echo 'BACKUP_KEY=' >> .env && \
     echo 'FEATURE_FLAG_TEXT_EMBEDDINGS=true' >> .env && \
-    echo 'TWITTER_BEARER={}' >> .env && \
-    echo 'SUPER_TOKEN={}' >> .env && \
-    echo 'SUPER_URL={}' >> .env && \
+    echo 'TWITTER_BEARER={twitter_token}' >> .env && \
+    echo 'SUPER_TOKEN={super_token}' >> .env && \
+    echo 'SUPER_URL={super_url}' >> .env && \
 
     sleep 30 && \
     ./restart-second-brain.sh
-        "#,
-        swarm_name,
-        aws_access_key_id,
-        aws_access_token,
-        stakwork_token,
-        stakwork_token,
-        lnd_macaroon,
-        lnd_address,
-        lnd_cert,
-        youtube_token,
-        twitter_token,
-        super_token,
-        super_url
+        "#
     );
 
     let tag = Tag::builder()
