@@ -80,7 +80,8 @@ fn jarvis(
         format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_JOB=1"),
-        format!("FEATURE_FLAG_ADD_NODE_KEY=true")
+        format!("FEATURE_FLAG_ADD_NODE_KEY=true"),
+        format!("AWS_S3_PRESIGN_URL_EXPIRY=3600")
     ];
     if let Some(elastic) = elastic {
         env.push(format!(
@@ -98,10 +99,22 @@ fn jarvis(
         env.push(format!("RADAR_YOUTUBE_WEBHOOK=https://{}/v2/addnode", h));
         env.push(format!("RADAR_RSS_WEBHOOK=https://{}/v2/addnode", h));
         env.push(format!("TLDR_WEBHOOK=https://{}/v1/tldr", h));
-        env.push(format!("ASK_QUESTION_WEBHOOK=https://{}/hook/ask-question", h));
-        env.push(format!("RELEVANT_QUESTIONS_WEBHOOK=https://{}/hook/relevant-question", h));
-        env.push(format!("EXTRACTED_ENTITIES_WEBHOOK=https://{}/hook/extracted-entities", h));
-        env.push(format!("ANSWER_SOURCES_WEBHOOK=https://{}/hook/answer-sources", h));
+        env.push(format!(
+            "ASK_QUESTION_WEBHOOK=https://{}/hook/ask-question",
+            h
+        ));
+        env.push(format!(
+            "RELEVANT_QUESTIONS_WEBHOOK=https://{}/hook/relevant-question",
+            h
+        ));
+        env.push(format!(
+            "EXTRACTED_ENTITIES_WEBHOOK=https://{}/hook/extracted-entities",
+            h
+        ));
+        env.push(format!(
+            "ANSWER_SOURCES_WEBHOOK=https://{}/hook/answer-sources",
+            h
+        ));
         env.push(format!(
             "SECOND_BRAIN_GRAPH_URL=https://{}/get_elasticsearch_entities",
             h
@@ -198,21 +211,18 @@ fn jarvis(
         ));
     }
     if let Ok(dynamo_db_aws_region) = getenv("DYNAMO_DB_AWS_REGION") {
-        env.push(format!(
-            "DYNAMO_DB_AWS_REGION={}",
-            dynamo_db_aws_region
-        ));
+        env.push(format!("DYNAMO_DB_AWS_REGION={}", dynamo_db_aws_region));
     }
     if let Ok(dynamo_db_aws_secret_access_key) = getenv("DYNAMO_DB_AWS_SECRET_ACCESS_KEY") {
         env.push(format!(
             "DYNAMO_DB_AWS_SECRET_ACCESS_KEY={}",
-            dynamo_db_aws_secret_access_key 
+            dynamo_db_aws_secret_access_key
         ));
     }
     if let Ok(webpage_text_workflow_id) = getenv("WEBPAGE_TEXT_WORKFLOW_ID") {
         env.push(format!(
             "WEBPAGE_TEXT_WORKFLOW_ID={}",
-            webpage_text_workflow_id 
+            webpage_text_workflow_id
         ));
     }
     Config {
