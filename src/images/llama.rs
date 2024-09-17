@@ -82,6 +82,7 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
     let env = vec![
         format!("LLAMA_ARG_PORT={}", img.port),
         format!("LLAMA_ARG_MODEL={}", model_path),
+        format!("LLAMA_ARG_N_GPU_LAYERS=1"),
     ];
 
     let pwd = match &img.pwd {
