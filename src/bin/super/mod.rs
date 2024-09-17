@@ -305,6 +305,30 @@ pub async fn super_handle(
 
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::CreateNewEc2Instance(info) => {
+                let res: SuperSwarmResponse;
+                match create_swarm_ec2(&info).await {
+                    Ok(_) => {
+                        res = SuperSwarmResponse {
+                            success: true,
+                            message: format!(
+                                "Swarm{}.sphinx.chat was created successfully",
+                                &info.swarm_number
+                            ),
+                            data: None,
+                        }
+                    }
+                    Err(err) => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
+
+                Some(serde_json::to_string(&res)?)
+            }
         },
     };
 

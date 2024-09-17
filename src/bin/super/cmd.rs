@@ -74,6 +74,7 @@ pub enum SwarmCmd {
     StopChildSwarmContainers(AccessNodesInfo),
     StartChildSwarmContainers(AccessNodesInfo),
     UpdateChildSwarmContainers(AccessNodesInfo),
+    CreateNewEc2Instance(CreateEc2InstanceInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -103,4 +104,11 @@ pub struct LoginResponse {
 pub struct AccessNodesInfo {
     pub host: String,
     pub nodes: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreateEc2InstanceInfo {
+    pub name: String,
+    pub swarm_number: i64,
+    pub vanity_address: Option<String>,
 }

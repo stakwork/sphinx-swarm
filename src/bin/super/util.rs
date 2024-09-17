@@ -17,7 +17,9 @@ use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
-use crate::cmd::{AccessNodesInfo, AddSwarmResponse, LoginResponse, SuperSwarmResponse};
+use crate::cmd::{
+    AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
+};
 use crate::state::{RemoteStack, Super};
 
 pub fn add_new_swarm_details(
@@ -237,7 +239,7 @@ pub async fn accessing_child_container_controller(
     res
 }
 
-async fn create_ec2_instance() -> Result<String, Error> {
+async fn create_ec2_instance(swarm_number: i64) -> Result<String, Error> {
     let region = getenv("AWS_S3_REGION_NAME")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
@@ -261,7 +263,7 @@ async fn create_ec2_instance() -> Result<String, Error> {
 
     let super_token = getenv("SUPER_TOKEN")?;
 
-    let swarm_name = "swarm48";
+    let swarm_name = format!("swarm{}", swarm_number);
 
     let device_name = getenv("AWS_DEVICE_NAME")?;
 
@@ -452,10 +454,14 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 }
 
 //Sample execution function
-pub async fn create_swarm_ec2() -> Result<(), Error> {
-    let ec2_intance_id = create_ec2_instance().await?;
+pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
+    let ec2_intance_id = create_ec2_instance(info.swarm_number.clone()).await?;
     let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
-    let _ = add_domain_name_to_route53("*.swarm48.sphinx.chat", &ec2_ip_address).await?;
+    let _ = add_domain_name_to_route53(
+        &format!("*.swarm{}.sphinx.chat", info.swarm_number),
+        &ec2_ip_address,
+    )
+    .await?;
     log::info!("Public_IP: {}", ec2_ip_address);
     Ok(())
 }
