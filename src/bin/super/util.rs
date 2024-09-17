@@ -239,7 +239,10 @@ pub async fn accessing_child_container_controller(
     res
 }
 
-async fn create_ec2_instance(swarm_number: i64) -> Result<String, Error> {
+async fn create_ec2_instance(
+    swarm_number: i64,
+    vanity_address: Option<String>,
+) -> Result<String, Error> {
     let region = getenv("AWS_S3_REGION_NAME")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
@@ -272,6 +275,8 @@ async fn create_ec2_instance(swarm_number: i64) -> Result<String, Error> {
     let security_group_id = getenv("AWS_SECURITY_GROUP_ID")?;
 
     let key_name = getenv("AWS_KEY_NAME")?;
+
+    let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
 
     // Load the AWS configuration
     let config = aws_config::from_env()
@@ -321,12 +326,12 @@ async fn create_ec2_instance(swarm_number: i64) -> Result<String, Error> {
     echo 'TWITTER_BEARER={twitter_token}' >> .env && \
     echo 'SUPER_TOKEN={super_token}' >> .env && \
     echo 'SUPER_URL={super_url}' >> .env && \
+    echo 'NAV_BOLTWALL_SHARED_HOST={custom_domain}' >> .env && \
 
     sleep 30 && \
     ./restart-second-brain.sh
         "#
     );
-
     let tag = Tag::builder()
         .key("Name")
         .value(swarm_name) // Replace with the desired instance name
@@ -455,13 +460,19 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 
 //Sample execution function
 pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
-    let ec2_intance_id = create_ec2_instance(info.swarm_number.clone()).await?;
+    let ec2_intance_id =
+        create_ec2_instance(info.swarm_number.clone(), info.vanity_address.clone()).await?;
     let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
     let _ = add_domain_name_to_route53(
         &format!("*.swarm{}.sphinx.chat", info.swarm_number),
         &ec2_ip_address,
     )
     .await?;
+    if let Some(custom_domain) = &info.vanity_address {
+        log::info!("vanity address is being set");
+        let _custom_domain_result =
+            add_domain_name_to_route53(custom_domain, &ec2_ip_address).await?;
+    }
     log::info!("Public_IP: {}", ec2_ip_address);
     Ok(())
 }
