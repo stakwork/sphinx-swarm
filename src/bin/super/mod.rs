@@ -52,15 +52,6 @@ async fn main() -> Result<()> {
         log::error!("CRON failed {:?}", e);
     }
 
-    match create_swarm_ec2().await {
-        Ok(_reslt) => {
-            log::info!("Happy to see how far")
-        }
-        Err(err) => {
-            log::error!("Error from Creating EC2 instance: {:?}", err)
-        }
-    }
-
     // launch rocket
     let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
     log::info!("🚀 => http://localhost:{}", port);

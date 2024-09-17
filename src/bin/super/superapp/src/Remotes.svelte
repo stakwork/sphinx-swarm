@@ -24,6 +24,7 @@
   import { splitHost } from "./utils/index";
   import { selectedNode } from "./store";
   import {
+    create_new_swarm_ec2,
     get_child_swarm_config,
     start_child_swarm_containers,
     stop_child_swarm_containers,
@@ -32,6 +33,7 @@
 
   let open_create_edit = false;
   let open_delete = false;
+  let open_create_ec2 = false;
   let host = "";
   let description = "";
   let instance = "";
@@ -45,6 +47,9 @@
   let errorMessage = false;
   let loading = false;
   let errors = [];
+  let name = "";
+  let swarm_num;
+  let vanity_address = "";
 
   let selectedRowIds = [];
 
@@ -426,6 +431,29 @@
       errors.push(`${host}: ${response.message}`);
     }
   }
+
+  function openCreateSwarmEc2() {
+    open_create_ec2 = true;
+  }
+
+  function handleOnCloseCreateEc2() {
+    open_create_ec2 = false;
+  }
+
+  async function handleSubmitCreateEc2() {
+    isSubmitting = true;
+    const data = { name, swarm_number: Number(swarm_num), vanity_address };
+    const response = await create_new_swarm_ec2(data);
+    message = response.message;
+    console.log(response);
+    if (response.success === true) {
+      open_create_ec2 = false;
+      show_notification = true;
+    } else {
+      error_notification = true;
+    }
+    isSubmitting = false;
+  }
 </script>
 
 <main>
@@ -481,6 +509,9 @@
         <ToolbarSearch value="" shouldFilterRows />
         <Button kind="tertiary" on:click={openAddSwarmModal} icon={UploadIcon}>
           Add New Swarm
+        </Button>
+        <Button kind="primary" on:click={openCreateSwarmEc2} icon={UploadIcon}>
+          Create New Swarm Ec2 Instance
         </Button>
       </ToolbarContent>
     </Toolbar>
@@ -578,6 +609,56 @@
     on:submit={submitDeleteSwarm}
   >
     <p>This is a permanent action and cannot be undone.</p>
+  </Modal>
+  <Modal
+    bind:open={open_create_ec2}
+    modalHeading="Create New Swarm Ec2 Instance"
+    primaryButtonDisabled={isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Create"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_create_ec2 = false)}
+    on:open
+    on:close={handleOnCloseCreateEc2}
+    on:submit={handleSubmitCreateEc2}
+  >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
+
+    <div class="text_input_container">
+      <TextInput
+        id="name"
+        labelText="Name"
+        placeholder="Enter Preferred Swarm Name..."
+        bind:value={name}
+      />
+    </div>
+    <div class="text_input_container">
+      <TextInput
+        id="swarm_num"
+        labelText="Swarm Number"
+        placeholder="Enter Swarm Number..."
+        bind:value={swarm_num}
+        type="number"
+      />
+    </div>
+    <div class="text_input_container">
+      <TextInput
+        id="vanity_address"
+        labelText="Vanity Address"
+        placeholder="Vanity Address..."
+        bind:value={vanity_address}
+      />
+    </div>
   </Modal>
 </main>
 

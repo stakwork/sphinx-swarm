@@ -84,7 +84,8 @@ export type Cmd =
   | "GetChildSwarmContainers"
   | "StopChildSwarmContainers"
   | "StartChildSwarmContainers"
-  | "UpdateChildSwarmContainers";
+  | "UpdateChildSwarmContainers"
+  | "CreateNewEc2Instance";
 
 interface CmdData {
   cmd: Cmd;
