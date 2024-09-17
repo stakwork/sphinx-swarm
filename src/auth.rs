@@ -91,11 +91,11 @@ impl<'r> FromRequest<'r> for AdminJwtClaims {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let token = req.headers().get_one("x-jwt");
         if let None = token {
-            return Outcome::Failure((Status::Unauthorized, JwtError::Missing));
+            return Outcome::Error((Status::Unauthorized, JwtError::Missing));
         }
         match AdminJwtClaims::check(token.unwrap()) {
             Ok(jwtc) => Outcome::Success(jwtc),
-            Err(e) => Outcome::Failure((Status::Unauthorized, e)),
+            Err(e) => Outcome::Error((Status::Unauthorized, e)),
         }
     }
 }

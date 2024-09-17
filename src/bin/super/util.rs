@@ -1,13 +1,25 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Error};
+use aws_config::meta::region::RegionProviderChain;
+use aws_config::Region;
+use aws_sdk_ec2::types::{BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag, TagSpecification};
+use aws_sdk_ec2::Client;
+use aws_sdk_route53::types::{
+    Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet,
+};
+use aws_sdk_route53::Client as Route53Client;
+use aws_smithy_types::retry::RetryConfig;
+use futures_util::TryFutureExt;
 use reqwest::Response;
 use serde_json::Value;
 use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
-use sphinx_swarm::utils::make_reqwest_client;
+use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
-use crate::cmd::{AccessNodesInfo, AddSwarmResponse, LoginResponse, SuperSwarmResponse};
+use crate::cmd::{
+    AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
+};
 use crate::state::{RemoteStack, Super};
 
 pub fn add_new_swarm_details(
@@ -225,4 +237,242 @@ pub async fn accessing_child_container_controller(
         }
     }
     res
+}
+
+async fn create_ec2_instance(
+    swarm_number: i64,
+    vanity_address: Option<String>,
+) -> Result<String, Error> {
+    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+
+    let aws_access_key_id = getenv("AWS_ACCESS_KEY_ID")?;
+
+    let aws_access_token = getenv("AWS_SECRET_ACCESS_KEY")?;
+
+    let stakwork_token = getenv("STAKWORK_ADD_NODE_TOKEN")?;
+
+    let lnd_macaroon = getenv("EXTERNAL_LND_MACAROON")?;
+
+    let lnd_address = getenv("EXTERNAL_LND_ADDRESS")?;
+
+    let lnd_cert = getenv("EXTERNAL_LND_CERT")?;
+
+    let youtube_token = getenv("YOUTUBE_API_TOKEN")?;
+
+    let twitter_token = getenv("TWITTER_BEARER")?;
+
+    let super_url = getenv("SUPER_URL")?;
+
+    let super_token = getenv("SUPER_TOKEN")?;
+
+    let swarm_name = format!("swarm{}", swarm_number);
+
+    let device_name = getenv("AWS_DEVICE_NAME")?;
+
+    let image_id = getenv("AWS_IMAGE_ID")?;
+
+    let security_group_id = getenv("AWS_SECURITY_GROUP_ID")?;
+
+    let key_name = getenv("AWS_KEY_NAME")?;
+
+    let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
+
+    // Load the AWS configuration
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
+    let client = Client::new(&config);
+
+    let user_data_script = format!(
+        r#"#!/bin/bash
+        cd /home/admin &&
+        pwd &&
+        echo "INSTALLING DEPENDENCIES..." && \
+        curl -fsSL https://get.docker.com/ -o get-docker.sh && \
+        sh get-docker.sh && \
+        sudo usermod -aG docker $(whoami) && \
+        sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose && \
+        sudo chmod +x /usr/local/bin/docker-compose && \
+        docker-compose version && \
+        sudo apt update && \
+        sudo apt install git && \
+        sleep 10 && \
+        pwd && \
+        git clone https://github.com/stakwork/sphinx-swarm.git && \
+        cd sphinx-swarm && \
+        docker network create sphinx-swarm && \
+        touch .env && \
+
+        echo "HOST={swarm_name}.sphinx.chat" >> .env && \
+    echo 'NETWORK=bitcoin' >> .env && \
+    echo 'AWS_ACCESS_KEY_ID={aws_access_key_id}' >> .env && \
+    echo 'AWS_SECRET_ACCESS_KEY={aws_access_token}' >> .env && \
+    echo 'AWS_REGION=us-east-1a' >> .env && \
+    echo 'AWS_S3_REGION_NAME=us-east-1' >> .env && \
+    echo 'STAKWORK_ADD_NODE_TOKEN={stakwork_token}' >> .env && \
+    echo 'STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}' >> .env && \
+    echo 'NO_REMOTE_SIGNER=true' >> .env && \
+    echo 'EXTERNAL_LND_MACAROON={lnd_macaroon}' >> .env && \
+    echo 'EXTERNAL_LND_ADDRESS={lnd_address}' >> .env && \
+    echo 'EXTERNAL_LND_CERT={lnd_cert}' >> .env && \
+    echo 'YOUTUBE_API_TOKEN={youtube_token}' >> .env && \
+    echo 'SWARM_UPDATER_PASSWORD=-' >> .env && \
+    echo 'JARVIS_FEATURE_FLAG_SCHEMA=true' >> .env && \
+    echo 'BACKUP_KEY=' >> .env && \
+    echo 'FEATURE_FLAG_TEXT_EMBEDDINGS=true' >> .env && \
+    echo 'TWITTER_BEARER={twitter_token}' >> .env && \
+    echo 'SUPER_TOKEN={super_token}' >> .env && \
+    echo 'SUPER_URL={super_url}' >> .env && \
+    echo 'NAV_BOLTWALL_SHARED_HOST={custom_domain}' >> .env && \
+
+    sleep 30 && \
+    ./restart-second-brain.sh
+        "#
+    );
+    let tag = Tag::builder()
+        .key("Name")
+        .value(swarm_name) // Replace with the desired instance name
+        .build();
+
+    // Define the TagSpecification to apply the tags when the instance is created
+    let tag_specification = TagSpecification::builder()
+        .resource_type("instance".into()) // Tag the instance
+        .tags(tag)
+        .build();
+
+    let block_device = BlockDeviceMapping::builder()
+        .device_name(device_name) // Valid for Debian
+        .ebs(EbsBlockDevice::builder().volume_size(100).build())
+        .build();
+
+    let result = client
+        .run_instances()
+        .image_id(image_id)
+        .instance_type(InstanceType::T3Medium)
+        .security_group_ids(security_group_id)
+        .key_name(key_name)
+        .min_count(1)
+        .max_count(1)
+        .user_data(base64::encode(user_data_script))
+        .block_device_mappings(block_device)
+        .tag_specifications(tag_specification)
+        .send()
+        .await?;
+
+    log::info!("Result from creating instance is back");
+
+    if result.instances().is_empty() {
+        return Err(anyhow!("Failed to create instance"));
+    }
+
+    let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
+    println!("Created instance with ID: {}", instance_id);
+
+    Ok(instance_id)
+}
+
+async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
+    let config = aws_config::load_from_env().await;
+    let client = Client::new(&config);
+
+    let result = client
+        .describe_instances()
+        .instance_ids(instance_id)
+        .send()
+        .map_err(|err| anyhow!(err.to_string()))
+        .await?;
+
+    if result.reservations().is_empty() {
+        return Err(anyhow!("Failed to create instance"));
+    }
+
+    if result.reservations()[0].instances().is_empty() {
+        return Err(anyhow!("Could not get ec2 instance"));
+    }
+
+    if result.reservations()[0].instances()[0]
+        .public_ip_address()
+        .is_none()
+    {
+        return Err(anyhow!("No public ip address for the new instance"));
+    }
+
+    let public_ip_address = result.reservations()[0].instances()[0]
+        .public_ip_address()
+        .unwrap();
+
+    log::info!("Instance Public IP Address: {}", public_ip_address);
+
+    Ok(public_ip_address.to_string())
+}
+
+async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Result<(), Error> {
+    let region = getenv("AWS_S3_REGION_NAME")?;
+    let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
+    let route53_client = Route53Client::new(&config);
+
+    let resource_record = ResourceRecord::builder().value(public_ip).build()?;
+
+    let resource_record_set = ResourceRecordSet::builder()
+        .name(domain_name)
+        .r#type("A".into()) // A record for IPv4
+        .ttl(300) // Time-to-live (in seconds)
+        .resource_records(resource_record)
+        .build()
+        .map_err(|err| anyhow!(err.to_string()))?;
+
+    // Create a change request to upsert (create or update) the A record
+    let change = Change::builder()
+        .action(ChangeAction::Upsert)
+        .resource_record_set(resource_record_set)
+        .build()
+        .map_err(|err| anyhow!(err.to_string()))?;
+
+    let change_batch = ChangeBatch::builder()
+        .changes(change)
+        .build()
+        .map_err(|err| anyhow!(err.to_string()))?;
+
+    let response = route53_client
+        .change_resource_record_sets()
+        .hosted_zone_id(hosted_zone_id)
+        .change_batch(change_batch)
+        .send()
+        .await?;
+
+    log::info!(
+        "Route 53 change status for {}: {:?}",
+        domain_name,
+        response.change_info()
+    );
+
+    Ok(())
+}
+
+//Sample execution function
+pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
+    let ec2_intance_id =
+        create_ec2_instance(info.swarm_number.clone(), info.vanity_address.clone()).await?;
+    let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
+    let _ = add_domain_name_to_route53(
+        &format!("*.swarm{}.sphinx.chat", info.swarm_number),
+        &ec2_ip_address,
+    )
+    .await?;
+    if let Some(custom_domain) = &info.vanity_address {
+        log::info!("vanity address is being set");
+        let _custom_domain_result =
+            add_domain_name_to_route53(custom_domain, &ec2_ip_address).await?;
+    }
+    log::info!("Public_IP: {}", ec2_ip_address);
+    Ok(())
 }

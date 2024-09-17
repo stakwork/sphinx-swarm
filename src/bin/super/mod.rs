@@ -16,6 +16,7 @@ use util::{
 };
 
 use crate::checker::swarm_checker;
+use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
 use routes::launch_rocket;
@@ -292,6 +293,30 @@ pub async fn super_handle(
             }
             SwarmCmd::UpdateChildSwarmContainers(info) => {
                 let res = accessing_child_container_controller(&state, info, "UpdateNode").await;
+
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::CreateNewEc2Instance(info) => {
+                let res: SuperSwarmResponse;
+                match create_swarm_ec2(&info).await {
+                    Ok(_) => {
+                        res = SuperSwarmResponse {
+                            success: true,
+                            message: format!(
+                                "Swarm{}.sphinx.chat was created successfully",
+                                &info.swarm_number
+                            ),
+                            data: None,
+                        }
+                    }
+                    Err(err) => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
 
                 Some(serde_json::to_string(&res)?)
             }
