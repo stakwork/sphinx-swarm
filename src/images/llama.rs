@@ -1,7 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{add_gpus_to_host_config, domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -12,7 +12,6 @@ use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct LlamaImage {
     pub name: String,
-    pub version: String,
     pub port: String,
     pub model: String,
     pub host: Option<String>,
@@ -22,12 +21,12 @@ pub struct LlamaImage {
 
 // https://huggingface.co/TheBloke/Llama-2-7B-GGUF
 const DEFAULT_MODEL: &str = "models/llama-2-7b.Q4_K_M.gguf";
+const VERSION: &str = "server-cuda";
 
 impl LlamaImage {
     pub fn new(name: &str, port: &str) -> Self {
         Self {
             name: name.to_string(),
-            version: "server".to_string(),
             port: port.to_string(),
             model: DEFAULT_MODEL.to_string(),
             host: None,
@@ -96,11 +95,13 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
     log::info!("model_vol: {}", model_vol);
     let extra_vols = vec![model_vol];
 
+    let mut hc = host_config(&img.name, ports.clone(), root_vol, Some(extra_vols), None).unwrap();
+    add_gpus_to_host_config(&mut hc, 1);
     let mut c = Config {
-        image: Some(format!("{}:{}", image, img.version)),
+        image: Some(format!("{}:{}", image, VERSION)),
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&img.name, ports, root_vol, Some(extra_vols), None),
+        host_config: Some(hc),
         env: Some(env),
         ..Default::default()
     };

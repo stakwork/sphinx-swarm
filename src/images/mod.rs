@@ -155,7 +155,7 @@ impl Image {
             Image::Dufs(n) => n.version = version.to_string(),
             Image::Tome(n) => n.version = version.to_string(),
             Image::Rqbit(n) => n.version = version.to_string(),
-            Image::Llama(n) => n.version = version.to_string(),
+            Image::Llama(_n) => (),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
