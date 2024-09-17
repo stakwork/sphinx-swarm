@@ -445,9 +445,11 @@
     const data = { name, swarm_number: Number(swarm_num), vanity_address };
     const response = await create_new_swarm_ec2(data);
     message = response.message;
-    console.log(response);
     if (response.success === true) {
       open_create_ec2 = false;
+      name = "";
+      vanity_address = "";
+      swarm_num = null;
       show_notification = true;
     } else {
       error_notification = true;
