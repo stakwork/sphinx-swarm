@@ -282,6 +282,7 @@ impl Stack {
                     Node::Internal(Image::Tome(m))
                 }
                 Image::Rqbit(r) => Node::Internal(Image::Rqbit(r)),
+                Image::Llama(m) => Node::Internal(Image::Llama(m)),
             },
         });
         Stack {

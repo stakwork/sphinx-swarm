@@ -37,7 +37,8 @@ export type NodeType =
   | "Neo4j"
   | "Elastic"
   | "NavFiber"
-  | "Cln";
+  | "Cln"
+  | "Llama";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",

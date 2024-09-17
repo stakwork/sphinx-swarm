@@ -9,6 +9,7 @@ pub mod config_server;
 pub mod dufs;
 pub mod elastic;
 pub mod jarvis;
+pub mod llama;
 pub mod lnd;
 pub mod lss;
 pub mod mixer;
@@ -53,6 +54,7 @@ pub enum Image {
     Dufs(dufs::DufsImage),
     Tome(tome::TomeImage),
     Rqbit(rqbit::RqbitImage),
+    Llama(llama::LlamaImage),
 }
 
 pub struct Repository {
@@ -100,6 +102,7 @@ impl Image {
             Image::Dufs(n) => n.name.clone(),
             Image::Tome(n) => n.name.clone(),
             Image::Rqbit(n) => n.name.clone(),
+            Image::Llama(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -125,6 +128,7 @@ impl Image {
             Image::Dufs(_n) => "Dufs",
             Image::Tome(_n) => "Tome",
             Image::Rqbit(_n) => "Rqbit",
+            Image::Llama(_n) => "Llama",
         }
         .to_string()
     }
@@ -151,6 +155,7 @@ impl Image {
             Image::Dufs(n) => n.version = version.to_string(),
             Image::Tome(n) => n.version = version.to_string(),
             Image::Rqbit(n) => n.version = version.to_string(),
+            Image::Llama(_n) => (),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -236,6 +241,7 @@ impl DockerConfig for Image {
             Image::Dufs(n) => n.make_config(nodes, docker).await,
             Image::Tome(n) => n.make_config(nodes, docker).await,
             Image::Rqbit(n) => n.make_config(nodes, docker).await,
+            Image::Llama(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -264,6 +270,7 @@ impl DockerHubImage for Image {
             Image::Dufs(n) => n.repo(),
             Image::Tome(n) => n.repo(),
             Image::Rqbit(n) => n.repo(),
+            Image::Llama(n) => n.repo(),
         }
     }
 }

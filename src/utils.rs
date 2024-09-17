@@ -1,6 +1,7 @@
 use crate::dock;
 use anyhow::{anyhow, Result};
 use bollard::container::NetworkingConfig;
+use bollard::models::DeviceRequest;
 use bollard::network::CreateNetworkOptions;
 use bollard_stubs::models::{
     HostConfig, HostConfigLogConfig, Ipam, IpamConfig, PortBinding, PortMap, ResourcesUlimits,
@@ -45,6 +46,15 @@ pub fn host_config(
         }
     }
     Some(hc)
+}
+
+pub fn add_gpus_to_host_config(hc: &mut HostConfig, count: i64) {
+    hc.device_requests = Some(vec![DeviceRequest {
+        driver: Some("nvidia".to_string()),
+        count: Some(count),
+        capabilities: Some(vec![vec!["gpu".to_string()]]),
+        ..Default::default()
+    }]);
 }
 
 fn local_log_config() -> Option<HostConfigLogConfig> {
