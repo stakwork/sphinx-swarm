@@ -21,6 +21,7 @@ use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
 };
 use crate::state::{RemoteStack, Super};
+use tokio::time::{sleep, Duration};
 
 pub fn add_new_swarm_details(
     state: &mut Super,
@@ -375,14 +376,24 @@ async fn create_ec2_instance(
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
-    let config = aws_config::load_from_env().await;
+    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
+
     let client = Client::new(&config);
 
     let result = client
         .describe_instances()
         .instance_ids(instance_id)
         .send()
-        .map_err(|err| anyhow!(err.to_string()))
+        .map_err(|err| {
+            log::error!("Error describing instance: {}", err);
+            anyhow!(err.to_string())
+        })
         .await?;
 
     if result.reservations().is_empty() {
@@ -462,6 +473,9 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
     let ec2_intance_id =
         create_ec2_instance(info.swarm_number.clone(), info.vanity_address.clone()).await?;
+
+    sleep(Duration::from_secs(40)).await;
+
     let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
     let _ = add_domain_name_to_route53(
         &format!("*.swarm{}.sphinx.chat", info.swarm_number),
