@@ -67,7 +67,8 @@ impl Neo4jImage {
             )
             .await?;
 
-            let apoc_url = "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
+            let apoc_url =
+                "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
             log::info!("=> download apoc plugin for neo4j...");
             let bytes = reqwest::get(apoc_url).await?.bytes().await?;
             upload_to_container(
@@ -130,23 +131,27 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
-    let mut server_memory_heap_initial_size = "NEO4J_dbms_memory_heap_initial__size";
-    let mut dbms_memory_heap_max_size = "NEO4J_dbms_memory_heap_max__size";
+    let mut server_memory_heap_initial_size = "NEO4J_dbms_memory_heap_initial__size=2G";
+    let mut dbms_memory_heap_max_size = "NEO4J_dbms_memory_heap_max__size=4G";
     let mut dbms_default_listen_address = "NEO4J_dbms_default__listen__address";
     let mut dbms_connector_bolt_listen_address = "NEO4J_dbms_connector_bolt_listen__address";
     let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
     let mut dbms_default_database = "NEO4J_dbms_default__database=neo4j";
-    let mut dbms_security_procedures_unrestricted = "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+    let mut dbms_security_procedures_unrestricted =
+        "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
     let mut dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
-    let mut dbms_security_auth_minimum_password_length = "NEO4J_dbms_security_auth__minimum__password__length=4";
+    let mut dbms_security_auth_minimum_password_length =
+        "NEO4J_dbms_security_auth__minimum__password__length=4";
     if *node.version > *"4.4.9" {
-        server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size";
-        dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size";
+        server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size=2G";
+        dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size=4G";
         dbms_default_listen_address = "NEO4J_server_default__listen__address";
         dbms_connector_bolt_listen_address = "NEO4J_server_bolt_listen__address";
         dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
-        dbms_security_auth_minimum_password_length = "NEO4J_dbms_security_auth__minimum__password__length=4";
-        dbms_security_procedures_unrestricted = "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+        dbms_security_auth_minimum_password_length =
+            "NEO4J_dbms_security_auth__minimum__password__length=4";
+        dbms_security_procedures_unrestricted =
+            "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
         dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
     }
 
@@ -167,15 +172,14 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("{}=0.0.0.0", dbms_default_listen_address),
             format!(
                 "{}=0.0.0.0:{}",
-                dbms_connector_bolt_listen_address,
-                &node.bolt_port
+                dbms_connector_bolt_listen_address, &node.bolt_port
             ),
             format!("NEO4J_dbms.security.procedures.allowlist=gds.*"),
             format!("{}", dbms_allow_upgrade),
             format!("{}", dbms_default_database),
             format!("NEO4J_dbms_security_auth__minimum__password__length=4"),
             format!("{}", dbms_security_procedures_unrestricted),
-            format!("{}", dbms_security_procedures_whitelist)
+            format!("{}", dbms_security_procedures_whitelist),
         ]),
         ..Default::default()
     };
