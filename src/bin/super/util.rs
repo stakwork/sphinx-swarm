@@ -328,6 +328,7 @@ async fn create_ec2_instance(
     echo 'SUPER_TOKEN={super_token}' >> .env && \
     echo 'SUPER_URL={super_url}' >> .env && \
     echo 'NAV_BOLTWALL_SHARED_HOST={custom_domain}' >> .env && \
+    echo 'SECOND_BRAIN_ONLY=true' >> .env && \
 
     sleep 30 && \
     ./restart-second-brain.sh
