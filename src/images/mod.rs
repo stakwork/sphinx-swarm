@@ -22,6 +22,7 @@ pub mod rqbit;
 pub mod tome;
 pub mod traefik;
 pub mod tribes;
+pub mod whisper;
 
 use crate::config;
 use anyhow::Result;
@@ -55,6 +56,7 @@ pub enum Image {
     Tome(tome::TomeImage),
     Rqbit(rqbit::RqbitImage),
     Llama(llama::LlamaImage),
+    Whisper(whisper::WhisperImage),
 }
 
 pub struct Repository {
@@ -103,6 +105,7 @@ impl Image {
             Image::Tome(n) => n.name.clone(),
             Image::Rqbit(n) => n.name.clone(),
             Image::Llama(n) => n.name.clone(),
+            Image::Whisper(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -129,6 +132,7 @@ impl Image {
             Image::Tome(_n) => "Tome",
             Image::Rqbit(_n) => "Rqbit",
             Image::Llama(_n) => "Llama",
+            Image::Whisper(_n) => "Whisper",
         }
         .to_string()
     }
@@ -156,6 +160,7 @@ impl Image {
             Image::Tome(n) => n.version = version.to_string(),
             Image::Rqbit(n) => n.version = version.to_string(),
             Image::Llama(_n) => (),
+            Image::Whisper(_n) => (),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -242,6 +247,7 @@ impl DockerConfig for Image {
             Image::Tome(n) => n.make_config(nodes, docker).await,
             Image::Rqbit(n) => n.make_config(nodes, docker).await,
             Image::Llama(n) => n.make_config(nodes, docker).await,
+            Image::Whisper(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -271,6 +277,7 @@ impl DockerHubImage for Image {
             Image::Tome(n) => n.repo(),
             Image::Rqbit(n) => n.repo(),
             Image::Llama(n) => n.repo(),
+            Image::Whisper(n) => n.repo(),
         }
     }
 }
