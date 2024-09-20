@@ -131,8 +131,8 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 
-    let mut server_memory_heap_initial_size = "NEO4J_dbms_memory_heap_initial__size=2G";
-    let mut dbms_memory_heap_max_size = "NEO4J_dbms_memory_heap_max__size=4G";
+    let mut server_memory_heap_initial_size = "NEO4J_dbms_memory_heap_initial__size";
+    let mut dbms_memory_heap_max_size = "NEO4J_dbms_memory_heap_max__size";
     let mut dbms_default_listen_address = "NEO4J_dbms_default__listen__address";
     let mut dbms_connector_bolt_listen_address = "NEO4J_dbms_connector_bolt_listen__address";
     let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
@@ -143,8 +143,8 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let mut dbms_security_auth_minimum_password_length =
         "NEO4J_dbms_security_auth__minimum__password__length=4";
     if *node.version > *"4.4.9" {
-        server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size=2G";
-        dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size=4G";
+        server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size";
+        dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size";
         dbms_default_listen_address = "NEO4J_server_default__listen__address";
         dbms_connector_bolt_listen_address = "NEO4J_server_bolt_listen__address";
         dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
@@ -166,8 +166,8 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
-            format!("{}=64m", server_memory_heap_initial_size),
-            format!("{}=512m", dbms_memory_heap_max_size),
+            format!("{}=2G", server_memory_heap_initial_size),
+            format!("{}=4G", dbms_memory_heap_max_size),
             format!("NEO4J_apoc_uuid_enabled=true"),
             format!("{}=0.0.0.0", dbms_default_listen_address),
             format!(
