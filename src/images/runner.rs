@@ -70,6 +70,7 @@ fn runner(img: &RunnerImage, jarvis: &JarvisImage) -> Result<Config<String>> {
         format!("JARVIS_URL=http://{}:{}", domain(&jarvis.name), jarvis.port),
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
+        format!("DB_PATH=/home/runner"),
     ];
 
     if img.broker_url.is_empty() {
