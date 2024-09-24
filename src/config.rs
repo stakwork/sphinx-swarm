@@ -284,6 +284,7 @@ impl Stack {
                 Image::Rqbit(r) => Node::Internal(Image::Rqbit(r)),
                 Image::Llama(m) => Node::Internal(Image::Llama(m)),
                 Image::Whisper(w) => Node::Internal(Image::Whisper(w)),
+                Image::Runner(r) => Node::Internal(Image::Runner(r)),
             },
         });
         Stack {

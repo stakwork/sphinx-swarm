@@ -19,6 +19,7 @@ pub mod postgres;
 pub mod proxy;
 pub mod relay;
 pub mod rqbit;
+pub mod runner;
 pub mod tome;
 pub mod traefik;
 pub mod tribes;
@@ -57,6 +58,7 @@ pub enum Image {
     Rqbit(rqbit::RqbitImage),
     Llama(llama::LlamaImage),
     Whisper(whisper::WhisperImage),
+    Runner(runner::RunnerImage),
 }
 
 pub struct Repository {
@@ -106,6 +108,7 @@ impl Image {
             Image::Rqbit(n) => n.name.clone(),
             Image::Llama(n) => n.name.clone(),
             Image::Whisper(n) => n.name.clone(),
+            Image::Runner(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -133,6 +136,7 @@ impl Image {
             Image::Rqbit(_n) => "Rqbit",
             Image::Llama(_n) => "Llama",
             Image::Whisper(_n) => "Whisper",
+            Image::Runner(_n) => "Runner",
         }
         .to_string()
     }
@@ -161,6 +165,7 @@ impl Image {
             Image::Rqbit(n) => n.version = version.to_string(),
             Image::Llama(_n) => (),
             Image::Whisper(_n) => (),
+            Image::Runner(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -248,6 +253,7 @@ impl DockerConfig for Image {
             Image::Rqbit(n) => n.make_config(nodes, docker).await,
             Image::Llama(n) => n.make_config(nodes, docker).await,
             Image::Whisper(n) => n.make_config(nodes, docker).await,
+            Image::Runner(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -278,6 +284,7 @@ impl DockerHubImage for Image {
             Image::Rqbit(n) => n.repo(),
             Image::Llama(n) => n.repo(),
             Image::Whisper(n) => n.repo(),
+            Image::Runner(n) => n.repo(),
         }
     }
 }
