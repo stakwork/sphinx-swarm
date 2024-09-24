@@ -1,7 +1,6 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::images::broker::BrokerImage;
 use crate::images::jarvis::JarvisImage;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
@@ -14,6 +13,7 @@ pub struct RunnerImage {
     pub name: String,
     pub version: String,
     pub port: String,
+    pub broker_url: String,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -24,6 +24,7 @@ impl RunnerImage {
             name: name.to_string(),
             version: version.to_string(),
             port: port.to_string(),
+            broker_url: "".to_string(),
             links: vec![],
             host: None,
         }
@@ -42,9 +43,8 @@ impl RunnerImage {
 impl DockerConfig for RunnerImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let broker = li.find_broker().context("Runner: No Broker")?;
         let jarvis = li.find_jarvis().context("Runner: No Jarvis")?;
-        Ok(runner(self, &broker, &jarvis)?)
+        Ok(runner(self, &jarvis)?)
     }
 }
 
@@ -58,7 +58,7 @@ impl DockerHubImage for RunnerImage {
     }
 }
 
-fn runner(img: &RunnerImage, broker: &BrokerImage, jarvis: &JarvisImage) -> Result<Config<String>> {
+fn runner(img: &RunnerImage, jarvis: &JarvisImage) -> Result<Config<String>> {
     let repo = img.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
 
@@ -66,16 +66,16 @@ fn runner(img: &RunnerImage, broker: &BrokerImage, jarvis: &JarvisImage) -> Resu
 
     let ports = vec![img.port.clone()];
 
-    let env = vec![
-        format!(
-            "BROKER_URL=http://{}:{}",
-            domain(&broker.name),
-            broker.mqtt_port
-        ),
+    let mut env = vec![
         format!("JARVIS_URL=http://{}:{}", domain(&jarvis.name), jarvis.port),
         format!("ROCKET_ADDRESS=0.0.0.0"),
         format!("ROCKET_PORT={}", img.port),
     ];
+
+    if img.broker_url.is_empty() {
+        return Err(anyhow::anyhow!("Runner: No Broker URL"));
+    }
+    env.push(format!("BROKER_URL={}", img.broker_url));
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
