@@ -225,6 +225,10 @@ fn jarvis(
             webpage_text_workflow_id
         ));
     }
+    if let Ok(jarvis_workers) = getenv("JARVIS_WORKERS") {
+        env.push(format!("WORKERS={}", jarvis_workers));
+    }
+
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),

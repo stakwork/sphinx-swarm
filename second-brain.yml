@@ -103,6 +103,7 @@ services:
       - WEBPAGE_TEXT_WORKFLOW_ID=$WEBPAGE_TEXT_WORKFLOW_ID
       - SUPER_URL=$SUPER_URL
       - LOCAL_LLAMA=$LOCAL_LLAMA
+      - JARVIS_WORKERS=$JARVIS_WORKERS
 
 networks:
   sphinx-swarm:
