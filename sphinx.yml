@@ -75,6 +75,7 @@ services:
       - TRIBES_HOST=$TRIBES_HOST
       - SUPER_TOKEN=$SUPER_TOKEN
       - SUPER_URL=$SUPER_URL
+      - JARVIS_WORKERS=$JARVIS_WORKERS
 
 networks:
   sphinx-swarm:
