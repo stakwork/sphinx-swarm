@@ -92,13 +92,13 @@ impl Neo4jImage {
         }
 
         log::info!("=> download graph-data-science plugin for neo4j...");
-        let graph_data_science = "https://github.com/neo4j/graph-data-science/releases/download/2.6.8/neo4j-graph-data-science-2.6.8.jar";
+        let graph_data_science = "https://github.com/neo4j/graph-data-science/releases/download/2.9.0/neo4j-graph-data-science-2.9.0.zip";
         let graph_data_science_bytes = reqwest::get(graph_data_science).await?.bytes().await?;
         upload_to_container(
             docker,
             &self.name,
             "/var/lib/neo4j/plugins",
-            "neo4j-graph-data-science-2.6.8.jar",
+            "neo4j-graph-data-science-2.9.0.jar",
             &graph_data_science_bytes,
         )
         .await?;
@@ -138,7 +138,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
     let mut dbms_default_database = "NEO4J_dbms_default__database=neo4j";
     let mut dbms_security_procedures_unrestricted =
-        "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
+        "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*";
     let mut dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
     let mut dbms_security_auth_minimum_password_length =
         "NEO4J_dbms_security_auth__minimum__password__length=4";
@@ -150,9 +150,6 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
         dbms_security_auth_minimum_password_length =
             "NEO4J_dbms_security_auth__minimum__password__length=4";
-        dbms_security_procedures_unrestricted =
-            "NEO4J_dbms_security_procedures_unrestricted=apoc.*";
-        dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
     }
 
     let c = Config {
@@ -165,7 +162,6 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_AUTH=neo4j/test"),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
-            format!("NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*"),
             format!("{}=512m", server_memory_heap_initial_size),
             format!("{}=2g", dbms_memory_heap_max_size),
             format!("NEO4J_apoc_uuid_enabled=true"),
@@ -178,8 +174,9 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("{}", dbms_allow_upgrade),
             format!("{}", dbms_default_database),
             format!("NEO4J_dbms_security_auth__minimum__password__length=4"),
-            format!("{}", dbms_security_procedures_unrestricted),
-            format!("{}", dbms_security_procedures_whitelist),
+            format!("{}", "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*"),
+            format!("{}", "NEO4J_dbms_security_procedures_whitelist=apoc.*,gds.*,algo.*"),
+            format!("NEO4J_PLUGINS=[\"graph-data-science\"]"),
         ]),
         ..Default::default()
     };
