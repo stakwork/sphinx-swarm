@@ -51,8 +51,9 @@
   let vanity_address = "";
   let domain = ".sphinx.chat";
   let swarm_name_suffix = "-Swarm";
-  let vanity_input_width = 1000;
-  let swarm_name_width = 1000;
+  const max_input_with = 600;
+  let vanity_input_width = max_input_with;
+  let swarm_name_width = max_input_with;
 
   let selectedRowIds = [];
 
@@ -462,19 +463,22 @@
     isSubmitting = false;
   }
 
-  function updateVanityAddressWidth() {
+  function updateVanityAddressWidth(event) {
+    console.log("We got here too");
+    vanity_address = event.target.value.replace(/\s+/g, "");
     const span = document.querySelector(".vanity_address_measure");
     vanity_input_width = span.offsetWidth;
     if (!vanity_input_width) {
-      vanity_input_width = 1000;
+      vanity_input_width = max_input_with;
     }
   }
 
-  function updateSwarmnameWidth() {
+  function updateSwarmnameWidth(event) {
+    name = event.target.value.replace(/\s+/g, "");
     const span = document.querySelector(".swarm_name_measure");
     swarm_name_width = span.offsetWidth;
     if (!swarm_name_width) {
-      swarm_name_width = 1000;
+      swarm_name_width = max_input_with;
     }
   }
 </script>
@@ -725,7 +729,7 @@
     align-items: center;
     width: 100%;
     padding: 1rem;
-    /* overflow: hidden; */
+    overflow: hidden;
     border: solid 1px #494949;
     border-radius: 0.5rem;
     margin-bottom: 1rem;
@@ -743,7 +747,6 @@
     border: none;
     outline: none;
     margin: 0;
-    padding: 0;
     font-size: 1rem;
     font-family: "Barlow";
     background-color: transparent;
