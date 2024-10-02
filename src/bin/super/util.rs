@@ -278,6 +278,8 @@ async fn create_ec2_instance(
 
     let security_group_id = getenv("AWS_SECURITY_GROUP_ID")?;
 
+    let subnet_id = getenv("AWS_SUBNET_ID")?;
+
     let key_name = getenv("AWS_KEY_NAME")?;
 
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
@@ -364,7 +366,12 @@ async fn create_ec2_instance(
         .user_data(base64::encode(user_data_script))
         .block_device_mappings(block_device)
         .tag_specifications(tag_specification)
+        .subnet_id(subnet_id)
         .send()
+        .map_err(|err| {
+            log::error!("Error Creating instance instance: {}", err);
+            anyhow!(err.to_string())
+        })
         .await?;
 
     if result.instances().is_empty() {
