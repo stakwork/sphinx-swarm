@@ -351,7 +351,7 @@ async fn create_ec2_instance(
     let result = client
         .run_instances()
         .image_id(image_id)
-        .instance_type(InstanceType::T3Medium)
+        .instance_type(InstanceType::M5Large)
         .security_group_ids(security_group_id)
         .key_name(key_name)
         .min_count(1)
