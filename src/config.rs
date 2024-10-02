@@ -284,6 +284,11 @@ impl Stack {
                 Image::Rqbit(r) => Node::Internal(Image::Rqbit(r)),
                 Image::Llama(m) => Node::Internal(Image::Llama(m)),
                 Image::Whisper(w) => Node::Internal(Image::Whisper(w)),
+                Image::Whisker(mut w) => {
+                    w.livekit_api_key = "".to_string();
+                    w.livekit_api_secret = "".to_string();
+                    Node::Internal(Image::Whisker(w))
+                }
                 Image::Runner(r) => Node::Internal(Image::Runner(r)),
             },
         });
