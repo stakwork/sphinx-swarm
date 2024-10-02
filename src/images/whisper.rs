@@ -65,6 +65,8 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
     let huggingface = "/home/admin/.cache/huggingface";
     let extra_vols = vec![format!("{huggingface}:/root/.cache/huggingface")];
 
+    let env = vec![format!("UVICORN_PORT={}", img.port)];
+
     let mut hc = host_config(&img.name, ports.clone(), root_vol, Some(extra_vols), None).unwrap();
     add_gpus_to_host_config(&mut hc, 1);
     let mut c = Config {
@@ -72,7 +74,7 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: Some(hc),
-        env: None,
+        env: Some(env),
         ..Default::default()
     };
     if let Some(host) = &img.host {

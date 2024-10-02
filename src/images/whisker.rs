@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-const MODEL: &str = "Systran/faster-distil-whisper-large-v3";
+const DEFAULT_MODEL: &str = "Systran/faster-distil-whisper-large-v3";
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct WhiskerImage {
@@ -68,8 +68,9 @@ fn whisker(img: &WhiskerImage, whisper: &WhisperImage) -> Result<Config<String>>
 
     let root_vol = &repo.root_volume;
 
+    let model = img.model.clone().unwrap_or(DEFAULT_MODEL.to_string());
     let env = vec![
-        format!("MODEL={MODEL}"),
+        format!("MODEL={model}",),
         format!("LIVEKIT_URL={}", img.livekit_url),
         format!("LIVEKIT_API_KEY={}", img.livekit_api_key),
         format!("LIVEKIT_API_SECRET={}", img.livekit_api_secret),
