@@ -442,6 +442,8 @@
 
   function handleOnCloseCreateEc2() {
     open_create_ec2 = false;
+    name = "";
+    vanity_address = "";
   }
 
   async function handleSubmitCreateEc2() {
