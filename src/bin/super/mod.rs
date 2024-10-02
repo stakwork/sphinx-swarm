@@ -302,10 +302,7 @@ pub async fn super_handle(
                     Ok(_) => {
                         res = SuperSwarmResponse {
                             success: true,
-                            message: format!(
-                                "Swarm{}.sphinx.chat was created successfully",
-                                &info.swarm_number
-                            ),
+                            message: format!("{} was created successfully", &info.name.clone()),
                             data: None,
                         }
                     }

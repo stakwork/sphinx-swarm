@@ -21,6 +21,7 @@ use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
 };
 use crate::state::{RemoteStack, Super};
+use rand::Rng;
 use tokio::time::{sleep, Duration};
 
 pub fn add_new_swarm_details(
@@ -241,9 +242,9 @@ pub async fn accessing_child_container_controller(
 }
 
 async fn create_ec2_instance(
-    swarm_number: i64,
+    swarm_name: String,
     vanity_address: Option<String>,
-) -> Result<String, Error> {
+) -> Result<(String, i32), Error> {
     let region = getenv("AWS_S3_REGION_NAME")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
@@ -267,7 +268,9 @@ async fn create_ec2_instance(
 
     let super_token = getenv("SUPER_TOKEN")?;
 
-    let swarm_name = format!("swarm{}", swarm_number);
+    let swarm_name = format!("swarm{}", swarm_name);
+
+    let swarm_number = rand::thread_rng().gen_range(100000..1000000);
 
     let device_name = getenv("AWS_DEVICE_NAME")?;
 
@@ -307,7 +310,7 @@ async fn create_ec2_instance(
         docker network create sphinx-swarm && \
         touch .env && \
 
-        echo "HOST={swarm_name}.sphinx.chat" >> .env && \
+        echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
     echo 'NETWORK=bitcoin' >> .env && \
     echo 'AWS_ACCESS_KEY_ID={aws_access_key_id}' >> .env && \
     echo 'AWS_SECRET_ACCESS_KEY={aws_access_token}' >> .env && \
@@ -364,8 +367,6 @@ async fn create_ec2_instance(
         .send()
         .await?;
 
-    log::info!("Result from creating instance is back");
-
     if result.instances().is_empty() {
         return Err(anyhow!("Failed to create instance"));
     }
@@ -373,7 +374,7 @@ async fn create_ec2_instance(
     let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
     println!("Created instance with ID: {}", instance_id);
 
-    Ok(instance_id)
+    Ok((instance_id, swarm_number))
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
@@ -473,13 +474,13 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 //Sample execution function
 pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
     let ec2_intance_id =
-        create_ec2_instance(info.swarm_number.clone(), info.vanity_address.clone()).await?;
+        create_ec2_instance(info.name.clone(), info.vanity_address.clone()).await?;
 
     sleep(Duration::from_secs(40)).await;
 
-    let ec2_ip_address = get_instance_ip(&ec2_intance_id).await?;
+    let ec2_ip_address = get_instance_ip(&ec2_intance_id.0).await?;
     let _ = add_domain_name_to_route53(
-        &format!("*.swarm{}.sphinx.chat", info.swarm_number),
+        &format!("*.swarm{}.sphinx.chat", &ec2_intance_id.1),
         &ec2_ip_address,
     )
     .await?;
