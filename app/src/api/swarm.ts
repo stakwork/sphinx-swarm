@@ -293,15 +293,12 @@ export async function update_child_swarm_containers({
 export async function create_new_swarm_ec2({
   name,
   vanity_address,
-  swarm_number,
 }: {
   vanity_address?: string;
   name: string;
-  swarm_number: number;
 }) {
   return await swarmCmd("CreateNewEc2Instance", {
     vanity_address,
     name,
-    swarm_number,
   });
 }

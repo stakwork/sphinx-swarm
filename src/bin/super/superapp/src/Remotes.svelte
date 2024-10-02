@@ -48,8 +48,11 @@
   let loading = false;
   let errors = [];
   let name = "";
-  let swarm_num;
   let vanity_address = "";
+  let domain = ".sphinx.chat";
+  let swarm_name_suffix = "-Swarm";
+  let vanity_input_width = 1000;
+  let swarm_name_width = 1000;
 
   let selectedRowIds = [];
 
@@ -442,19 +445,37 @@
 
   async function handleSubmitCreateEc2() {
     isSubmitting = true;
-    const data = { name, swarm_number: Number(swarm_num), vanity_address };
+    const data = {
+      name: `${name}${swarm_name_suffix}`,
+      vanity_address: `${vanity_address}${domain}`,
+    };
     const response = await create_new_swarm_ec2(data);
     message = response.message;
     if (response.success === true) {
       open_create_ec2 = false;
       name = "";
       vanity_address = "";
-      swarm_num = null;
       show_notification = true;
     } else {
       error_notification = true;
     }
     isSubmitting = false;
+  }
+
+  function updateVanityAddressWidth() {
+    const span = document.querySelector(".vanity_address_measure");
+    vanity_input_width = span.offsetWidth;
+    if (!vanity_input_width) {
+      vanity_input_width = 1000;
+    }
+  }
+
+  function updateSwarmnameWidth() {
+    const span = document.querySelector(".swarm_name_measure");
+    swarm_name_width = span.offsetWidth;
+    if (!swarm_name_width) {
+      swarm_name_width = 1000;
+    }
   }
 </script>
 
@@ -615,7 +636,7 @@
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
-    primaryButtonDisabled={isSubmitting}
+    primaryButtonDisabled={isSubmitting || !name}
     primaryButtonText={isSubmitting ? "Loading..." : "Create"}
     secondaryButtonText="Cancel"
     on:click:button--secondary={() => (open_create_ec2 = false)}
@@ -636,30 +657,43 @@
       />
     {/if}
 
-    <div class="text_input_container">
-      <TextInput
-        id="name"
-        labelText="Name"
-        placeholder="Enter Preferred Swarm Name..."
-        bind:value={name}
-      />
+    <div class="custom_text_input_container">
+      <label class="customlabel" for="label">Swarm Name</label>
+      <div class="custom_input_container">
+        <div>
+          <span class="swarm_name_measure">{name}</span>
+          <input
+            type="text"
+            bind:value={name}
+            on:input={updateSwarmnameWidth}
+            placeholder="Enter Swarm Name"
+            style="width: {swarm_name_width}px;"
+            class="custom_input"
+          />
+        </div>
+        {#if name.length > 0}
+          <span class="suffix">{swarm_name_suffix}</span>
+        {/if}
+      </div>
     </div>
-    <div class="text_input_container">
-      <TextInput
-        id="swarm_num"
-        labelText="Swarm Number"
-        placeholder="Enter Swarm Number..."
-        bind:value={swarm_num}
-        type="number"
-      />
-    </div>
-    <div class="text_input_container">
-      <TextInput
-        id="vanity_address"
-        labelText="Vanity Address"
-        placeholder="Vanity Address..."
-        bind:value={vanity_address}
-      />
+    <div class="custom_text_input_container">
+      <label class="customlabel" for="label">Vanity Address</label>
+      <div class="custom_input_container">
+        <div>
+          <span class={"vanity_address_measure"}>{vanity_address}</span>
+          <input
+            type="text"
+            bind:value={vanity_address}
+            on:input={updateVanityAddressWidth}
+            placeholder="Enter vanity Address"
+            style="width: {vanity_input_width}px;"
+            class="custom_input"
+          />
+        </div>
+        {#if vanity_address.length > 0}
+          <span class="suffix">{domain}</span>
+        {/if}
+      </div>
     </div>
   </Modal>
 </main>
@@ -677,5 +711,66 @@
 
   .success_toast_container {
     margin-bottom: 1.2rem;
+  }
+
+  .custom_text_input_container {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .custom_input_container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 1rem;
+    /* overflow: hidden; */
+    border: solid 1px #494949;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .suffix {
+    font-size: 1rem;
+    font-family: "Barlow";
+    width: 100%;
+    color: #49c998;
+    margin-left: -2px;
+  }
+
+  .custom_input {
+    border: none;
+    outline: none;
+    margin: 0;
+    padding: 0;
+    font-size: 1rem;
+    font-family: "Barlow";
+    background-color: transparent;
+    width: auto;
+    color: white;
+    padding: 0;
+  }
+
+  .vanity_address_measure {
+    visibility: hidden;
+    position: absolute;
+    white-space: nowrap;
+    font-family: "Barlow";
+    font-size: 1rem;
+    padding: 0;
+    border: none;
+    margin: 0;
+  }
+
+  .swarm_name_measure {
+    visibility: hidden;
+    position: absolute;
+    white-space: nowrap;
+    font-family: "Barlow";
+    font-size: 1rem;
+    padding: 0;
+    border: none;
+    margin: 0;
   }
 </style>
