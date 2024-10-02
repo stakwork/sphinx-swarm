@@ -148,7 +148,7 @@ pub fn traefik_labels(
         if name == "navfiber" {
             // anything except /api (local resources)
             def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`)",
+                "traefik.http.routers.{}.rule=Host(`{}`) && PathRegexp(`^(?!/api).*`)",
                 name, shared_host
             ));
             def.push(format!("traefik.http.routers.{}.priority=1", name));
