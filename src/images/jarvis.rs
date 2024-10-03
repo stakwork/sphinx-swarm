@@ -100,22 +100,6 @@ fn jarvis(
         env.push(format!("RADAR_RSS_WEBHOOK=https://{}/v2/addnode", h));
         env.push(format!("TLDR_WEBHOOK=https://{}/v1/tldr", h));
         env.push(format!(
-            "ASK_QUESTION_WEBHOOK=https://{}/hook/ask-question",
-            h
-        ));
-        env.push(format!(
-            "RELEVANT_QUESTIONS_WEBHOOK=https://{}/hook/relevant-question",
-            h
-        ));
-        env.push(format!(
-            "EXTRACTED_ENTITIES_WEBHOOK=https://{}/hook/extracted-entities",
-            h
-        ));
-        env.push(format!(
-            "ANSWER_SOURCES_WEBHOOK=https://{}/hook/answer-sources",
-            h
-        ));
-        env.push(format!(
             "SECOND_BRAIN_GRAPH_URL=https://{}/get_elasticsearch_entities",
             h
         ));
