@@ -75,6 +75,7 @@ pub enum SwarmCmd {
     StartChildSwarmContainers(AccessNodesInfo),
     UpdateChildSwarmContainers(AccessNodesInfo),
     CreateNewEc2Instance(CreateEc2InstanceInfo),
+    GetAwsInstanceTypes,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -23,6 +23,12 @@ pub struct RemoteStack {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+pub struct AwsInstanceType {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
 pub struct BotCred {
     pub bot_id: String,
     pub bot_secret: String,

@@ -11,8 +11,8 @@ use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
 use util::{
-    accessing_child_container_controller, add_new_swarm_details, get_child_swarm_config,
-    get_child_swarm_containers,
+    accessing_child_container_controller, add_new_swarm_details, get_aws_instance_types,
+    get_child_swarm_config, get_child_swarm_containers,
 };
 
 use crate::checker::swarm_checker;
@@ -294,6 +294,10 @@ pub async fn super_handle(
             SwarmCmd::UpdateChildSwarmContainers(info) => {
                 let res = accessing_child_container_controller(&state, info, "UpdateNode").await;
 
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetAwsInstanceTypes => {
+                let res = get_aws_instance_types();
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::CreateNewEc2Instance(info) => {

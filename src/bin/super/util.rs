@@ -21,7 +21,7 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
 };
-use crate::state::{RemoteStack, Super};
+use crate::state::{AwsInstanceType, RemoteStack, Super};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 
@@ -240,6 +240,36 @@ pub async fn accessing_child_container_controller(
         }
     }
     res
+}
+
+pub fn get_aws_instance_types() -> SuperSwarmResponse {
+    let instance_types: Vec<AwsInstanceType> = vec![
+        AwsInstanceType {
+            name: "G4dn 2XLarge".to_string(),
+            value: "G4dn2xlarge".to_string(),
+        },
+        AwsInstanceType {
+            name: "M5 Large".to_string(),
+            value: "M5Large".to_string(),
+        },
+        AwsInstanceType {
+            name: "M5 XLarge".to_string(),
+            value: "M5Xlarge".to_string(),
+        },
+    ];
+
+    match serde_json::to_value(instance_types) {
+        Ok(instance_value) => SuperSwarmResponse {
+            success: true,
+            message: "Aws Instance types loaded successfully".to_string(),
+            data: Some(instance_value),
+        },
+        Err(err) => SuperSwarmResponse {
+            success: false,
+            message: err.to_string(),
+            data: None,
+        },
+    }
 }
 
 async fn create_ec2_instance(
