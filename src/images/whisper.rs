@@ -9,10 +9,17 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct WhisperImage {
     pub name: String,
     pub port: String,
+    // Max duration to wait for the next audio chunk before transcription is finilized and connection is closed.
+    pub max_no_data_seconds: Option<f32>,
+    // Max allowed audio duration without any speech being detected before transcription is finilized and connection is closed.
+    pub max_inactivity_seconds: Option<f32>,
+    // Controls how many latest seconds of audio are being passed through VAD.
+    // Should be greater than `max_inactivity_seconds`
+    pub inactivity_window_seconds: Option<f32>,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -24,6 +31,9 @@ impl WhisperImage {
         Self {
             name: name.to_string(),
             port: port.to_string(),
+            max_no_data_seconds: None,
+            max_inactivity_seconds: None,
+            inactivity_window_seconds: None,
             host: None,
             links: Vec::new(),
         }
@@ -67,7 +77,19 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
     let huggingface = "/home/admin/.cache/huggingface";
     let extra_vols = vec![format!("{huggingface}:/root/.cache/huggingface")];
 
-    let env = vec![];
+    let mut env = vec![];
+    if let Some(max_no_data_seconds) = img.max_no_data_seconds {
+        env.push(format!("MAX_NO_DATA_SECONDS={}", max_no_data_seconds));
+    }
+    if let Some(max_inactivity_seconds) = img.max_inactivity_seconds {
+        env.push(format!("MAX_INACTIVITY_SECONDS={}", max_inactivity_seconds));
+    }
+    if let Some(inactivity_window_seconds) = img.inactivity_window_seconds {
+        env.push(format!(
+            "INACTIVITY_WINDOW_SECONDS={}",
+            inactivity_window_seconds
+        ));
+    }
 
     let mut hc = host_config(&img.name, ports.clone(), root_vol, Some(extra_vols), None).unwrap();
     add_gpus_to_host_config(&mut hc, 1);

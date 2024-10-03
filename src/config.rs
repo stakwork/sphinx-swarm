@@ -54,7 +54,7 @@ impl Default for Clients {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
@@ -100,7 +100,7 @@ pub struct SendSwarmDetailsResponse {
 }
 
 // optional node, could be external
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "place")]
 pub enum Node {
     Internal(Image),

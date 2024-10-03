@@ -17,6 +17,7 @@ pub struct WhiskerImage {
     pub livekit_api_key: String,
     pub livekit_api_secret: String,
     pub model: Option<String>,
+    pub no_vad: Option<bool>,
     pub links: Links,
 }
 
@@ -35,6 +36,7 @@ impl WhiskerImage {
             livekit_api_key: livekit_api_key.to_string(),
             livekit_api_secret: livekit_api_secret.to_string(),
             model: None,
+            no_vad: None,
             links: vec![],
         }
     }
@@ -69,7 +71,7 @@ fn whisker(img: &WhiskerImage, whisper: &WhisperImage) -> Result<Config<String>>
     let root_vol = &repo.root_volume;
 
     let model = img.model.clone().unwrap_or(DEFAULT_MODEL.to_string());
-    let env = vec![
+    let mut env = vec![
         format!("MODEL={model}",),
         format!("LIVEKIT_URL={}", img.livekit_url),
         format!("LIVEKIT_API_KEY={}", img.livekit_api_key),
@@ -80,6 +82,9 @@ fn whisker(img: &WhiskerImage, whisper: &WhisperImage) -> Result<Config<String>>
             whisper.port
         ),
     ];
+    if img.no_vad.unwrap_or(false) {
+        env.push("NO_VAD=true".to_string());
+    }
 
     let c = Config {
         image: Some(format!("{}:{}", image, img.version)),

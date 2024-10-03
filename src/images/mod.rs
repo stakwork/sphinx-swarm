@@ -33,7 +33,7 @@ use bollard::container::Config;
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum Image {
     Btc(btc::BtcImage),
