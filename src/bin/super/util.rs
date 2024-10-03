@@ -246,15 +246,15 @@ pub fn get_aws_instance_types() -> SuperSwarmResponse {
     let instance_types: Vec<AwsInstanceType> = vec![
         AwsInstanceType {
             name: "G4dn 2XLarge".to_string(),
-            value: "G4dn2xlarge".to_string(),
-        },
-        AwsInstanceType {
-            name: "M5 Large".to_string(),
-            value: "M5Large".to_string(),
+            value: "g4dn.2xlarge".to_string(),
         },
         AwsInstanceType {
             name: "M5 XLarge".to_string(),
-            value: "M5Xlarge".to_string(),
+            value: "m5.xlarge".to_string(),
+        },
+        AwsInstanceType {
+            name: "M5 Large".to_string(),
+            value: "m5.large".to_string(),
         },
     ];
 
