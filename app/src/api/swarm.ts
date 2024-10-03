@@ -274,6 +274,16 @@ export async function stop_child_swarm_containers({
   return await swarmCmd("StopChildSwarmContainers", { nodes, host });
 }
 
+export async function restart_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("RestartChildSwarmContainers", { nodes, host });
+}
+
 export async function start_child_swarm_containers({
   nodes,
   host,

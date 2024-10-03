@@ -32,6 +32,7 @@
     stop_child_swarm_containers,
     update_child_swarm_containers,
     get_aws_instance_types,
+    restart_child_swarm_containers,
   } from "../../../../../app/src/api/swarm";
 
   let open_create_edit = false;
@@ -311,26 +312,19 @@
       const host = selectedRowIds[i];
 
       try {
-        const services = await getServices(host, false);
+        const services = await getServices(host, true);
 
         if (services.length === 0) {
           errors.push(`${host}: Does not have valid service`);
           break;
         }
 
-        const stop_result = await stop_child_swarm_containers({
+        const restart_response = await restart_child_swarm_containers({
           nodes: services,
           host,
         });
 
-        handle_api_res(host, stop_result);
-
-        const start_result = await start_child_swarm_containers({
-          nodes: services,
-          host,
-        });
-
-        handle_api_res(host, start_result);
+        handle_api_res(host, restart_response);
       } catch (error) {
         console.log("Error: ", error);
         errors.push(`${host}: Unexpected Error occured`);

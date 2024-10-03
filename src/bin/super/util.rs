@@ -123,9 +123,9 @@ pub fn get_child_base_route(host: Option<String>) -> Result<String, Error> {
         return Err(anyhow!("child swarm default host not provided"));
     };
 
-    return Ok(format!("https://app.{}/api", host.unwrap()));
+    // return Ok(format!("https://app.{}/api", host.unwrap()));
 
-    // return Ok(format!("http://{}/api", host.unwrap()));
+    return Ok(format!("http://{}/api", host.unwrap()));
 }
 
 pub async fn get_child_swarm_containers(

@@ -5,6 +5,7 @@
   import {
     get_child_swarm_config,
     get_child_swarm_containers,
+    restart_child_swarm_containers,
     start_child_swarm_containers,
     stop_child_swarm_containers,
     update_child_swarm_containers,
@@ -145,7 +146,7 @@
   async function restartAllContainer() {
     nodes_to_be_modified = [];
     for (let i = 0; i < sortedNodes.length; i++) {
-      nodes_to_be_modified.push(`${sortedNodes[i].id}.sphinx`);
+      nodes_to_be_modified.push(`${sortedNodes[i].id}`);
     }
 
     await restart_all_node_handler(nodes_to_be_modified);
@@ -208,7 +209,7 @@
     let formatted_node_ids = [];
 
     for (let i = 0; i < selectedRowIds.length; i++) {
-      formatted_node_ids.push(`${selectedRowIds[i]}.sphinx`);
+      formatted_node_ids.push(`${selectedRowIds[i]}`);
     }
 
     await restart_all_node_handler(formatted_node_ids);
@@ -218,12 +219,7 @@
   async function restart_all_node_handler(nodes: string[]) {
     loading = true;
 
-    const stop_result = await stop_child_swarm_containers({
-      nodes,
-      host: $selectedNode,
-    });
-
-    const start_result = await start_child_swarm_containers({
+    const restart_result = await restart_child_swarm_containers({
       nodes,
       host: $selectedNode,
     });
@@ -234,28 +230,20 @@
 
     message = "Restarted All node successfully";
 
-    if (start_result === false || stop_result === false) {
+    if (restart_result === false) {
       errorMessage = true;
-      message = start_result.message || stop_result.message;
+      message = restart_result.message;
     }
 
     if (
-      start_result.success &&
-      start_result.data &&
-      start_result.data.stack_error
+      restart_result.success &&
+      restart_result.data &&
+      restart_result.data.stack_error
     ) {
-      message = `Start Containers: ${start_result.data.stack_error}`;
+      message = `Start Containers: ${restart_result.data.stack_error}`;
       errorMessage = true;
     }
 
-    if (
-      stop_result.success &&
-      stop_result.data &&
-      stop_result.data.stack_error
-    ) {
-      message = `Stop Containers: ${stop_result.data.stack_error}`;
-      errorMessage = true;
-    }
     show_notification = true;
   }
 
