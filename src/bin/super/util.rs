@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
@@ -244,6 +245,7 @@ pub async fn accessing_child_container_controller(
 async fn create_ec2_instance(
     swarm_name: String,
     vanity_address: Option<String>,
+    instance_type_name: String,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_S3_REGION_NAME")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -355,10 +357,15 @@ async fn create_ec2_instance(
         .ebs(EbsBlockDevice::builder().volume_size(100).build())
         .build();
 
+    let instance_type = InstanceType::from_str(&instance_type_name).map_err(|err| {
+        log::error!("Invalid instance type: {}", err);
+        anyhow!(err.to_string())
+    })?;
+
     let result = client
         .run_instances()
         .image_id(image_id)
-        .instance_type(InstanceType::M5Large)
+        .instance_type(instance_type)
         .security_group_ids(security_group_id)
         .key_name(key_name)
         .min_count(1)
@@ -480,8 +487,12 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 
 //Sample execution function
 pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
-    let ec2_intance_id =
-        create_ec2_instance(info.name.clone(), info.vanity_address.clone()).await?;
+    let ec2_intance_id = create_ec2_instance(
+        info.name.clone(),
+        info.vanity_address.clone(),
+        info.instance_type.clone(),
+    )
+    .await?;
 
     sleep(Duration::from_secs(40)).await;
 

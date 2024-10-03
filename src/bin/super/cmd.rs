@@ -110,4 +110,5 @@ pub struct AccessNodesInfo {
 pub struct CreateEc2InstanceInfo {
     pub name: String,
     pub vanity_address: Option<String>,
+    pub instance_type: String,
 }
