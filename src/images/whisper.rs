@@ -102,10 +102,10 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
         ..Default::default()
     };
     // override the nginix port 8000 -> 8585:8000
-    let inner_port = "8000";
-    c.host_config.as_mut().unwrap().port_bindings = single_host_port_from(&img.port, inner_port);
+    // let inner_port = "8000";
+    // c.host_config.as_mut().unwrap().port_bindings = single_host_port_from(&img.port, inner_port);
     if let Some(host) = &img.host {
-        c.labels = Some(traefik_labels(&img.name, &host, inner_port, false))
+        c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
     }
     Ok(c)
 }
