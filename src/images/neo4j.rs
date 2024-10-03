@@ -174,8 +174,14 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("{}", dbms_allow_upgrade),
             format!("{}", dbms_default_database),
             format!("NEO4J_dbms_security_auth__minimum__password__length=4"),
-            format!("{}", "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*"),
-            format!("{}", "NEO4J_dbms_security_procedures_whitelist=apoc.*,gds.*,algo.*"),
+            format!(
+                "{}",
+                "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*"
+            ),
+            format!(
+                "{}",
+                "NEO4J_dbms_security_procedures_whitelist=apoc.*,gds.*,algo.*"
+            ),
             format!("NEO4J_PLUGINS=[\"graph-data-science\"]"),
         ]),
         ..Default::default()

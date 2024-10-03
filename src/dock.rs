@@ -229,14 +229,18 @@ pub async fn restart_node_container(
         log::warn!("pre_startup failed {} {:?}", &new_id, e);
     }
 
-    start_container(&docker, &new_id).await?;
+    match start_container(&docker, &new_id).await {
+        Ok(()) => {
+            log::info!("Container started successfully");
+            img.post_startup(proj, docker).await?;
 
-    img.post_startup(proj, docker).await?;
-
-    let _ = match make_client(proj, docker, &img, state).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
-    };
+            let _ = match make_client(proj, docker, &img, state).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+            };
+        }
+        Err(err) => log::error!("Error starting container: {}", err.to_string()),
+    }
 
     Ok(())
 }
