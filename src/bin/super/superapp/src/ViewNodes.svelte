@@ -284,6 +284,7 @@
         // { key: "version", value: "Version" },
         { key: "update", value: "Update" },
         { key: "stop", value: "Stop/Start" },
+        { key: "restart", value: "Restart" },
       ]}
       selectable
       bind:selectedRowIds
@@ -341,6 +342,10 @@
         {:else if cell.key === "update"}
           <Button on:click={() => updateContainers([`${row.id}`])}
             >Update</Button
+          >
+        {:else if cell.key === "restart"}
+          <Button on:click={() => restart_all_node_handler([`${row.id}`])}
+            >Restart</Button
           >
         {:else}
           {cell.value}
