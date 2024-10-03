@@ -1,7 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{domain, exposed_ports, host_config, single_host_port_from_eighty};
+use crate::utils::{domain, exposed_ports, host_config, single_host_port_from};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -68,14 +68,13 @@ fn navfiber(node: &NavFiberImage) -> Config<String> {
         env: None,
         ..Default::default()
     };
+    let inner_port = "80";
     // override the nginix port 80 -> 8001:80
-    c.host_config.as_mut().unwrap().port_bindings = single_host_port_from_eighty(&node.port);
-
+    c.host_config.as_mut().unwrap().port_bindings = single_host_port_from(&node.port, inner_port);
     if let Some(host) = node.host.clone() {
         // navfiber image uses nginx (port 80)
-        let port_for_traefik = "80";
         // production tls extra domain
-        c.labels = Some(traefik_labels(&node.name, &host, &port_for_traefik, false));
+        c.labels = Some(traefik_labels(&node.name, &host, inner_port, false));
     }
     c
 }

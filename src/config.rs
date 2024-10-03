@@ -54,7 +54,7 @@ impl Default for Clients {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Stack {
     // "bitcoin" or "regtest"
     pub network: String,
@@ -100,7 +100,7 @@ pub struct SendSwarmDetailsResponse {
 }
 
 // optional node, could be external
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "place")]
 pub enum Node {
     Internal(Image),
@@ -284,6 +284,11 @@ impl Stack {
                 Image::Rqbit(r) => Node::Internal(Image::Rqbit(r)),
                 Image::Llama(m) => Node::Internal(Image::Llama(m)),
                 Image::Whisper(w) => Node::Internal(Image::Whisper(w)),
+                Image::Whisker(mut w) => {
+                    w.livekit_api_key = "".to_string();
+                    w.livekit_api_secret = "".to_string();
+                    Node::Internal(Image::Whisker(w))
+                }
                 Image::Runner(r) => Node::Internal(Image::Runner(r)),
             },
         });

@@ -23,6 +23,7 @@ pub mod runner;
 pub mod tome;
 pub mod traefik;
 pub mod tribes;
+pub mod whisker;
 pub mod whisper;
 
 use crate::config;
@@ -32,7 +33,7 @@ use bollard::container::Config;
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum Image {
     Btc(btc::BtcImage),
@@ -58,6 +59,7 @@ pub enum Image {
     Rqbit(rqbit::RqbitImage),
     Llama(llama::LlamaImage),
     Whisper(whisper::WhisperImage),
+    Whisker(whisker::WhiskerImage),
     Runner(runner::RunnerImage),
 }
 
@@ -108,6 +110,7 @@ impl Image {
             Image::Rqbit(n) => n.name.clone(),
             Image::Llama(n) => n.name.clone(),
             Image::Whisper(n) => n.name.clone(),
+            Image::Whisker(n) => n.name.clone(),
             Image::Runner(n) => n.name.clone(),
         }
     }
@@ -136,6 +139,7 @@ impl Image {
             Image::Rqbit(_n) => "Rqbit",
             Image::Llama(_n) => "Llama",
             Image::Whisper(_n) => "Whisper",
+            Image::Whisker(_n) => "Whisker",
             Image::Runner(_n) => "Runner",
         }
         .to_string()
@@ -165,6 +169,7 @@ impl Image {
             Image::Rqbit(n) => n.version = version.to_string(),
             Image::Llama(_n) => (),
             Image::Whisper(_n) => (),
+            Image::Whisker(_n) => (),
             Image::Runner(n) => n.version = version.to_string(),
         };
     }
@@ -253,6 +258,7 @@ impl DockerConfig for Image {
             Image::Rqbit(n) => n.make_config(nodes, docker).await,
             Image::Llama(n) => n.make_config(nodes, docker).await,
             Image::Whisper(n) => n.make_config(nodes, docker).await,
+            Image::Whisker(n) => n.make_config(nodes, docker).await,
             Image::Runner(n) => n.make_config(nodes, docker).await,
         }
     }
@@ -284,6 +290,7 @@ impl DockerHubImage for Image {
             Image::Rqbit(n) => n.repo(),
             Image::Llama(n) => n.repo(),
             Image::Whisper(n) => n.repo(),
+            Image::Whisker(n) => n.repo(),
             Image::Runner(n) => n.repo(),
         }
     }
@@ -416,6 +423,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_whisper(&self) -> Option<whisper::WhisperImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_whisper() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -519,6 +534,12 @@ impl Image {
         match self {
             Image::Dufs(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Dufs".to_string())),
+        }
+    }
+    pub fn as_whisper(&self) -> anyhow::Result<whisper::WhisperImage> {
+        match self {
+            Image::Whisper(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Whisper".to_string())),
         }
     }
 }

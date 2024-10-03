@@ -1,16 +1,25 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{add_gpus_to_host_config, domain, exposed_ports, host_config};
+use crate::utils::{
+    add_gpus_to_host_config, domain, exposed_ports, host_config, single_host_port_from,
+};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct WhisperImage {
     pub name: String,
     pub port: String,
+    // Max duration to wait for the next audio chunk before transcription is finilized and connection is closed.
+    pub max_no_data_seconds: Option<f32>,
+    // Max allowed audio duration without any speech being detected before transcription is finilized and connection is closed.
+    pub max_inactivity_seconds: Option<f32>,
+    // Controls how many latest seconds of audio are being passed through VAD.
+    // Should be greater than `max_inactivity_seconds`
+    pub inactivity_window_seconds: Option<f32>,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -22,6 +31,9 @@ impl WhisperImage {
         Self {
             name: name.to_string(),
             port: port.to_string(),
+            max_no_data_seconds: None,
+            max_inactivity_seconds: None,
+            inactivity_window_seconds: None,
             host: None,
             links: Vec::new(),
         }
@@ -65,6 +77,20 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
     let huggingface = "/home/admin/.cache/huggingface";
     let extra_vols = vec![format!("{huggingface}:/root/.cache/huggingface")];
 
+    let mut env = vec![];
+    if let Some(max_no_data_seconds) = img.max_no_data_seconds {
+        env.push(format!("MAX_NO_DATA_SECONDS={}", max_no_data_seconds));
+    }
+    if let Some(max_inactivity_seconds) = img.max_inactivity_seconds {
+        env.push(format!("MAX_INACTIVITY_SECONDS={}", max_inactivity_seconds));
+    }
+    if let Some(inactivity_window_seconds) = img.inactivity_window_seconds {
+        env.push(format!(
+            "INACTIVITY_WINDOW_SECONDS={}",
+            inactivity_window_seconds
+        ));
+    }
+
     let mut hc = host_config(&img.name, ports.clone(), root_vol, Some(extra_vols), None).unwrap();
     add_gpus_to_host_config(&mut hc, 1);
     let mut c = Config {
@@ -72,9 +98,12 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: Some(hc),
-        env: None,
+        env: Some(env),
         ..Default::default()
     };
+    // override the nginix port 8000 -> 8585:8000
+    // let inner_port = "8000";
+    // c.host_config.as_mut().unwrap().port_bindings = single_host_port_from(&img.port, inner_port);
     if let Some(host) = &img.host {
         c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
     }

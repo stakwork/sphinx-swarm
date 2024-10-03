@@ -54,11 +54,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/vol:/vol
     ports:
-      - 8000:8000
+      - 8800:8800
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.elements.rule=Host(`app.${HOST}`)"
-      - "traefik.http.services.elements.loadbalancer.server.port=8000"
+      - "traefik.http.services.elements.loadbalancer.server.port=8800"
       - "traefik.http.routers.elements.tls=true"
       - "traefik.http.routers.elements.tls.certresolver=myresolver"
       - "traefik.http.routers.elements.entrypoints=websecure"
@@ -68,7 +68,7 @@ services:
       - DOCKER_RUN=true # client use sphinx-swarm network
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
-      - ROCKET_PORT=8000
+      - ROCKET_PORT=8800
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
