@@ -75,6 +75,7 @@ pub enum SwarmCmd {
     StartChildSwarmContainers(AccessNodesInfo),
     UpdateChildSwarmContainers(AccessNodesInfo),
     CreateNewEc2Instance(CreateEc2InstanceInfo),
+    GetAwsInstanceTypes,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -109,6 +110,6 @@ pub struct AccessNodesInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateEc2InstanceInfo {
     pub name: String,
-    pub swarm_number: i64,
     pub vanity_address: Option<String>,
+    pub instance_type: String,
 }
