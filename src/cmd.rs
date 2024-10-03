@@ -127,6 +127,7 @@ pub enum SwarmCmd {
     ListContainers,
     StartContainer(String),
     StopContainer(String),
+    RestartContainer(String),
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
     AddBoltwallAdminPubkey(AddAdminRequest),

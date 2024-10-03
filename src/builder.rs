@@ -260,7 +260,12 @@ pub async fn update_node(
     Ok(())
 }
 
-async fn make_client(proj: &str, docker: &Docker, theimg: &Image, state: &mut State) -> Result<()> {
+pub async fn make_client(
+    proj: &str,
+    docker: &Docker,
+    theimg: &Image,
+    state: &mut State,
+) -> Result<()> {
     // create and connect client
     theimg
         .connect_client(

@@ -104,6 +104,11 @@ pub async fn handle(
                 let res = stop_container(docker, &id).await?;
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::RestartContainer(id) => {
+                log::info!("RestartContainer -> {}", id);
+                let res = restart_node_container(docker, &id, &mut state, proj).await?;
+                Some(serde_json::to_string(&res)?)
+            }
             SwarmCmd::AddNode(node) => {
                 log::info!("AddNode -> {:?}", node);
                 // add a node via docker

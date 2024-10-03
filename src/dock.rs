@@ -24,9 +24,9 @@ use std::error::Error;
 use tokio::io::AsyncReadExt;
 
 use crate::backup::bucket_name;
-use crate::builder::find_img;
-use crate::config::STATE;
-use crate::images::DockerHubImage;
+use crate::builder::{find_img, make_client};
+use crate::config::{State, STATE};
+use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
 use tokio::fs::File;
@@ -204,6 +204,40 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
             }),
         )
         .await?;
+    Ok(())
+}
+
+pub async fn restart_node_container(
+    docker: &Docker,
+    node_name: &str,
+    state: &mut State,
+    proj: &str,
+) -> Result<()> {
+    let img = find_img(node_name, &state.stack.nodes)?;
+    let hostname = domain(&node_name);
+
+    let theconfig = img.make_config(&state.stack.nodes, docker).await?;
+
+    img.remove_client(&mut state.clients);
+
+    stop_and_remove(docker, &hostname).await?;
+
+    let new_id = create_container(&docker, theconfig).await?;
+    log::info!("=> created {}", &hostname);
+
+    if let Err(e) = img.pre_startup(docker).await {
+        log::warn!("pre_startup failed {} {:?}", &new_id, e);
+    }
+
+    start_container(&docker, &new_id).await?;
+
+    img.post_startup(proj, docker).await?;
+
+    let _ = match make_client(proj, docker, &img, state).await {
+        Ok(_) => Ok(()),
+        Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+    };
+
     Ok(())
 }
 
