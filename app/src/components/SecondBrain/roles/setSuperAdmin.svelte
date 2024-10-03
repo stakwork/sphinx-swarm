@@ -142,6 +142,7 @@
           placeholder="Enter Admin Pubkey ..."
           bind:value={superAdminPubkey}
           onInput={handleAdminPubkeyInput}
+          isPubkey={true}
         />
       </div>
       <div class="submit_btn_container">
