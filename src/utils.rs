@@ -208,10 +208,10 @@ pub fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
 }
 
 // from port 80 inside the container (like nginix)
-pub fn single_host_port_from_eighty(port: &str) -> Option<PortMap> {
+pub fn single_host_port_from(port: &str, from_port: &str) -> Option<PortMap> {
     let mut ports = PortMap::new();
     ports.insert(
-        tcp_port(&"80"),
+        tcp_port(from_port),
         Some(vec![PortBinding {
             host_port: Some(port.to_string()),
             // host_ip: Some("0.0.0.0".to_string()),

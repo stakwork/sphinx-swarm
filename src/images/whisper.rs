@@ -1,7 +1,9 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{add_gpus_to_host_config, domain, exposed_ports, host_config};
+use crate::utils::{
+    add_gpus_to_host_config, domain, exposed_ports, host_config, single_host_port_from,
+};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -65,7 +67,7 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
     let huggingface = "/home/admin/.cache/huggingface";
     let extra_vols = vec![format!("{huggingface}:/root/.cache/huggingface")];
 
-    let env = vec![format!("UVICORN_PORT={}", img.port)];
+    let env = vec![];
 
     let mut hc = host_config(&img.name, ports.clone(), root_vol, Some(extra_vols), None).unwrap();
     add_gpus_to_host_config(&mut hc, 1);
@@ -77,8 +79,11 @@ fn whisper(img: &WhisperImage) -> Result<Config<String>> {
         env: Some(env),
         ..Default::default()
     };
+    // override the nginix port 8000 -> 8585:8000
+    let inner_port = "8000";
+    c.host_config.as_mut().unwrap().port_bindings = single_host_port_from(&img.port, inner_port);
     if let Some(host) = &img.host {
-        c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
+        c.labels = Some(traefik_labels(&img.name, &host, inner_port, false))
     }
     Ok(c)
 }
