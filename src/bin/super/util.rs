@@ -168,6 +168,8 @@ pub async fn access_child_swarm_containers(
             }));
         } else if cmd_text == "StartContainer" {
             cmd = Cmd::Swarm(SwarmCmd::StartContainer(node.clone()))
+        } else if cmd_text == "RestartContainer" {
+            cmd = Cmd::Swarm(SwarmCmd::RestartContainer(node.clone()))
         } else {
             cmd = Cmd::Swarm(SwarmCmd::StopContainer(node.clone()))
         }

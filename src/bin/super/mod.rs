@@ -291,6 +291,12 @@ pub async fn super_handle(
 
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::RestartChildSwarmContainers(info) => {
+                let res =
+                    accessing_child_container_controller(&state, info, "RestartContainer").await;
+
+                Some(serde_json::to_string(&res)?)
+            }
             SwarmCmd::UpdateChildSwarmContainers(info) => {
                 let res = accessing_child_container_controller(&state, info, "UpdateNode").await;
 
