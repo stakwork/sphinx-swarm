@@ -53,6 +53,10 @@ export async function update_node(id: string) {
   return await swarmCmd("UpdateNode", { id, version: "latest" });
 }
 
+export async function restart_node(id: string) {
+  return await swarmCmd("RestartContainer", id);
+}
+
 export async function get_container_stat(name?: string) {
   return await swarmCmd("GetStatistics", name);
 }
