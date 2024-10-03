@@ -248,6 +248,10 @@ pub async fn update_node(
         let id = create_container(&docker, theconfig).await?;
         log::info!("=> created {}", &hostname);
 
+        if let Err(e) = theimg.pre_startup(docker).await {
+            log::warn!("pre_startup failed {} {:?}", &id, e);
+        }
+
         //remove client
         start_container(&docker, &id).await?;
 
