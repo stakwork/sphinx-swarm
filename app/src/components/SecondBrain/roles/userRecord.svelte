@@ -446,6 +446,7 @@
               placeholder="Paste Pubkey  ..."
               onInput={updateUserPubkey}
               value={userpubkey}
+              isPubkey={true}
             />
             <Select
               value={role}
@@ -482,6 +483,7 @@
           placeholder="Type Pubkey Here"
           onInput={updateAdminPubkey}
           value={adminpubkey}
+          isPubkey={true}
         />
         <div class="edit_admin_btn_container">
           <button on:click={closeEditAdminModal} class="edit_admin_cancel_btn"
@@ -574,6 +576,7 @@
             placeholder="Paste Pubkey  ..."
             onInput={updateEditPubkey}
             value={editPubkey}
+            isPubkey={true}
           />
           <Select
             value={editRole}

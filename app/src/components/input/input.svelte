@@ -3,10 +3,25 @@
   export let placeholder = "Enter text";
   export let onInput;
   export let label;
+  export let isPubkey = false;
+
+  function splitPubkey(pubkey: string) {
+    if (pubkey.includes("_")) {
+      return pubkey.split("_")[0];
+    }
+    if (pubkey.includes(":")) {
+      return pubkey.split(":")[0];
+    }
+    return pubkey;
+  }
 
   function handleInput(event) {
-    const inputValue = event.target.value;
-    onInput(inputValue);
+    let value = event.target.value;
+    if (isPubkey && value.length > 66) {
+      value = splitPubkey(value);
+    }
+
+    onInput(value);
   }
 </script>
 

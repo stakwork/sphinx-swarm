@@ -293,15 +293,19 @@ export async function update_child_swarm_containers({
 export async function create_new_swarm_ec2({
   name,
   vanity_address,
-  swarm_number,
+  instance_type,
 }: {
   vanity_address?: string;
   name: string;
-  swarm_number: number;
+  instance_type: string;
 }) {
   return await swarmCmd("CreateNewEc2Instance", {
     vanity_address,
     name,
-    swarm_number,
+    instance_type,
   });
+}
+
+export async function get_aws_instance_types() {
+  return await swarmCmd("GetAwsInstanceTypes");
 }
