@@ -300,7 +300,7 @@ async fn create_ec2_instance(
 
     let super_token = getenv("SUPER_TOKEN")?;
 
-    let swarm_name = format!("swarm{}", swarm_name);
+    let swarm_name = format!("{}", swarm_name);
 
     let swarm_number = rand::thread_rng().gen_range(100000..1000000);
 
