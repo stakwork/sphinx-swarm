@@ -11,6 +11,8 @@
     InlineNotification,
     Loading,
     ToolbarBatchActions,
+    Select,
+    SelectItem,
   } from "carbon-components-svelte";
   import { UpdateNow, Stop } from "carbon-icons-svelte";
 
@@ -29,6 +31,7 @@
     start_child_swarm_containers,
     stop_child_swarm_containers,
     update_child_swarm_containers,
+    get_aws_instance_types,
   } from "../../../../../app/src/api/swarm";
 
   let open_create_edit = false;
@@ -54,6 +57,8 @@
   const max_input_with = 600;
   let vanity_input_width = max_input_with;
   let swarm_name_width = max_input_with;
+  let aws_instance_types = [];
+  let selected_instance = "";
 
   let selectedRowIds = [];
 
@@ -101,10 +106,19 @@
     }
   }
 
+  async function getAwsInstanceType() {
+    const instanceTypes = await get_aws_instance_types();
+    if (instanceTypes.success) {
+      aws_instance_types = [...instanceTypes.data];
+    }
+  }
+
   onMount(async () => {
     await getConfig();
 
     await getConfigSortByUnhealthy();
+
+    await getAwsInstanceType();
   });
 
   function openAddSwarmModal() {
@@ -444,6 +458,9 @@
     open_create_ec2 = false;
     name = "";
     vanity_address = "";
+    selected_instance = "";
+    vanity_input_width = max_input_with;
+    swarm_name_width = max_input_with;
   }
 
   async function handleSubmitCreateEc2() {
@@ -451,13 +468,18 @@
     const data = {
       name: `${name}${swarm_name_suffix}`,
       vanity_address: `${vanity_address}${domain}`,
+      instance_type: selected_instance,
     };
+
     const response = await create_new_swarm_ec2(data);
     message = response.message;
     if (response.success === true) {
       open_create_ec2 = false;
       name = "";
       vanity_address = "";
+      selected_instance = "";
+      vanity_input_width = max_input_with;
+      swarm_name_width = max_input_with;
       show_notification = true;
     } else {
       error_notification = true;
@@ -466,7 +488,6 @@
   }
 
   function updateVanityAddressWidth(event) {
-    console.log("We got here too");
     vanity_address = event.target.value.replace(/\s+/g, "");
     const span = document.querySelector(".vanity_address_measure");
     vanity_input_width = span.offsetWidth;
@@ -642,7 +663,7 @@
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
-    primaryButtonDisabled={isSubmitting || !name}
+    primaryButtonDisabled={isSubmitting || !name || !selected_instance}
     primaryButtonText={isSubmitting ? "Loading..." : "Create"}
     secondaryButtonText="Cancel"
     on:click:button--secondary={() => (open_create_ec2 = false)}
@@ -682,6 +703,17 @@
         {/if}
       </div>
     </div>
+    <Select
+      on:change={(e) => (selected_instance = e.target.value)}
+      helperText="Select Ec2 Instance Size"
+      labelText="Ec2 Instance Size"
+      selected={selected_instance}
+    >
+      <SelectItem value={""} text={"Select Size"} />
+      {#each aws_instance_types as option}
+        <SelectItem value={option.value} text={option.name} />
+      {/each}
+    </Select>
     <div class="custom_text_input_container">
       <label class="customlabel" for="label">Vanity Address</label>
       <div class="custom_input_container">
