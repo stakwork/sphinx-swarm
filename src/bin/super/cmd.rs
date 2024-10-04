@@ -74,6 +74,7 @@ pub enum SwarmCmd {
     StopChildSwarmContainers(AccessNodesInfo),
     StartChildSwarmContainers(AccessNodesInfo),
     UpdateChildSwarmContainers(AccessNodesInfo),
+    RestartChildSwarmContainers(AccessNodesInfo),
     CreateNewEc2Instance(CreateEc2InstanceInfo),
     GetAwsInstanceTypes,
 }

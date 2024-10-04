@@ -248,6 +248,10 @@ pub async fn update_node(
         let id = create_container(&docker, theconfig).await?;
         log::info!("=> created {}", &hostname);
 
+        if let Err(e) = theimg.pre_startup(docker).await {
+            log::warn!("pre_startup failed {} {:?}", &id, e);
+        }
+
         //remove client
         start_container(&docker, &id).await?;
 
@@ -260,7 +264,12 @@ pub async fn update_node(
     Ok(())
 }
 
-async fn make_client(proj: &str, docker: &Docker, theimg: &Image, state: &mut State) -> Result<()> {
+pub async fn make_client(
+    proj: &str,
+    docker: &Docker,
+    theimg: &Image,
+    state: &mut State,
+) -> Result<()> {
     // create and connect client
     theimg
         .connect_client(

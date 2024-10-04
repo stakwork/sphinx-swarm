@@ -48,6 +48,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::UpdateSwarm => true,
                 SwarmCmd::ListContainers => true,
                 SwarmCmd::UpdateNode(_) => true,
+                SwarmCmd::RestartContainer(_) => true,
                 _ => false,
             },
             _ => false,
@@ -102,6 +103,11 @@ pub async fn handle(
             SwarmCmd::StopContainer(id) => {
                 log::info!("StopContainer -> {}", id);
                 let res = stop_container(docker, &id).await?;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::RestartContainer(id) => {
+                log::info!("RestartContainer -> {}", id);
+                let res = restart_node_container(docker, &id, &mut state, proj).await?;
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::AddNode(node) => {

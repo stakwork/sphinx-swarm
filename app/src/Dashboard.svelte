@@ -26,6 +26,7 @@
   import ChangePassword from "./auth/ChangePassword.svelte";
   import type { Container } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
+  import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
 
   async function getNodeVersion(nodes: Node[]) {
@@ -143,6 +144,8 @@
           />
 
           <NodeUpdate />
+
+          <RestartNode />
         {/if}
       </section>
     </div>

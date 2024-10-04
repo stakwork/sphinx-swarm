@@ -53,6 +53,10 @@ export async function update_node(id: string) {
   return await swarmCmd("UpdateNode", { id, version: "latest" });
 }
 
+export async function restart_node(id: string) {
+  return await swarmCmd("RestartContainer", id);
+}
+
 export async function get_container_stat(name?: string) {
   return await swarmCmd("GetStatistics", name);
 }
@@ -268,6 +272,16 @@ export async function stop_child_swarm_containers({
   host: string;
 }) {
   return await swarmCmd("StopChildSwarmContainers", { nodes, host });
+}
+
+export async function restart_child_swarm_containers({
+  nodes,
+  host,
+}: {
+  nodes: string[];
+  host: string;
+}) {
+  return await swarmCmd("RestartChildSwarmContainers", { nodes, host });
 }
 
 export async function start_child_swarm_containers({
