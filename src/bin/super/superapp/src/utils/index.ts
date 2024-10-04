@@ -8,3 +8,14 @@ export function splitHost(hostFullPath: string) {
   }
   return "";
 }
+
+export function getSwarmNumber(default_host: string) {
+  // Regular expression to match the number in the string
+  const match = default_host.match(/\d+/);
+
+  if (match) {
+    return match[0];
+  } else {
+    return "";
+  }
+}

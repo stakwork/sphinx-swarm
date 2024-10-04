@@ -34,4 +34,5 @@ export interface Remote {
   host: string;
   note?: string;
   ec2?: string;
+  default_host?: string;
 }
