@@ -88,6 +88,7 @@ services:
       - AWS_IMAGE_ID=$AWS_IMAGE_ID
       - AWS_SECURITY_GROUP_ID=$AWS_SECURITY_GROUP_ID
       - AWS_KEY_NAME=$AWS_KEY_NAME
+      - AWS_SUBNET_ID=$AWS_SUBNET_ID
     
 networks:
   sphinx-swarm:
