@@ -107,18 +107,22 @@
   }
 
   async function getAwsInstanceType() {
-    const instanceTypes = await get_aws_instance_types();
-    if (instanceTypes.success) {
-      aws_instance_types = [...instanceTypes.data];
+    try {
+      const instanceTypes = await get_aws_instance_types();
+      if (instanceTypes.success) {
+        aws_instance_types = [...instanceTypes.data];
+      }
+    } catch (error) {
+      console.log("Error getting AWS Instance Type: ", error);
     }
   }
 
   onMount(async () => {
+    await getAwsInstanceType();
+
     await getConfig();
 
     await getConfigSortByUnhealthy();
-
-    await getAwsInstanceType();
   });
 
   function openAddSwarmModal() {
@@ -465,24 +469,28 @@
 
   async function handleSubmitCreateEc2() {
     isSubmitting = true;
-    const data = {
-      name: `${name}${swarm_name_suffix}`,
-      vanity_address: `${vanity_address}${domain}`,
-      instance_type: selected_instance,
-    };
+    try {
+      const data = {
+        name: `${name}${swarm_name_suffix}`,
+        vanity_address: `${vanity_address}${domain}`,
+        instance_type: selected_instance,
+      };
 
-    const response = await create_new_swarm_ec2(data);
-    message = response.message;
-    if (response.success === true) {
-      open_create_ec2 = false;
-      name = "";
-      vanity_address = "";
-      selected_instance = "";
-      vanity_input_width = max_input_with;
-      swarm_name_width = max_input_with;
-      show_notification = true;
-    } else {
-      error_notification = true;
+      const response = await create_new_swarm_ec2(data);
+      message = response.message;
+      if (response.success === true) {
+        open_create_ec2 = false;
+        name = "";
+        vanity_address = "";
+        selected_instance = "";
+        vanity_input_width = max_input_with;
+        swarm_name_width = max_input_with;
+        show_notification = true;
+      } else {
+        error_notification = true;
+      }
+    } catch (error) {
+      console.log("Error creating ec2 instance: ", error);
     }
     isSubmitting = false;
   }
