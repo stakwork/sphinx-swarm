@@ -23,7 +23,7 @@
   import { remotes, tribes } from "./store";
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
-  import { splitHost } from "./utils/index";
+  import { getSwarmNumber, splitHost } from "./utils/index";
   import { selectedNode } from "./store";
   import {
     create_new_swarm_ec2,
@@ -188,7 +188,11 @@
   }
 
   function remoterow(r: Remote) {
-    return { ...r, id: r.host };
+    let swarmNumber = "";
+    if (r.default_host) {
+      swarmNumber = getSwarmNumber(r.default_host);
+    }
+    return { ...r, id: r.host, number: swarmNumber };
   }
 
   async function handleSubmitAddSwarm() {
@@ -532,6 +536,7 @@
   <DataTable
     headers={[
       { key: "host", value: "Host" },
+      { key: "number", value: "Number" },
       { key: "note", value: "Description" },
       { key: "ec2", value: "Instance" },
       { key: "tribes", value: "Tribes" },
