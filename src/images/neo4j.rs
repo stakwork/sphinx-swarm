@@ -221,5 +221,5 @@ apoc.initializer.neo4j.14=CREATE INDEX ON :Chunk(chunk)
 apoc.initializer.neo4j.15=CREATE INDEX ON :Replacement_Entity(replacement)
 apoc.initializer.neo4j.16=CREATE FULLTEXT INDEX schema_full_index IF NOT EXISTS FOR (n:Schema) ON EACH [n.type]
 apoc.initializer.neo4j.17=CREATE FULLTEXT INDEX query_full_index IF NOT EXISTS FOR (n:Query) ON EACH [n.query]
-apoc.initializer.neo4j.20=CREATE VECTOR INDEX query_text_embeddings_vector_index IF NOT EXISTS FOR (n:Query) ON n.query_embedding OPTIONS { indexConfig: { `vector.dimensions`: 384, `vector.similarity_function`: 'cosine' }}
+apoc.initializer.neo4j.20=CREATE VECTOR INDEX query_text_embeddings_vector_index IF NOT EXISTS FOR (n:Query) ON n.query_embeddings OPTIONS { indexConfig: { `vector.dimensions`: 384, `vector.similarity_function`: 'cosine' }}
 "#;
