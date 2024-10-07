@@ -548,6 +548,7 @@
     rows={$remotes.map(remoterow)}
     selectable
     bind:selectedRowIds
+    batchSelection
   >
     <Toolbar>
       <ToolbarBatchActions>
