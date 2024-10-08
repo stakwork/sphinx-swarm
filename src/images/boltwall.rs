@@ -4,7 +4,7 @@ use crate::config::Node;
 use crate::conn::lnd::utils::{dl_cert_to_base64, dl_macaroon};
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, host_config, volume_string};
+use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -207,6 +207,13 @@ fn boltwall(
     //stakwork secret to ensure we only accept request from stakwork
     if let Some(ss) = &node.stakwork_secret {
         env.push(format!("STAKWORK_SECRET={}", ss))
+    }
+
+    match getenv("HOST") {
+        Ok(host) => env.push(format!("SWARM_UI=https://app.{}", host)),
+        Err(err) => {
+            log::error!("Error geting env host: {}", err.to_string())
+        }
     }
 
     let mut c = Config {
