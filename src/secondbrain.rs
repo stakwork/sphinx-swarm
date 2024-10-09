@@ -28,6 +28,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
         ]),
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         global_mem_limit: None,
+        backup_services: Some(vec!["boltwall".to_string(), "neo4j".to_string()]),
     }
 }
 

@@ -69,6 +69,7 @@ pub struct Stack {
     pub custom_2b_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub global_mem_limit: Option<u64>,
+    pub backup_services: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -303,6 +304,7 @@ impl Stack {
             auto_update: self.auto_update.clone(),
             custom_2b_domain: self.custom_2b_domain.clone(),
             global_mem_limit: self.global_mem_limit,
+            backup_services: self.backup_services.clone(),
         }
     }
 }

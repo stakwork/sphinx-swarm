@@ -175,6 +175,7 @@ impl Default for Stack {
             auto_update: None,
             custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
             global_mem_limit: None,
+            backup_services: None,
         }
     }
 }
@@ -330,6 +331,7 @@ pub fn llama_only(network: &str, host: Option<String>) -> Stack {
         auto_update: None,
         custom_2b_domain: None,
         global_mem_limit: None,
+        backup_services: None,
     }
 }
 
