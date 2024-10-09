@@ -668,16 +668,21 @@ fn file_exists(path: &str) -> bool {
 }
 
 pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool> {
-    let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
+    let state = STATE.lock().await;
 
-    if to_backup.contains(&name) {
-        //check if backup s3 link is passed
-        let state = STATE.lock().await;
+    let nodes = state.stack.nodes.clone();
 
-        let nodes = state.stack.nodes.clone();
+    let to_backup = if let Some(services) = state.stack.backup_services.clone() {
+        services
+    } else {
+        return Ok(false);
+    };
 
-        drop(state);
+    drop(state);
 
+    //check if backup s3 link is passed
+    if to_backup.contains(&name.to_string()) {
+        log::info!("About to restore: {}", name);
         let img = find_img(&name, &nodes)?;
 
         if let Ok(backup_link) = getenv("BACKUP_KEY") {

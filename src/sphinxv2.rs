@@ -112,7 +112,11 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
         auto_update: None,
         custom_2b_domain: None,
         global_mem_limit: None,
-        backup_services: None,
+        backup_services: Some(vec![
+            "mixer".to_string(),
+            "broker".to_string(),
+            "tribes".to_string(),
+        ]),
     }
 }
 
