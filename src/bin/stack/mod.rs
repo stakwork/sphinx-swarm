@@ -62,15 +62,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    match getenv("BACKUP") {
-        Ok(value) => {
-            if value == "true" {
-                backup_and_delete_volumes_cron().await?;
-            }
-        }
-        Err(_) => {
-            log::info!("BACKUP is not set!!")
-        }
+    if let Some(backup_services) = stack.backup_services {
+        backup_and_delete_volumes_cron(backup_services).await?;
+    } else {
+        log::info!("BACKUP is not set!!")
     }
 
     tokio::signal::ctrl_c().await?;
