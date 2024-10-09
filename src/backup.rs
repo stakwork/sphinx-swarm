@@ -44,7 +44,7 @@ fn backup_retention_days() -> i64 {
     }
 }
 
-pub async fn backup_containers() -> Result<()> {
+pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
     let state = STATE.lock().await;
     let nodes = state.stack.nodes.clone();
     drop(state);
@@ -56,8 +56,7 @@ pub async fn backup_containers() -> Result<()> {
         let hostname = domain(&node_name);
         match node.as_internal() {
             Ok(img) => {
-                let to_backup = vec!["relay", "proxy", "neo4j", "boltwall"];
-                if to_backup.contains(&node_name.as_str()) {
+                if backup_services.contains(&node_name) {
                     containers.push((hostname.clone(), img.repo().root_volume, node_name.clone()))
                 }
             }
@@ -375,7 +374,7 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     Ok(())
 }
 
-pub async fn backup_and_delete_volumes_cron() -> Result<JobScheduler> {
+pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Result<JobScheduler> {
     log::info!(":backup and delete volumes");
     let sched = JobScheduler::new().await?;
 
@@ -395,7 +394,7 @@ pub async fn backup_and_delete_volumes_cron() -> Result<JobScheduler> {
         loop {
             let go = BACK_AND_DELETE.load(Ordering::Relaxed);
             if go {
-                if let Err(e) = backup_containers().await {
+                if let Err(e) = backup_containers(backup_services.clone()).await {
                     log::error!("Backup Volumes: {:?}", e);
                 }
                 if let Err(e) = delete_old_backups(&bucket_name(), backup_retention_days()).await {

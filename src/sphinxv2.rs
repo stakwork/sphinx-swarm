@@ -76,6 +76,7 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
         auto_update: None,
         custom_2b_domain: None,
         global_mem_limit: None,
+        backup_services: None,
     }
 }
 
@@ -111,6 +112,7 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
         auto_update: None,
         custom_2b_domain: None,
         global_mem_limit: None,
+        backup_services: Some(vec!["mixer".to_string(), "tribes".to_string()]),
     }
 }
 
@@ -128,5 +130,6 @@ pub fn config_only(host: Option<String>) -> Stack {
         auto_update: None,
         custom_2b_domain: None,
         global_mem_limit: None,
+        backup_services: None,
     }
 }
