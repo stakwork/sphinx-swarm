@@ -247,16 +247,16 @@ pub async fn accessing_child_container_controller(
 pub fn get_aws_instance_types() -> SuperSwarmResponse {
     let instance_types: Vec<AwsInstanceType> = vec![
         AwsInstanceType {
-            name: "G4dn 2XLarge".to_string(),
-            value: "g4dn.2xlarge".to_string(),
+            name: "M5 Large (S)".to_string(),
+            value: "m5.large".to_string(),
         },
         AwsInstanceType {
-            name: "M5 XLarge".to_string(),
+            name: "M5 XLarge (M)".to_string(),
             value: "m5.xlarge".to_string(),
         },
         AwsInstanceType {
-            name: "M5 Large".to_string(),
-            value: "m5.large".to_string(),
+            name: "G4dn 2XLarge (L)".to_string(),
+            value: "g4dn.2xlarge".to_string(),
         },
     ];
 
