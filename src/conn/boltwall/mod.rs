@@ -392,9 +392,11 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
         None => {
             // check if role is boltwall subadmin
             if role == 2 {
+                // TODO: using user length +1 to calculate id, should find a more efficient way
+                let users_length = state.stack.users.len().clone() as u32;
                 state.stack.users.push(User {
                     username: name.to_lowercase(),
-                    id: 12,
+                    id: users_length + 1,
                     pubkey: Some(pubkey.clone()),
                     role: Role::SubAdmin,
                     pass_hash: bcrypt::hash(crate::secrets::hex_secret_32(), bcrypt::DEFAULT_COST)
