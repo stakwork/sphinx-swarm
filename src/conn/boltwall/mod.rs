@@ -1,4 +1,5 @@
 use crate::cmd::FeatureFlagUserRoles;
+use crate::config::{Role, State, User};
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
 use anyhow::{anyhow, Context, Ok, Result};
@@ -90,6 +91,8 @@ pub async fn add_user(
     pubkey: &str,
     role: u32,
     name: String,
+    state: &mut State,
+    must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
@@ -109,6 +112,14 @@ pub async fn add_user(
         .json(&body)
         .send()
         .await?;
+
+    if response.status().clone() == 200 || response.status().clone() == 201 {
+        // handle add user to swarm user
+        let did_update_user = add_or_edit_user(body.role, body.pubkey, body.name, state);
+        if did_update_user == true {
+            *must_save_stack = true
+        }
+    }
 
     let response_text = response.text().await?;
 
@@ -361,4 +372,37 @@ pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
     };
 
     Ok(response)
+}
+
+fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) -> bool {
+    return match state
+        .stack
+        .users
+        .iter()
+        .position(|u| u.pubkey == Some(pubkey.clone()))
+    {
+        Some(user_pos) => {
+            // check if role is boltwall member
+            if role == 1 {
+                state.stack.users.remove(user_pos);
+                return true;
+            }
+            false
+        }
+        None => {
+            // check if role is boltwall subadmin
+            if role == 2 {
+                state.stack.users.push(User {
+                    username: name.to_lowercase(),
+                    id: 12,
+                    pubkey: Some(pubkey.clone()),
+                    role: Role::SubAdmin,
+                    pass_hash: bcrypt::hash(crate::secrets::hex_secret_32(), bcrypt::DEFAULT_COST)
+                        .expect("failed to bcrypt"),
+                });
+                return true;
+            }
+            false
+        }
+    };
 }

@@ -40,6 +40,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
     }
     match user.unwrap().role {
         Role::Admin => true,
+        Role::SubAdmin => true,
         Role::Super => match cmd {
             Cmd::Swarm(c) => match c {
                 SwarmCmd::StartContainer(_) => true,
@@ -241,9 +242,15 @@ pub async fn handle(
                 );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
                 let name = user.name.unwrap_or("".to_string());
-                let response =
-                    crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role, name)
-                        .await?;
+                let response = crate::conn::boltwall::add_user(
+                    &boltwall,
+                    &user.pubkey,
+                    user.role,
+                    name,
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListAdmins => {
