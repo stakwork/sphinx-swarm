@@ -371,9 +371,17 @@ pub async fn handle(
             SwarmCmd::UpdateUser(body) => {
                 log::info!("Update users details ===> {:?}", body);
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let response =
-                    update_user(&boltwall, body.pubkey, body.name, body.id, body.role).await?;
-                return Ok(serde_json::to_string(&response)?);
+                let response = update_user(
+                    &boltwall,
+                    body.pubkey,
+                    body.name,
+                    body.id,
+                    body.role,
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await?;
+                Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::GetApiToken => {
                 log::info!("Get API TOKEN");

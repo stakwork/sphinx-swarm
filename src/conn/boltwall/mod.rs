@@ -336,6 +336,8 @@ pub async fn update_user(
     name: String,
     id: u32,
     role: u32,
+    state: &mut State,
+    must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
@@ -355,6 +357,13 @@ pub async fn update_user(
         .json(&body)
         .send()
         .await?;
+
+    if response.status().clone() == 200 {
+        let must_update_state = add_or_edit_user(role, pubkey, name, state);
+        if must_update_state == true {
+            *must_save_stack = true
+        }
+    }
 
     let response_text = response.text().await?;
 
@@ -383,7 +392,7 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
     {
         Some(user_pos) => {
             // check if role is boltwall member
-            if role == 1 {
+            if role == 3 {
                 state.stack.users.remove(user_pos);
                 return true;
             }

@@ -6,7 +6,6 @@ use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
 use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
 use sphinx_swarm::routes;
-use sphinx_swarm::utils::getenv;
 use sphinx_swarm::{dock::*, events, logs, rocket_utils::CmdRequest};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
