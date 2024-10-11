@@ -679,7 +679,10 @@
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
-    primaryButtonDisabled={isSubmitting || !name || !selected_instance}
+    primaryButtonDisabled={isSubmitting ||
+      !name ||
+      !selected_instance ||
+      vanity_address_error.length > 0}
     primaryButtonText={isSubmitting ? "Loading..." : "Create"}
     secondaryButtonText="Cancel"
     on:click:button--secondary={() => (open_create_ec2 = false)}
