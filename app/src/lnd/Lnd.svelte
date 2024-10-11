@@ -19,7 +19,6 @@
   $: selected = 0;
   $: $finishedOnboarding, selectCurrentTab();
   function selectCurrentTab() {
-    // console.log("is onboarding", $isOnboarding);
     if ($isOnboarding) {
       if (!$finishedOnboarding.hasBalance) {
         selected = 2;
@@ -31,8 +30,6 @@
       }
     }
   }
-
-  $: console.log($selectedNode);
 
   $: peering_url = $selectedNode?.host
     ? `${$selectedNode?.host}:${$selectedNode.peer_port}`

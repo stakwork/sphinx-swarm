@@ -6,6 +6,7 @@ use crate::builder;
 use crate::cmd::*;
 use crate::config;
 use crate::config::Role;
+use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
@@ -40,6 +41,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
     }
     match user.unwrap().role {
         Role::Admin => true,
+        Role::SubAdmin => true,
         Role::Super => match cmd {
             Cmd::Swarm(c) => match c {
                 SwarmCmd::StartContainer(_) => true,
@@ -241,9 +243,15 @@ pub async fn handle(
                 );
                 let boltwall = find_boltwall(&state.stack.nodes)?;
                 let name = user.name.unwrap_or("".to_string());
-                let response =
-                    crate::conn::boltwall::add_user(&boltwall, &user.pubkey, user.role, name)
-                        .await?;
+                let response = crate::conn::boltwall::add_user(
+                    &boltwall,
+                    &user.pubkey,
+                    user.role,
+                    name,
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListAdmins => {
@@ -255,7 +263,13 @@ pub async fn handle(
             SwarmCmd::DeleteSubAdmin(apk) => {
                 log::info!("DeleteSubAdmin -> {}", apk);
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let response = crate::conn::boltwall::delete_sub_admin(&boltwall, &apk).await?;
+                let response = crate::conn::boltwall::delete_sub_admin(
+                    &boltwall,
+                    &apk,
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListPaidEndpoint => {
@@ -364,9 +378,17 @@ pub async fn handle(
             SwarmCmd::UpdateUser(body) => {
                 log::info!("Update users details ===> {:?}", body);
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let response =
-                    update_user(&boltwall, body.pubkey, body.name, body.id, body.role).await?;
-                return Ok(serde_json::to_string(&response)?);
+                let response = update_user(
+                    &boltwall,
+                    body.pubkey,
+                    body.name,
+                    body.id,
+                    body.role,
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await?;
+                Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::GetApiToken => {
                 log::info!("Get API TOKEN");
@@ -378,6 +400,26 @@ pub async fn handle(
                 state.stack.global_mem_limit = Some(gbm);
                 must_save_stack = true;
                 Some(crate::config::set_global_mem_limit(gbm)?)
+            }
+            SwarmCmd::GetSignedInUserDetails => {
+                log::info!("Get Signed In Users details");
+                if user_id.is_none() {
+                    Some("invalid user".to_string());
+                }
+                let user_id = user_id.unwrap();
+                match state.stack.users.iter().find(|user| user.id == user_id) {
+                    Some(user) => {
+                        let modified_user = User {
+                            pass_hash: "".to_string(),
+                            username: user.username.clone(),
+                            id: user.id,
+                            pubkey: user.pubkey.clone(),
+                            role: user.role.clone(),
+                        };
+                        Some(serde_json::to_string(&modified_user)?)
+                    }
+                    None => Some("invalid user".to_string()),
+                }
             }
         },
         Cmd::Relay(c) => {

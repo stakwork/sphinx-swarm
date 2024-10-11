@@ -24,6 +24,8 @@ export const stack = writable<Stack>(emptyStack);
 
 export const users = writable<User[]>(initialUsers);
 
+export const current_swarm_user = writable<SwarmUser>();
+
 export const tribes = writable<Tribe>({
   page: 1,
   total: 0,
@@ -261,6 +263,15 @@ export interface HsmdClients {
   pubkey?: string;
   current?: string;
   clients: { [k: string]: any };
+}
+
+type SwarmUserRole = "Admin" | "SubAdmin" | "Super";
+
+export interface SwarmUser {
+  id: number;
+  username: string;
+  pubkey: string;
+  role: SwarmUserRole;
 }
 
 export const hsmdClients = writable<HsmdClients>();

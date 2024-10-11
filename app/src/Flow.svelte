@@ -11,7 +11,6 @@
     if (!$stack.ready) return console.log("stack is not ready...");
     const n = $stack.nodes.find((n) => n.name === node.data.name);
     if (n) {
-      console.log("=>", n);
       selectedNode.update((node) => (node && node.name === n.name ? null : n));
     }
   };

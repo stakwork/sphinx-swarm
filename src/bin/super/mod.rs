@@ -107,6 +107,7 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
     return match user.unwrap().role {
         Role::Super => true,
         Role::Admin => false,
+        Role::SubAdmin => false,
     };
 }
 

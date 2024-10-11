@@ -121,6 +121,10 @@ export async function get_api_token() {
   return await swarmCmd("GetApiToken");
 }
 
+export async function get_signedin_user_details() {
+  return await swarmCmd("GetSignedInUserDetails");
+}
+
 export async function add_new_swarm(new_swarm: {
   host: string;
   instance: string;

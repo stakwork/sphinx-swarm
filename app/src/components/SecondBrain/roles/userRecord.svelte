@@ -13,7 +13,11 @@
   import Input from "../../input/input.svelte";
   import Select from "../../select/select.svelte";
   import { ToastNotification } from "carbon-components-svelte";
-  import { activeUser, boltwallSuperAdminPubkey } from "../../../store";
+  import {
+    activeUser,
+    boltwallSuperAdminPubkey,
+    current_swarm_user,
+  } from "../../../store";
 
   let users: {
     id: string;
@@ -83,7 +87,6 @@
   async function getAdmins() {
     const result = await list_admins();
     const parsedResult = JSON.parse(result);
-    console.log(parsedResult);
     if (parsedResult.success) {
       const newAdmin = [];
       for (let i = 0; i < parsedResult.data.length; i++) {
@@ -383,20 +386,24 @@
             <td class="column_action table_column"
               >{#if user.role === "Super Admin"}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <img
-                  on:click={() => editAdminHandler(user.id)}
-                  src="swarm/edit.svg"
-                  alt="edit"
-                  class="action_icon"
-                />
+                {#if $current_swarm_user.role === "Admin"}
+                  <img
+                    on:click={() => editAdminHandler(user.id)}
+                    src="swarm/edit.svg"
+                    alt="edit"
+                    class="action_icon"
+                  />
+                {/if}
               {:else}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <img
-                  src="swarm/edit.svg"
-                  alt="edit"
-                  class="action_icon"
-                  on:click={() => editUserHandler(user.id)}
-                />
+                {#if $current_swarm_user.pubkey !== user.id}
+                  <!-- svelte-ignore a11y-click-events-have-key-events -->
+                  <img
+                    src="swarm/edit.svg"
+                    alt="edit"
+                    class="action_icon"
+                    on:click={() => editUserHandler(user.id)}
+                  />
+                {/if}
               {/if}</td
             >
           </tr>

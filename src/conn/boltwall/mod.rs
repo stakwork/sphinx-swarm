@@ -1,4 +1,5 @@
 use crate::cmd::FeatureFlagUserRoles;
+use crate::config::{Role, State, User};
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
 use anyhow::{anyhow, Context, Ok, Result};
@@ -90,6 +91,8 @@ pub async fn add_user(
     pubkey: &str,
     role: u32,
     name: String,
+    state: &mut State,
+    must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
@@ -109,6 +112,14 @@ pub async fn add_user(
         .json(&body)
         .send()
         .await?;
+
+    if response.status() == 200 || response.status() == 201 {
+        // handle add user to swarm user
+        let did_update_user = add_or_edit_user(body.role, body.pubkey, body.name, state);
+        if did_update_user == true {
+            *must_save_stack = true
+        }
+    }
 
     let response_text = response.text().await?;
 
@@ -134,7 +145,12 @@ pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
     Ok(response_text)
 }
 
-pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<String> {
+pub async fn delete_sub_admin(
+    img: &BoltwallImage,
+    pubkey: &str,
+    state: &mut State,
+    must_save_stack: &mut bool,
+) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
     let client = make_client();
@@ -147,6 +163,13 @@ pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<Strin
         .header("x-admin-token", admin_token)
         .send()
         .await?;
+
+    if response.status() == 200 {
+        let update_state = delete_swarm_user(state, pubkey.to_string());
+        if update_state == true {
+            *must_save_stack = true
+        }
+    }
 
     let response_text = response.text().await?;
 
@@ -325,6 +348,8 @@ pub async fn update_user(
     name: String,
     id: u32,
     role: u32,
+    state: &mut State,
+    must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
@@ -345,6 +370,13 @@ pub async fn update_user(
         .send()
         .await?;
 
+    if response.status() == 200 {
+        let must_update_state = add_or_edit_user(role, pubkey, name, state);
+        if must_update_state == true {
+            *must_save_stack = true
+        }
+    }
+
     let response_text = response.text().await?;
 
     Ok(response_text)
@@ -361,4 +393,56 @@ pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
     };
 
     Ok(response)
+}
+
+fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) -> bool {
+    return match state
+        .stack
+        .users
+        .iter()
+        .position(|u| u.pubkey == Some(pubkey.clone()))
+    {
+        Some(user_pos) => {
+            // check if role is boltwall member
+            if role == 3 {
+                state.stack.users.remove(user_pos);
+                return true;
+            }
+            false
+        }
+        None => {
+            // check if role is boltwall subadmin
+            if role == 2 {
+                let new_id = match state.stack.users.last() {
+                    Some(last_user) => last_user.id + 1,
+                    None => 1, // This block of code should never execute because one user must exist before you can add a user
+                };
+                state.stack.users.push(User {
+                    username: name.to_lowercase(),
+                    id: new_id,
+                    pubkey: Some(pubkey.clone()),
+                    role: Role::SubAdmin,
+                    pass_hash: bcrypt::hash(crate::secrets::hex_secret_32(), bcrypt::DEFAULT_COST)
+                        .expect("failed to bcrypt"),
+                });
+                return true;
+            }
+            false
+        }
+    };
+}
+
+fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
+    match state
+        .stack
+        .users
+        .iter()
+        .position(|user| user.pubkey == Some(pubkey.clone()))
+    {
+        Some(user_pos) => {
+            state.stack.users.remove(user_pos);
+            true
+        }
+        None => false,
+    }
 }

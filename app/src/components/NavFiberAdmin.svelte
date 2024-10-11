@@ -40,7 +40,6 @@
   async function setSuperAdmin() {
     const result = await add_boltwall_admin_pubkey(pubkey, name);
     const swarmAdmin = await update_admin_pubkey(pubkey, $activeUser);
-    console.log(swarmAdmin);
     const parsedResult = JSON.parse(result);
     success = parsedResult.success || false;
     message = parsedResult.message;

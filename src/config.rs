@@ -75,6 +75,7 @@ pub struct Stack {
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum Role {
     Admin,
+    SubAdmin,
     Super,
 }
 
