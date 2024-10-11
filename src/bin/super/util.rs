@@ -519,6 +519,18 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 
 //Sample execution function
 pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
+    if let Some(vanity_address) = &info.vanity_address {
+        if !vanity_address.is_empty() {
+            if let Some(subdomain) = vanity_address.strip_suffix(".sphinx.chat") {
+                let domain_status = is_valid_domain(subdomain.to_string());
+                if !domain_status.is_empty() {
+                    return Err(anyhow!(domain_status));
+                }
+            } else {
+                return Err(anyhow!("Vanity Address doesn't match the expected format."));
+            }
+        }
+    }
     let ec2_intance_id = create_ec2_instance(
         info.name.clone(),
         info.vanity_address.clone(),
@@ -541,4 +553,29 @@ pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error>
     }
     log::info!("Public_IP: {}", ec2_ip_address);
     Ok(())
+}
+
+fn is_valid_domain(domain: String) -> String {
+    let valid_chars = |c: char| c.is_ascii_alphanumeric() || c == '-';
+
+    if domain.starts_with('-') || domain.ends_with('-') {
+        return "Hyphen cannot be the first or last character.".to_string();
+    }
+
+    let mut previous_char: Option<char> = None;
+    for c in domain.chars() {
+        if !valid_chars(c) {
+            return "Domain can only contain letters, numbers, and hyphens.".to_string();
+        }
+
+        if let Some(prev) = previous_char {
+            if prev == '-' && c == '-' {
+                return "Hyphens cannot appear consecutively.".to_string();
+            }
+        }
+
+        previous_char = Some(c);
+    }
+
+    "".to_string()
 }

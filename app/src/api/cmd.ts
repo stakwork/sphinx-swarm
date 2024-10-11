@@ -104,13 +104,17 @@ export const userKey = "SPHINX_TOKEN";
 
 export async function send_cmd(type: CmdType, data: CmdData, tag?: string) {
   const txt = JSON.stringify({ type, data });
+  const encodedTxt = encodeURIComponent(txt);
   let ret = "";
   try {
-    const r = await fetch(`${root}/cmd?txt=${txt}&tag=${tag || "SWARM"}`, {
-      headers: {
-        "x-jwt": localStorage.getItem(userKey),
-      },
-    });
+    const r = await fetch(
+      `${root}/cmd?txt=${encodedTxt}&tag=${tag || "SWARM"}`,
+      {
+        headers: {
+          "x-jwt": localStorage.getItem(userKey),
+        },
+      }
+    );
     ret = await r.text();
     const jj = JSON.parse(ret);
     if (jj && jj["stack_error"]) {

@@ -19,3 +19,22 @@ export function getSwarmNumber(default_host: string) {
     return "";
   }
 }
+
+export function isValidVanityAddress(vanity_address: string) {
+  const valid_chars = /^[a-zA-Z0-9-]+$/; // Only letters, numbers, and hyphens
+  const consecutive_hyphens = /--/; // Check for consecutive hyphens
+
+  if (vanity_address.startsWith("-") || vanity_address.endsWith("-")) {
+    return "Hyphen cannot be the first or last character.";
+  }
+
+  if (consecutive_hyphens.test(vanity_address)) {
+    return "Hyphens cannot appear consecutively.";
+  }
+
+  if (!valid_chars.test(vanity_address) && vanity_address) {
+    return "Vanity address can only contain letters, numbers, and hyphens.";
+  }
+
+  return "";
+}

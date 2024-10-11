@@ -23,7 +23,11 @@
   import { remotes, tribes } from "./store";
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
-  import { getSwarmNumber, splitHost } from "./utils/index";
+  import {
+    getSwarmNumber,
+    isValidVanityAddress,
+    splitHost,
+  } from "./utils/index";
   import { selectedNode } from "./store";
   import {
     create_new_swarm_ec2,
@@ -60,6 +64,7 @@
   let swarm_name_width = max_input_with;
   let aws_instance_types = [];
   let selected_instance = "";
+  let vanity_address_error = "";
 
   let selectedRowIds = [];
 
@@ -494,7 +499,10 @@
   }
 
   function updateVanityAddressWidth(event) {
+    vanity_address_error = "";
     vanity_address = event.target.value.replace(/\s+/g, "");
+    vanity_address_error = isValidVanityAddress(vanity_address);
+
     const span = document.querySelector(".vanity_address_measure");
     vanity_input_width = span.offsetWidth;
     if (!vanity_input_width) {
@@ -671,7 +679,10 @@
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
-    primaryButtonDisabled={isSubmitting || !name || !selected_instance}
+    primaryButtonDisabled={isSubmitting ||
+      !name ||
+      !selected_instance ||
+      vanity_address_error.length > 0}
     primaryButtonText={isSubmitting ? "Loading..." : "Create"}
     secondaryButtonText="Cancel"
     on:click:button--secondary={() => (open_create_ec2 = false)}
@@ -711,17 +722,19 @@
         {/if}
       </div>
     </div>
-    <Select
-      on:change={(e) => (selected_instance = e.target.value)}
-      helperText="Select Ec2 Instance Size"
-      labelText="Ec2 Instance Size"
-      selected={selected_instance}
-    >
-      <SelectItem value={""} text={"Select Size"} />
-      {#each aws_instance_types as option}
-        <SelectItem value={option.value} text={option.name} />
-      {/each}
-    </Select>
+    <div class="select_instance_container">
+      <Select
+        on:change={(e) => (selected_instance = e.target.value)}
+        helperText="Select Ec2 Instance Size"
+        labelText="Ec2 Instance Size"
+        selected={selected_instance}
+      >
+        <SelectItem value={""} text={"Select Size"} />
+        {#each aws_instance_types as option}
+          <SelectItem value={option.value} text={option.name} />
+        {/each}
+      </Select>
+    </div>
     <div class="custom_text_input_container">
       <label class="customlabel" for="label">Vanity Address</label>
       <div class="custom_input_container">
@@ -740,6 +753,7 @@
           <span class="suffix">{domain}</span>
         {/if}
       </div>
+      <small class="error-message">{vanity_address_error}</small>
     </div>
   </Modal>
 </main>
@@ -774,7 +788,6 @@
     overflow: hidden;
     border: solid 1px #494949;
     border-radius: 0.5rem;
-    margin-bottom: 1rem;
   }
 
   .suffix {
@@ -817,5 +830,16 @@
     padding: 0;
     border: none;
     margin: 0;
+  }
+
+  .error-message {
+    color: #d32f2f;
+    margin-top: 0;
+    font-size: 0.7rem;
+  }
+
+  .select_instance_container {
+    margin-bottom: 1rem;
+    margin-top: 1rem;
   }
 </style>
