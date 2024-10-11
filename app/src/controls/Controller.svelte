@@ -16,7 +16,6 @@
   import Jarvis from "../Jarvis.svelte";
 
   $: type = $selectedNode && $selectedNode.type;
-  console.log(type, "We are good here");
   $: ctrls = $selectedNode && controls[type];
 
   // tag is the name of the container itself

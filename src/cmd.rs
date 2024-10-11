@@ -151,6 +151,7 @@ pub enum SwarmCmd {
     UpdateUser(UpdateUserDetails),
     GetApiToken,
     SetGlobalMemLimit(u64),
+    GetSignedInUserDetails
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

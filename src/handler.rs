@@ -6,6 +6,7 @@ use crate::builder;
 use crate::cmd::*;
 use crate::config;
 use crate::config::Role;
+use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
@@ -399,6 +400,26 @@ pub async fn handle(
                 state.stack.global_mem_limit = Some(gbm);
                 must_save_stack = true;
                 Some(crate::config::set_global_mem_limit(gbm)?)
+            }
+            SwarmCmd::GetSignedInUserDetails => {
+                log::info!("Get Signed In Users details");
+                if user_id.is_none() {
+                    Some("invalid user".to_string());
+                }
+                let user_id = user_id.unwrap();
+                match state.stack.users.iter().find(|user| user.id == user_id) {
+                    Some(user) => {
+                        let modified_user = User {
+                            pass_hash: "".to_string(),
+                            username: user.username.clone(),
+                            id: user.id,
+                            pubkey: user.pubkey.clone(),
+                            role: user.role.clone(),
+                        };
+                        Some(serde_json::to_string(&modified_user)?)
+                    }
+                    None => Some("invalid user".to_string()),
+                }
             }
         },
         Cmd::Relay(c) => {

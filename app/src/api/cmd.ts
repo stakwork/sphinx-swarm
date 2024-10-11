@@ -88,7 +88,8 @@ export type Cmd =
   | "CreateNewEc2Instance"
   | "GetAwsInstanceTypes"
   | "RestartContainer"
-  | "RestartChildSwarmContainers";
+  | "RestartChildSwarmContainers"
+  | "GetSignedInUserDetails";
 
 interface CmdData {
   cmd: Cmd;

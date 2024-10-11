@@ -6,6 +6,7 @@
     sleep,
     selectedNode,
     nodes_exited,
+    current_swarm_user,
   } from "./store";
   import {
     Loading,
@@ -24,7 +25,7 @@
   import type { Node, Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
-  import type { Container } from "./api/swarm";
+  import { get_signedin_user_details, type Container } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
@@ -60,12 +61,25 @@
     return stackRemote.ready;
   }
 
+  async function handleSignedInUser() {
+    try {
+      const user = await get_signedin_user_details();
+      if (typeof user === "object") {
+        current_swarm_user.set(user);
+      }
+    } catch (error) {
+      console.log(`Error getting user: ${error}`);
+    }
+  }
+
   async function listContainers() {
     const res: Container[] = await api.swarm.list_containers();
     if (res) containers.set(res);
   }
 
   onMount(() => {
+    // get user details
+    handleSignedInUser();
     listContainers();
     pollConfig();
   });
