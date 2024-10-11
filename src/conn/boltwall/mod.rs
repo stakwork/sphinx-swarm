@@ -413,11 +413,13 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
         None => {
             // check if role is boltwall subadmin
             if role == 2 {
-                // TODO: using user length +1 to calculate id, should find a more efficient way
-                let users_length = state.stack.users.len().clone() as u32;
+                let new_id = match state.stack.users.last() {
+                    Some(last_user) => last_user.id + 1,
+                    None => 1, // This block of code should never execute because one user must exist before you can add a user
+                };
                 state.stack.users.push(User {
                     username: name.to_lowercase(),
-                    id: users_length + 1,
+                    id: new_id,
                     pubkey: Some(pubkey.clone()),
                     role: Role::SubAdmin,
                     pass_hash: bcrypt::hash(crate::secrets::hex_secret_32(), bcrypt::DEFAULT_COST)
