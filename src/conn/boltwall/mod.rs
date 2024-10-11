@@ -113,7 +113,7 @@ pub async fn add_user(
         .send()
         .await?;
 
-    if response.status().clone() == 200 || response.status().clone() == 201 {
+    if response.status() == 200 || response.status() == 201 {
         // handle add user to swarm user
         let did_update_user = add_or_edit_user(body.role, body.pubkey, body.name, state);
         if did_update_user == true {
@@ -145,7 +145,12 @@ pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
     Ok(response_text)
 }
 
-pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<String> {
+pub async fn delete_sub_admin(
+    img: &BoltwallImage,
+    pubkey: &str,
+    state: &mut State,
+    must_save_stack: &mut bool,
+) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
 
     let client = make_client();
@@ -158,6 +163,13 @@ pub async fn delete_sub_admin(img: &BoltwallImage, pubkey: &str) -> Result<Strin
         .header("x-admin-token", admin_token)
         .send()
         .await?;
+
+    if response.status() == 200 {
+        let update_state = delete_swarm_user(state, pubkey.to_string());
+        if update_state == true {
+            *must_save_stack = true
+        }
+    }
 
     let response_text = response.text().await?;
 
@@ -358,7 +370,7 @@ pub async fn update_user(
         .send()
         .await?;
 
-    if response.status().clone() == 200 {
+    if response.status() == 200 {
         let must_update_state = add_or_edit_user(role, pubkey, name, state);
         if must_update_state == true {
             *must_save_stack = true
@@ -416,4 +428,19 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
             false
         }
     };
+}
+
+fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
+    match state
+        .stack
+        .users
+        .iter()
+        .position(|user| user.pubkey == Some(pubkey.clone()))
+    {
+        Some(user_pos) => {
+            state.stack.users.remove(user_pos);
+            true
+        }
+        None => false,
+    }
 }

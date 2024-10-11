@@ -262,7 +262,13 @@ pub async fn handle(
             SwarmCmd::DeleteSubAdmin(apk) => {
                 log::info!("DeleteSubAdmin -> {}", apk);
                 let boltwall = find_boltwall(&state.stack.nodes)?;
-                let response = crate::conn::boltwall::delete_sub_admin(&boltwall, &apk).await?;
+                let response = crate::conn::boltwall::delete_sub_admin(
+                    &boltwall,
+                    &apk,
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::ListPaidEndpoint => {
