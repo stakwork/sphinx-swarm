@@ -56,7 +56,6 @@
   let closing = false;
   async function forceClose(e) {
     e.stopPropagation();
-    console.log("CLOSE TO ", forceCloseDestination);
     closing = true;
     await onclose(selectedChannelParter, forceCloseDestination);
     closing = false;

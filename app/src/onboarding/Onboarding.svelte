@@ -100,7 +100,6 @@
     } else if (!open) {
       isOnboarding.set(false);
     } else {
-      // console.log("set onboarding = true in checkOnboarding");
       isOnboarding.set(true);
     }
   }

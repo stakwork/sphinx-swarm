@@ -54,7 +54,6 @@ export async function keysend(
   if (route_hint) bod.route_hint = route_hint;
   if (maxfeepercent) bod.maxfeepercent = maxfeepercent;
   if (exemptfee) bod.exemptfee = exemptfee;
-  console.log("=> keysend body:", bod);
   return await clnCmd("PayKeysend", tag, bod);
 }
 

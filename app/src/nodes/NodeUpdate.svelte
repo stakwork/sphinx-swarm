@@ -10,14 +10,11 @@
   async function upgradeContainer() {
     let name = $selectedNode.name;
     if (!name) return;
-    console.log("update!", name);
     updating = true;
     await api.swarm.update_node(name);
     await getImageVersion(name, stack, selectedNode);
     updating = false;
   }
-
-  $: console.log($node_state);
 </script>
 
 <aside class="node-action-wrap">

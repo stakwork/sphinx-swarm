@@ -52,7 +52,6 @@
 
   async function getConfig(): Promise<boolean> {
     const stackRemote: Stack = await api.swarm.get_config();
-    console.log("=>", stackRemote);
     if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
       // get node version

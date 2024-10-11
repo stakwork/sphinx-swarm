@@ -73,7 +73,6 @@
           if (interval) clearInterval(interval);
         } else if (response.message !== "not yet verified") {
           //display error message
-          console.log(response.message);
           sphinx_app_loading = false;
           if (interval) clearInterval(interval);
         }

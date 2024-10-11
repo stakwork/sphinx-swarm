@@ -34,7 +34,6 @@ enum ClnChannelState {
 }
 
 export function parseClnGetInfo(res) {
-  console.log("-> info:", res);
   const pubkey = bufferToHexString(res.id);
   return { identity_pubkey: pubkey };
 }
@@ -104,7 +103,6 @@ function parseClnChannelList(channels: any, pubkey: string): LndChannel[] {
   // push_amount_sat: number;
   // thaw_height: number;
   const parsedChannels = channels.map((channel, index: number) => {
-    // console.log("channel", channel);
     return <LndChannel>{
       remote_pubkey: pubkey,
       capacity: convertMillisatsToSats(channel.total_msat.msat),

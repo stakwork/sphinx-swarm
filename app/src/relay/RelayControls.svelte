@@ -11,7 +11,6 @@
   function selectCurrentTab() {
     if ($isOnboarding) {
       if ($finishedOnboarding.hasChannels && !$finishedOnboarding.hasAdmin) {
-        // console.log($finishedOnboarding);
         selected = 1;
       }
       if (

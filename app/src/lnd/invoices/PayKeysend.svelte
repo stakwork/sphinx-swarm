@@ -56,7 +56,6 @@
       // window.tlvs = {133773310:Array(320).fill(9)}
       const payRes = await LND.keysend(tag, dest, amount, window.tlvs);
       if (payRes) {
-        console.log(payRes);
         if (payRes.payment_error) {
           payment_error = payRes.payment_error;
         } else {
