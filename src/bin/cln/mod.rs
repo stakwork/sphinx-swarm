@@ -151,6 +151,7 @@ fn make_stack() -> Stack {
         auto_update: Some(vec![CLN2.to_string()]),
         custom_2b_domain: None,
         global_mem_limit: None,
+        backup_services: None,
     }
 }
 

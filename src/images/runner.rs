@@ -2,7 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::jarvis::JarvisImage;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -14,6 +14,7 @@ pub struct RunnerImage {
     pub version: String,
     pub port: String,
     pub broker_url: String,
+    pub bucket: Option<String>,
     pub host: Option<String>,
     pub links: Links,
 }
@@ -25,6 +26,7 @@ impl RunnerImage {
             version: version.to_string(),
             port: port.to_string(),
             broker_url: "".to_string(),
+            bucket: None,
             links: vec![],
             host: None,
         }
@@ -72,6 +74,18 @@ fn runner(img: &RunnerImage, jarvis: &JarvisImage) -> Result<Config<String>> {
         format!("ROCKET_PORT={}", img.port),
         format!("DB_PATH=/home/runner"),
     ];
+    if let Some(bucket) = &img.bucket {
+        env.push(format!("S3_BUCKET={}", bucket));
+    }
+    if let Ok(aws_key_id) = getenv("AWS_ACCESS_KEY_ID") {
+        env.push(format!("AWS_ACCESS_KEY_ID={}", aws_key_id));
+    }
+    if let Ok(aws_secret) = getenv("AWS_SECRET_ACCESS_KEY") {
+        env.push(format!("AWS_SECRET_ACCESS_KEY={}", aws_secret));
+    }
+    if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
+        env.push(format!("STAK_TOKEN={}", stakwork_key));
+    }
 
     if img.broker_url.is_empty() {
         return Err(anyhow::anyhow!("Runner: No Broker URL"));
