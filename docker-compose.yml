@@ -2,6 +2,7 @@ services:
   load_balancer:
     image: traefik:v2.2.1
     container_name: load_balancer
+    restart: on-failure
     networks:
       - sphinx-swarm
     command:
