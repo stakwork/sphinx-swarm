@@ -321,8 +321,6 @@
         await getAdmins();
 
         handleAddUserSuccess();
-        // stop loading
-        is_edit_Loading = false;
 
         //close modal
         closeEditUserHandler();
@@ -333,6 +331,9 @@
       is_edit_Loading = false;
       //TODO:: Handle error properly
       console.log(`ERROR UPDATING USER: ${JSON.stringify(error)}`);
+    } finally {
+      // stop loading
+      is_edit_Loading = false;
     }
   }
 
