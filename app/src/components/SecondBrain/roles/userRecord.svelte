@@ -104,6 +104,7 @@
   }
 
   function closeAddUserModal() {
+    clearCreateUser();
     openAddUserModel = false;
   }
 
@@ -206,6 +207,12 @@
     }, 3000);
   }
 
+  function clearCreateUser() {
+    userpubkey = "";
+    role = "1";
+    username = "";
+  }
+
   async function handleCreateUser() {
     const result = await add_user(userpubkey, Number(role), username);
     const parsedResult = JSON.parse(result);
@@ -217,9 +224,6 @@
     if (success) {
       await getAdmins();
       closeAddUserModal();
-      userpubkey = "";
-      role = "1";
-      username = "";
       handleAddUserSuccess();
     } else {
       show_notification = true;
