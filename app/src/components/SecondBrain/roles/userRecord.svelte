@@ -244,16 +244,20 @@
         superAdminUsername
       );
       const parsedResult = JSON.parse(result);
-      const swarmAdmin = await update_admin_pubkey(adminpubkey, $activeUser);
-
-      boltwallSuperAdminPubkey.set(adminpubkey);
-      is_admin_Loading = false;
       if (parsedResult.success) {
+        await update_admin_pubkey(adminpubkey, $activeUser);
+
+        boltwallSuperAdminPubkey.set(adminpubkey);
+        is_admin_Loading = false;
         adminpubkey = "";
         message = "Super Admin Updated Successfully";
         await getAdmins();
         handleAddUserSuccess();
         closeEditAdminModal();
+      } else {
+        message = parsedResult.message;
+        show_notification = true;
+        is_admin_Loading = false;
       }
     } catch (error) {
       is_admin_Loading = false;
@@ -474,6 +478,21 @@
   </Modal>
   <Modal isOpen={openEditAdmin} onClose={closeEditAdminModal}>
     <div class="edit_admin_container">
+      {#if show_notification}
+        <div class="toast_container">
+          <ToastNotification
+            kind={success ? "success" : "error"}
+            title={success ? "Success:" : "Error:"}
+            subtitle={message}
+            timeout={3000}
+            on:close={(e) => {
+              e.preventDefault();
+              show_notification = false;
+            }}
+            fullWidth={true}
+          />
+        </div>
+      {/if}
       <div class="admin_image_container">
         <img src="swarm/admin.svg" alt="admin" />
       </div>
