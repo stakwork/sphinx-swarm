@@ -104,6 +104,7 @@
   }
 
   function closeAddUserModal() {
+    clearCreateUser();
     openAddUserModel = false;
   }
 
@@ -206,6 +207,12 @@
     }, 3000);
   }
 
+  function clearCreateUser() {
+    userpubkey = "";
+    role = "1";
+    username = "";
+  }
+
   async function handleCreateUser() {
     const result = await add_user(userpubkey, Number(role), username);
     const parsedResult = JSON.parse(result);
@@ -217,9 +224,6 @@
     if (success) {
       await getAdmins();
       closeAddUserModal();
-      userpubkey = "";
-      role = "1";
-      username = "";
       handleAddUserSuccess();
     } else {
       show_notification = true;
@@ -244,16 +248,20 @@
         superAdminUsername
       );
       const parsedResult = JSON.parse(result);
-      const swarmAdmin = await update_admin_pubkey(adminpubkey, $activeUser);
-
-      boltwallSuperAdminPubkey.set(adminpubkey);
-      is_admin_Loading = false;
       if (parsedResult.success) {
+        await update_admin_pubkey(adminpubkey, $activeUser);
+
+        boltwallSuperAdminPubkey.set(adminpubkey);
+        is_admin_Loading = false;
         adminpubkey = "";
         message = "Super Admin Updated Successfully";
         await getAdmins();
         handleAddUserSuccess();
         closeEditAdminModal();
+      } else {
+        message = parsedResult.message;
+        show_notification = true;
+        is_admin_Loading = false;
       }
     } catch (error) {
       is_admin_Loading = false;
@@ -317,8 +325,6 @@
         await getAdmins();
 
         handleAddUserSuccess();
-        // stop loading
-        is_edit_Loading = false;
 
         //close modal
         closeEditUserHandler();
@@ -329,6 +335,9 @@
       is_edit_Loading = false;
       //TODO:: Handle error properly
       console.log(`ERROR UPDATING USER: ${JSON.stringify(error)}`);
+    } finally {
+      // stop loading
+      is_edit_Loading = false;
     }
   }
 
@@ -474,6 +483,21 @@
   </Modal>
   <Modal isOpen={openEditAdmin} onClose={closeEditAdminModal}>
     <div class="edit_admin_container">
+      {#if show_notification}
+        <div class="toast_container">
+          <ToastNotification
+            kind={success ? "success" : "error"}
+            title={success ? "Success:" : "Error:"}
+            subtitle={message}
+            timeout={3000}
+            on:close={(e) => {
+              e.preventDefault();
+              show_notification = false;
+            }}
+            fullWidth={true}
+          />
+        </div>
+      {/if}
       <div class="admin_image_container">
         <img src="swarm/admin.svg" alt="admin" />
       </div>

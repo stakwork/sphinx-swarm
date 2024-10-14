@@ -403,8 +403,12 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
         .position(|u| u.pubkey == Some(pubkey.clone()))
     {
         Some(user_pos) => {
+            let cloned_user = state.stack.users.clone();
             // check if role is boltwall member
-            if role == 3 {
+            if role == 3
+                && cloned_user[user_pos].role != Role::Admin
+                && cloned_user[user_pos].role != Role::Super
+            {
                 state.stack.users.remove(user_pos);
                 return true;
             }
@@ -440,8 +444,12 @@ fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
         .position(|user| user.pubkey == Some(pubkey.clone()))
     {
         Some(user_pos) => {
-            state.stack.users.remove(user_pos);
-            true
+            let cloned_user = state.stack.users[user_pos].clone();
+            if cloned_user.role != Role::Admin && cloned_user.role != Role::Super {
+                state.stack.users.remove(user_pos);
+                return true;
+            }
+            false
         }
         None => false,
     }
