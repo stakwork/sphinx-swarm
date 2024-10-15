@@ -11,8 +11,8 @@ use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
 use util::{
-    accessing_child_container_controller, add_new_swarm_details, get_aws_instance_types,
-    get_child_swarm_config, get_child_swarm_containers,
+    accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
+    get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
 };
 
 use crate::checker::swarm_checker;
@@ -230,7 +230,8 @@ pub async fn super_handle(
                     ec2: Some("".to_string()),
                     default_host: Some(c.default_host),
                 };
-                let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
+                let hm =
+                    add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);
 
                 Some(serde_json::to_string(&hm)?)
             }

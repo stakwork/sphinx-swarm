@@ -48,6 +48,47 @@ pub fn add_new_swarm_details(
     }
 }
 
+pub fn add_new_swarm_from_child_swarm(
+    state: &mut Super,
+    swarm_details: RemoteStack,
+    must_save_stack: &mut bool,
+) -> AddSwarmResponse {
+    match state
+        .stacks
+        .iter()
+        .position(|swarm| swarm.default_host == swarm_details.default_host)
+    {
+        Some(swarm_pos) => {
+            if let Some(password) = &state.stacks[swarm_pos].pass {
+                if !password.is_empty() {
+                    return AddSwarmResponse {
+                        success: false,
+                        message: "swarm already exist".to_string(),
+                    };
+                }
+            }
+
+            state.stacks[swarm_pos].host = swarm_details.host;
+            state.stacks[swarm_pos].pass = swarm_details.pass;
+            state.stacks[swarm_pos].user = swarm_details.user;
+
+            *must_save_stack = true;
+            return AddSwarmResponse {
+                success: true,
+                message: "Swarm added successfully".to_string(),
+            };
+        }
+        None => {
+            state.add_remote_stack(swarm_details);
+            *must_save_stack = true;
+            return AddSwarmResponse {
+                success: true,
+                message: "Swarm added successfully".to_string(),
+            };
+        }
+    }
+}
+
 pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String, Error> {
     let client = make_reqwest_client();
 
