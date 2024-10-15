@@ -149,6 +149,7 @@ function getChannelStatus(status) {
 }
 
 function convertChannelArrayToObj(peerObj) {
+  console.log("=>", peerObj);
   const peers = peerObj.peers;
   const obj = {};
   for (let i = 0; i < peers.length; i++) {

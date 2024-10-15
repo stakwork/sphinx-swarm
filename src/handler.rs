@@ -536,6 +536,10 @@ pub async fn handle(
                     let info = client.list_peers().await?;
                     Some(serde_json::to_string(&info)?)
                 }
+                ClnCmd::ListPeerChannels => {
+                    let info = client.list_peer_channels(None).await?;
+                    Some(serde_json::to_string(&info)?)
+                }
                 ClnCmd::ListFunds => {
                     let funds = client.list_funds().await?;
                     Some(serde_json::to_string(&funds)?)

@@ -116,15 +116,13 @@ impl ClnRPC {
 
     pub async fn list_peer_channels(
         &mut self,
-        peer_id: Vec<u8>,
+        peer_id: Option<Vec<u8>>,
     ) -> Result<pb::ListpeerchannelsResponse> {
-        let response = self
-            .client
-            .list_peer_channels(pb::ListpeerchannelsRequest {
-                id: Some(peer_id),
-                ..Default::default()
-            })
-            .await?;
+        let mut req = pb::ListpeerchannelsRequest::default();
+        if let Some(peer_id) = peer_id {
+            req.id = Some(peer_id);
+        }
+        let response = self.client.list_peer_channels(req).await?;
         Ok(response.into_inner())
     }
 

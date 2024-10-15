@@ -151,7 +151,7 @@ pub enum SwarmCmd {
     UpdateUser(UpdateUserDetails),
     GetApiToken,
     SetGlobalMemLimit(u64),
-    GetSignedInUserDetails
+    GetSignedInUserDetails,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -251,6 +251,7 @@ pub enum LndCmd {
 pub enum ClnCmd {
     GetInfo,
     ListPeers,
+    ListPeerChannels,
     ListFunds,
     NewAddress,
     AddPeer(AddPeer),

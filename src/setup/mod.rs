@@ -120,7 +120,9 @@ pub async fn new_chan_from_cln1(
     let mut ok = false;
     log::info!("wait for channel to confirm...");
     while !ok {
-        let pc = cln1.list_peer_channels(hex::decode(peer_pubkey)?).await?;
+        let pc = cln1
+            .list_peer_channels(Some(hex::decode(peer_pubkey)?))
+            .await?;
         for c in pc.channels {
             // println!("{:?}", c.status);
             if let Some(status) = c.status.get(0) {

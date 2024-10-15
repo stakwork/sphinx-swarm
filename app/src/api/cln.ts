@@ -23,6 +23,10 @@ export async function list_peers(tag: string) {
   return await clnCmd("ListPeers", tag);
 }
 
+export async function list_peer_channels(tag: string) {
+  return await clnCmd("ListPeerChannels", tag);
+}
+
 export async function list_funds(tag: string) {
   return await clnCmd("ListFunds", tag);
 }
