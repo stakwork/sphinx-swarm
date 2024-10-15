@@ -38,13 +38,15 @@ export function parseClnGetInfo(res) {
   return { identity_pubkey: pubkey };
 }
 
-interface ParsedClnPeersAndChannels {
-  peers: LndPeer[];
-  channels: LndChannel[];
+export function parseClnListPeerChannelsRes(res: {
+  channels: any[];
+}): LndChannel[] {
+  return parseClnPeerChannelList(res.channels);
 }
+
 export function parseClnListPeerRes(res: {
   peers: { id: Buffer; netaddr; channels }[];
-}): ParsedClnPeersAndChannels {
+}): LndPeer[] {
   // pub_key: string;
   // address: string;
   // bytes_sent: number;
@@ -54,10 +56,10 @@ export function parseClnListPeerRes(res: {
   // inbound: number;
   // ping_time: number;
   // sync_type: number;
-  let channels: LndChannel[] = [];
+  // let channels: LndChannel[] = [];
   const peers = res.peers.map((peer) => {
     const pub_key = bufferToHexString(peer.id);
-    channels = [...channels, ...parseClnChannelList(peer.channels, pub_key)];
+    // channels = [...channels, ...parseClnChannelList(peer.channels, pub_key)];
     return {
       pub_key,
       address: peer.netaddr[0],
@@ -70,41 +72,13 @@ export function parseClnListPeerRes(res: {
       sync_type: 0,
     };
   });
-  return { peers, channels };
+  return peers;
 }
 
-function parseClnChannelList(channels: any, pubkey: string): LndChannel[] {
-  // active: boolean;
-  // remote_pubkey: string;
-  // channel_point: string;
-  // chan_id: number;
-  // capacity: number;
-  // local_balance: number;
-  // remote_balance: number;
-  // commit_fee: number;
-  // commit_weight: number;
-  // fee_per_kw: number;
-  // unsettled_balance: number;
-  // total_satoshis_sent: number;
-  // total_satoshis_received: number;
-  // num_updates: number;
-  // // pending_htlcs: Vec<Htlc>,
-  // csv_delay: number;
-  // private: number;
-  // initiator: number;
-  // chan_status_flags: string;
-  // local_chan_reserve_sat: number;
-  // remote_chan_reserve_sat: number;
-  // static_remote_key: boolean;
-  // commitment_type: number;
-  // lifetime: number;
-  // uptime: number;
-  // close_address: string;
-  // push_amount_sat: number;
-  // thaw_height: number;
+function parseClnPeerChannelList(channels: any): LndChannel[] {
   const parsedChannels = channels.map((channel, index: number) => {
     return <LndChannel>{
-      remote_pubkey: pubkey,
+      remote_pubkey: bufferToHexString(channel.peer_id),
       capacity: convertMillisatsToSats(channel.total_msat.msat),
       local_balance: convertMillisatsToSats(channel.spendable_msat.msat),
       remote_balance: convertMillisatsToSats(channel.receivable_msat.msat),
@@ -148,23 +122,20 @@ function getChannelStatus(status) {
   }
 }
 
-function convertChannelArrayToObj(peerObj) {
-  console.log("=>", peerObj);
-  const peers = peerObj.peers;
+function convertPeerChannelArrayToObj(peerChanObj) {
+  // console.log("=>", peerChanObj);
   const obj = {};
-  for (let i = 0; i < peers.length; i++) {
-    for (let y = 0; y < peers[i].channels.length; y++) {
-      const channel = peers[i].channels[y];
-      obj[channel.short_channel_id] = channel;
-    }
+  for (let i = 0; i < peerChanObj.channels.length; i++) {
+    const channel = peerChanObj.channels[i];
+    obj[channel.short_channel_id] = channel;
   }
   return obj;
 }
 
-export function parseClnListFunds(res, peers): number {
+export function parseClnListFunds(res, peersChans): number {
   let balance = 0;
   let channelBal = 0;
-  const channelsObj = convertChannelArrayToObj(peers);
+  const channelsObj = convertPeerChannelArrayToObj(peersChans);
 
   for (let i = 0; i < res.channels.length; i++) {
     const currentChan = res.channels[i];

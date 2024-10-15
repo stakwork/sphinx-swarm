@@ -8,7 +8,7 @@
   import * as LND from "../../api/lnd";
   import * as CLN from "../../api/cln";
   import { channels } from "../../store";
-  import { parseClnListPeerRes } from "../../helpers/cln";
+  import { parseClnListPeerChannelsRes } from "../../helpers/cln";
   import { getLndPendingAndActiveChannels } from "../../helpers/lnd";
 
   export let tag = "";
@@ -31,10 +31,10 @@
         message = "Invoice payment has been made.";
         pay_req = "";
         setTimeout(async () => {
-          const peersData = await CLN.list_peers(tag);
-          const res = parseClnListPeerRes(peersData);
+          const peersData = await CLN.list_peer_channels(tag);
+          const thechans = parseClnListPeerChannelsRes(peersData);
           channels.update((chans) => {
-            return { ...chans, [tag]: res.channels };
+            return { ...chans, [tag]: thechans };
           });
         }, 2000);
       } else {

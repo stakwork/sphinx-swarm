@@ -6,7 +6,6 @@ export let root = "/api";
 if (IS_DEV) {
   root = "http://localhost:8000/api";
   // root = "https://app.v2.sphinx.chat/api";
-  // root = "https://app.router1.sphinx.chat/api";
 }
 
 const mode = import.meta.env.MODE;

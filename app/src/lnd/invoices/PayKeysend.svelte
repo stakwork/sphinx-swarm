@@ -8,7 +8,7 @@
   import * as LND from "../../api/lnd";
   import { channels } from "../../store";
   import * as CLN from "../../api/cln";
-  import { parseClnListPeerRes } from "../../helpers/cln";
+  import { parseClnListPeerChannelsRes } from "../../helpers/cln";
   import { convertSatsToMilliSats } from "../../helpers";
   import { getLndPendingAndActiveChannels } from "../../helpers/lnd";
 
@@ -41,11 +41,11 @@
         amount = 0;
 
         setTimeout(async () => {
-          const peersData = await CLN.list_peers(tag);
-          const parsedRes = await parseClnListPeerRes(peersData);
+          const peersData = await CLN.list_peer_channels(tag);
+          const thechans = await parseClnListPeerChannelsRes(peersData);
           if (!peersData) return;
           channels.update((chans) => {
-            return { ...chans, [tag]: parsedRes.channels };
+            return { ...chans, [tag]: thechans };
           });
         }, 2000);
       } else {

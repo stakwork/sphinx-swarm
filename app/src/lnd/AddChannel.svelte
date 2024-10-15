@@ -17,7 +17,11 @@
     channelCreatedForOnboarding,
   } from "../store";
   import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
-  import { parseClnListFunds, parseClnListPeerRes } from "../helpers/cln";
+  import {
+    parseClnListFunds,
+    parseClnListPeerChannelsRes,
+    parseClnListPeerRes,
+  } from "../helpers/cln";
   import { getLndPendingAndActiveChannels } from "../helpers/lnd";
 
   export let activeKey: string = null;
@@ -67,10 +71,10 @@
         amount = 0;
         sats = 0;
         setTimeout(async () => {
-          const peersData = await CLN.list_peers(tag);
-          const parsedRes = await parseClnListPeerRes(peersData);
+          const peersData = await CLN.list_peer_channels(tag);
+          const thechans = await parseClnListPeerChannelsRes(peersData);
           channels.update((chans) => {
-            return { ...chans, [tag]: parsedRes.channels };
+            return { ...chans, [tag]: thechans };
           });
           await listClnFunds();
           channelCreatedForOnboarding.update(() => true);
@@ -108,8 +112,8 @@
 
   async function listClnFunds() {
     const funds = await CLN.list_funds(tag);
-    const peers = await CLN.list_peers(tag);
-    const balance = parseClnListFunds(funds, peers);
+    const thechans = await CLN.list_peer_channels(tag);
+    const balance = parseClnListFunds(funds, thechans);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
     lndBalances.update((n) => {
@@ -121,8 +125,7 @@
     let newPeers = [];
     if (type === "Cln") {
       const peersData = await CLN.list_peers(tag);
-      const parsedRes = await parseClnListPeerRes(peersData);
-      newPeers = parsedRes.peers;
+      newPeers = await parseClnListPeerRes(peersData);
     } else {
       const peersData = await list_peers(tag);
       newPeers = peersData.peers;

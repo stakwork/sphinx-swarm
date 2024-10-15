@@ -57,8 +57,8 @@
       updateUnconfirmedBalance(balance?.unconfirmed_balance);
     } else if (type === "Cln") {
       const funds = await CLN.list_funds(tag);
-      const peers = await CLN.list_peers(tag);
-      const balance = parseClnListFunds(funds, peers);
+      const thechans = await CLN.list_peer_channels(tag);
+      const balance = parseClnListFunds(funds, thechans);
       const unconfirmed_balance = parseUnconfirmedClnBalance(funds);
       updateConfirmedBalance(balance);
       updateUnconfirmedBalance(unconfirmed_balance);

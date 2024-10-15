@@ -37,9 +37,9 @@
         pubkey = "";
         host = "";
         const peersData = await CLN.list_peers(tag);
-        const parsedRes = await parseClnListPeerRes(peersData);
+        const thepeers = await parseClnListPeerRes(peersData);
         peersStore.update((peer) => {
-          return { ...peer, [tag]: parsedRes.peers };
+          return { ...peer, [tag]: thepeers };
         });
         createdPeerForOnboarding.update(() => true);
       }

@@ -13,7 +13,11 @@
   import AddChannel from "./AddChannel.svelte";
   import { formatSatsNumbers } from "../helpers";
   import ChannelRows from "./ChannelRows.svelte";
-  import { parseClnGetInfo, parseClnListPeerRes } from "../helpers/cln";
+  import {
+    parseClnGetInfo,
+    parseClnListPeerRes,
+    parseClnListPeerChannelsRes,
+  } from "../helpers/cln";
   import { getLndPendingAndActiveChannels } from "../helpers/lnd";
 
   import * as LND from "../api/lnd";
@@ -80,14 +84,16 @@
   }
 
   async function clnListPeersandChannels() {
+    let peerChannels = await CLN.list_peer_channels(tag);
+    const peerchannels = parseClnListPeerChannelsRes(peerChannels);
     const peersData = await CLN.list_peers(tag);
     if (!peersData) return;
-    const parsedRes = await parseClnListPeerRes(peersData);
+    const thepeers = await parseClnListPeerRes(peersData);
     peersStore.update((peer) => {
-      return { ...peer, [tag]: parsedRes.peers };
+      return { ...peer, [tag]: thepeers };
     });
     channels.update((chans) => {
-      return { ...chans, [tag]: parsedRes.channels };
+      return { ...chans, [tag]: peerchannels };
     });
   }
 
@@ -147,9 +153,8 @@
   async function getChannels() {
     let newChannels = [];
     if (type === "Cln") {
-      const peersData = await CLN.list_peers(tag);
-      const parsedRes = await parseClnListPeerRes(peersData);
-      newChannels = parsedRes.channels;
+      const peersData = await CLN.list_peer_channels(tag);
+      newChannels = await parseClnListPeerChannelsRes(peersData);
     } else {
       const channelsData = await getLndPendingAndActiveChannels(tag);
       newChannels = channelsData;

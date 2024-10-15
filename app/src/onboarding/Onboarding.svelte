@@ -67,8 +67,8 @@
   async function setupBalance() {
     if (tag === "cln") {
       const funds = await CLN.list_funds(tag);
-      const peers = await CLN.list_peers(tag);
-      const balance = parseClnListFunds(funds, peers);
+      const thechans = await CLN.list_peer_channels(tag);
+      const balance = parseClnListFunds(funds, thechans);
       if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance)
         return;
 
