@@ -313,8 +313,9 @@ pub async fn super_handle(
             }
             SwarmCmd::CreateNewEc2Instance(info) => {
                 let res: SuperSwarmResponse;
-                match create_swarm_ec2(&info).await {
+                match create_swarm_ec2(&info, &mut state).await {
                     Ok(_) => {
+                        must_save_stack = true;
                         res = SuperSwarmResponse {
                             success: true,
                             message: format!("{} was created successfully", &info.name.clone()),

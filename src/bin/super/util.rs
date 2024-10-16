@@ -285,8 +285,8 @@ pub async fn accessing_child_container_controller(
     res
 }
 
-pub fn get_aws_instance_types() -> SuperSwarmResponse {
-    let instance_types: Vec<AwsInstanceType> = vec![
+fn instance_types() -> Vec<AwsInstanceType> {
+    return vec![
         AwsInstanceType {
             name: "Large".to_string(),
             value: "m5.large".to_string(),
@@ -300,6 +300,10 @@ pub fn get_aws_instance_types() -> SuperSwarmResponse {
             value: "g4dn.2xlarge".to_string(),
         },
     ];
+}
+
+pub fn get_aws_instance_types() -> SuperSwarmResponse {
+    let instance_types = instance_types();
 
     match serde_json::to_value(instance_types) {
         Ok(instance_value) => SuperSwarmResponse {
@@ -312,6 +316,21 @@ pub fn get_aws_instance_types() -> SuperSwarmResponse {
             message: err.to_string(),
             data: None,
         },
+    }
+}
+
+fn get_descriptive_instance_type(instance_value: String) -> String {
+    let instance_types = instance_types();
+
+    match instance_types
+        .iter()
+        .position(|instance| instance.value == instance_value)
+    {
+        Some(instance_pos) => {
+            let instance = &instance_types[instance_pos];
+            format!("{} ({})", instance.name, instance.value)
+        }
+        None => "".to_string(),
     }
 }
 
@@ -559,7 +578,10 @@ async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Resul
 }
 
 //Sample execution function
-pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error> {
+pub async fn create_swarm_ec2(
+    info: &CreateEc2InstanceInfo,
+    state: &mut Super,
+) -> Result<(), Error> {
     if let Some(vanity_address) = &info.vanity_address {
         if !vanity_address.is_empty() {
             if let Some(subdomain) = vanity_address.strip_suffix(".sphinx.chat") {
@@ -572,7 +594,7 @@ pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error>
             }
         }
     }
-    let ec2_intance_id = create_ec2_instance(
+    let ec2_intance = create_ec2_instance(
         info.name.clone(),
         info.vanity_address.clone(),
         info.instance_type.clone(),
@@ -581,18 +603,35 @@ pub async fn create_swarm_ec2(info: &CreateEc2InstanceInfo) -> Result<(), Error>
 
     sleep(Duration::from_secs(40)).await;
 
-    let ec2_ip_address = get_instance_ip(&ec2_intance_id.0).await?;
-    let _ = add_domain_name_to_route53(
-        &format!("*.swarm{}.sphinx.chat", &ec2_intance_id.1),
-        &ec2_ip_address,
-    )
-    .await?;
+    let default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+
+    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
+    let _ = add_domain_name_to_route53(&format!("*.{}", &default_host), &ec2_ip_address).await?;
+    let mut host = default_host.clone();
     if let Some(custom_domain) = &info.vanity_address {
         log::info!("vanity address is being set");
-        let _custom_domain_result =
-            add_domain_name_to_route53(custom_domain, &ec2_ip_address).await?;
+        if !custom_domain.is_empty() {
+            host = custom_domain.clone();
+            let _custom_domain_result =
+                add_domain_name_to_route53(custom_domain, &ec2_ip_address).await?;
+        }
     }
     log::info!("Public_IP: {}", ec2_ip_address);
+
+    // add new ec2 to list of swarms
+    let new_swarm = RemoteStack {
+        host: host,
+        ec2: Some(get_descriptive_instance_type(info.instance_type.clone())),
+        default_host: Some(default_host),
+        note: Some("".to_string()),
+        user: Some("".to_string()),
+        pass: Some("".to_string()),
+        ec2_instance_id: ec2_intance.0,
+    };
+
+    state.add_remote_stack(new_swarm);
+
+    log::info!("New Swarm added to stack");
     Ok(())
 }
 

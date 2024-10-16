@@ -489,6 +489,10 @@
         vanity_input_width = max_input_with;
         swarm_name_width = max_input_with;
         show_notification = true;
+
+        await getConfig();
+
+        await getConfigSortByUnhealthy();
       } else {
         error_notification = true;
       }
