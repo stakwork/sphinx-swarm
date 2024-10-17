@@ -292,6 +292,8 @@ impl Stack {
                     Node::Internal(Image::Whisker(w))
                 }
                 Image::Runner(r) => Node::Internal(Image::Runner(r)),
+                Image::Mongo(m) => Node::Internal(Image::Mongo(m)),
+                Image::Chat(c) => Node::Internal(Image::Chat(c)),
             },
         });
         Stack {

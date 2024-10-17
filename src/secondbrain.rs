@@ -94,3 +94,19 @@ pub fn external_lnd() -> Option<ExternalLnd> {
     }
     None
 }
+
+pub fn only_chat_ui() -> Stack {
+    let mongo = crate::images::mongo::MongoImage::new("mongo", "latest");
+    let mut chat = crate::images::chat::ChatImage::new("chat-ui", "sha-165b40b");
+    chat.links(vec!["mongo"]);
+    let nodes = vec![
+        Node::Internal(Image::Mongo(mongo)),
+        Node::Internal(Image::Chat(chat)),
+    ];
+    return Stack {
+        network: "regtest".to_string(),
+        nodes,
+        jwt_key: secrets::random_word(16),
+        ..Default::default()
+    };
+}
