@@ -319,12 +319,16 @@ pub fn get_aws_instance_types() -> SuperSwarmResponse {
     }
 }
 
-fn get_descriptive_instance_type(instance_value: String) -> String {
+pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
+    if let None = &instance_value {
+        return "".to_string();
+    }
+
     let instance_types = instance_types();
 
     match instance_types
         .iter()
-        .position(|instance| instance.value == instance_value)
+        .position(|instance| instance.value == instance_value.clone().unwrap())
     {
         Some(instance_pos) => {
             let instance = &instance_types[instance_pos];
@@ -621,7 +625,7 @@ pub async fn create_swarm_ec2(
     // add new ec2 to list of swarms
     let new_swarm = RemoteStack {
         host: host,
-        ec2: Some(get_descriptive_instance_type(info.instance_type.clone())),
+        ec2: Some(info.instance_type.clone()),
         default_host: Some(default_host),
         note: Some("".to_string()),
         user: Some("".to_string()),
