@@ -4,12 +4,11 @@ use std::str::FromStr;
 use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
-use aws_sdk_ec2::types::{BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag, TagSpecification};
-use aws_sdk_ec2::Client;
-use aws_sdk_route53::types::{
-    Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet,
+use aws_sdk_ec2::client::Waiters;
+use aws_sdk_ec2::types::{
+    AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag, TagSpecification,
 };
-use aws_sdk_route53::Client as Route53Client;
+use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
 use futures_util::TryFutureExt;
 use reqwest::Response;
@@ -20,7 +19,9 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
+    UpdateInstanceDetails,
 };
+use crate::route53::add_domain_name_to_route53;
 use crate::state::{AwsInstanceType, RemoteStack, Super};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
@@ -532,55 +533,6 @@ async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
     Ok(public_ip_address.to_string())
 }
 
-async fn add_domain_name_to_route53(domain_name: &str, public_ip: &str) -> Result<(), Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
-    let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
-    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-    let config = aws_config::from_env()
-        .region(region_provider)
-        .retry_config(RetryConfig::standard().with_max_attempts(10))
-        .load()
-        .await;
-    let route53_client = Route53Client::new(&config);
-
-    let resource_record = ResourceRecord::builder().value(public_ip).build()?;
-
-    let resource_record_set = ResourceRecordSet::builder()
-        .name(domain_name)
-        .r#type("A".into()) // A record for IPv4
-        .ttl(300) // Time-to-live (in seconds)
-        .resource_records(resource_record)
-        .build()
-        .map_err(|err| anyhow!(err.to_string()))?;
-
-    // Create a change request to upsert (create or update) the A record
-    let change = Change::builder()
-        .action(ChangeAction::Upsert)
-        .resource_record_set(resource_record_set)
-        .build()
-        .map_err(|err| anyhow!(err.to_string()))?;
-
-    let change_batch = ChangeBatch::builder()
-        .changes(change)
-        .build()
-        .map_err(|err| anyhow!(err.to_string()))?;
-
-    let response = route53_client
-        .change_resource_record_sets()
-        .hosted_zone_id(hosted_zone_id)
-        .change_batch(change_batch)
-        .send()
-        .await?;
-
-    log::info!(
-        "Route 53 change status for {}: {:?}",
-        domain_name,
-        response.change_info()
-    );
-
-    Ok(())
-}
-
 //Sample execution function
 pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
@@ -610,16 +562,21 @@ pub async fn create_swarm_ec2(
     let default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
 
     let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
-    let _ = add_domain_name_to_route53(&format!("*.{}", &default_host), &ec2_ip_address).await?;
+    let default_domain = format!("*.{}", default_host);
+    let mut domain_names = vec![default_domain.as_str()];
+
     let mut host = default_host.clone();
+
     if let Some(custom_domain) = &info.vanity_address {
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
-            let _custom_domain_result =
-                add_domain_name_to_route53(custom_domain, &ec2_ip_address).await?;
+            domain_names.push(custom_domain.as_str());
         }
     }
+
+    let _ = add_domain_name_to_route53(domain_names, &ec2_ip_address).await?;
+
     log::info!("Public_IP: {}", ec2_ip_address);
 
     // add new ec2 to list of swarms
@@ -662,4 +619,147 @@ fn is_valid_domain(domain: String) -> String {
     }
 
     "".to_string()
+}
+
+pub async fn update_aws_instance_type(
+    details: UpdateInstanceDetails,
+    state: &mut Super,
+) -> Result<(), Error> {
+    if details.instance_id.is_empty() {
+        return Err(anyhow!("Please provide a valid instance id"));
+    }
+
+    if details.instance_type.is_empty() {
+        return Err(anyhow!("Please provide a instance type"));
+    }
+
+    // find instance type
+    let instance_types = instance_types();
+    if let None = instance_types
+        .iter()
+        .position(|instance_type| instance_type.value == details.instance_type)
+    {
+        return Err(anyhow!("Invalid instance type"));
+    }
+
+    let swarm_pos = state
+        .stacks
+        .iter()
+        .position(|swarm| swarm.ec2_instance_id == details.instance_id);
+
+    if let None = swarm_pos {
+        return Err(anyhow!("Instance does not exist"));
+    }
+    let unwrapped_swarm_pos = swarm_pos.unwrap();
+
+    if let Some(current_instance) = &state.stacks[unwrapped_swarm_pos].ec2 {
+        if details.instance_type == current_instance.to_string() {
+            return Err(anyhow!("Please select a different instance type"));
+        }
+    }
+
+    let ec2_instance_id = state.stacks[unwrapped_swarm_pos].ec2_instance_id.clone();
+
+    let client = make_aws_client().await?;
+
+    //update ec2 instance type
+    update_ec2_instance_type(&client, &ec2_instance_id, &details.instance_type).await?;
+
+    // get ec2 instance ip
+    let new_ec2_ip_address = get_instance_ip(&details.instance_id).await?;
+
+    let current_swarm: &RemoteStack = &state.stacks[unwrapped_swarm_pos];
+
+    let defailt_domain = format!("*.{}", current_swarm.default_host.clone().unwrap());
+
+    let mut domain_names = vec![defailt_domain.as_str()];
+
+    if current_swarm.default_host.clone().unwrap() != current_swarm.host {
+        domain_names.push(&current_swarm.host)
+    }
+
+    //update route53 record for both host and default_host
+    let _ = add_domain_name_to_route53(domain_names, &new_ec2_ip_address).await?;
+
+    // update stack with current instance type locally
+    state.stacks[unwrapped_swarm_pos].ec2 = Some(details.instance_type);
+    Ok(())
+}
+
+pub async fn stop_ec2_instance(client: &Client, instance_id: &str) -> Result<(), Error> {
+    log::info!("Stopping instance: {}", instance_id);
+
+    client
+        .stop_instances()
+        .instance_ids(instance_id)
+        .send()
+        .await?;
+
+    log::info!("Waiting for instance to stop...");
+
+    client
+        .wait_until_instance_stopped()
+        .instance_ids(instance_id)
+        .wait(Duration::from_secs(120))
+        .await?;
+
+    log::info!("Instance Stopped...");
+    Ok(())
+}
+
+pub async fn start_ec2_instance(client: &Client, instance_id: &str) -> Result<(), Error> {
+    client
+        .start_instances()
+        .instance_ids(instance_id)
+        .send()
+        .await?;
+
+    log::info!("Waiting for instance to be running");
+
+    client
+        .wait_until_instance_running()
+        .instance_ids(instance_id)
+        .wait(Duration::from_secs(120))
+        .await?;
+
+    log::info!("Started instance successfully");
+    Ok(())
+}
+
+pub async fn update_ec2_instance_type(
+    client: &Client,
+    instance_id: &str,
+    instance_type: &str,
+) -> Result<(), Error> {
+    // stop ec2 instance
+    stop_ec2_instance(client, &instance_id).await?;
+
+    log::info!("Modifying Ec2 Instance...");
+    // update ec2 instance
+    client
+        .modify_instance_attribute()
+        .instance_id(instance_id)
+        .instance_type(
+            AttributeValue::builder()
+                .set_value(Some(instance_type.to_string()))
+                .build(),
+        )
+        .send()
+        .await?;
+
+    // state ec2 instance
+    start_ec2_instance(&client, instance_id).await?;
+    Ok(())
+}
+
+async fn make_aws_client() -> Result<Client, Error> {
+    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .load()
+        .await;
+
+    Ok(Client::new(&config))
 }
