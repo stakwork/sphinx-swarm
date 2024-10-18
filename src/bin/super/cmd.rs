@@ -77,11 +77,19 @@ pub enum SwarmCmd {
     RestartChildSwarmContainers(AccessNodesInfo),
     CreateNewEc2Instance(CreateEc2InstanceInfo),
     GetAwsInstanceTypes,
+    UpdateAwsInstanceType(UpdateInstanceDetails),
+    GetInstanceType(GetInstanceTypeByInstanceId),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChildSwarmIdentifier {
     pub host: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateInstanceDetails {
+    pub instance_id: String,
+    pub instance_type: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -113,4 +121,14 @@ pub struct CreateEc2InstanceInfo {
     pub name: String,
     pub vanity_address: Option<String>,
     pub instance_type: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetInstanceTypeByInstanceId {
+    pub instance_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetInstanceTypeRes {
+    pub instance_type: Option<String>,
 }

@@ -35,4 +35,5 @@ export interface Remote {
   note?: string;
   ec2?: string;
   default_host?: string;
+  ec2_instance_id: string;
 }

@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use sphinx_swarm::config::{Role, User};
 use sphinx_swarm::secrets;
 
+use crate::util::get_descriptive_instance_type;
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Super {
     pub stacks: Vec<RemoteStack>,
@@ -19,7 +21,8 @@ pub struct RemoteStack {
     pub ec2: Option<String>,
     pub user: Option<String>,
     pub pass: Option<String>,
-    pub default_host: Option<String>,
+    pub default_host: String,
+    pub ec2_instance_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -76,10 +79,11 @@ impl Super {
             .map(|n| RemoteStack {
                 host: n.host.clone(),
                 note: n.note.clone(),
-                ec2: n.ec2.clone(),
+                ec2: Some(get_descriptive_instance_type(n.ec2.clone())),
                 user: None,
                 pass: None,
                 default_host: n.default_host.clone(),
+                ec2_instance_id: n.ec2_instance_id.clone(),
             })
             .collect();
         let bots = self
