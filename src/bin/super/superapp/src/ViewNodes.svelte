@@ -11,6 +11,7 @@
     update_child_swarm_containers,
     get_aws_instance_types,
     update_aws_instance_type,
+    get_swarm_instance_type,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -29,7 +30,6 @@
     SelectItem,
   } from "carbon-components-svelte";
   import type { Remote } from "./types/types";
-  import { extract_instance_type } from "./utils";
 
   let loading = true;
   let selectedRowIds = [];
@@ -98,12 +98,21 @@
     }
   }
 
-  function get_current_service_details() {
+  async function get_current_service_details() {
     for (let i = 0; i < $remotes.length; i++) {
       const remote = $remotes[i];
       if (remote.host === remote.host) {
         node = { ...remote };
-        current_instance_type = extract_instance_type(remote.ec2);
+        try {
+          const response = await get_swarm_instance_type({
+            instance_id: remote.ec2_instance_id,
+          });
+          if (response.success) {
+            current_instance_type = response.data.instance_type;
+          }
+        } catch (error) {
+          console.log("ERORR GETTING SWARM INSTANCE TYPE: ", error);
+        }
         return;
       }
     }
@@ -157,7 +166,7 @@
 
     await getAwsInstanceType();
 
-    get_current_service_details();
+    await get_current_service_details();
   });
 
   function findContainer(node_name: string) {

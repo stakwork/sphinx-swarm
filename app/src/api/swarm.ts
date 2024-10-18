@@ -340,3 +340,11 @@ export async function update_aws_instance_type({
     instance_type,
   });
 }
+
+export async function get_swarm_instance_type({
+  instance_id,
+}: {
+  instance_id: string;
+}) {
+  return await swarmCmd("GetInstanceType", { instance_id });
+}
