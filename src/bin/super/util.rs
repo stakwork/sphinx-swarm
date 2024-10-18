@@ -18,8 +18,8 @@ use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::cmd::{
-    AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, LoginResponse, SuperSwarmResponse,
-    UpdateInstanceDetails,
+    AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, GetInstanceTypeByInstanceId,
+    GetInstanceTypeRes, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::route53::add_domain_name_to_route53;
 use crate::state::{AwsInstanceType, RemoteStack, Super};
@@ -762,4 +762,34 @@ async fn make_aws_client() -> Result<Client, Error> {
         .await;
 
     Ok(Client::new(&config))
+}
+
+pub fn get_swarm_instance_type(
+    info: GetInstanceTypeByInstanceId,
+    state: &Super,
+) -> Result<SuperSwarmResponse, Error> {
+    if info.instance_id.is_empty() {
+        return Err(anyhow!("Please provide a valid instance id"));
+    }
+
+    let swarm_pos = state
+        .stacks
+        .iter()
+        .position(|swarm| swarm.ec2_instance_id == info.instance_id);
+
+    if swarm_pos.is_none() {
+        return Err(anyhow!("Swarm does not exist"));
+    };
+
+    let instance_res = GetInstanceTypeRes {
+        instance_type: state.stacks[swarm_pos.unwrap()].ec2.clone(),
+    };
+
+    let value = serde_json::to_value(instance_res)?;
+
+    return Ok(SuperSwarmResponse {
+        success: true,
+        message: "instance type".to_string(),
+        data: Some(value),
+    });
 }

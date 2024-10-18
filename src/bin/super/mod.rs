@@ -14,7 +14,7 @@ use state::Super;
 use util::{
     accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
     get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
-    update_aws_instance_type,
+    get_swarm_instance_type, update_aws_instance_type,
 };
 
 use crate::checker::swarm_checker;
@@ -346,6 +346,20 @@ pub async fn super_handle(
                             data: None,
                         }
                     }
+                    Err(err) => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetInstanceType(info) => {
+                let res: SuperSwarmResponse;
+                match get_swarm_instance_type(info, &state) {
+                    Ok(result) => res = result,
                     Err(err) => {
                         res = SuperSwarmResponse {
                             success: false,
