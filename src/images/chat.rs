@@ -65,11 +65,18 @@ fn chat(node: &ChatImage, mongo: &MongoImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 
-    let env = vec![format!(
-        "MONGODB_URL=mongodb://{}:{}",
-        domain(&mongo.name),
-        mongo.http_port
-    )];
+    let env = vec![
+        format!(
+            "MONGODB_URL=mongodb://{}:{}",
+            domain(&mongo.name),
+            mongo.http_port
+        ),
+        format!("PUBLIC_APP_NAME=SphinxChat"),
+        format!("PUBLIC_APP_ASSETS=chatui"),
+        format!("PUBLIC_APP_COLOR=indigo"),
+        format!("PUBLIC_APP_DESCRIPTION=\"Your knowledge companion.\""),
+    ];
+
     // let env = vec![format!(
     //     "MONGODB_URL=mongodb://{}:{}@{}:{}",
     //     mongo.user,
