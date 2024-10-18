@@ -173,7 +173,7 @@ pub async fn super_handle(
                     pass: Some("".to_string()),
                     ec2: Some(swarm.instance),
                     note: Some(swarm.description),
-                    default_host: Some("".to_string()),
+                    default_host: "".to_string(),
                     ec2_instance_id: "".to_string(),
                 };
 
@@ -232,7 +232,7 @@ pub async fn super_handle(
                     pass: Some(c.password),
                     user: Some(c.username),
                     ec2: Some("".to_string()),
-                    default_host: Some(c.default_host),
+                    default_host: c.default_host,
                     ec2_instance_id: "".to_string(),
                 };
                 let hm =

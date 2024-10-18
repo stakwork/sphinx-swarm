@@ -154,18 +154,18 @@ pub async fn get_child_swarm_config(
     })
 }
 
-async fn swarm_cmd(cmd: Cmd, host: Option<String>, token: &str) -> Result<Response, Error> {
+async fn swarm_cmd(cmd: Cmd, host: String, token: &str) -> Result<Response, Error> {
     let url = get_child_base_route(host)?;
     let cmd_res = send_cmd_request(cmd, "SWARM", &url, Some("x-jwt"), Some(&token)).await?;
     Ok(cmd_res)
 }
 
-pub fn get_child_base_route(host: Option<String>) -> Result<String, Error> {
-    if host.is_none() {
+pub fn get_child_base_route(host: String) -> Result<String, Error> {
+    if host.is_empty() {
         return Err(anyhow!("child swarm default host not provided"));
     };
 
-    return Ok(format!("https://app.{}/api", host.unwrap()));
+    return Ok(format!("https://app.{}/api", host));
 
     // return Ok(format!("http://{}/api", host.unwrap()));
 }
@@ -583,7 +583,7 @@ pub async fn create_swarm_ec2(
     let new_swarm = RemoteStack {
         host: host,
         ec2: Some(info.instance_type.clone()),
-        default_host: Some(default_host),
+        default_host: default_host,
         note: Some("".to_string()),
         user: Some("".to_string()),
         pass: Some("".to_string()),
@@ -670,11 +670,11 @@ pub async fn update_aws_instance_type(
 
     let current_swarm: &RemoteStack = &state.stacks[unwrapped_swarm_pos];
 
-    let defailt_domain = format!("*.{}", current_swarm.default_host.clone().unwrap());
+    let defailt_domain = format!("*.{}", current_swarm.default_host.clone());
 
     let mut domain_names = vec![defailt_domain.as_str()];
 
-    if current_swarm.default_host.clone().unwrap() != current_swarm.host {
+    if current_swarm.default_host.clone() != current_swarm.host {
         domain_names.push(&current_swarm.host)
     }
 

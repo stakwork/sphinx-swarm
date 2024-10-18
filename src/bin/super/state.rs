@@ -21,7 +21,7 @@ pub struct RemoteStack {
     pub ec2: Option<String>,
     pub user: Option<String>,
     pub pass: Option<String>,
-    pub default_host: Option<String>,
+    pub default_host: String,
     pub ec2_instance_id: String,
 }
 
