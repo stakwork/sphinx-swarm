@@ -327,3 +327,16 @@ export async function create_new_swarm_ec2({
 export async function get_aws_instance_types() {
   return await swarmCmd("GetAwsInstanceTypes");
 }
+
+export async function update_aws_instance_type({
+  instance_id,
+  instance_type,
+}: {
+  instance_id: string;
+  instance_type: string;
+}) {
+  return await swarmCmd("UpdateAwsInstanceType", {
+    instance_id,
+    instance_type,
+  });
+}
