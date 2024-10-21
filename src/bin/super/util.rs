@@ -316,6 +316,8 @@ async fn create_ec2_instance(
 
     let key_name = getenv("AWS_KEY_NAME")?;
 
+    let swarm_updater_password = getenv("SWARM_UPDATER_PASSWORD")?;
+
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
 
     // Load the AWS configuration
@@ -328,51 +330,85 @@ async fn create_ec2_instance(
 
     let user_data_script = format!(
         r#"#!/bin/bash
-        cd /home/admin &&
-        pwd &&
-        echo "INSTALLING DEPENDENCIES..." && \
-        curl -fsSL https://get.docker.com/ -o get-docker.sh && \
-        sh get-docker.sh && \
-        sudo usermod -aG docker $(whoami) && \
-        sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose && \
-        sudo chmod +x /usr/local/bin/docker-compose && \
-        docker-compose version && \
-        sudo apt update && \
-        sudo apt install git && \
-        sleep 10 && \
-        pwd && \
-        git clone https://github.com/stakwork/sphinx-swarm.git && \
-        cd sphinx-swarm && \
-        docker network create sphinx-swarm && \
-        touch .env && \
-
-        echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
-    echo 'NETWORK=bitcoin' >> .env && \
-    echo 'AWS_ACCESS_KEY_ID={aws_access_key_id}' >> .env && \
-    echo 'AWS_SECRET_ACCESS_KEY={aws_access_token}' >> .env && \
-    echo 'AWS_REGION=us-east-1a' >> .env && \
-    echo 'AWS_S3_REGION_NAME=us-east-1' >> .env && \
-    echo 'STAKWORK_ADD_NODE_TOKEN={stakwork_token}' >> .env && \
-    echo 'STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}' >> .env && \
-    echo 'NO_REMOTE_SIGNER=true' >> .env && \
-    echo 'EXTERNAL_LND_MACAROON={lnd_macaroon}' >> .env && \
-    echo 'EXTERNAL_LND_ADDRESS={lnd_address}' >> .env && \
-    echo 'EXTERNAL_LND_CERT={lnd_cert}' >> .env && \
-    echo 'YOUTUBE_API_TOKEN={youtube_token}' >> .env && \
-    echo 'SWARM_UPDATER_PASSWORD=-' >> .env && \
-    echo 'JARVIS_FEATURE_FLAG_SCHEMA=true' >> .env && \
-    echo 'BACKUP_KEY=' >> .env && \
-    echo 'FEATURE_FLAG_TEXT_EMBEDDINGS=true' >> .env && \
-    echo 'TWITTER_BEARER={twitter_token}' >> .env && \
-    echo 'SUPER_TOKEN={super_token}' >> .env && \
-    echo 'SUPER_URL={super_url}' >> .env && \
-    echo 'NAV_BOLTWALL_SHARED_HOST={custom_domain}' >> .env && \
-    echo 'SECOND_BRAIN_ONLY=true' >> .env && \
-
-    sleep 30 && \
-    ./restart-second-brain.sh
-        "#
+      su - admin -c '
+          cd /home/admin &&
+          pwd &&
+          echo "INSTALLING DEPENDENCIES..." && \
+          curl -fsSL https://get.docker.com/ -o get-docker.sh && \
+          sh get-docker.sh && \
+          sudo usermod -aG docker $USER && \
+          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose && \
+          sudo chmod +x /usr/local/bin/docker-compose && \
+          docker-compose version && \
+          sudo apt update && \
+          sudo apt install -y git && \
+          
+          # Create Docker network
+          echo "Creating Docker network..." && \
+          newgrp docker <<EOF
+  docker network create sphinx-swarm
+  EOF
+          
+          sleep 10 && \
+          pwd && \
+          cd /home/admin && \
+          git clone https://github.com/stakwork/sphinx-swarm.git && \
+          cd sphinx-swarm && \
+          pwd && \
+          touch .env && \
+          
+          # Populate the .env file
+          echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
+          echo "NETWORK=bitcoin" >> .env && \
+          echo "AWS_ACCESS_KEY_ID={aws_access_key_id}" >> .env && \
+          echo "AWS_SECRET_ACCESS_KEY={aws_access_token}" >> .env && \
+          echo "AWS_REGION=us-east-1a" >> .env && \
+          echo "AWS_S3_REGION_NAME=us-east-1" >> .env && \
+          echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env && \
+          echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env && \
+          echo "NO_REMOTE_SIGNER=true" >> .env && \
+          echo "EXTERNAL_LND_MACAROON={lnd_macaroon}" >> .env && \
+          echo "EXTERNAL_LND_ADDRESS={lnd_address}" >> .env && \
+          echo "EXTERNAL_LND_CERT={lnd_cert}" >> .env && \
+          echo "YOUTUBE_API_TOKEN={youtube_token}" >> .env && \
+          echo "SWARM_UPDATER_PASSWORD={swarm_updater_password}" >> .env && \
+          echo "JARVIS_FEATURE_FLAG_SCHEMA=true" >> .env && \
+          echo "BACKUP_KEY=" >> .env && \
+          echo "FEATURE_FLAG_TEXT_EMBEDDINGS=true" >> .env && \
+          echo "TWITTER_BEARER={twitter_token}" >> .env && \
+          echo "SUPER_TOKEN={super_token}" >> .env && \
+          echo "SUPER_URL={super_url}" >> .env && \
+          echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
+          echo "SECOND_BRAIN_ONLY=true" >> .env && \
+          
+          sleep 60 && \
+          
+          echo "Setting up Restarter server..." && \
+          sudo apt install -y nodejs npm && \
+          sudo npm install pm2 -g
+        '
+          
+          echo 'module.exports = {{
+            apps: [
+              {{
+                name: "restarter",
+                script: "./restarter.js",
+                env: {{
+                  SECOND_BRAIN: "true",
+                  PASSWORD: "{swarm_updater_password}",
+                }},
+              }},
+            ],
+          }};' > /home/admin/sphinx-swarm/ecosystem.config.js
+          
+        su - admin -c '
+          cd /home/admin/sphinx-swarm && \
+          pm2 start ecosystem.config.js && \
+          ./restart-second-brain.sh
+      '
+      "#
     );
+
     let tag = Tag::builder()
         .key("Name")
         .value(swarm_name) // Replace with the desired instance name
