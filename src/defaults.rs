@@ -33,6 +33,10 @@ impl Default for Stack {
             host = None
         }
 
+        if env_is_true("CHATUI_ONLY") {
+            return only_local_chat_ui();
+        }
+
         if env_is_true("SPHINXV1") {
             return sphinxv1_only(&network, host);
         }

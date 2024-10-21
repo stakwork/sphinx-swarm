@@ -95,18 +95,38 @@ pub fn external_lnd() -> Option<ExternalLnd> {
     None
 }
 
-pub fn only_chat_ui() -> Stack {
+/*
+localtest:
+export CHATUI_ONLY=true
+llama-server --hf-repo microsoft/Phi-3-mini-4k-instruct-gguf --hf-file Phi-3-mini-4k-instruct-q4.gguf -c 4096
+*/
+pub fn only_local_chat_ui() -> Stack {
+    println!("only_local_chat_ui");
+    // let mut llamacpp = crate::images::llama::LlamaImage::new("llama", "8080");
+    // llamacpp.model("Phi-3-mini-4k-instruct-q4.gguf");
     let mongo = crate::images::mongo::MongoImage::new("mongo", "latest");
     let mut chat = crate::images::chat::ChatImage::new("chat-ui", "sha-165b40b");
     chat.links(vec!["mongo"]);
     let nodes = vec![
+        // Node::Internal(Image::Llama(llamacpp)),
         Node::Internal(Image::Mongo(mongo)),
         Node::Internal(Image::Chat(chat)),
     ];
-    return Stack {
-        network: "regtest".to_string(),
+    return default_local_stack(None, "regtest", nodes);
+}
+
+pub fn default_local_stack(host: Option<String>, network: &str, nodes: Vec<Node>) -> Stack {
+    Stack {
+        network: network.to_string(),
         nodes,
+        host,
+        users: vec![Default::default()],
         jwt_key: secrets::random_word(16),
-        ..Default::default()
-    };
+        ready: false,
+        ip: None,
+        auto_update: None,
+        custom_2b_domain: None,
+        global_mem_limit: None,
+        backup_services: None,
+    }
 }

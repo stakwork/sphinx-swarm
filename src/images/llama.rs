@@ -1,7 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{add_gpus_to_host_config, domain, exposed_ports, host_config};
+use crate::utils::{add_gpus_to_host_config, domain, exposed_ports, getenv, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -20,7 +20,7 @@ pub struct LlamaImage {
 }
 
 // https://huggingface.co/TheBloke/Llama-2-7B-GGUF
-const DEFAULT_MODEL: &str = "models/llama-2-7b.Q4_K_M.gguf";
+const DEFAULT_MODEL: &str = "llama-2-7b.Q4_K_M.gguf";
 const VERSION: &str = "server-cuda";
 
 impl LlamaImage {
@@ -36,6 +36,9 @@ impl LlamaImage {
     }
     pub fn set_pwd(&mut self, pwd: &str) {
         self.pwd = Some(pwd.to_string());
+    }
+    pub fn model(&mut self, model: &str) {
+        self.model = model.to_string();
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
@@ -78,7 +81,7 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
 
     let ports = vec![img.port.clone()];
 
-    let model_path = format!("/{}", img.model);
+    let model_path = format!("/models/{}", img.model);
     let env = vec![
         format!("LLAMA_ARG_PORT={}", img.port),
         format!("LLAMA_ARG_MODEL={}", model_path),
@@ -92,14 +95,21 @@ fn llama(img: &LlamaImage) -> Result<Config<String>> {
             cwd.to_string_lossy().to_string()
         }
     };
-    let model_vol = format!("{}/{}:/{}", pwd, img.model, model_path);
+    let model_vol = format!("{}/models/{}:{}", pwd, img.model, model_path);
     log::info!("model_vol: {}", model_vol);
     let extra_vols = vec![model_vol];
 
     let mut hc = host_config(&img.name, ports.clone(), root_vol, Some(extra_vols), None).unwrap();
     add_gpus_to_host_config(&mut hc, 1);
+
+    let mut version = VERSION;
+    if let Ok(lcput) = getenv("LLAMA_CPU_TEST") {
+        if lcput == "true" {
+            version = "server";
+        }
+    }
     let mut c = Config {
-        image: Some(format!("{}:{}", image, VERSION)),
+        image: Some(format!("{}:{}", image, version)),
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: Some(hc),
