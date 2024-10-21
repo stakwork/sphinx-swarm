@@ -37,6 +37,7 @@
     update_child_swarm_containers,
     get_aws_instance_types,
     restart_child_swarm_containers,
+    update_aws_instance_type,
   } from "../../../../../app/src/api/swarm";
 
   let open_create_edit = false;
@@ -489,6 +490,10 @@
         vanity_input_width = max_input_with;
         swarm_name_width = max_input_with;
         show_notification = true;
+
+        await getConfig();
+
+        await getConfigSortByUnhealthy();
       } else {
         error_notification = true;
       }

@@ -38,3 +38,9 @@ export function isValidVanityAddress(vanity_address: string) {
 
   return "";
 }
+
+export function extract_instance_type(instance_type: string) {
+  const split_array = instance_type.split(" ");
+  const temp_instance = split_array[1];
+  return temp_instance.slice(1, temp_instance.length - 1);
+}

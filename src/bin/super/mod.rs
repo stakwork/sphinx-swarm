@@ -1,6 +1,7 @@
 mod auth_token;
 mod checker;
 mod cmd;
+mod route53;
 mod routes;
 mod state;
 mod util;
@@ -11,8 +12,9 @@ use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
 use util::{
-    accessing_child_container_controller, add_new_swarm_details, get_aws_instance_types,
-    get_child_swarm_config, get_child_swarm_containers,
+    accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
+    get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
+    get_swarm_instance_type, update_aws_instance_type,
 };
 
 use crate::checker::swarm_checker;
@@ -171,7 +173,8 @@ pub async fn super_handle(
                     pass: Some("".to_string()),
                     ec2: Some(swarm.instance),
                     note: Some(swarm.description),
-                    default_host: Some("".to_string()),
+                    default_host: "".to_string(),
+                    ec2_instance_id: "".to_string(),
                 };
 
                 let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
@@ -189,6 +192,7 @@ pub async fn super_handle(
                             user: state.stacks[ui].user.clone(),
                             pass: state.stacks[ui].pass.clone(),
                             default_host: state.stacks[ui].default_host.clone(),
+                            ec2_instance_id: state.stacks[ui].ec2_instance_id.clone(),
                         };
                         must_save_stack = true;
                         hm = AddSwarmResponse {
@@ -228,9 +232,11 @@ pub async fn super_handle(
                     pass: Some(c.password),
                     user: Some(c.username),
                     ec2: Some("".to_string()),
-                    default_host: Some(c.default_host),
+                    default_host: c.default_host,
+                    ec2_instance_id: "".to_string(),
                 };
-                let hm = add_new_swarm_details(&mut state, swarm_details, &mut must_save_stack);
+                let hm =
+                    add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);
 
                 Some(serde_json::to_string(&hm)?)
             }
@@ -309,8 +315,9 @@ pub async fn super_handle(
             }
             SwarmCmd::CreateNewEc2Instance(info) => {
                 let res: SuperSwarmResponse;
-                match create_swarm_ec2(&info).await {
+                match create_swarm_ec2(&info, &mut state).await {
                     Ok(_) => {
+                        must_save_stack = true;
                         res = SuperSwarmResponse {
                             success: true,
                             message: format!("{} was created successfully", &info.name.clone()),
@@ -326,6 +333,41 @@ pub async fn super_handle(
                     }
                 }
 
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateAwsInstanceType(info) => {
+                let res: SuperSwarmResponse;
+                match update_aws_instance_type(info, &mut state).await {
+                    Ok(_) => {
+                        must_save_stack = true;
+                        res = SuperSwarmResponse {
+                            success: true,
+                            message: "Instance updated successfully".to_string(),
+                            data: None,
+                        }
+                    }
+                    Err(err) => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetInstanceType(info) => {
+                let res: SuperSwarmResponse;
+                match get_swarm_instance_type(info, &state) {
+                    Ok(result) => res = result,
+                    Err(err) => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
                 Some(serde_json::to_string(&res)?)
             }
         },

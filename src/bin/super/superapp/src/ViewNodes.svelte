@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowLeft, UpdateNow, Stop } from "carbon-icons-svelte";
-  import { selectedNode } from "./store";
+  import { selectedNode, remotes } from "./store";
   import { onMount } from "svelte";
   import {
     get_child_swarm_config,
@@ -9,6 +9,9 @@
     start_child_swarm_containers,
     stop_child_swarm_containers,
     update_child_swarm_containers,
+    get_aws_instance_types,
+    update_aws_instance_type,
+    get_swarm_instance_type,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -21,7 +24,12 @@
     ToolbarMenuItem,
     ToastNotification,
     ToolbarBatchActions,
+    Modal,
+    InlineNotification,
+    Select,
+    SelectItem,
   } from "carbon-components-svelte";
+  import type { Remote } from "./types/types";
 
   let loading = true;
   let selectedRowIds = [];
@@ -32,6 +40,13 @@
   $: sortedNodes = [];
   $: nodes_to_be_modified = [];
   let show_notification = false;
+  let aws_instance_types = [];
+  let current_instance_type = "";
+  let node: Remote | null = null;
+  let open_update_instance_type = false;
+  let isSubmitting = false;
+  let error_notification = false;
+  let selected_instance = "";
 
   async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
@@ -72,9 +87,86 @@
     loading = false;
   }
 
+  async function getAwsInstanceType() {
+    try {
+      const instanceTypes = await get_aws_instance_types();
+      if (instanceTypes.success) {
+        aws_instance_types = [...instanceTypes.data];
+      }
+    } catch (error) {
+      console.log("Error getting AWS Instance Type: ", error);
+    }
+  }
+
+  async function get_current_service_details() {
+    for (let i = 0; i < $remotes.length; i++) {
+      const remote = $remotes[i];
+      if (remote.host === remote.host) {
+        node = { ...remote };
+        try {
+          const response = await get_swarm_instance_type({
+            instance_id: remote.ec2_instance_id,
+          });
+          if (response.success) {
+            current_instance_type = response.data.instance_type;
+          }
+        } catch (error) {
+          console.log("ERORR GETTING SWARM INSTANCE TYPE: ", error);
+        }
+        return;
+      }
+    }
+  }
+
+  function handleOpenUpdateInstanceType() {
+    selected_instance = current_instance_type;
+    open_update_instance_type = true;
+  }
+
+  async function handleSubmitNewInstanceType() {
+    isSubmitting = true;
+    if (!node || !node.ec2_instance_id) {
+      error_notification = true;
+      message = "Can't edit this instance type currently";
+      isSubmitting = false;
+      return;
+    }
+    try {
+      const result = await update_aws_instance_type({
+        instance_id: node.ec2_instance_id,
+        instance_type: selected_instance,
+      });
+
+      message = result.message;
+      if (result.success) {
+        errorMessage = false;
+        show_notification = true;
+        // close modal
+        open_update_instance_type = false;
+        current_instance_type = selected_instance;
+      } else {
+        error_notification = true;
+      }
+    } catch (error) {
+      console.log("ERROR EDITING INSTANCE TYPE: ", JSON.stringify(error));
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  function handleOnCloseUpdateInstanceType() {
+    selected_instance = current_instance_type;
+    isSubmitting = false;
+    open_update_instance_type = false;
+  }
+
   onMount(async () => {
     // get internal node for this service
-    setupNodes();
+    await setupNodes();
+
+    await getAwsInstanceType();
+
+    await get_current_service_details();
   });
 
   function findContainer(node_name: string) {
@@ -321,6 +413,10 @@
             <ToolbarMenuItem on:click={() => upgradeAllContainer()} hasDivider
               >Upgrade All</ToolbarMenuItem
             >
+            <ToolbarMenuItem
+              on:click={() => handleOpenUpdateInstanceType()}
+              hasDivider>Update Instance Type</ToolbarMenuItem
+            >
           </ToolbarMenu>
         </ToolbarContent>
       </Toolbar>
@@ -352,6 +448,45 @@
         {/if}
       </svelte:fragment>
     </DataTable>
+    <Modal
+      bind:open={open_update_instance_type}
+      modalHeading="Update Ec2 Instance Type"
+      primaryButtonDisabled={selected_instance === current_instance_type ||
+        !selected_instance ||
+        isSubmitting}
+      primaryButtonText={isSubmitting ? "Loading..." : "Update"}
+      secondaryButtonText="Cancel"
+      on:click:button--secondary={() => (open_update_instance_type = false)}
+      on:open
+      on:close={handleOnCloseUpdateInstanceType}
+      on:submit={handleSubmitNewInstanceType}
+    >
+      {#if error_notification}
+        <InlineNotification
+          kind="error"
+          title="Error:"
+          subtitle={message}
+          timeout={3000}
+          on:close={(e) => {
+            e.preventDefault();
+            error_notification = false;
+          }}
+        />
+      {/if}
+      <div class="select_instance_container">
+        <Select
+          on:change={(e) => (selected_instance = e.target.value)}
+          helperText="Select Ec2 Instance Size"
+          labelText="Ec2 Instance Size"
+          selected={selected_instance}
+        >
+          <SelectItem value={""} text={"Select Size"} />
+          {#each aws_instance_types as option}
+            <SelectItem value={option.value} text={option.name} />
+          {/each}
+        </Select>
+      </div>
+    </Modal>
   {/if}
 </main>
 
