@@ -402,6 +402,9 @@ async fn create_ec2_instance(
           }};' > /home/admin/sphinx-swarm/ecosystem.config.js
           
         su - admin -c '
+        cd /home/admin && \
+        wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb && \
+        sudo dpkg -i amazon-ssm-agent.deb
           cd /home/admin/sphinx-swarm && \
           pm2 start ecosystem.config.js && \
           ./restart-second-brain.sh
