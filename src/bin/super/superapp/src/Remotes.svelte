@@ -473,10 +473,15 @@
 
   async function handleSubmitCreateEc2() {
     isSubmitting = true;
+
+    if (vanity_address) {
+      `${vanity_address}${domain}`;
+    }
+
     try {
       const data = {
         name: `${name}${swarm_name_suffix}`,
-        vanity_address: `${vanity_address}${domain}`,
+        vanity_address,
         instance_type: selected_instance,
       };
 
