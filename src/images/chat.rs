@@ -1,7 +1,7 @@
 use super::*;
 use crate::config::Node;
 use crate::images::mongo::MongoImage;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::{container::Config, Docker};
@@ -22,7 +22,7 @@ impl ChatImage {
         Self {
             name: name.to_string(),
             version: version.to_string(),
-            http_port: "8282".to_string(),
+            http_port: "3000".to_string(),
             links: vec![],
             host: None,
         }
@@ -65,7 +65,7 @@ fn chat(node: &ChatImage, mongo: &MongoImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 
-    let env = vec![
+    let mut env = vec![
         format!(
             "MONGODB_URL=mongodb://{}:{}",
             domain(&mongo.name),
@@ -76,6 +76,27 @@ fn chat(node: &ChatImage, mongo: &MongoImage) -> Config<String> {
         format!("PUBLIC_APP_COLOR=indigo"),
         format!("PUBLIC_APP_DESCRIPTION=\"Your knowledge companion.\""),
     ];
+    if let Ok(hf_token) = getenv("HF_TOKEN") {
+        env.push(format!("HF_TOKEN={}", hf_token));
+    }
+    let modelsenv = r#"[
+        {
+            "name": "Local microsoft/Phi-3-mini-4k-instruct-gguf",
+            "tokenizer": "microsoft/Phi-3-mini-4k-instruct-gguf",
+            "preprompt": "",
+            "parameters": {
+                "stop": ["<|end|>", "<|endoftext|>", "<|assistant|>"],
+                "temperature": 0.7,
+                "max_new_tokens": 1024,
+                "truncate": 3071
+            },
+            "endpoints": [{
+                "type" : "llamacpp",
+                "baseURL": "http://host.docker.internal:8080"
+            }],
+        },
+    ]`"#;
+    env.push(modelsenv.to_string());
 
     // let env = vec![format!(
     //     "MONGODB_URL=mongodb://{}:{}@{}:{}",
