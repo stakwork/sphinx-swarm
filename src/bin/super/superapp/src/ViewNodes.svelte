@@ -101,7 +101,7 @@
   async function get_current_service_details() {
     for (let i = 0; i < $remotes.length; i++) {
       const remote = $remotes[i];
-      if (remote.host === remote.host) {
+      if (remote.host === $selectedNode) {
         node = { ...remote };
         try {
           const response = await get_swarm_instance_type({
