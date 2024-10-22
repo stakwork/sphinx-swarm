@@ -577,6 +577,12 @@ pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
 ) -> Result<(), Error> {
+    let instance_type = get_instance(&info.instance_type);
+
+    if instance_type.is_none() {
+        return Err(anyhow!("Invalid instance type"));
+    }
+
     if let Some(vanity_address) = &info.vanity_address {
         if !vanity_address.is_empty() {
             if let Some(subdomain) = vanity_address.strip_suffix(".sphinx.chat") {
@@ -831,4 +837,17 @@ pub fn get_swarm_instance_type(
         message: "instance type".to_string(),
         data: Some(value),
     });
+}
+
+fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
+    let instance_types = instance_types();
+    let postion = instance_types
+        .iter()
+        .position(|instance| instance.value == instance_type);
+
+    if let None = postion {
+        return None;
+    }
+
+    return Some(instance_types[postion.unwrap()].clone());
 }
