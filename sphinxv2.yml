@@ -6,7 +6,7 @@ services:
   reverse-proxy:
     image: traefik:v2.2.1
     container_name: traefik.sphinx
-    restart: on-failure
+    restart: unless-stopped
     networks:
       - sphinx-swarm
     command:
@@ -63,7 +63,7 @@ services:
       - "traefik.http.routers.elements.tls=true"
       - "traefik.http.routers.elements.tls.certresolver=myresolver"
       - "traefik.http.routers.elements.entrypoints=websecure"
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
       - DOCKER_RUN=true # client use sphinx-swarm network

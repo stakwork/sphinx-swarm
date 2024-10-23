@@ -6,7 +6,7 @@ services:
   load_balancer:
     image: traefik:v2.2.1
     container_name: load_balancer
-    restart: on-failure
+    restart: unless-stopped
     networks:
       - sphinx-swarm
     command:
@@ -61,7 +61,7 @@ services:
       - "traefik.http.routers.elements.tls=true"
       - "traefik.http.routers.elements.tls.certresolver=myresolver"
       - "traefik.http.routers.elements.entrypoints=websecure"
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - DOCKER_RUN=true 
       - ROCKET_ADDRESS=0.0.0.0
