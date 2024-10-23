@@ -24,6 +24,8 @@ const DEFAULT_MODEL: &str = "llama-2-7b.Q4_K_M.gguf";
 const VERSION: &str = "server-cuda";
 
 // pwd: /home/admin/sphinx-swarm
+// to dl: wget -b url
+// tail wget-log
 
 impl LlamaImage {
     pub fn new(name: &str, port: &str) -> Self {

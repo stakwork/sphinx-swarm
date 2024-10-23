@@ -96,7 +96,8 @@ fn jamie(node: &JamieImage, mongo: &MongoImage, llama_opt: &Option<LlamaImage>) 
         }},
         "endpoints": [{{
             "type" : "llamacpp",
-            "baseURL": "http://{}:{}"
+            "url": "http://{}:{}",
+            "accessToken": "xyz"
         }}],
     }},
 ]`"#,
