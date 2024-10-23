@@ -43,7 +43,7 @@ impl DockerConfig for JamieImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let mongo = li.find_mongo().context("Chat: No Mongo")?;
-        let llama = li.find_llama().context("Chat: No Llama")?;
+        let llama = li.find_llama();
         Ok(jamie(self, &mongo, &llama))
     }
 }
@@ -58,7 +58,7 @@ impl DockerHubImage for JamieImage {
     }
 }
 
-fn jamie(node: &JamieImage, mongo: &MongoImage, llama: &LlamaImage) -> Config<String> {
+fn jamie(node: &JamieImage, mongo: &MongoImage, llama_opt: &Option<LlamaImage>) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
     let image = format!("{}/{}", repo.org, repo.repo);
@@ -81,27 +81,29 @@ fn jamie(node: &JamieImage, mongo: &MongoImage, llama: &LlamaImage) -> Config<St
     if let Ok(hf_token) = getenv("HF_TOKEN") {
         env.push(format!("HF_TOKEN={}", hf_token));
     }
-    let dotenvlocal = format!(
-        r#"MODELS=`[
-            {{
-                "name": "Local Jamie",
-                "preprompt": "",
-                "parameters": {{
-                    "stop": ["<|end|>", "<|endoftext|>", "<|assistant|>"],
-                    "temperature": 0.7,
-                    "max_new_tokens": 1024,
-                    "truncate": 3071
-                }},
-                "endpoints": [{{
-                    "type" : "llamacpp",
-                    "baseURL": "http://{}:{}"
-                }}],
-            }},
-        ]`"#,
-        domain(&llama.name),
-        llama.port
-    );
-    env.push(format!("DOTENV_LOCAL={}", dotenvlocal));
+    if let Some(llama) = llama_opt {
+        let dotenvlocal = format!(
+            r#"MODELS=`[
+    {{
+        "name": "Local Jamie",
+        "preprompt": "",
+        "parameters": {{
+            "stop": ["<|end|>", "<|endoftext|>", "<|assistant|>"],
+            "temperature": 0.7,
+            "max_new_tokens": 1024,
+            "truncate": 3071
+        }},
+        "endpoints": [{{
+            "type" : "llamacpp",
+            "baseURL": "http://{}:{}"
+        }}],
+    }},
+]`"#,
+            domain(&llama.name),
+            llama.port
+        );
+        env.push(format!("DOTENV_LOCAL={}", dotenvlocal));
+    }
 
     // let env = vec![format!(
     //     "MONGODB_URL=mongodb://{}:{}@{}:{}",
