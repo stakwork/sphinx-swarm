@@ -577,21 +577,35 @@ pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
 ) -> Result<(), Error> {
+    let mut actual_vanity_address: Option<String> = None;
+
+    let instance_type = get_instance(&info.instance_type);
+
+    if instance_type.is_none() {
+        return Err(anyhow!("Invalid instance type"));
+    }
+
     if let Some(vanity_address) = &info.vanity_address {
         if !vanity_address.is_empty() {
             if let Some(subdomain) = vanity_address.strip_suffix(".sphinx.chat") {
+                if subdomain.is_empty() {
+                    return Err(anyhow!("Provide a valid vanity address"));
+                }
+
                 let domain_status = is_valid_domain(subdomain.to_string());
                 if !domain_status.is_empty() {
                     return Err(anyhow!(domain_status));
                 }
+                actual_vanity_address = Some(vanity_address.to_string());
             } else {
                 return Err(anyhow!("Vanity Address doesn't match the expected format."));
             }
         }
     }
+
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
-        info.vanity_address.clone(),
+        actual_vanity_address.clone(),
         info.instance_type.clone(),
     )
     .await?;
@@ -606,7 +620,7 @@ pub async fn create_swarm_ec2(
 
     let mut host = default_host.clone();
 
-    if let Some(custom_domain) = &info.vanity_address {
+    if let Some(custom_domain) = &actual_vanity_address {
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
@@ -831,4 +845,17 @@ pub fn get_swarm_instance_type(
         message: "instance type".to_string(),
         data: Some(value),
     });
+}
+
+fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
+    let instance_types = instance_types();
+    let postion = instance_types
+        .iter()
+        .position(|instance| instance.value == instance_type);
+
+    if let None = postion {
+        return None;
+    }
+
+    return Some(instance_types[postion.unwrap()].clone());
 }
