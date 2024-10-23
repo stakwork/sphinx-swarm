@@ -25,7 +25,7 @@ pub struct RemoteStack {
     pub ec2_instance_id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct AwsInstanceType {
     pub name: String,
     pub value: String,
