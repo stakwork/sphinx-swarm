@@ -4,11 +4,11 @@ pub mod broker;
 pub mod btc;
 pub mod builtin;
 pub mod cache;
-pub mod chat;
 pub mod cln;
 pub mod config_server;
 pub mod dufs;
 pub mod elastic;
+pub mod jamie;
 pub mod jarvis;
 pub mod llama;
 pub mod lnd;
@@ -64,7 +64,7 @@ pub enum Image {
     Whisker(whisker::WhiskerImage),
     Runner(runner::RunnerImage),
     Mongo(mongo::MongoImage),
-    Chat(chat::ChatImage),
+    Jamie(jamie::JamieImage),
 }
 
 pub struct Repository {
@@ -117,7 +117,7 @@ impl Image {
             Image::Whisker(n) => n.name.clone(),
             Image::Runner(n) => n.name.clone(),
             Image::Mongo(n) => n.name.clone(),
-            Image::Chat(n) => n.name.clone(),
+            Image::Jamie(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -148,7 +148,7 @@ impl Image {
             Image::Whisker(_n) => "Whisker",
             Image::Runner(_n) => "Runner",
             Image::Mongo(_n) => "Mongo",
-            Image::Chat(_n) => "Chat",
+            Image::Jamie(_n) => "Jamie",
         }
         .to_string()
     }
@@ -180,7 +180,7 @@ impl Image {
             Image::Whisker(_n) => (),
             Image::Runner(n) => n.version = version.to_string(),
             Image::Mongo(n) => n.version = version.to_string(),
-            Image::Chat(n) => n.version = version.to_string(),
+            Image::Jamie(n) => n.version = version.to_string(),
         };
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -271,7 +271,7 @@ impl DockerConfig for Image {
             Image::Whisker(n) => n.make_config(nodes, docker).await,
             Image::Runner(n) => n.make_config(nodes, docker).await,
             Image::Mongo(n) => n.make_config(nodes, docker).await,
-            Image::Chat(n) => n.make_config(nodes, docker).await,
+            Image::Jamie(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -305,7 +305,7 @@ impl DockerHubImage for Image {
             Image::Whisker(n) => n.repo(),
             Image::Runner(n) => n.repo(),
             Image::Mongo(n) => n.repo(),
-            Image::Chat(n) => n.repo(),
+            Image::Jamie(n) => n.repo(),
         }
     }
 }
@@ -445,6 +445,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_llama(&self) -> Option<llama::LlamaImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_llama() {
+                return Some(i);
+            }
+        }
+        None
+    }
     pub fn find_mongo(&self) -> Option<mongo::MongoImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_mongo() {
@@ -568,6 +576,12 @@ impl Image {
         match self {
             Image::Mongo(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Mongo".to_string())),
+        }
+    }
+    pub fn as_llama(&self) -> anyhow::Result<llama::LlamaImage> {
+        match self {
+            Image::Llama(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Llama".to_string())),
         }
     }
 }

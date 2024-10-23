@@ -293,7 +293,7 @@ impl Stack {
                 }
                 Image::Runner(r) => Node::Internal(Image::Runner(r)),
                 Image::Mongo(m) => Node::Internal(Image::Mongo(m)),
-                Image::Chat(c) => Node::Internal(Image::Chat(c)),
+                Image::Jamie(c) => Node::Internal(Image::Jamie(c)),
             },
         });
         Stack {
