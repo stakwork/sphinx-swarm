@@ -19,6 +19,10 @@ async fn main() -> Result<()> {
 
     let proj = "stack";
     let stack: Stack = load_config_file(proj).await.expect("YAML CONFIG FAIL");
+    if std::env::var("ONLY_CONFIG_FILE") == Ok("true".to_string()) {
+        put_config_file(proj, &stack).await;
+        return Ok(());
+    }
 
     // put the jwt key into a var
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);

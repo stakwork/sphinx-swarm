@@ -102,13 +102,13 @@ llama-server --hf-repo microsoft/Phi-3-mini-4k-instruct-gguf --hf-file Phi-3-min
 */
 pub fn only_local_chat_ui() -> Stack {
     println!("only_local_chat_ui");
-    // let mut llamacpp = crate::images::llama::LlamaImage::new("llama", "8080");
-    // llamacpp.model("Phi-3-mini-4k-instruct-q4.gguf");
+    let mut llamacpp = crate::images::llama::LlamaImage::new("llama", "8080");
+    llamacpp.model("Phi-3-mini-4k-instruct-q4.gguf");
     let mongo = crate::images::mongo::MongoImage::new("mongo", "latest");
     let mut jamie = crate::images::jamie::JamieImage::new("jamie", "latest");
-    jamie.links(vec!["mongo"]);
+    jamie.links(vec!["mongo", "llama"]);
     let nodes = vec![
-        // Node::Internal(Image::Llama(llamacpp)),
+        Node::Internal(Image::Llama(llamacpp)),
         Node::Internal(Image::Mongo(mongo)),
         Node::Internal(Image::Jamie(jamie)),
     ];

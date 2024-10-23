@@ -11,7 +11,7 @@ services:
       - sphinx-swarm
     command:
       # - "--log.level=DEBUG"
-      - "--api.insecure=true"
+      # - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
@@ -28,7 +28,7 @@ services:
       # The HTTP port
       - 80:80
       # The Web UI (enabled by --api.insecure=true)
-      - 8080:8080
+      # - 8080:8080
       # entrypoints
       - 443:443
       - 8883:8883
