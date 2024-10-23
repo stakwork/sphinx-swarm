@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use anyhow::Result;
 use rocket::tokio;
 use serde::{Deserialize, Serialize};
@@ -88,7 +89,10 @@ pub async fn check_all_swarms() -> Result<()> {
                 }
             }
             Err(err) => {
-                log::error!("Unable to get boltwall and navfiber url: {}", err)
+                log::error!(
+                    "Unable to get boltwall and navfiber url: {}",
+                    err.to_string()
+                )
             }
         }
     }
@@ -101,7 +105,16 @@ pub async fn check_all_swarms() -> Result<()> {
 }
 
 fn get_boltwall_and_navfiber_url(host: String) -> Result<(String, String)> {
-    if host.contains("swarm") {
+    let parts: Vec<&str> = host.split('.').collect();
+
+    if parts.len() < 3 {
+        log::error!("Invalid domain structure.");
+        return Err(anyhow!("Invalid domain structure."));
+    }
+
+    let subdomain = parts[0];
+
+    if subdomain.starts_with("swarm") && is_numeric(&subdomain[5..]) {
         return Ok((
             format!("https://nav.{}/", host.clone()),
             format!("https://boltwall.{}/api/", host.clone()),
@@ -112,6 +125,10 @@ fn get_boltwall_and_navfiber_url(host: String) -> Result<(String, String)> {
         format!("https://{}/", host),
         format!("https://{}/api/", host),
     ));
+}
+
+fn is_numeric(s: &str) -> bool {
+    s.chars().all(|c| c.is_digit(10))
 }
 
 fn make_client() -> reqwest::Client {
