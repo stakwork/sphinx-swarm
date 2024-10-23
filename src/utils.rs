@@ -30,7 +30,7 @@ pub fn host_config(
         extra_hosts: extra_hosts(),
         network_mode: Some(dock::DEFAULT_NETWORK.to_string()),
         restart_policy: Some(RestartPolicy {
-            name: Some(RestartPolicyNameEnum::ON_FAILURE),
+            name: Some(RestartPolicyNameEnum::UNLESS_STOPPED),
             maximum_retry_count: None,
         }),
         log_config: local_log_config(),
