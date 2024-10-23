@@ -1,3 +1,4 @@
+use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::llama::LlamaImage;
@@ -113,7 +114,7 @@ fn jamie(node: &JamieImage, mongo: &MongoImage, llama_opt: &Option<LlamaImage>) 
     //     mongo.http_port
     // )];
 
-    let c = Config {
+    let mut c = Config {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
@@ -121,6 +122,9 @@ fn jamie(node: &JamieImage, mongo: &MongoImage, llama_opt: &Option<LlamaImage>) 
         host_config: host_config(&name, ports, root_vol, None, None),
         ..Default::default()
     };
+    if let Some(host) = &node.host {
+        c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, false))
+    }
     c
 }
 
