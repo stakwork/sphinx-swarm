@@ -6,7 +6,8 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
 use aws_sdk_ec2::types::{
-    AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag, TagSpecification,
+    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag,
+    TagSpecification,
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
@@ -516,6 +517,7 @@ async fn create_ec2_instance(
         .block_device_mappings(block_device)
         .tag_specifications(tag_specification)
         .subnet_id(subnet_id)
+        .disable_api_termination(true)
         .send()
         .map_err(|err| {
             log::error!("Error Creating instance instance: {}", err);
@@ -528,7 +530,27 @@ async fn create_ec2_instance(
     }
 
     let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
-    println!("Created instance with ID: {}", instance_id);
+    log::info!("Created instance with ID: {}", instance_id);
+
+    client
+        .modify_instance_attribute()
+        .instance_id(instance_id.clone())
+        .disable_api_termination(
+            AttributeBooleanValue::builder()
+                .set_value(Some(true))
+                .build(),
+        )
+        .send()
+        .await
+        .map_err(|err| {
+            log::error!("Error enabling termination protection: {}", err);
+            anyhow::anyhow!(err.to_string())
+        })?;
+
+    log::info!(
+        "Instance {} created and termination protection enabled.",
+        instance_id
+    );
 
     Ok((instance_id, swarm_number))
 }
