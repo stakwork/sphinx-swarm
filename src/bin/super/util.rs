@@ -17,12 +17,14 @@ use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
+use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, GetInstanceTypeByInstanceId,
     GetInstanceTypeRes, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
+use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
-use crate::state::{AwsInstanceType, RemoteStack, Super};
+use crate::state::{AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 
@@ -805,18 +807,6 @@ pub async fn update_ec2_instance_type(
     Ok(())
 }
 
-async fn make_aws_client() -> Result<Client, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
-    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-    let config = aws_config::from_env()
-        .region(region_provider)
-        .retry_config(RetryConfig::standard().with_max_attempts(10))
-        .load()
-        .await;
-
-    Ok(Client::new(&config))
-}
-
 pub fn get_swarm_instance_type(
     info: GetInstanceTypeByInstanceId,
     state: &Super,
@@ -858,4 +848,31 @@ fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
     }
 
     return Some(instance_types[postion.unwrap()].clone());
+}
+
+pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
+    let key = getenv("SWARM_TAG_KEY")?;
+    let value = getenv("SWARM_TAG_VALUE")?;
+    let aws_instances = get_swarms_by_tag(&key, &value).await?;
+
+    let mut aws_instances_hashmap: HashMap<String, InstanceFromAws> = HashMap::new();
+
+    for aws_instance in aws_instances {
+        aws_instances_hashmap.insert(aws_instance.instacne_id.clone(), aws_instance.clone());
+    }
+
+    for stack in state.stacks.iter_mut() {
+        if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
+            let aws_instance_hashmap = aws_instances_hashmap.get(&stack.ec2_instance_id).unwrap();
+            if stack.ec2.is_none() {
+                stack.ec2 = Some(aws_instance_hashmap.intance_type.clone());
+            } else {
+                if aws_instance_hashmap.intance_type != stack.ec2.clone().unwrap() {
+                    stack.ec2 = Some(aws_instance_hashmap.intance_type.clone())
+                }
+            }
+        }
+    }
+    let res = state.remove_tokens();
+    Ok(res)
 }

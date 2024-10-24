@@ -39,6 +39,12 @@ pub struct BotCred {
     pub bot_url: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
+pub struct InstanceFromAws {
+    pub instacne_id: String,
+    pub intance_type: String,
+}
+
 impl Default for Super {
     fn default() -> Self {
         Self {
