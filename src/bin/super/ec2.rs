@@ -29,7 +29,6 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
                 if instance.public_ip_address.is_some()
                     && instance.instance_id.is_some()
                     && instance.instance_type.is_some()
-                    && instance.state.is_some()
                 {
                     instances.push(InstanceFromAws {
                         instacne_id: instance.instance_id.unwrap(),
