@@ -90,9 +90,9 @@
         new_channel.push({ ...chan, confirmation });
       }
     }
-    if (notActiveExist) {
-      channel_arr = [...new_channel];
-    }
+    // if (notActiveExist) {
+    //   channel_arr = [...new_channel];
+    // }
   }
 
   let chanInterval;
