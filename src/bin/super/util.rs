@@ -6,7 +6,8 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
 use aws_sdk_ec2::types::{
-    AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag, TagSpecification,
+    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag,
+    TagSpecification,
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
@@ -17,12 +18,14 @@ use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
+use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, GetInstanceTypeByInstanceId,
     GetInstanceTypeRes, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
+use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
-use crate::state::{AwsInstanceType, RemoteStack, Super};
+use crate::state::{AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 
@@ -385,6 +388,10 @@ async fn create_ec2_instance(
 
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
 
+    let key = getenv("SWARM_TAG_KEY")?;
+
+    let value = getenv("SWARM_TAG_VALUE")?;
+
     // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
@@ -477,15 +484,15 @@ async fn create_ec2_instance(
       "#
     );
 
-    let tag = Tag::builder()
-        .key("Name")
-        .value(swarm_name) // Replace with the desired instance name
-        .build();
+    let tags = vec![
+        Tag::builder().key("Name").value(swarm_name).build(),
+        Tag::builder().key(key).value(value).build(),
+    ];
 
     // Define the TagSpecification to apply the tags when the instance is created
     let tag_specification = TagSpecification::builder()
-        .resource_type("instance".into()) // Tag the instance
-        .tags(tag)
+        .resource_type("instance".into())
+        .set_tags(Some(tags))
         .build();
 
     let block_device = BlockDeviceMapping::builder()
@@ -510,6 +517,7 @@ async fn create_ec2_instance(
         .block_device_mappings(block_device)
         .tag_specifications(tag_specification)
         .subnet_id(subnet_id)
+        .disable_api_termination(true)
         .send()
         .map_err(|err| {
             log::error!("Error Creating instance instance: {}", err);
@@ -522,7 +530,27 @@ async fn create_ec2_instance(
     }
 
     let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
-    println!("Created instance with ID: {}", instance_id);
+    log::info!("Created instance with ID: {}", instance_id);
+
+    client
+        .modify_instance_attribute()
+        .instance_id(instance_id.clone())
+        .disable_api_termination(
+            AttributeBooleanValue::builder()
+                .set_value(Some(true))
+                .build(),
+        )
+        .send()
+        .await
+        .map_err(|err| {
+            log::error!("Error enabling termination protection: {}", err);
+            anyhow::anyhow!(err.to_string())
+        })?;
+
+    log::info!(
+        "Instance {} created and termination protection enabled.",
+        instance_id
+    );
 
     Ok((instance_id, swarm_number))
 }
@@ -805,18 +833,6 @@ pub async fn update_ec2_instance_type(
     Ok(())
 }
 
-async fn make_aws_client() -> Result<Client, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
-    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-    let config = aws_config::from_env()
-        .region(region_provider)
-        .retry_config(RetryConfig::standard().with_max_attempts(10))
-        .load()
-        .await;
-
-    Ok(Client::new(&config))
-}
-
 pub fn get_swarm_instance_type(
     info: GetInstanceTypeByInstanceId,
     state: &Super,
@@ -858,4 +874,31 @@ fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
     }
 
     return Some(instance_types[postion.unwrap()].clone());
+}
+
+pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
+    let key = getenv("SWARM_TAG_KEY")?;
+    let value = getenv("SWARM_TAG_VALUE")?;
+    let aws_instances = get_swarms_by_tag(&key, &value).await?;
+
+    let mut aws_instances_hashmap: HashMap<String, InstanceFromAws> = HashMap::new();
+
+    for aws_instance in aws_instances {
+        aws_instances_hashmap.insert(aws_instance.instacne_id.clone(), aws_instance.clone());
+    }
+
+    for stack in state.stacks.iter_mut() {
+        if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
+            let aws_instance_hashmap = aws_instances_hashmap.get(&stack.ec2_instance_id).unwrap();
+            if stack.ec2.is_none() {
+                stack.ec2 = Some(aws_instance_hashmap.intance_type.clone());
+            } else {
+                if aws_instance_hashmap.intance_type != stack.ec2.clone().unwrap() {
+                    stack.ec2 = Some(aws_instance_hashmap.intance_type.clone())
+                }
+            }
+        }
+    }
+    let res = state.remove_tokens();
+    Ok(res)
 }

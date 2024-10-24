@@ -1,6 +1,8 @@
 mod auth_token;
+mod aws_util;
 mod checker;
 mod cmd;
+mod ec2;
 mod route53;
 mod routes;
 mod state;
@@ -13,7 +15,7 @@ use state::RemoteStack;
 use state::Super;
 use util::{
     accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
-    get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
+    get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers, get_config,
     get_swarm_instance_type, update_aws_instance_type,
 };
 
@@ -133,7 +135,8 @@ pub async fn super_handle(
     let ret = match cmd {
         Cmd::Swarm(swarm_cmd) => match swarm_cmd {
             SwarmCmd::GetConfig => {
-                let res = &state.remove_tokens();
+                let res = get_config(&mut state).await?;
+                must_save_stack = true;
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::Login(ld) => match state.users.iter().find(|u| u.username == ld.username) {

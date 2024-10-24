@@ -54,7 +54,7 @@
   let swarm_id = "";
   let delete_host = "";
   let errorMessage = false;
-  let loading = false;
+  let loading = true;
   let errors = [];
   let name = "";
   let vanity_address = "";
@@ -128,6 +128,8 @@
     await getAwsInstanceType();
 
     await getConfig();
+
+    loading = false;
 
     await getConfigSortByUnhealthy();
   });
