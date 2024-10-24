@@ -387,6 +387,10 @@ async fn create_ec2_instance(
 
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
 
+    let key = getenv("SWARM_TAG_KEY")?;
+
+    let value = getenv("SWARM_TAG_VALUE")?;
+
     // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
@@ -479,15 +483,15 @@ async fn create_ec2_instance(
       "#
     );
 
-    let tag = Tag::builder()
-        .key("Name")
-        .value(swarm_name) // Replace with the desired instance name
-        .build();
+    let tags = vec![
+        Tag::builder().key("Name").value(swarm_name).build(),
+        Tag::builder().key(key).value(value).build(),
+    ];
 
     // Define the TagSpecification to apply the tags when the instance is created
     let tag_specification = TagSpecification::builder()
-        .resource_type("instance".into()) // Tag the instance
-        .tags(tag)
+        .resource_type("instance".into())
+        .set_tags(Some(tags))
         .build();
 
     let block_device = BlockDeviceMapping::builder()
