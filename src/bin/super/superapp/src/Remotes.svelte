@@ -477,7 +477,7 @@
     isSubmitting = true;
 
     if (vanity_address) {
-      `${vanity_address}${domain}`;
+      vanity_address = `${vanity_address}${domain}`;
     }
 
     try {
