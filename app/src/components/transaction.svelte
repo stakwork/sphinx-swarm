@@ -20,6 +20,7 @@
       //Make api call to CLN
       const pays = await CLN.list_pays(tag);
       const trans = parseClnPayments(pays.payments);
+      trans.reverse();
       transactions = [...trans];
     } else {
       // Make Api call to LND
