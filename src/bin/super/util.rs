@@ -605,6 +605,10 @@ pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
 ) -> Result<(), Error> {
+    if !&info.name.starts_with("s-") {
+        return Err(anyhow!("swarm name does not match naming convention"));
+    }
+
     let mut actual_vanity_address: Option<String> = None;
 
     let instance_type = get_instance(&info.instance_type);
