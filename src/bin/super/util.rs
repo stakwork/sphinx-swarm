@@ -5,12 +5,15 @@ use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
+use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
+use aws_sdk_ec2::operation::RequestId;
 use aws_sdk_ec2::types::{
     AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag,
     TagSpecification,
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
+use futures_util::future::err;
 use futures_util::TryFutureExt;
 use reqwest::Response;
 use serde_json::Value;
@@ -479,6 +482,10 @@ async fn create_ec2_instance(
         sudo dpkg -i amazon-ssm-agent.deb
           cd /home/admin/sphinx-swarm && \
           pm2 start ecosystem.config.js && \
+          pm2 save && \
+          startup_command=$(pm2 startup | grep "sudo" | tail -n 1) && \
+          eval $startup_command && \
+          pm2 save && \
           ./restart-second-brain.sh
       '
       "#
@@ -519,40 +526,70 @@ async fn create_ec2_instance(
         .subnet_id(subnet_id)
         .disable_api_termination(true)
         .send()
-        .map_err(|err| {
-            log::error!("Error Creating instance instance: {}", err);
-            anyhow!(err.to_string())
-        })
-        .await?;
+        // .map_err(|err| {
+        //     log::error!("Error Creating instance instance: {}", err);
+        //     anyhow!(err.to_string())
+        // })
+        .await;
 
-    if result.instances().is_empty() {
-        return Err(anyhow!("Failed to create instance"));
+    match result {
+        Ok(response) => {
+            println!("Instance created successfully: {:?}", response);
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error.err(); // Extract the inner error
+            eprintln!(
+                "Service error: {}",
+                err.message().unwrap_or("Unknown error")
+            );
+
+            if let Some(code) = err.code() {
+                eprintln!("Error code: {}", code);
+            }
+            if let Some(req_id) = service_error.raw().request_id() {
+                eprintln!("Request ID: {}", req_id);
+            }
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            eprintln!("Request timed out.");
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            eprintln!("Network error: {:?}", err);
+        }
+        Err(e) => {
+            eprintln!("Unexpected error: {:?}", e);
+        }
     }
 
-    let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
-    log::info!("Created instance with ID: {}", instance_id);
+    // if result.instances().is_empty() {
+    //     return Err(anyhow!("Failed to create instance"));
+    // }
 
-    client
-        .modify_instance_attribute()
-        .instance_id(instance_id.clone())
-        .disable_api_termination(
-            AttributeBooleanValue::builder()
-                .set_value(Some(true))
-                .build(),
-        )
-        .send()
-        .await
-        .map_err(|err| {
-            log::error!("Error enabling termination protection: {}", err);
-            anyhow::anyhow!(err.to_string())
-        })?;
+    // let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
+    // log::info!("Created instance with ID: {}", instance_id);
 
-    log::info!(
-        "Instance {} created and termination protection enabled.",
-        instance_id
-    );
+    // client
+    //     .modify_instance_attribute()
+    //     .instance_id(instance_id.clone())
+    //     .disable_api_termination(
+    //         AttributeBooleanValue::builder()
+    //             .set_value(Some(true))
+    //             .build(),
+    //     )
+    //     .send()
+    //     .await
+    //     .map_err(|err| {
+    //         log::error!("Error enabling termination protection: {}", err);
+    //         anyhow::anyhow!(err.to_string())
+    //     })?;
 
-    Ok((instance_id, swarm_number))
+    // log::info!(
+    //     "Instance {} created and termination protection enabled.",
+    //     instance_id
+    // );
+
+    // Ok((instance_id, swarm_number))
+    Ok(("testering".to_string(), 12345))
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
