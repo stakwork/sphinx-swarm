@@ -11,6 +11,7 @@ use aws_sdk_ec2::types::{
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
+use chrono::Local;
 use futures_util::TryFutureExt;
 use reqwest::Response;
 use serde_json::Value;
@@ -605,6 +606,22 @@ pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
 ) -> Result<(), Error> {
+    let daily_limit = getenv("EC2_DAILY_LIMIT")
+        .unwrap_or("5".to_string())
+        .parse()
+        .unwrap_or(5);
+
+    let today_date = get_today_dash_date();
+    if today_date == state.ec2_limit.date {
+        if &state.ec2_limit.count < &daily_limit {
+            state.ec2_limit.count = state.ec2_limit.count + 1;
+        } else {
+            return Err(anyhow!("Daily limit for creating Ec2 Instance exceeded"));
+        }
+    } else {
+        state.ec2_limit.date = today_date;
+        state.ec2_limit.count = 1;
+    }
     let mut actual_vanity_address: Option<String> = None;
 
     let instance_type = get_instance(&info.instance_type);
@@ -901,4 +918,8 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
     }
     let res = state.remove_tokens();
     Ok(res)
+}
+
+pub fn get_today_dash_date() -> String {
+    Local::now().format("%d-%m-%Y").to_string()
 }
