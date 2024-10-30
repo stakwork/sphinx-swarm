@@ -36,10 +36,6 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/letsencrypt:/letsencrypt
-    environment:
-      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-      - AWS_REGION=$AWS_REGION
     logging:
       options:
         max-size: 10m
@@ -70,8 +66,6 @@ services:
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8800
-      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
       - AWS_S3_REGION_NAME=$AWS_S3_REGION_NAME
       - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
