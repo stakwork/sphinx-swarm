@@ -350,10 +350,6 @@ async fn create_ec2_instance(
     let region = getenv("AWS_S3_REGION_NAME")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
-    let aws_access_key_id = getenv("AWS_ACCESS_KEY_ID")?;
-
-    let aws_access_token = getenv("AWS_SECRET_ACCESS_KEY")?;
-
     let stakwork_token = getenv("STAKWORK_ADD_NODE_TOKEN")?;
 
     let lnd_macaroon = getenv("EXTERNAL_LND_MACAROON")?;
@@ -432,8 +428,6 @@ async fn create_ec2_instance(
           # Populate the .env file
           echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
-          echo "AWS_ACCESS_KEY_ID={aws_access_key_id}" >> .env && \
-          echo "AWS_SECRET_ACCESS_KEY={aws_access_token}" >> .env && \
           echo "AWS_REGION=us-east-1a" >> .env && \
           echo "AWS_S3_REGION_NAME=us-east-1" >> .env && \
           echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env && \
