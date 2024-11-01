@@ -593,38 +593,66 @@ async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
 
     let client = Client::new(&config);
 
+    log::info!("About to get instance ip address");
+
     let result = client
         .describe_instances()
         .instance_ids(instance_id)
         .send()
-        .map_err(|err| {
-            log::error!("Error describing instance: {}", err);
-            anyhow!(err.to_string())
-        })
-        .await?;
+        // .map_err(|err| {
+        //     log::error!("Error describing instance: {}", err);
+        //     anyhow!(err.to_string())
+        // })
+        .await;
 
-    if result.reservations().is_empty() {
-        return Err(anyhow!("Failed to create instance"));
+    match result {
+        Ok(response) => {
+            if response.reservations().is_empty() {
+                return Err(anyhow!("Failed to create instance"));
+            }
+
+            if response.reservations()[0].instances().is_empty() {
+                return Err(anyhow!("Could not get ec2 instance"));
+            }
+
+            if response.reservations()[0].instances()[0]
+                .public_ip_address()
+                .is_none()
+            {
+                return Err(anyhow!("No public ip address for the new instance"));
+            }
+
+            let public_ip_address = response.reservations()[0].instances()[0]
+                .public_ip_address()
+                .unwrap();
+
+            log::info!("Instance Public IP Address: {}", public_ip_address);
+
+            return Ok(public_ip_address.to_string());
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
     }
-
-    if result.reservations()[0].instances().is_empty() {
-        return Err(anyhow!("Could not get ec2 instance"));
-    }
-
-    if result.reservations()[0].instances()[0]
-        .public_ip_address()
-        .is_none()
-    {
-        return Err(anyhow!("No public ip address for the new instance"));
-    }
-
-    let public_ip_address = result.reservations()[0].instances()[0]
-        .public_ip_address()
-        .unwrap();
-
-    log::info!("Instance Public IP Address: {}", public_ip_address);
-
-    Ok(public_ip_address.to_string())
 }
 
 //Sample execution function
