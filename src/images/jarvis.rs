@@ -209,6 +209,12 @@ fn jarvis(
             webpage_text_workflow_id
         ));
     }
+    if let Ok(question_and_answer_workflow_id) = getenv("QUESTION_AND_ANSWER_WORKFLOW_ID") {
+        env.push(format!(
+            "QUESTION_AND_ANSWER_WORKFLOW_ID={}",
+            question_and_answer_workflow_id
+        ));
+    }
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
