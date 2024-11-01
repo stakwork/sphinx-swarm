@@ -29,6 +29,7 @@ use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
 use crate::state::{AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
+use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 
@@ -383,6 +384,8 @@ async fn create_ec2_instance(
 
     let key_name = getenv("AWS_KEY_NAME")?;
 
+    let aws_role = getenv("AWS_USER_ROLE")?;
+
     let swarm_updater_password = getenv("SWARM_UPDATER_PASSWORD")?;
 
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
@@ -508,6 +511,10 @@ async fn create_ec2_instance(
         anyhow!(err.to_string())
     })?;
 
+    let instance_profile_spec = IamInstanceProfileSpecification::builder()
+        .name(aws_role)
+        .build();
+
     let result = client
         .run_instances()
         .image_id(image_id)
@@ -521,6 +528,7 @@ async fn create_ec2_instance(
         .tag_specifications(tag_specification)
         .subnet_id(subnet_id)
         .disable_api_termination(true)
+        .iam_instance_profile(instance_profile_spec)
         .send()
         // .map_err(|err| {
         //     log::error!("Error Creating instance instance: {}", err);
