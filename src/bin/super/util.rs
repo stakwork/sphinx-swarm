@@ -26,6 +26,7 @@ use crate::cmd::{
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
 use crate::state::{AwsInstanceType, InstanceFromAws, RemoteStack, Super};
+use aws_config::timeout::TimeoutConfig;
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 
@@ -388,10 +389,16 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
+    let timeout_config = TimeoutConfig::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .read_timeout(Duration::from_secs(60))
+        .build();
+
     // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
         .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .timeout_config(timeout_config)
         .load()
         .await;
     let client = Client::new(&config);
