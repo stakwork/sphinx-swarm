@@ -87,6 +87,7 @@ services:
       - SWARM_TAG_VALUE=$SWARM_TAG_VALUE
       - SWARM_TAG_KEY=$SWARM_TAG_KEY
       - SWARM_UPDATER_PASSWORD=$SWARM_UPDATER_PASSWORD
+      - EC2_DAILY_LIMIT=$EC2_DAILY_LIMIT
     
 networks:
   sphinx-swarm:
