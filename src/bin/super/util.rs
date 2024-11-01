@@ -5,6 +5,7 @@ use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
+use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_ec2::types::{
     AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag,
     TagSpecification,
@@ -520,40 +521,65 @@ async fn create_ec2_instance(
         .subnet_id(subnet_id)
         .disable_api_termination(true)
         .send()
-        .map_err(|err| {
-            log::error!("Error Creating instance instance: {}", err);
-            anyhow!(err.to_string())
-        })
-        .await?;
+        // .map_err(|err| {
+        //     log::error!("Error Creating instance instance: {}", err);
+        //     anyhow!(err.to_string())
+        // })
+        .await;
 
-    if result.instances().is_empty() {
-        return Err(anyhow!("Failed to create instance"));
+    match result {
+        Ok(response) => {
+            if response.instances().is_empty() {
+                return Err(anyhow!("Failed to create instance"));
+            }
+            let instance_id: String = response.instances()[0].instance_id().unwrap().to_string();
+            log::info!("Created instance with ID: {}", instance_id);
+
+            client
+                .modify_instance_attribute()
+                .instance_id(instance_id.clone())
+                .disable_api_termination(
+                    AttributeBooleanValue::builder()
+                        .set_value(Some(true))
+                        .build(),
+                )
+                .send()
+                .await
+                .map_err(|err| {
+                    log::error!("Error enabling termination protection: {}", err);
+                    anyhow::anyhow!(err.to_string())
+                })?;
+
+            log::info!(
+                "Instance {} created and termination protection enabled.",
+                instance_id
+            );
+
+            return Ok((instance_id, swarm_number));
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
     }
-
-    let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
-    log::info!("Created instance with ID: {}", instance_id);
-
-    client
-        .modify_instance_attribute()
-        .instance_id(instance_id.clone())
-        .disable_api_termination(
-            AttributeBooleanValue::builder()
-                .set_value(Some(true))
-                .build(),
-        )
-        .send()
-        .await
-        .map_err(|err| {
-            log::error!("Error enabling termination protection: {}", err);
-            anyhow::anyhow!(err.to_string())
-        })?;
-
-    log::info!(
-        "Instance {} created and termination protection enabled.",
-        instance_id
-    );
-
-    Ok((instance_id, swarm_number))
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
