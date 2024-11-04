@@ -4,6 +4,7 @@ use crate::utils::{domain, getenv};
 use anyhow::{Context, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
+use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_s3::operation::create_multipart_upload::CreateMultipartUploadOutput;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart, Delete, ObjectIdentifier};
 use aws_sdk_s3::Client;
@@ -220,22 +221,22 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
                 .unwrap_or("Unknown error")
                 .to_string();
             log::error!("Service error: {}", err);
-            return Err(anyhow!(err));
+            return Ok(false);
         }
         Err(SdkError::TimeoutError(_)) => {
             let err_msg = "Request timed out.";
             log::error!("{}", err_msg);
-            return Err(anyhow!(err_msg));
+            return Ok(false);
         }
         Err(SdkError::DispatchFailure(err)) => {
             log::error!("Network error: {:?}", err);
-            return Err(anyhow!("Network error"));
+            return Ok(false);
         }
         Err(e) => {
             log::error!("Unexpected error: {:?}", e);
-            return Err(anyhow!("Unexpected error"));
+            return Ok(false);
         }
-    }
+    };
 
     let upload_id = match multipart_upload_res.upload_id() {
         Some(id) => id,
@@ -315,14 +316,21 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         .set_parts(Some(upload_parts))
         .build();
 
-    let _complete_multipart_upload_res = client
+    let _complete_multipart_upload_res = match client
         .complete_multipart_upload()
         .bucket(bucket)
         .key(key)
         .multipart_upload(completed_multipart_upload)
         .upload_id(upload_id)
         .send()
-        .await?;
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error completing multipart: {:?}", err);
+            return Ok(false);
+        }
+    };
 
     Ok(true)
 }
