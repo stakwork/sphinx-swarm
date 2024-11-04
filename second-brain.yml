@@ -45,7 +45,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:test-role-s3
+    image: sphinxlightning/sphinx-swarm:handle-err
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
