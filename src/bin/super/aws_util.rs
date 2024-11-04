@@ -8,7 +8,7 @@ use sphinx_swarm::utils::getenv;
 use tokio::time::Duration;
 
 pub async fn make_aws_client() -> Result<Client, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let timeout_config = TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(5))

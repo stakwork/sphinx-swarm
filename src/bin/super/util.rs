@@ -442,8 +442,7 @@ async fn create_ec2_instance(
           # Populate the .env file
           echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
-          echo "AWS_REGION=us-east-1a" >> .env && \
-          echo "AWS_S3_REGION_NAME=us-east-1" >> .env && \
+          echo "AWS_REGION=us-east-1" >> .env && \
           echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env && \
           echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env && \
           echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env && \

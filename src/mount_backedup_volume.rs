@@ -16,7 +16,7 @@ use zip::ZipArchive;
 use crate::utils::getenv;
 
 pub async fn download_from_s3(bucket: &str, key: &str) -> Result<(), Box<dyn Error>> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));

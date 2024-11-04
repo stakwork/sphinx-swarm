@@ -179,10 +179,10 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
     const MAX_CHUNKS: u64 = 10000;
 
     // Read the custom region environment variable
-    let region = match getenv("AWS_S3_REGION_NAME") {
+    let region = match getenv("AWS_REGION") {
         Ok(value) => value,
         Err(_msg) => {
-            log::error!("AWS_S3_REGION_NAME is not provided in environment variable");
+            log::error!("AWS_REGION is not provided in environment variable");
             return Ok(false);
         }
     };
@@ -298,7 +298,7 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
 // Deletes old backups from the S3 bucket
 pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()> {
     // Read the custom region environment variable
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
