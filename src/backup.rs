@@ -214,26 +214,8 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
 
     let multipart_upload_res = match result {
         Ok(response) => response,
-        Err(SdkError::ServiceError(service_error)) => {
-            let err = service_error
-                .err()
-                .message()
-                .unwrap_or("Unknown error")
-                .to_string();
-            log::error!("Service error: {}", err);
-            return Ok(false);
-        }
-        Err(SdkError::TimeoutError(_)) => {
-            let err_msg = "Request timed out.";
-            log::error!("{}", err_msg);
-            return Ok(false);
-        }
-        Err(SdkError::DispatchFailure(err)) => {
-            log::error!("Network error: {:?}", err);
-            return Ok(false);
-        }
-        Err(e) => {
-            log::error!("Unexpected error: {:?}", e);
+        Err(err) => {
+            log::error!("Error creating multipart: {:?}", err);
             return Ok(false);
         }
     };
