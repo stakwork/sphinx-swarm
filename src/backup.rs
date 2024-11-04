@@ -51,6 +51,8 @@ pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
 
     let mut containers: Vec<(String, String, String)> = Vec::new();
 
+    log::info!("About to start get backup containers");
+
     for node in nodes.iter() {
         let node_name = node.name();
         let hostname = domain(&node_name);
@@ -63,6 +65,8 @@ pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
             Err(_) => (),
         }
     }
+
+    log::info!("Containers to be backed up: {:?}", containers);
 
     download_and_zip_from_container(containers).await?;
 
@@ -267,7 +271,7 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         {
             Ok(res) => res,
             Err(e) => {
-                log::error!("Error uploading part: {}", e);
+                log::error!("Error uploading part: {:?}", e);
                 return Ok(false);
             }
         };
@@ -379,7 +383,7 @@ pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Res
     let sched = JobScheduler::new().await?;
 
     sched
-        .add(Job::new_async("@daily", |_uuid, _l| {
+        .add(Job::new_async("0 1/5 * * * *", |_uuid, _l| {
             Box::pin(async move {
                 if !BACK_AND_DELETE.load(Ordering::Relaxed) {
                     BACK_AND_DELETE.store(true, Ordering::Relaxed);
