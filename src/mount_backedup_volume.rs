@@ -46,7 +46,7 @@ pub async fn download_from_s3(bucket: &str, key: &str) -> Result<(), Box<dyn Err
             }
         }
         Err(err) => {
-            log::error!("Get objects error: {}", err)
+            log::error!("Get objects error: {:?}", err)
         }
     }
 
