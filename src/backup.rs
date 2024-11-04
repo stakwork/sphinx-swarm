@@ -202,12 +202,40 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         .await;
     let client = Client::new(&config);
 
-    let multipart_upload_res: CreateMultipartUploadOutput = client
+    let result = client
         .create_multipart_upload()
         .bucket(bucket)
         .key(key)
         .send()
-        .await?;
+        .await;
+
+    // CreateMultipartUploadOutput
+
+    let multipart_upload_res = match result {
+        Ok(response) => response,
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
+    }
 
     let upload_id = match multipart_upload_res.upload_id() {
         Some(id) => id,
