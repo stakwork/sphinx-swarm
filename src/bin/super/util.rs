@@ -7,8 +7,8 @@ use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
 use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_ec2::types::{
-    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag,
-    TagSpecification,
+    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, HttpTokensState,
+    InstanceMetadataOptionsRequest, InstanceType, Tag, TagSpecification,
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
@@ -518,6 +518,12 @@ async fn create_ec2_instance(
         .name(aws_role)
         .build();
 
+    let metadata_options = InstanceMetadataOptionsRequest::builder()
+        .http_tokens(HttpTokensState::Required)
+        .http_endpoint("enabled".into())
+        .http_put_response_hop_limit(2)
+        .build();
+
     let result = client
         .run_instances()
         .image_id(image_id)
@@ -532,6 +538,7 @@ async fn create_ec2_instance(
         .subnet_id(subnet_id)
         .disable_api_termination(true)
         .iam_instance_profile(instance_profile_spec)
+        .metadata_options(metadata_options)
         .send()
         // .map_err(|err| {
         //     log::error!("Error Creating instance instance: {}", err);
