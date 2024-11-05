@@ -721,6 +721,8 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool
                         return Ok(false);
                     }
                 }
+            } else {
+                log::error!("Could not find file with this data path: {}", data_path);
             }
         }
         return Ok(false);

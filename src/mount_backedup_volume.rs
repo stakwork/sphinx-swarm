@@ -46,7 +46,7 @@ pub async fn download_from_s3(bucket: &str, key: &str) -> Result<(), Box<dyn Err
             }
         }
         Err(err) => {
-            log::error!("Get objects error: {}", err)
+            log::error!("Get objects error: {:?}", err)
         }
     }
 
@@ -122,7 +122,13 @@ async fn download_file(
     key: &str,
     output_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let resp: GetObjectOutput = client.get_object().bucket(bucket).key(key).send().await?;
+    let resp: GetObjectOutput = match client.get_object().bucket(bucket).key(key).send().await {
+        Ok(response) => response,
+        Err(err) => {
+            log::error!("Error downloading file from s3 bucket: {:?}", err);
+            return Ok(());
+        }
+    };
     let data: ByteStream = resp.body;
 
     if let Some(parent_dir) = Path::new(output_path).parent() {
