@@ -350,7 +350,7 @@ async fn create_ec2_instance(
     vanity_address: Option<String>,
     instance_type_name: String,
 ) -> Result<(String, i32), Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
     let stakwork_token = getenv("STAKWORK_ADD_NODE_TOKEN")?;
@@ -600,7 +600,7 @@ async fn create_ec2_instance(
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
         .region(region_provider)
