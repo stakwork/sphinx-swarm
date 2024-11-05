@@ -45,7 +45,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:recover-flow
+    image: sphinxlightning/sphinx-swarm
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm

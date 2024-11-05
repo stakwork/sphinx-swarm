@@ -401,7 +401,7 @@ pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Res
     let sched = JobScheduler::new().await?;
 
     sched
-        .add(Job::new_async("0 1/5 * * * *", |_uuid, _l| {
+        .add(Job::new_async("@daily", |_uuid, _l| {
             Box::pin(async move {
                 if !BACK_AND_DELETE.load(Ordering::Relaxed) {
                     BACK_AND_DELETE.store(true, Ordering::Relaxed);
