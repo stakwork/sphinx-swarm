@@ -71,6 +71,7 @@ services:
       - IS_ROUTER=$IS_ROUTER
       - SEED=$SEED
       - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
+      - AWS_S3_REGION_NAME=$AWS_S3_REGION_NAME
 
 networks:
   sphinx-swarm:
