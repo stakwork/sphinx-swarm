@@ -180,6 +180,9 @@ fn jarvis(
             max_payment_hierarcy_depth
         ));
     }
+    if let Ok(aws_region) = getenv("AWS_REGION") {
+        env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
+    }
     if let Ok(dynamo_db_aws_access_key_id) = getenv("DYNAMO_DB_AWS_ACCESS_KEY_ID") {
         env.push(format!(
             "DYNAMO_DB_AWS_ACCESS_KEY_ID={}",
