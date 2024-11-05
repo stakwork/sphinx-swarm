@@ -36,10 +36,6 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/letsencrypt:/letsencrypt
-    environment:
-      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-      - AWS_REGION=$AWS_REGION
     logging:
       options:
         max-size: 10m
@@ -75,7 +71,8 @@ services:
       - IS_ROUTER=$IS_ROUTER
       - SEED=$SEED
       - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
-      - AWS_S3_REGION_NAME=$AWS_S3_REGION_NAME
+      - AWS_REGIONE=$AWS_REGION
+      - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
 
 networks:
   sphinx-swarm:

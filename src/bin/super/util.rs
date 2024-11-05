@@ -5,14 +5,14 @@ use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
+use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_ec2::types::{
-    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, InstanceType, Tag,
-    TagSpecification,
+    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, HttpTokensState,
+    InstanceMetadataOptionsRequest, InstanceType, Tag, TagSpecification,
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
 use chrono::Local;
-use futures_util::TryFutureExt;
 use reqwest::Response;
 use serde_json::Value;
 use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
@@ -27,6 +27,8 @@ use crate::cmd::{
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
 use crate::state::{AwsInstanceType, InstanceFromAws, RemoteStack, Super};
+use aws_config::timeout::TimeoutConfig;
+use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 
@@ -348,12 +350,8 @@ async fn create_ec2_instance(
     vanity_address: Option<String>,
     instance_type_name: String,
 ) -> Result<(String, i32), Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-
-    let aws_access_key_id = getenv("AWS_ACCESS_KEY_ID")?;
-
-    let aws_access_token = getenv("AWS_SECRET_ACCESS_KEY")?;
 
     let stakwork_token = getenv("STAKWORK_ADD_NODE_TOKEN")?;
 
@@ -385,7 +383,11 @@ async fn create_ec2_instance(
 
     let key_name = getenv("AWS_KEY_NAME")?;
 
+    let aws_role = getenv("AWS_USER_ROLE")?;
+
     let swarm_updater_password = getenv("SWARM_UPDATER_PASSWORD")?;
+
+    let aws_s3_bucket_name = getenv("AWS_S3_BUCKET_NAME")?;
 
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
 
@@ -393,10 +395,16 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
+    let timeout_config = TimeoutConfig::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .read_timeout(Duration::from_secs(60))
+        .build();
+
     // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
         .retry_config(RetryConfig::standard().with_max_attempts(10))
+        .timeout_config(timeout_config)
         .load()
         .await;
     let client = Client::new(&config);
@@ -433,10 +441,8 @@ async fn create_ec2_instance(
           # Populate the .env file
           echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
-          echo "AWS_ACCESS_KEY_ID={aws_access_key_id}" >> .env && \
-          echo "AWS_SECRET_ACCESS_KEY={aws_access_token}" >> .env && \
-          echo "AWS_REGION=us-east-1a" >> .env && \
-          echo "AWS_S3_REGION_NAME=us-east-1" >> .env && \
+          echo "AWS_REGION=us-east-1" >> .env && \
+          echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env && \
           echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env && \
           echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env && \
           echo "NO_REMOTE_SIGNER=true" >> .env && \
@@ -506,6 +512,16 @@ async fn create_ec2_instance(
         anyhow!(err.to_string())
     })?;
 
+    let instance_profile_spec = IamInstanceProfileSpecification::builder()
+        .name(aws_role)
+        .build();
+
+    let metadata_options = InstanceMetadataOptionsRequest::builder()
+        .http_tokens(HttpTokensState::Required)
+        .http_endpoint("enabled".into())
+        .http_put_response_hop_limit(2)
+        .build();
+
     let result = client
         .run_instances()
         .image_id(image_id)
@@ -519,45 +535,72 @@ async fn create_ec2_instance(
         .tag_specifications(tag_specification)
         .subnet_id(subnet_id)
         .disable_api_termination(true)
+        .iam_instance_profile(instance_profile_spec)
+        .metadata_options(metadata_options)
         .send()
-        .map_err(|err| {
-            log::error!("Error Creating instance instance: {}", err);
-            anyhow!(err.to_string())
-        })
-        .await?;
+        // .map_err(|err| {
+        //     log::error!("Error Creating instance instance: {}", err);
+        //     anyhow!(err.to_string())
+        // })
+        .await;
 
-    if result.instances().is_empty() {
-        return Err(anyhow!("Failed to create instance"));
+    match result {
+        Ok(response) => {
+            if response.instances().is_empty() {
+                return Err(anyhow!("Failed to create instance"));
+            }
+            let instance_id: String = response.instances()[0].instance_id().unwrap().to_string();
+            log::info!("Created instance with ID: {}", instance_id);
+
+            client
+                .modify_instance_attribute()
+                .instance_id(instance_id.clone())
+                .disable_api_termination(
+                    AttributeBooleanValue::builder()
+                        .set_value(Some(true))
+                        .build(),
+                )
+                .send()
+                .await
+                .map_err(|err| {
+                    log::error!("Error enabling termination protection: {}", err);
+                    anyhow::anyhow!(err.to_string())
+                })?;
+
+            log::info!(
+                "Instance {} created and termination protection enabled.",
+                instance_id
+            );
+
+            return Ok((instance_id, swarm_number));
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
     }
-
-    let instance_id: String = result.instances()[0].instance_id().unwrap().to_string();
-    log::info!("Created instance with ID: {}", instance_id);
-
-    client
-        .modify_instance_attribute()
-        .instance_id(instance_id.clone())
-        .disable_api_termination(
-            AttributeBooleanValue::builder()
-                .set_value(Some(true))
-                .build(),
-        )
-        .send()
-        .await
-        .map_err(|err| {
-            log::error!("Error enabling termination protection: {}", err);
-            anyhow::anyhow!(err.to_string())
-        })?;
-
-    log::info!(
-        "Instance {} created and termination protection enabled.",
-        instance_id
-    );
-
-    Ok((instance_id, swarm_number))
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
         .region(region_provider)
@@ -567,38 +610,66 @@ async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
 
     let client = Client::new(&config);
 
+    log::info!("About to get instance ip address");
+
     let result = client
         .describe_instances()
         .instance_ids(instance_id)
         .send()
-        .map_err(|err| {
-            log::error!("Error describing instance: {}", err);
-            anyhow!(err.to_string())
-        })
-        .await?;
+        // .map_err(|err| {
+        //     log::error!("Error describing instance: {}", err);
+        //     anyhow!(err.to_string())
+        // })
+        .await;
 
-    if result.reservations().is_empty() {
-        return Err(anyhow!("Failed to create instance"));
+    match result {
+        Ok(response) => {
+            if response.reservations().is_empty() {
+                return Err(anyhow!("Failed to create instance"));
+            }
+
+            if response.reservations()[0].instances().is_empty() {
+                return Err(anyhow!("Could not get ec2 instance"));
+            }
+
+            if response.reservations()[0].instances()[0]
+                .public_ip_address()
+                .is_none()
+            {
+                return Err(anyhow!("No public ip address for the new instance"));
+            }
+
+            let public_ip_address = response.reservations()[0].instances()[0]
+                .public_ip_address()
+                .unwrap();
+
+            log::info!("Instance Public IP Address: {}", public_ip_address);
+
+            return Ok(public_ip_address.to_string());
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
     }
-
-    if result.reservations()[0].instances().is_empty() {
-        return Err(anyhow!("Could not get ec2 instance"));
-    }
-
-    if result.reservations()[0].instances()[0]
-        .public_ip_address()
-        .is_none()
-    {
-        return Err(anyhow!("No public ip address for the new instance"));
-    }
-
-    let public_ip_address = result.reservations()[0].instances()[0]
-        .public_ip_address()
-        .unwrap();
-
-    log::info!("Instance Public IP Address: {}", public_ip_address);
-
-    Ok(public_ip_address.to_string())
 }
 
 //Sample execution function
@@ -787,41 +858,93 @@ pub async fn update_aws_instance_type(
 pub async fn stop_ec2_instance(client: &Client, instance_id: &str) -> Result<(), Error> {
     log::info!("Stopping instance: {}", instance_id);
 
-    client
+    let result = client
         .stop_instances()
         .instance_ids(instance_id)
         .send()
-        .await?;
+        .await;
 
-    log::info!("Waiting for instance to stop...");
+    match result {
+        Ok(_response) => {
+            log::info!("Waiting for instance to stop...");
 
-    client
-        .wait_until_instance_stopped()
-        .instance_ids(instance_id)
-        .wait(Duration::from_secs(120))
-        .await?;
+            client
+                .wait_until_instance_stopped()
+                .instance_ids(instance_id)
+                .wait(Duration::from_secs(120))
+                .await?;
 
-    log::info!("Instance Stopped...");
-    Ok(())
+            log::info!("Instance Stopped...");
+            Ok(())
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
+    }
 }
 
 pub async fn start_ec2_instance(client: &Client, instance_id: &str) -> Result<(), Error> {
-    client
+    let result = client
         .start_instances()
         .instance_ids(instance_id)
         .send()
-        .await?;
+        .await;
 
-    log::info!("Waiting for instance to be running");
+    match result {
+        Ok(_response) => {
+            log::info!("Waiting for instance to be running");
 
-    client
-        .wait_until_instance_running()
-        .instance_ids(instance_id)
-        .wait(Duration::from_secs(120))
-        .await?;
+            client
+                .wait_until_instance_running()
+                .instance_ids(instance_id)
+                .wait(Duration::from_secs(120))
+                .await?;
 
-    log::info!("Started instance successfully");
-    Ok(())
+            log::info!("Started instance successfully");
+            return Ok(());
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
+    }
 }
 
 pub async fn update_ec2_instance_type(
@@ -834,7 +957,7 @@ pub async fn update_ec2_instance_type(
 
     log::info!("Modifying Ec2 Instance...");
     // update ec2 instance
-    client
+    let result = client
         .modify_instance_attribute()
         .instance_id(instance_id)
         .instance_type(
@@ -843,11 +966,37 @@ pub async fn update_ec2_instance_type(
                 .build(),
         )
         .send()
-        .await?;
+        .await;
 
-    // state ec2 instance
-    start_ec2_instance(&client, instance_id).await?;
-    Ok(())
+    match result {
+        Ok(_response) => {
+            // state ec2 instance
+            start_ec2_instance(&client, instance_id).await?;
+            return Ok(());
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
+    }
 }
 
 pub fn get_swarm_instance_type(

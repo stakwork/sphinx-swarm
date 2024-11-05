@@ -4,6 +4,7 @@ use crate::utils::{domain, getenv};
 use anyhow::{Context, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
+use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_s3::operation::create_multipart_upload::CreateMultipartUploadOutput;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart, Delete, ObjectIdentifier};
 use aws_sdk_s3::Client;
@@ -51,6 +52,8 @@ pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
 
     let mut containers: Vec<(String, String, String)> = Vec::new();
 
+    log::info!("About to start get backup containers");
+
     for node in nodes.iter() {
         let node_name = node.name();
         let hostname = domain(&node_name);
@@ -63,6 +66,8 @@ pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
             Err(_) => (),
         }
     }
+
+    log::info!("Containers to be backed up: {:?}", containers);
 
     download_and_zip_from_container(containers).await?;
 
@@ -179,10 +184,10 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
     const MAX_CHUNKS: u64 = 10000;
 
     // Read the custom region environment variable
-    let region = match getenv("AWS_S3_REGION_NAME") {
+    let region = match getenv("AWS_REGION") {
         Ok(value) => value,
         Err(_msg) => {
-            log::error!("AWS_S3_REGION_NAME is not provided in environment variable");
+            log::error!("AWS_REGION is not provided in environment variable");
             return Ok(false);
         }
     };
@@ -198,12 +203,22 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         .await;
     let client = Client::new(&config);
 
-    let multipart_upload_res: CreateMultipartUploadOutput = client
+    let result = client
         .create_multipart_upload()
         .bucket(bucket)
         .key(key)
         .send()
-        .await?;
+        .await;
+
+    // CreateMultipartUploadOutput
+
+    let multipart_upload_res = match result {
+        Ok(response) => response,
+        Err(err) => {
+            log::error!("Error creating multipart: {:?}", err);
+            return Ok(false);
+        }
+    };
 
     let upload_id = match multipart_upload_res.upload_id() {
         Some(id) => id,
@@ -267,7 +282,7 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         {
             Ok(res) => res,
             Err(e) => {
-                log::error!("Error uploading part: {}", e);
+                log::error!("Error uploading part: {:?}", e);
                 return Ok(false);
             }
         };
@@ -283,14 +298,21 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         .set_parts(Some(upload_parts))
         .build();
 
-    let _complete_multipart_upload_res = client
+    let _complete_multipart_upload_res = match client
         .complete_multipart_upload()
         .bucket(bucket)
         .key(key)
         .multipart_upload(completed_multipart_upload)
         .upload_id(upload_id)
         .send()
-        .await?;
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error completing multipart: {:?}", err);
+            return Ok(false);
+        }
+    };
 
     Ok(true)
 }
@@ -298,7 +320,7 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
 // Deletes old backups from the S3 bucket
 pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()> {
     // Read the custom region environment variable
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
 
     // Create a region provider chain
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
