@@ -13,7 +13,7 @@
     try {
       let url = `https://boltwall.${host}/stats`;
       // custom URLs
-      if (!url.includes("swarm")) {
+      if (!/swarm\d+/.test(host)) {
         url = `https://${host}/api/stats`;
       }
       console.log("URL", url);
