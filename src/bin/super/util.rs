@@ -348,7 +348,7 @@ async fn create_ec2_instance(
     vanity_address: Option<String>,
     instance_type_name: String,
 ) -> Result<(String, i32), Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
     let aws_access_key_id = getenv("AWS_ACCESS_KEY_ID")?;
@@ -435,8 +435,7 @@ async fn create_ec2_instance(
           echo "NETWORK=bitcoin" >> .env && \
           echo "AWS_ACCESS_KEY_ID={aws_access_key_id}" >> .env && \
           echo "AWS_SECRET_ACCESS_KEY={aws_access_token}" >> .env && \
-          echo "AWS_REGION=us-east-1a" >> .env && \
-          echo "AWS_S3_REGION_NAME=us-east-1" >> .env && \
+          echo "AWS_REGION=us-east-1" >> .env && \
           echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env && \
           echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env && \
           echo "NO_REMOTE_SIGNER=true" >> .env && \
@@ -557,7 +556,7 @@ async fn create_ec2_instance(
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
         .region(region_provider)

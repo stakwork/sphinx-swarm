@@ -122,8 +122,8 @@ fn jarvis(
     if let Ok(aws_secret) = getenv("AWS_SECRET_ACCESS_KEY") {
         env.push(format!("AWS_SECRET_ACCESS_KEY={}", aws_secret));
     }
-    if let Ok(aws_region) = getenv("AWS_S3_REGION_NAME") {
-        env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
+    if let Ok(aws_region) = getenv("AWS_REGION") {
+        env.push(format!("AWS_REGION={}", aws_region));
     }
     if let Ok(tbawid) = getenv("TWEET_BY_AUTOR_WORKFLOW_ID") {
         env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tbawid));

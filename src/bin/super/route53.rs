@@ -12,7 +12,7 @@ pub async fn add_domain_name_to_route53(
     domain_names: Vec<&str>,
     public_ip: &str,
 ) -> Result<(), Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()

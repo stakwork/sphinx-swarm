@@ -6,7 +6,7 @@ use aws_smithy_types::retry::RetryConfig;
 use sphinx_swarm::utils::getenv;
 
 pub async fn make_aws_client() -> Result<Client, Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
         .region(region_provider)
