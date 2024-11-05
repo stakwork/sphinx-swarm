@@ -13,7 +13,6 @@ use aws_sdk_ec2::types::{
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
 use chrono::Local;
-use futures_util::TryFutureExt;
 use reqwest::Response;
 use serde_json::Value;
 use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
