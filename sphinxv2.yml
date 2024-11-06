@@ -71,7 +71,7 @@ services:
       - IS_ROUTER=$IS_ROUTER
       - SEED=$SEED
       - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
-      - AWS_REGIONE=$AWS_REGION
+      - AWS_REGION=$AWS_REGION
       - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
 
 networks:
