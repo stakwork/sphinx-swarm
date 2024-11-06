@@ -57,7 +57,7 @@ fn _aws_env() -> Option<Vec<String>> {
 
 fn _traefik(img: &TraefikImage) -> Config<String> {
     let name = img.name.clone();
-    let image = "traefik:v2.2.1";
+    let image = "traefik:v2.9";
     let mut ports = vec!["80", "443"];
     let insecure = match std::env::var("TRAEFIK_INSECURE") {
         Ok(_) => true,

@@ -1,6 +1,6 @@
 services:
   load_balancer:
-    image: traefik:v2.2.1
+    image: traefik:v2.9
     container_name: load_balancer
     restart: unless-stopped
     networks:
