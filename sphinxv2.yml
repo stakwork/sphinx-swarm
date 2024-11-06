@@ -36,6 +36,8 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/letsencrypt:/letsencrypt
+    environment:
+      - AWS_REGION=$AWS_REGION
     logging:
       options:
         max-size: 10m

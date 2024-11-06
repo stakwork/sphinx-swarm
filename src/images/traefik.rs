@@ -47,6 +47,14 @@ ulimits:
         hard: 1000000
 */
 
+fn _aws_env() -> Option<Vec<String>> {
+    let aws_region = std::env::var("AWS_REGION");
+    if let Err(_) = aws_region {
+        return None;
+    }
+    Some(vec![format!("AWS_REGION={}", aws_region.unwrap())])
+}
+
 fn _traefik(img: &TraefikImage) -> Config<String> {
     let name = img.name.clone();
     let image = "traefik:v2.2.1";
@@ -87,6 +95,12 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
     }
     let add_ulimits = true;
     let add_log_limit = true;
+    let awsenv = _aws_env();
+    if let Some(ae) = &awsenv {
+        log::info!("traefik: using AWS REGION env {:?}", ae.get(0));
+    } else {
+        log::error!("traefik: MISSING AWS REGION ENV!");
+    }
 
     log::error!("traefik: MISSING AWS ENV!");
 
@@ -99,7 +113,7 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
             add_ulimits,
             add_log_limit,
         ),
-        env: None,
+        env: awsenv,
         cmd: Some(strarr(cmd)),
         ..Default::default()
     }
