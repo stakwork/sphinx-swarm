@@ -21,6 +21,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::default::Default;
 use std::error::Error;
+use std::future::Future;
+use std::pin::Pin;
+use std::time::Duration;
 use tokio::io::AsyncReadExt;
 
 use crate::backup::bucket_name;
@@ -29,7 +32,7 @@ use crate::config::{Node, State, STATE};
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
-use bollard::models::{ContainerInspectResponse, ImageInspect};
+use bollard::models::ImageInspect;
 use tokio::fs::File;
 
 pub fn dockr() -> Docker {
@@ -547,6 +550,18 @@ pub struct GetImageActualVersionResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct DockerHubImageResult {
+    pub name: String,
+    pub digest: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DockerHubResponse {
+    pub results: Vec<DockerHubImageResult>,
+    pub next: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ImageVersion {
     pub name: String,
     pub version: String,
@@ -595,9 +610,29 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
             });
             continue;
         }
+
+        let digest = get_image_digest_from_image_id(&docker, &image_id).await;
+        if digest.is_empty() {
+            log::error!("Error getting {} image digest", node_name);
+            images_version.push(ImageVersion {
+                name: node_name,
+                version: "unavaliable".to_string(),
+            });
+            continue;
+        }
+
+        let digest_parts: Vec<&str> = digest.split("@").collect();
+
+        log::info!("Image name: {}", digest_parts[0]);
+        log::info!("Image checksome: {}", digest_parts[1]);
+        let image_name = digest_parts[0];
+        let checksome = digest_parts[1];
+
+        let version = get_image_version_from_digest(image_name, checksome).await;
+
         images_version.push(ImageVersion {
             name: node_name,
-            version: image_id,
+            version: version,
         });
     }
 
@@ -621,6 +656,75 @@ async fn get_image_id(docker: &Docker, container_name: &str) -> String {
             return "".to_string();
         }
     }
+}
+
+async fn get_image_digest_from_image_id(docker: &Docker, image_id: &str) -> String {
+    let image_info: ImageInspect = match docker.inspect_image(image_id).await {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error getting name and digest: {:?}", err);
+            return "".to_string();
+        }
+    };
+
+    let image_digest = image_info
+        .repo_digests
+        .as_ref()
+        .and_then(|digests| digests.first().cloned());
+
+    if image_digest.is_none() {
+        return "".to_string();
+    }
+
+    image_digest.unwrap()
+}
+
+pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> String {
+    let docker_url = format!(
+        "https://hub.docker.com/v2/repositories/{}/tags?page=1&page_size=100",
+        image_name,
+    );
+    let version = get_version_from_docker_hub(&docker_url, digest).await;
+    version
+}
+
+pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> String {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(40))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build swarm updater reqwest client");
+
+    let response = match client.get(docker_url).send().await {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error making request to {}: {:?}", docker_url, err);
+            return "".to_string();
+        }
+    };
+
+    let response_json: DockerHubResponse = match response.json().await {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            log::error!("Error parsing response from {}: {:?}", docker_url, err);
+            return "".to_string();
+        }
+    };
+
+    log::info!("Response from DOcker gub: {:?}", response_json);
+
+    for image in response_json.results {
+        if image.digest == digest && image.name != "latest" {
+            return image.name;
+        }
+    }
+    if let Some(next_url) = response_json.next {
+        if !next_url.is_empty() {
+            return Box::pin(get_version_from_docker_hub(&next_url, digest)).await;
+        }
+    }
+
+    return "".to_string();
 }
 
 pub async fn prune_images(docker: &Docker) {
