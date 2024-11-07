@@ -92,7 +92,8 @@ export type Cmd =
   | "RestartChildSwarmContainers"
   | "GetSignedInUserDetails"
   | "UpdateAwsInstanceType"
-  | "GetInstanceType";
+  | "GetInstanceType"
+  | "GetAllImageActualVersion";
 
 interface CmdData {
   cmd: Cmd;

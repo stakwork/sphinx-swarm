@@ -146,6 +146,10 @@ export async function delete_swarm(data: { host: string }) {
   return await swarmCmd("DeleteSwarm", { ...data });
 }
 
+export async function get_all_image_actual_version() {
+  return await swarmCmd("GetAllImageActualVersion");
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",

@@ -25,7 +25,11 @@
   import type { Node, Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
-  import { get_signedin_user_details, type Container } from "./api/swarm";
+  import {
+    get_all_image_actual_version,
+    get_signedin_user_details,
+    type Container,
+  } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
@@ -52,6 +56,8 @@
 
   async function getConfig(): Promise<boolean> {
     const stackRemote: Stack = await api.swarm.get_config();
+    const image_version = await get_all_image_actual_version();
+    console.log(image_version);
     if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
       // get node version
