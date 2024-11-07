@@ -152,6 +152,7 @@ pub enum SwarmCmd {
     GetApiToken,
     SetGlobalMemLimit(u64),
     GetSignedInUserDetails,
+    GetAllImageActualVersion,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

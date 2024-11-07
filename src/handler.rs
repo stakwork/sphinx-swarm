@@ -375,6 +375,11 @@ pub async fn handle(
                 let tags = get_image_tags(image_details).await?;
                 return Ok(serde_json::to_string(&tags)?);
             }
+            SwarmCmd::GetAllImageActualVersion => {
+                log::info!("Get all Image actual version");
+                let image_versions = get_image_actual_version(&state.stack.nodes).await?;
+                return Ok(serde_json::to_string(&image_versions)?);
+            }
             SwarmCmd::UpdateUser(body) => {
                 log::info!("Update users details ===> {:?}", body);
                 let boltwall = find_boltwall(&state.stack.nodes)?;

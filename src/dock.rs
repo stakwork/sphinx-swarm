@@ -25,10 +25,11 @@ use tokio::io::AsyncReadExt;
 
 use crate::backup::bucket_name;
 use crate::builder::{find_img, make_client};
-use crate::config::{State, STATE};
+use crate::config::{Node, State, STATE};
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
+use bollard::models::{ContainerInspectResponse, ImageInspect};
 use tokio::fs::File;
 
 pub fn dockr() -> Docker {
@@ -538,6 +539,19 @@ pub struct GetImageDigestResponse {
     pub message: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetImageActualVersionResponse {
+    pub success: bool,
+    pub data: Option<Vec<ImageVersion>>,
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ImageVersion {
+    pub name: String,
+    pub version: String,
+}
+
 // get image digest
 pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse> {
     let docker = Docker::connect_with_local_defaults()?;
@@ -562,6 +576,50 @@ pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse
         }
     } else {
         return Ok(error_response);
+    }
+}
+
+pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActualVersionResponse> {
+    let docker = Docker::connect_with_local_defaults()?;
+
+    let mut images_version: Vec<ImageVersion> = Vec::new();
+
+    for node in nodes.iter() {
+        let node_name = node.name();
+        let host = domain(&node_name);
+        let image_id = get_image_id(&docker, &host).await;
+        if image_id.is_empty() {
+            images_version.push(ImageVersion {
+                name: node_name,
+                version: "unavaliable".to_string(),
+            });
+            continue;
+        }
+        images_version.push(ImageVersion {
+            name: node_name,
+            version: image_id,
+        });
+    }
+
+    Ok(GetImageActualVersionResponse {
+        success: true,
+        message: "image actual versions".to_string(),
+        data: Some(images_version),
+    })
+}
+
+async fn get_image_id(docker: &Docker, container_name: &str) -> String {
+    match docker.inspect_container(container_name, None).await {
+        Ok(container_info) => {
+            if container_info.image.is_none() {
+                return "".to_string();
+            }
+            return container_info.image.unwrap();
+        }
+        Err(err) => {
+            log::error!("Container image is unavailable: {:?}", err);
+            return "".to_string();
+        }
     }
 }
 
