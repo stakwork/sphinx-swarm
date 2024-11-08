@@ -552,7 +552,7 @@ pub struct GetImageActualVersionResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DockerHubImageResult {
     pub name: String,
-    pub digest: String,
+    pub digest: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -599,6 +599,8 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
 
     let mut images_version: Vec<ImageVersion> = Vec::new();
 
+    let library_images = vec!["elasticsearch", "neo4j"];
+
     for node in nodes.iter() {
         let node_name = node.name();
         let host = domain(&node_name);
@@ -625,10 +627,14 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
 
         log::info!("Image name: {}", digest_parts[0]);
         log::info!("Image checksome: {}", digest_parts[1]);
-        let image_name = digest_parts[0];
+        let mut image_name = digest_parts[0].to_string();
         let checksome = digest_parts[1];
 
-        let version = get_image_version_from_digest(image_name, checksome).await;
+        if library_images.contains(&image_name.as_str()) {
+            image_name = format!("library/{}", image_name);
+        }
+
+        let version = get_image_version_from_digest(&image_name, checksome).await;
 
         images_version.push(ImageVersion {
             name: node_name,
@@ -711,11 +717,11 @@ pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> Stri
         }
     };
 
-    log::info!("Response from DOcker gub: {:?}", response_json);
-
     for image in response_json.results {
-        if image.digest == digest && image.name != "latest" {
-            return image.name;
+        if let Some(image_digest) = image.digest {
+            if image_digest == digest && image.name != "latest" {
+                return image.name;
+            }
         }
     }
     if let Some(next_url) = response_json.next {
