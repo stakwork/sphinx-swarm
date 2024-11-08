@@ -149,6 +149,13 @@ export async function delete_swarm(data: { host: string }) {
 export async function get_all_image_actual_version() {
   return await swarmCmd("GetAllImageActualVersion");
 }
+export async function get_child_swarm_image_versions({
+  host,
+}: {
+  host: string;
+}) {
+  return await swarmCmd("GetSwarmChildImageVersions", { host });
+}
 
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {

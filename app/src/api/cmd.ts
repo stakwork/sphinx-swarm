@@ -11,8 +11,8 @@ if (IS_DEV) {
 const mode = import.meta.env.MODE;
 
 if (mode === "super") {
-  root = "https://app.superadmin.sphinx.chat/api";
-  // root = "http://localhost:8005/api";
+  // root = "https://app.superadmin.sphinx.chat/api";
+  root = "http://localhost:8005/api";
 }
 
 type CmdType =
@@ -93,7 +93,8 @@ export type Cmd =
   | "GetSignedInUserDetails"
   | "UpdateAwsInstanceType"
   | "GetInstanceType"
-  | "GetAllImageActualVersion";
+  | "GetAllImageActualVersion"
+  | "GetSwarmChildImageVersions";
 
 interface CmdData {
   cmd: Cmd;

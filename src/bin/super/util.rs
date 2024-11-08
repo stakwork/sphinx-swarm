@@ -171,9 +171,9 @@ pub fn get_child_base_route(host: String) -> Result<String, Error> {
         return Err(anyhow!("child swarm default host not provided"));
     };
 
-    return Ok(format!("https://app.{}/api", host));
+    // return Ok(format!("https://app.{}/api", host));
 
-    // return Ok(format!("http://{}/api", host));
+    return Ok(format!("http://{}/api", host));
 }
 
 pub async fn get_child_swarm_containers(
@@ -196,6 +196,29 @@ pub async fn get_child_swarm_containers(
         success: true,
         message: "child swarm containers successfully retrieved".to_string(),
         data: Some(containers),
+    })
+}
+
+pub async fn get_child_swarm_image_versions(
+    swarm_details: &RemoteStack,
+) -> Result<SuperSwarmResponse, Error> {
+    let token = login_to_child_swarm(swarm_details).await?;
+    let cmd = Cmd::Swarm(SwarmCmd::GetAllImageActualVersion);
+    let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
+
+    if res.status().clone() != 200 {
+        return Err(anyhow!(format!(
+            "{} status code gotten from get child swarm container",
+            res.status()
+        )));
+    }
+
+    let image_version: Value = res.json().await?;
+
+    Ok(SuperSwarmResponse {
+        success: true,
+        message: "child swarm image versions successfully retrieved".to_string(),
+        data: Some(image_version),
     })
 }
 

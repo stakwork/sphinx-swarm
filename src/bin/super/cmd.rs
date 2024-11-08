@@ -79,6 +79,7 @@ pub enum SwarmCmd {
     GetAwsInstanceTypes,
     UpdateAwsInstanceType(UpdateInstanceDetails),
     GetInstanceType(GetInstanceTypeByInstanceId),
+    GetSwarmChildImageVersions(ChildSwarmIdentifier),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

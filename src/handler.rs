@@ -51,6 +51,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ListContainers => true,
                 SwarmCmd::UpdateNode(_) => true,
                 SwarmCmd::RestartContainer(_) => true,
+                SwarmCmd::GetAllImageActualVersion => true,
                 _ => false,
             },
             _ => false,
