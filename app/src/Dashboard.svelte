@@ -34,15 +34,8 @@
   import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
 
-  async function getNodeVersion(nodes: Node[]) {
-    //loop throug nodes
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      // if node version is latest get digest
-      if (node.version === "latest") {
-        await getImageVersion(node.name, stack, selectedNode);
-      }
-    }
+  async function getNodeVersion() {
+    await getImageVersion(stack, selectedNode);
   }
 
   async function pollConfig() {
@@ -56,12 +49,10 @@
 
   async function getConfig(): Promise<boolean> {
     const stackRemote: Stack = await api.swarm.get_config();
-    const image_version = await get_all_image_actual_version();
-    console.log(image_version);
     if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
       // get node version
-      getNodeVersion(stackRemote.nodes);
+      getNodeVersion();
     }
     return stackRemote.ready;
   }

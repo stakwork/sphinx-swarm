@@ -625,8 +625,6 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
 
         let digest_parts: Vec<&str> = digest.split("@").collect();
 
-        log::info!("Image name: {}", digest_parts[0]);
-        log::info!("Image checksome: {}", digest_parts[1]);
         let mut image_name = digest_parts[0].to_string();
         let checksome = digest_parts[1];
 
