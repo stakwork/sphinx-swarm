@@ -12,7 +12,7 @@
     console.log("restart!", name);
     restarting = true;
     await api.swarm.restart_node(name);
-    await getImageVersion(name, stack, selectedNode);
+    await getImageVersion(stack, selectedNode);
     restarting = false;
   }
 </script>

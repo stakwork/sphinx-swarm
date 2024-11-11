@@ -51,6 +51,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ListContainers => true,
                 SwarmCmd::UpdateNode(_) => true,
                 SwarmCmd::RestartContainer(_) => true,
+                SwarmCmd::GetAllImageActualVersion => true,
                 _ => false,
             },
             _ => false,
@@ -374,6 +375,11 @@ pub async fn handle(
                 log::info!("Get Docker Image Tags ===> {:?}", image_details);
                 let tags = get_image_tags(image_details).await?;
                 return Ok(serde_json::to_string(&tags)?);
+            }
+            SwarmCmd::GetAllImageActualVersion => {
+                log::info!("Get all Image actual version");
+                let image_versions = get_image_actual_version(&state.stack.nodes).await?;
+                return Ok(serde_json::to_string(&image_versions)?);
             }
             SwarmCmd::UpdateUser(body) => {
                 log::info!("Update users details ===> {:?}", body);

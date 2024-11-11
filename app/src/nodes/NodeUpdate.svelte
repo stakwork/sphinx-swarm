@@ -12,7 +12,7 @@
     if (!name) return;
     updating = true;
     await api.swarm.update_node(name);
-    await getImageVersion(name, stack, selectedNode);
+    await getImageVersion(stack, selectedNode);
     updating = false;
   }
 </script>

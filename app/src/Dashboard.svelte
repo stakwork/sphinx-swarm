@@ -25,20 +25,17 @@
   import type { Node, Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
-  import { get_signedin_user_details, type Container } from "./api/swarm";
+  import {
+    get_all_image_actual_version,
+    get_signedin_user_details,
+    type Container,
+  } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
 
-  async function getNodeVersion(nodes: Node[]) {
-    //loop throug nodes
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      // if node version is latest get digest
-      if (node.version === "latest") {
-        await getImageVersion(node.name, stack, selectedNode);
-      }
-    }
+  async function getNodeVersion() {
+    await getImageVersion(stack, selectedNode);
   }
 
   async function pollConfig() {
@@ -55,7 +52,7 @@
     if (stackRemote.nodes !== $stack.nodes) {
       stack.set(stackRemote);
       // get node version
-      getNodeVersion(stackRemote.nodes);
+      getNodeVersion();
     }
     return stackRemote.ready;
   }
