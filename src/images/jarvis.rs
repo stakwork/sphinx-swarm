@@ -113,6 +113,12 @@ fn jarvis(
     if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
     }
+
+    if let Ok(swarm_host) = getenv("HOST") {
+        let swarm_number: String = swarm_host.chars().filter(|c| c.is_numeric()).collect();
+        env.push(format!("SWARM_NUMBER={}", swarm_number));
+    }
+
     if let Ok(stakwork_radar_token) = getenv("STAKWORK_RADAR_REQUEST_TOKEN") {
         env.push(format!("RADAR_REQUEST_TOKEN={}", stakwork_radar_token));
     }
