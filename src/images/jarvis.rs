@@ -1,6 +1,6 @@
 use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, *};
 use crate::config::Node;
-use crate::utils::{domain, exposed_ports, getenv, host_config};
+use crate::utils::{domain, exposed_ports, extract_swarm_number, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -115,7 +115,7 @@ fn jarvis(
     }
 
     if let Ok(swarm_host) = getenv("HOST") {
-        let swarm_number: String = swarm_host.chars().filter(|c| c.is_numeric()).collect();
+        let swarm_number = extract_swarm_number(swarm_host);
         env.push(format!("SWARM_NUMBER={}", swarm_number));
     }
 

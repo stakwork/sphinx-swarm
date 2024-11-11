@@ -364,3 +364,7 @@ pub fn getenv(envname: &str) -> Result<String> {
         Err(anyhow!("{} is empty", envname))
     }
 }
+
+pub fn extract_swarm_number(host: String) -> String {
+    host.chars().filter(|c| c.is_numeric()).collect()
+}
