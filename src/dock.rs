@@ -21,8 +21,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::default::Default;
 use std::error::Error;
-use std::future::Future;
-use std::pin::Pin;
 use std::time::Duration;
 use tokio::io::AsyncReadExt;
 
@@ -599,8 +597,6 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
 
     let mut images_version: Vec<ImageVersion> = Vec::new();
 
-    let library_images = vec!["elasticsearch", "neo4j"];
-
     for node in nodes.iter() {
         let node_name = node.name();
         let host = domain(&node_name);
@@ -628,8 +624,10 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
         let mut image_name = digest_parts[0].to_string();
         let checksome = digest_parts[1];
 
-        if library_images.contains(&image_name.as_str()) {
-            image_name = format!("library/{}", image_name);
+        let node_image = find_img(&node_name, nodes)?;
+
+        if node_image.repo().org == "library" {
+            image_name = format!("{}/{}", node_image.repo().org, image_name);
         }
 
         let version = get_image_version_from_digest(&image_name, checksome).await;
