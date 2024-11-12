@@ -21,14 +21,16 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::default::Default;
 use std::error::Error;
+use std::time::Duration;
 use tokio::io::AsyncReadExt;
 
 use crate::backup::bucket_name;
 use crate::builder::{find_img, make_client};
-use crate::config::{State, STATE};
+use crate::config::{Node, State, STATE};
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
+use bollard::models::ImageInspect;
 use tokio::fs::File;
 
 pub fn dockr() -> Docker {
@@ -538,6 +540,31 @@ pub struct GetImageDigestResponse {
     pub message: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetImageActualVersionResponse {
+    pub success: bool,
+    pub data: Option<Vec<ImageVersion>>,
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DockerHubImageResult {
+    pub name: String,
+    pub digest: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DockerHubResponse {
+    pub results: Vec<DockerHubImageResult>,
+    pub next: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ImageVersion {
+    pub name: String,
+    pub version: String,
+}
+
 // get image digest
 pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse> {
     let docker = Docker::connect_with_local_defaults()?;
@@ -563,6 +590,143 @@ pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse
     } else {
         return Ok(error_response);
     }
+}
+
+pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActualVersionResponse> {
+    let docker = Docker::connect_with_local_defaults()?;
+
+    let mut images_version: Vec<ImageVersion> = Vec::new();
+
+    for node in nodes.iter() {
+        let node_name = node.name();
+        let host = domain(&node_name);
+        let image_id = get_image_id(&docker, &host).await;
+        if image_id.is_empty() {
+            images_version.push(ImageVersion {
+                name: node_name,
+                version: "unavaliable".to_string(),
+            });
+            continue;
+        }
+
+        let digest = get_image_digest_from_image_id(&docker, &image_id).await;
+        if digest.is_empty() {
+            log::error!("Error getting {} image digest", node_name);
+            images_version.push(ImageVersion {
+                name: node_name,
+                version: "unavaliable".to_string(),
+            });
+            continue;
+        }
+
+        let digest_parts: Vec<&str> = digest.split("@").collect();
+
+        let mut image_name = digest_parts[0].to_string();
+        let checksome = digest_parts[1];
+
+        let node_image = find_img(&node_name, nodes)?;
+
+        if node_image.repo().org == "library" {
+            image_name = format!("{}/{}", node_image.repo().org, image_name);
+        }
+
+        let version = get_image_version_from_digest(&image_name, checksome).await;
+
+        images_version.push(ImageVersion {
+            name: node_name,
+            version: version,
+        });
+    }
+
+    Ok(GetImageActualVersionResponse {
+        success: true,
+        message: "image actual versions".to_string(),
+        data: Some(images_version),
+    })
+}
+
+async fn get_image_id(docker: &Docker, container_name: &str) -> String {
+    match docker.inspect_container(container_name, None).await {
+        Ok(container_info) => {
+            if container_info.image.is_none() {
+                return "".to_string();
+            }
+            return container_info.image.unwrap();
+        }
+        Err(err) => {
+            log::error!("Container image is unavailable: {:?}", err);
+            return "".to_string();
+        }
+    }
+}
+
+async fn get_image_digest_from_image_id(docker: &Docker, image_id: &str) -> String {
+    let image_info: ImageInspect = match docker.inspect_image(image_id).await {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error getting name and digest: {:?}", err);
+            return "".to_string();
+        }
+    };
+
+    let image_digest = image_info
+        .repo_digests
+        .as_ref()
+        .and_then(|digests| digests.first().cloned());
+
+    if image_digest.is_none() {
+        return "".to_string();
+    }
+
+    image_digest.unwrap()
+}
+
+pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> String {
+    let docker_url = format!(
+        "https://hub.docker.com/v2/repositories/{}/tags?page=1&page_size=100",
+        image_name,
+    );
+    let version = get_version_from_docker_hub(&docker_url, digest).await;
+    version
+}
+
+pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> String {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(40))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build swarm updater reqwest client");
+
+    let response = match client.get(docker_url).send().await {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error making request to {}: {:?}", docker_url, err);
+            return "".to_string();
+        }
+    };
+
+    let response_json: DockerHubResponse = match response.json().await {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            log::error!("Error parsing response from {}: {:?}", docker_url, err);
+            return "".to_string();
+        }
+    };
+
+    for image in response_json.results {
+        if let Some(image_digest) = image.digest {
+            if image_digest == digest && image.name != "latest" {
+                return image.name;
+            }
+        }
+    }
+    if let Some(next_url) = response_json.next {
+        if !next_url.is_empty() {
+            return Box::pin(get_version_from_docker_hub(&next_url, digest)).await;
+        }
+    }
+
+    return "".to_string();
 }
 
 pub async fn prune_images(docker: &Docker) {
@@ -721,6 +885,8 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool
                         return Ok(false);
                     }
                 }
+            } else {
+                log::error!("Could not find file with this data path: {}", data_path);
             }
         }
         return Ok(false);

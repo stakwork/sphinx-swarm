@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
+use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_route53::types::{
     Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet,
 };
@@ -12,7 +13,7 @@ pub async fn add_domain_name_to_route53(
     domain_names: Vec<&str>,
     public_ip: &str,
 ) -> Result<(), Error> {
-    let region = getenv("AWS_S3_REGION_NAME")?;
+    let region = getenv("AWS_REGION")?;
     let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
@@ -50,18 +51,44 @@ pub async fn add_domain_name_to_route53(
         .build()
         .map_err(|err| anyhow!(err.to_string()))?;
 
-    let response = route53_client
+    let result = route53_client
         .change_resource_record_sets()
         .hosted_zone_id(hosted_zone_id)
         .change_batch(change_batch)
         .send()
-        .await?;
+        .await;
 
-    log::info!(
-        "Route 53 change status for {:?}: {:?}",
-        domain_names,
-        response.change_info()
-    );
+    match result {
+        Ok(response) => {
+            log::info!(
+                "Route 53 change status for {:?}: {:?}",
+                domain_names,
+                response.change_info()
+            );
 
-    Ok(())
+            return Ok(());
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
+    }
 }

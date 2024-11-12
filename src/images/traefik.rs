@@ -47,30 +47,17 @@ ulimits:
         hard: 1000000
 */
 
-// all 3 required for inclusion
 fn _aws_env() -> Option<Vec<String>> {
-    let aws_key = std::env::var("AWS_ACCESS_KEY_ID");
-    let aws_secret = std::env::var("AWS_SECRET_ACCESS_KEY");
     let aws_region = std::env::var("AWS_REGION");
-    if let Err(_) = aws_key {
-        return None;
-    }
-    if let Err(_) = aws_secret {
-        return None;
-    }
     if let Err(_) = aws_region {
         return None;
     }
-    Some(vec![
-        format!("AWS_REGION={}", aws_region.unwrap()),
-        format!("AWS_ACCESS_KEY_ID={}", aws_key.unwrap()),
-        format!("AWS_SECRET_ACCESS_KEY={}", aws_secret.unwrap()),
-    ])
+    Some(vec![format!("AWS_REGION={}", aws_region.unwrap())])
 }
 
 fn _traefik(img: &TraefikImage) -> Config<String> {
     let name = img.name.clone();
-    let image = "traefik:v2.2.1";
+    let image = "traefik:v2.9";
     let mut ports = vec!["80", "443"];
     let insecure = match std::env::var("TRAEFIK_INSECURE") {
         Ok(_) => true,
@@ -110,10 +97,13 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
     let add_log_limit = true;
     let awsenv = _aws_env();
     if let Some(ae) = &awsenv {
-        log::info!("traefik: using AWS env {:?}", ae.get(0));
+        log::info!("traefik: using AWS REGION env {:?}", ae.get(0));
     } else {
-        log::error!("traefik: MISSING AWS ENV!");
+        log::error!("traefik: MISSING AWS REGION ENV!");
     }
+
+    log::error!("traefik: MISSING AWS ENV!");
+
     Config {
         image: Some(image.to_string()),
         hostname: Some(domain(&name)),

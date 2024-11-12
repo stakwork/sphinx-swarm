@@ -4,7 +4,7 @@ version: "2"
 
 services:
   reverse-proxy:
-    image: traefik:v2.2.1
+    image: traefik:v2.9
     container_name: traefik.sphinx
     restart: unless-stopped
     networks:
@@ -37,8 +37,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/letsencrypt:/letsencrypt
     environment:
-      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
     logging:
       options:
@@ -75,6 +73,8 @@ services:
       - IS_ROUTER=$IS_ROUTER
       - SEED=$SEED
       - CLN_MAINNET_BTC=$CLN_MAINNET_BTC
+      - AWS_REGION=$AWS_REGION
+      - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
 
 networks:
   sphinx-swarm:

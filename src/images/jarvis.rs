@@ -116,15 +116,7 @@ fn jarvis(
     if let Ok(stakwork_radar_token) = getenv("STAKWORK_RADAR_REQUEST_TOKEN") {
         env.push(format!("RADAR_REQUEST_TOKEN={}", stakwork_radar_token));
     }
-    if let Ok(aws_key_id) = getenv("AWS_ACCESS_KEY_ID") {
-        env.push(format!("AWS_ACCESS_KEY_ID={}", aws_key_id));
-    }
-    if let Ok(aws_secret) = getenv("AWS_SECRET_ACCESS_KEY") {
-        env.push(format!("AWS_SECRET_ACCESS_KEY={}", aws_secret));
-    }
-    if let Ok(aws_region) = getenv("AWS_S3_REGION_NAME") {
-        env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
-    }
+
     if let Ok(tbawid) = getenv("TWEET_BY_AUTOR_WORKFLOW_ID") {
         env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tbawid));
     }
@@ -188,6 +180,9 @@ fn jarvis(
             max_payment_hierarcy_depth
         ));
     }
+    if let Ok(aws_region) = getenv("AWS_REGION") {
+        env.push(format!("AWS_S3_REGION_NAME={}", aws_region));
+    }
     if let Ok(dynamo_db_aws_access_key_id) = getenv("DYNAMO_DB_AWS_ACCESS_KEY_ID") {
         env.push(format!(
             "DYNAMO_DB_AWS_ACCESS_KEY_ID={}",
@@ -207,6 +202,12 @@ fn jarvis(
         env.push(format!(
             "WEBPAGE_TEXT_WORKFLOW_ID={}",
             webpage_text_workflow_id
+        ));
+    }
+    if let Ok(question_and_answer_workflow_id) = getenv("QUESTION_AND_ANSWER_WORKFLOW_ID") {
+        env.push(format!(
+            "QUESTION_AND_ANSWER_WORKFLOW_ID={}",
+            question_and_answer_workflow_id
         ));
     }
     Config {

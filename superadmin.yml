@@ -4,7 +4,7 @@ version: "2"
 
 services:
   load_balancer:
-    image: traefik:v2.2.1
+    image: traefik:v2.9
     container_name: load_balancer
     restart: unless-stopped
     networks:
@@ -35,8 +35,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/letsencrypt:/letsencrypt
     environment:
-      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
     logging:
       options:
@@ -68,10 +66,7 @@ services:
       - ROCKET_PORT=8000
       - SUPER_TOKEN=$SUPER_TOKEN
       - SECOND_BRAIN_ONLY=$SECOND_BRAIN_ONLY
-      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_REGION=$AWS_REGION
-      - AWS_S3_REGION_NAME=$AWS_S3_REGION_NAME
       - SUPER_URL=$SUPER_URL
       - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
       - STAKWORK_RADAR_REQUEST_TOKEN=$STAKWORK_RADAR_REQUEST_TOKEN
@@ -93,6 +88,10 @@ services:
       - SWARM_TAG_VALUE=$SWARM_TAG_VALUE
       - SWARM_TAG_KEY=$SWARM_TAG_KEY
       - SWARM_UPDATER_PASSWORD=$SWARM_UPDATER_PASSWORD
+      - EC2_DAILY_LIMIT=$EC2_DAILY_LIMIT
+      - QUESTION_AND_ANSWER_WORKFLOW_ID=$QUESTION_AND_ANSWER_WORKFLOW_ID
+      - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
+      - AWS_USER_ROLE=$AWS_USER_ROLE
     
 networks:
   sphinx-swarm:

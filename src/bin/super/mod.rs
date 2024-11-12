@@ -15,8 +15,8 @@ use state::RemoteStack;
 use state::Super;
 use util::{
     accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
-    get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers, get_config,
-    get_swarm_instance_type, update_aws_instance_type,
+    get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
+    get_child_swarm_image_versions, get_config, get_swarm_instance_type, update_aws_instance_type,
 };
 
 use crate::checker::swarm_checker;
@@ -367,6 +367,29 @@ pub async fn super_handle(
                         res = SuperSwarmResponse {
                             success: false,
                             message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetSwarmChildImageVersions(info) => {
+                let res: SuperSwarmResponse;
+                match state.find_swarm_by_host(&info.host) {
+                    Some(swarm) => match get_child_swarm_image_versions(&swarm).await {
+                        Ok(result) => res = result,
+                        Err(err) => {
+                            res = SuperSwarmResponse {
+                                success: false,
+                                message: err.to_string(),
+                                data: None,
+                            }
+                        }
+                    },
+                    None => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: "Swarm does not exist".to_string(),
                             data: None,
                         }
                     }
