@@ -509,6 +509,10 @@ async fn create_ec2_instance(
         sudo dpkg -i amazon-ssm-agent.deb
           cd /home/admin/sphinx-swarm && \
           pm2 start ecosystem.config.js && \
+          pm2 save && \
+          startup_command=$(pm2 startup | grep "sudo" | tail -n 1) && \
+          eval $startup_command && \
+          pm2 save && \
           ./restart-second-brain.sh
       '
       "#
