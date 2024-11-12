@@ -20,7 +20,9 @@ export async function getImageVersion(
       for (let i = 0; i < stack.nodes.length; i++) {
         const newNode = {
           ...stack.nodes[i],
-          version: version_object[stack.nodes[i].name],
+          ...(stack.nodes[i].version === "latest" && {
+            version: version_object[stack.nodes[i].name],
+          }),
         };
 
         selectedNode.update((node) =>
