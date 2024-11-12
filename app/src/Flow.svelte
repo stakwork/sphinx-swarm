@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import Svelvet from "svelvet";
   import { defaultPositions } from "./nodes";
   import { chipSVG, type Node, type NodeType, smalls } from "./nodes";

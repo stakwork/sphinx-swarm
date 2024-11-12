@@ -22,20 +22,19 @@
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { onMount } from "svelte";
   import * as api from "./api";
-  import type { Node, Stack } from "./nodes";
+  import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
-  import {
-    get_all_image_actual_version,
-    get_signedin_user_details,
-    type Container,
-  } from "./api/swarm";
+  import { get_signedin_user_details, type Container } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
 
+  $: nodes = [...$stack.nodes];
+
   async function getNodeVersion() {
     await getImageVersion(stack, selectedNode);
+    nodes = [...$stack.nodes];
   }
 
   async function pollConfig() {
@@ -182,7 +181,7 @@
       <ChangePassword back={backToMain} />
     {:else if page === "main"}
       {#if $stack.nodes.length}
-        {#key body}
+        {#key nodes}
           <Flow />
         {/key}
       {:else}

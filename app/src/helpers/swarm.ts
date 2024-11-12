@@ -8,7 +8,6 @@ export async function getImageVersion(
   selectedNode: Writable<Node>
 ) {
   const image_versions = await get_all_image_actual_version();
-  console.log(image_versions);
   if (image_versions.success) {
     let version_object = {};
 
