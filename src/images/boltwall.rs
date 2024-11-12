@@ -4,7 +4,9 @@ use crate::config::Node;
 use crate::conn::lnd::utils::{dl_cert_to_base64, dl_macaroon};
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
+use crate::utils::{
+    domain, exposed_ports, extract_swarm_number, getenv, host_config, volume_string,
+};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -210,7 +212,11 @@ fn boltwall(
     }
 
     match getenv("HOST") {
-        Ok(host) => env.push(format!("SWARM_UI=https://app.{}", host)),
+        Ok(host) => {
+            env.push(format!("SWARM_UI=https://app.{}", host));
+            let swarm_number = extract_swarm_number(host);
+            env.push(format!("SWARM_NUMBER={}", swarm_number));
+        }
         Err(err) => {
             log::error!("Error geting env host: {}", err.to_string())
         }

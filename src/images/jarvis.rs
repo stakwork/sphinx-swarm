@@ -1,6 +1,6 @@
 use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, *};
 use crate::config::Node;
-use crate::utils::{domain, exposed_ports, getenv, host_config};
+use crate::utils::{domain, exposed_ports, extract_swarm_number, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -113,6 +113,12 @@ fn jarvis(
     if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
     }
+
+    if let Ok(swarm_host) = getenv("HOST") {
+        let swarm_number = extract_swarm_number(swarm_host);
+        env.push(format!("SWARM_NUMBER={}", swarm_number));
+    }
+
     if let Ok(stakwork_radar_token) = getenv("STAKWORK_RADAR_REQUEST_TOKEN") {
         env.push(format!("RADAR_REQUEST_TOKEN={}", stakwork_radar_token));
     }
