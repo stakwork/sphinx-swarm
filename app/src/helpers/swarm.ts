@@ -1,7 +1,6 @@
 import type { Writable } from "svelte/store";
-import { get_all_image_actual_version, get_image_tags } from "../api/swarm";
+import { get_all_image_actual_version } from "../api/swarm";
 import type { Stack, Node } from "../nodes";
-import { swarm } from "../api";
 
 export async function getImageVersion(
   stack: Writable<Stack>,
