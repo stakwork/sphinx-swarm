@@ -199,6 +199,29 @@ pub async fn get_child_swarm_containers(
     })
 }
 
+pub async fn get_child_swarm_image_versions(
+    swarm_details: &RemoteStack,
+) -> Result<SuperSwarmResponse, Error> {
+    let token = login_to_child_swarm(swarm_details).await?;
+    let cmd = Cmd::Swarm(SwarmCmd::GetAllImageActualVersion);
+    let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
+
+    if res.status().clone() != 200 {
+        return Err(anyhow!(format!(
+            "{} status code gotten from get child swarm container",
+            res.status()
+        )));
+    }
+
+    let image_version: Value = res.json().await?;
+
+    Ok(SuperSwarmResponse {
+        success: true,
+        message: "child swarm image versions successfully retrieved".to_string(),
+        data: Some(image_version),
+    })
+}
+
 pub async fn access_child_swarm_containers(
     swarm_details: &RemoteStack,
     nodes: Vec<String>,

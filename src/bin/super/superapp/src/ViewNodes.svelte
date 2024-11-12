@@ -12,6 +12,7 @@
     get_aws_instance_types,
     update_aws_instance_type,
     get_swarm_instance_type,
+    get_child_swarm_image_versions,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -167,6 +168,8 @@
     await getAwsInstanceType();
 
     await get_current_service_details();
+
+    await get_image_versions();
   });
 
   function findContainer(node_name: string) {
@@ -175,6 +178,41 @@
       if (container.Names.includes(`/${node_name}.sphinx`)) {
         return container;
       }
+    }
+  }
+
+  async function get_image_versions() {
+    try {
+      const response = await get_child_swarm_image_versions({
+        host: $selectedNode,
+      });
+      if (response.success === true) {
+        const version_object = {};
+        for (let i = 0; i < response.data.data.length; i++) {
+          version_object[response.data.data[i].name] =
+            response.data.data[i].version;
+        }
+
+        let tempSortedNodes = [];
+
+        for (let i = 0; i < sortedNodes.length; i++) {
+          const node = sortedNodes[i];
+
+          tempSortedNodes.push({
+            ...node,
+            ...(node.version === "latest" && {
+              version: version_object[node.name.toLowerCase()],
+            }),
+          });
+        }
+
+        sortedNodes = [...tempSortedNodes];
+      }
+    } catch (error) {
+      console.log(error);
+      console.log(
+        `Error getting ${$selectedNode} image version: ${JSON.stringify}`
+      );
     }
   }
 
@@ -373,7 +411,7 @@
       headers={[
         { key: "sn", value: "S/N" },
         { key: "name", value: "Name" },
-        // { key: "version", value: "Version" },
+        { key: "version", value: "Version" },
         { key: "update", value: "Update" },
         { key: "stop", value: "Stop/Start" },
         { key: "restart", value: "Restart" },
