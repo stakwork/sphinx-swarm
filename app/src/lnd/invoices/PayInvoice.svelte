@@ -87,7 +87,7 @@
         kind={success ? "success" : "error"}
         title={success ? "Success:" : "Error:"}
         subtitle={message}
-        timeout={30000}
+        timeout={9000}
         on:close={(e) => {
           e.preventDefault();
           show_notification = false;

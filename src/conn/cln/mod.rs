@@ -93,14 +93,21 @@ impl ClnRPC {
         port: &str,
     ) -> Result<pb::ConnectResponse> {
         let p = str::parse::<u32>(port)?;
-        let response = self
+        let response = match self
             .client
             .connect_peer(pb::ConnectRequest {
                 id: id.to_string(),
                 host: Some(host.to_string()),
                 port: Some(p),
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error executing keysend: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -213,22 +220,35 @@ impl ClnRPC {
                 req.routehints = Some(routehints);
             }
         }
-        println!("=======> CLN KEYSEND REQ: {:?}", req);
-        let response = self.client.key_send(req).await?;
+        log::info!("=======> CLN KEYSEND REQ: {:?}", req);
+        let response = match self.client.key_send(req).await {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error executing keysend: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         let res = response.into_inner();
-        println!("=====> KEYSEND RES: {:?}", res);
+        log::info!("=====> KEYSEND RES: {:?}", res);
         Ok(res)
     }
 
     pub async fn create_invoice(&mut self, amt: u64) -> Result<pb::InvoiceResponse> {
-        let response = self
+        let response = match self
             .client
             .invoice(pb::InvoiceRequest {
                 amount_msat: amount_or_any(amt),
                 label: hex_secret(),
                 ..Default::default()
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error creating an invoice error: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -244,7 +264,6 @@ impl ClnRPC {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Pay invoice error: {:?}", err.message());
-
                 return Err(anyhow!(extract_cln_error_msg(err.message())));
             }
         };

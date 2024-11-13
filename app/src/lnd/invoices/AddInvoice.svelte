@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Button, TextInput } from "carbon-components-svelte";
+  import {
+    Button,
+    InlineNotification,
+    TextInput,
+  } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import * as LND from "../../api/lnd";
   import * as CLN from "../../api/cln";
@@ -15,6 +19,9 @@
   $: invDisabled = !amount;
 
   $: invoice = $activeInvoice[tag] || "";
+  let message = "";
+  let show_notification = false;
+  let success = false;
 
   async function newInvoice() {
     if (type === "Cln") {
@@ -22,7 +29,19 @@
         tag,
         convertSatsToMilliSats(amount)
       );
-      if (invoiceRes) {
+      show_notification = true;
+      if (typeof invoiceRes === "string") {
+        message = invoiceRes;
+        return;
+      }
+      if (typeof invoiceRes !== "object") {
+        message = "invalid response";
+        console.log(invoiceRes);
+        return;
+      }
+      if (invoiceRes && invoiceRes.bolt11) {
+        success = true;
+        message = "Invoice created successfully";
         activeInvoice.update((inv) => {
           return { ...inv, [tag]: invoiceRes.bolt11 };
         });
@@ -43,6 +62,19 @@
 </script>
 
 <main>
+  {#if show_notification}
+    <InlineNotification
+      lowContrast
+      kind={success ? "success" : "error"}
+      title={success ? "Success:" : "Error:"}
+      subtitle={message}
+      timeout={9000}
+      on:close={(e) => {
+        e.preventDefault();
+        show_notification = false;
+      }}
+    />
+  {/if}
   <section class="invoice-wrap">
     <TextInput
       labelText={"Amount (satoshis)"}

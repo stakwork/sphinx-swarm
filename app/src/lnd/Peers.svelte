@@ -28,12 +28,24 @@
   $: peers = $peersStore && $peersStore[tag];
 
   let show_notification = false;
+  let message = "";
 
   async function addPeer() {
     if (type === "Cln") {
       const peer = await CLN.add_peer(tag, pubkey, host);
+      show_notification = true;
+
+      if (typeof peer === "string") {
+        message = peer;
+        return;
+      }
+
+      if (typeof peer !== "object") {
+        message = "unexpected error";
+        console.log(peer);
+        return;
+      }
       if (peer) {
-        show_notification = true;
         pubkey = "";
         host = "";
         const peersData = await CLN.list_peers(tag);
@@ -101,9 +113,9 @@
   {#if show_notification}
     <InlineNotification
       lowContrast
-      kind="success"
-      title="Success:"
-      subtitle="Pair has been added."
+      kind={message ? "error" : "success"}
+      title={message ? "Error" : "Success:"}
+      subtitle={message || "Pair has been added."}
       timeout={3000}
       on:close={(e) => {
         e.preventDefault();

@@ -34,8 +34,17 @@
         window.maxfeepercent,
         window.exemptfee
       );
+      show_notification = true;
+      if (typeof payRes === "string") {
+        payment_error = payRes;
+        return;
+      }
+      if (typeof payRes !== "object") {
+        payment_error = "unexpected error occured";
+        console.log(payRes);
+        return;
+      }
       if (payRes) {
-        show_notification = true;
         payment_error = "";
         dest = "";
         amount = 0;
@@ -85,7 +94,7 @@
         kind={payment_error ? "error" : "success"}
         title={payment_error ? "Failure:" : "Success:"}
         subtitle={payment_error || "Keysend payment has been made."}
-        timeout={4000}
+        timeout={9000}
         on:close={(e) => {
           e.preventDefault();
           show_notification = false;
