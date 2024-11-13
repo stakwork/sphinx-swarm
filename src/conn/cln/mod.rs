@@ -233,13 +233,20 @@ impl ClnRPC {
     }
 
     pub async fn pay(&mut self, bolt11: &str) -> Result<pb::PayResponse> {
-        let response = self
+        let response = match self
             .client
             .pay(pb::PayRequest {
                 bolt11: bolt11.to_string(),
                 ..Default::default()
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Pay invoice error: {:?}", err.message());
+                return Err(anyhow!(err.message().to_string()));
+            }
+        };
         Ok(response.into_inner())
     }
 
