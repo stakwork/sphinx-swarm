@@ -244,7 +244,8 @@ impl ClnRPC {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Pay invoice error: {:?}", err.message());
-                return Err(anyhow!(err.message().to_string()));
+
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
             }
         };
         Ok(response.into_inner())
@@ -341,6 +342,23 @@ fn amount_or_all(msat: u64) -> Option<pb::AmountOrAll> {
 }
 fn amount(msat: u64) -> pb::Amount {
     pb::Amount { msat }
+}
+
+fn extract_cln_error_msg(input: &str) -> String {
+    if let Some(start_idx) = input.find("message: ") {
+        let start_idx = start_idx + "message: \"".len();
+        let new_msg = &input[start_idx..];
+
+        if let Some(end_idx) = new_msg.find("\"") {
+            // Extract the message by slicing
+            let message = &input[start_idx..start_idx + end_idx];
+            return message.to_string();
+        } else {
+            return input.to_string();
+        }
+    } else {
+        return input.to_string();
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
