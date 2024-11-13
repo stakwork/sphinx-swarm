@@ -62,27 +62,47 @@ impl ClnRPC {
     }
 
     pub async fn get_info(&mut self) -> Result<pb::GetinfoResponse> {
-        let response = self.client.getinfo(pb::GetinfoRequest {}).await?;
+        let response = match self.client.getinfo(pb::GetinfoRequest {}).await {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error getting node info: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
     pub async fn list_funds(&mut self) -> Result<pb::ListfundsResponse> {
-        let response = self
+        let response = match self
             .client
             .list_funds(pb::ListfundsRequest {
                 ..Default::default()
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error listing funds: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
     pub async fn new_addr(&mut self) -> Result<pb::NewaddrResponse> {
-        let response = self
+        let response = match self
             .client
             .new_addr(pb::NewaddrRequest {
                 ..Default::default()
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error getting new address: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -104,7 +124,7 @@ impl ClnRPC {
         {
             Ok(res) => res,
             Err(err) => {
-                log::error!("Error executing keysend: {:?}", err.message());
+                log::error!("Error connecting to peer: {:?}", err.message());
                 return Err(anyhow!(extract_cln_error_msg(err.message())));
             }
         };
@@ -112,12 +132,19 @@ impl ClnRPC {
     }
 
     pub async fn list_peers(&mut self) -> Result<pb::ListpeersResponse> {
-        let response = self
+        let response = match self
             .client
             .list_peers(pb::ListpeersRequest {
                 ..Default::default()
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error listing peer: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -129,7 +156,13 @@ impl ClnRPC {
         if let Some(peer_id) = peer_id {
             req.id = Some(peer_id);
         }
-        let response = self.client.list_peer_channels(req).await?;
+        let response = match self.client.list_peer_channels(req).await {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error listing peer channels: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -169,7 +202,13 @@ impl ClnRPC {
                 });
             }
         }
-        let response = self.client.fund_channel(req).await?;
+        let response = match self.client.fund_channel(req).await {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error funcding channel: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -271,7 +310,7 @@ impl ClnRPC {
     }
 
     pub async fn close(&mut self, id: &str, out_addy: &str) -> Result<pb::CloseResponse> {
-        let response = self
+        let response = match self
             .client
             .close(pb::CloseRequest {
                 id: id.to_string(),
@@ -279,7 +318,14 @@ impl ClnRPC {
                 unilateraltimeout: Some(30),
                 ..Default::default()
             })
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error closing channel: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 
@@ -289,22 +335,36 @@ impl ClnRPC {
     ) -> Result<pb::ListinvoicesResponse> {
         match payment_hash {
             Some(hash) => {
-                let response = self
+                let response = match self
                     .client
                     .list_invoices(pb::ListinvoicesRequest {
                         payment_hash: Some(hex::decode(hash)?),
                         ..Default::default()
                     })
-                    .await?;
+                    .await
+                {
+                    Ok(res) => res,
+                    Err(err) => {
+                        log::error!("Error getting invoice: {:?}", err.message());
+                        return Err(anyhow!(extract_cln_error_msg(err.message())));
+                    }
+                };
                 Ok(response.into_inner())
             }
             None => {
-                let response = self
+                let response = match self
                     .client
                     .list_invoices(pb::ListinvoicesRequest {
                         ..Default::default()
                     })
-                    .await?;
+                    .await
+                {
+                    Ok(res) => res,
+                    Err(err) => {
+                        log::error!("Error getting all invoices: {:?}", err.message());
+                        return Err(anyhow!(extract_cln_error_msg(err.message())));
+                    }
+                };
                 Ok(response.into_inner())
             }
         }
@@ -316,22 +376,36 @@ impl ClnRPC {
     ) -> Result<pb::ListsendpaysResponse> {
         match payment_hash {
             Some(hash) => {
-                let response = self
+                let response = match self
                     .client
                     .list_send_pays(pb::ListsendpaysRequest {
                         payment_hash: Some(hex::decode(hash)?),
                         ..Default::default()
                     })
-                    .await?;
+                    .await
+                {
+                    Ok(res) => res,
+                    Err(err) => {
+                        log::error!("Error listing a paid invoice: {:?}", err.message());
+                        return Err(anyhow!(extract_cln_error_msg(err.message())));
+                    }
+                };
                 Ok(response.into_inner())
             }
             None => {
-                let response = self
+                let response = match self
                     .client
                     .list_send_pays(pb::ListsendpaysRequest {
                         ..Default::default()
                     })
-                    .await?;
+                    .await
+                {
+                    Ok(res) => res,
+                    Err(err) => {
+                        log::error!("Error listing all paid invoices: {:?}", err.message());
+                        return Err(anyhow!(extract_cln_error_msg(err.message())));
+                    }
+                };
                 Ok(response.into_inner())
             }
         }
@@ -344,7 +418,13 @@ impl ClnRPC {
             riskfactor: 10,
             ..Default::default()
         };
-        let response = self.client.get_route(req).await?;
+        let response = match self.client.get_route(req).await {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error getting route: {:?}", err.message());
+                return Err(anyhow!(extract_cln_error_msg(err.message())));
+            }
+        };
         Ok(response.into_inner())
     }
 }
