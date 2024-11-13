@@ -1,14 +1,12 @@
 import type { Writable } from "svelte/store";
-import { get_all_image_actual_version, get_image_tags } from "../api/swarm";
+import { get_all_image_actual_version } from "../api/swarm";
 import type { Stack, Node } from "../nodes";
-import { swarm } from "../api";
 
 export async function getImageVersion(
   stack: Writable<Stack>,
   selectedNode: Writable<Node>
 ) {
   const image_versions = await get_all_image_actual_version();
-  console.log(image_versions);
   if (image_versions.success) {
     let version_object = {};
 
@@ -21,7 +19,9 @@ export async function getImageVersion(
       for (let i = 0; i < stack.nodes.length; i++) {
         const newNode = {
           ...stack.nodes[i],
-          version: version_object[stack.nodes[i].name],
+          ...(stack.nodes[i].version === "latest" && {
+            version: version_object[stack.nodes[i].name],
+          }),
         };
 
         selectedNode.update((node) =>

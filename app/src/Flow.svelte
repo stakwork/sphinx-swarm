@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import Svelvet from "svelvet";
   import { defaultPositions } from "./nodes";
   import { chipSVG, type Node, type NodeType, smalls } from "./nodes";
@@ -57,7 +58,7 @@
         // bgColor: colorz[n.type],
         bgColor: "#1A242E",
         clickCallback,
-        data: { html: content(n.type, remoteHsmd), name: n.name },
+        data: { html: content(n.type, n.version, remoteHsmd), name: n.name },
         sourcePosition: "right",
         targetPosition: "left",
         className,
@@ -71,10 +72,13 @@
     else return s;
   }
 
-  function content(t: NodeType, remoteHsmd = false) {
+  function content(t: NodeType, version: string, remoteHsmd = false) {
     return `<section class='node-html'>
       <img src='swarm/${t.toLowerCase()}.png' class='node-img'></img>
-      <p class="node-text">${namer(t)}</p>
+      <div class='node-text-version-container'>
+        <p class="node-text">${namer(t)}</p>
+        <p class="version-text">${version}</p>
+      </div>
       ${
         remoteHsmd
           ? `<div class="remote-hsmd">${chipSVG}</div>`

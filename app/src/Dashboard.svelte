@@ -22,20 +22,20 @@
   import NodeUpdate from "./nodes/NodeUpdate.svelte";
   import { onMount } from "svelte";
   import * as api from "./api";
-  import type { Node, Stack } from "./nodes";
+  import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
-  import {
-    get_all_image_actual_version,
-    get_signedin_user_details,
-    type Container,
-  } from "./api/swarm";
+  import { get_signedin_user_details, type Container } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
   let selectedName = "";
 
+  $: nodes = [...$stack.nodes];
+
   async function getNodeVersion() {
     await getImageVersion(stack, selectedNode);
+    nodes = [...$stack.nodes];
+    body = body;
   }
 
   async function pollConfig() {
@@ -113,19 +113,19 @@
   $: {
     if ($nodes_exited) {
       $nodes_exited.forEach((node) => {
-        body.classList.add(`selected-${node}`);
-        body.classList.add(`${node}-stopped`);
+        body?.classList.add(`selected-${node}`);
+        body?.classList.add(`${node}-stopped`);
       });
     }
   }
 
   function addStopClass(event) {
-    body.classList.add(`${event.detail.text}-stopped`);
+    body?.classList.add(`${event.detail.text}-stopped`);
   }
 
   function removeStopClass(event) {
-    if (body.classList.contains(`${event.detail.text}-stopped`)) {
-      body.classList.remove(`${event.detail.text}-stopped`);
+    if (body?.classList.contains(`${event.detail.text}-stopped`)) {
+      body?.classList.remove(`${event.detail.text}-stopped`);
     }
   }
 </script>
@@ -187,6 +187,7 @@
         {/key}
       {:else}
         <div class="loader">
+          letting
           <Loading />
         </div>
       {/if}
