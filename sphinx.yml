@@ -75,6 +75,7 @@ services:
       - SUPER_TOKEN=$SUPER_TOKEN
       - SUPER_URL=$SUPER_URL
       - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
+      - GITHUB_REQUEST_TOKEN=$GITHUB_REQUEST_TOKEN
 
 networks:
   sphinx-swarm:

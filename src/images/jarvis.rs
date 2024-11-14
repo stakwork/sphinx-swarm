@@ -216,6 +216,11 @@ fn jarvis(
             question_and_answer_workflow_id
         ));
     }
+
+    if let Ok(github_request_token) = getenv("GITHUB_REQUEST_TOKEN") {
+        env.push(format!("GITHUB_REQUEST_TOKEN={}", github_request_token))
+    }
+
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
