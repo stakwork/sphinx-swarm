@@ -41,6 +41,7 @@ pub async fn launch_rocket(
                 check_challenge,
                 get_signup_challenge,
                 check_signup_challenge,
+                service_health,
             ],
         )
         .attach(CORS)
@@ -145,6 +146,12 @@ pub struct ChallengeStatusResponse {
     pub success: bool,
     pub token: String,
     pub message: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct ServiceHealthResponse {
+    pub status: String,
 }
 
 #[derive(Serialize)]
@@ -331,4 +338,12 @@ pub async fn check_signup_challenge(
         return Err(Error::Unauthorized);
     }
     Ok(reply)
+}
+
+// /health
+#[get("/health")]
+pub async fn service_health() -> Result<Json<ServiceHealthResponse>> {
+    Ok(Json(ServiceHealthResponse {
+        status: "ok".to_string(),
+    }))
 }
