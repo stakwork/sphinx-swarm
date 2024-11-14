@@ -26,6 +26,14 @@
     if (type === "Cln") {
       const payRes = await CLN.pay_invoice(tag, pay_req);
       show_notification = true;
+      if (typeof payRes === "string") {
+        message = payRes;
+        return;
+      }
+      if (typeof payRes !== "object") {
+        message = "an unexpected error occurred";
+        return;
+      }
       if (payRes.status === 0) {
         success = true;
         message = "Invoice payment has been made.";
@@ -79,7 +87,7 @@
         kind={success ? "success" : "error"}
         title={success ? "Success:" : "Error:"}
         subtitle={message}
-        timeout={3000}
+        timeout={9000}
         on:close={(e) => {
           e.preventDefault();
           show_notification = false;

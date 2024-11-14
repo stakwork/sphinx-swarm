@@ -47,6 +47,9 @@ export function parseClnListPeerChannelsRes(res: {
 export function parseClnListPeerRes(res: {
   peers: { id: Buffer; netaddr; channels }[];
 }): LndPeer[] {
+  if (typeof res !== "object") {
+    return [];
+  }
   // pub_key: string;
   // address: string;
   // bytes_sent: number;
@@ -76,6 +79,12 @@ export function parseClnListPeerRes(res: {
 }
 
 function parseClnPeerChannelList(channels: any): LndChannel[] {
+  if (!channels) {
+    return [];
+  }
+  if (!Array.isArray(channels)) {
+    return [];
+  }
   const parsedChannels = channels.map((channel, index: number) => {
     return <LndChannel>{
       remote_pubkey: bufferToHexString(channel.peer_id),
@@ -123,8 +132,18 @@ function getChannelStatus(status) {
 }
 
 function convertPeerChannelArrayToObj(peerChanObj) {
-  // console.log("=>", peerChanObj);
+  console.log("=>", peerChanObj);
+
   const obj = {};
+
+  if (typeof peerChanObj !== "object") {
+    return obj;
+  }
+
+  if (!peerChanObj) {
+    return obj;
+  }
+
   for (let i = 0; i < peerChanObj.channels.length; i++) {
     const channel = peerChanObj.channels[i];
     obj[channel.short_channel_id] = channel;
@@ -135,6 +154,9 @@ function convertPeerChannelArrayToObj(peerChanObj) {
 export function parseClnListFunds(res, peersChans): number {
   let balance = 0;
   let channelBal = 0;
+  if (typeof res !== "object") {
+    return 0;
+  }
   const channelsObj = convertPeerChannelArrayToObj(peersChans);
 
   for (let i = 0; i < res.channels.length; i++) {
@@ -155,6 +177,9 @@ export function parseClnListFunds(res, peersChans): number {
 }
 
 export function parseUnconfirmedClnBalance(res): number {
+  if (typeof res !== "object") {
+    return 0;
+  }
   let balance = 0;
   for (let i = 0; i < res.outputs.length; i++) {
     let output = res.outputs[i];
