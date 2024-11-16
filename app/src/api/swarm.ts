@@ -49,8 +49,8 @@ export async function start_container(id: string) {
   return await swarmCmd("StartContainer", id);
 }
 
-export async function update_node(id: string) {
-  return await swarmCmd("UpdateNode", { id, version: "latest" });
+export async function update_node(id: string, version?: string) {
+  return await swarmCmd("UpdateNode", { id, version: version || "latest" });
 }
 
 export async function restart_node(id: string) {
