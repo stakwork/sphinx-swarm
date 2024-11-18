@@ -93,7 +93,7 @@
       {:else if type === "Proxy"}
         <Proxy {tag} />
       {:else if type === "NavFiber"}
-        <NavFiber host={$selectedNode.host} />
+        <NavFiber host={$selectedNode.host} {updateBody} />
       {:else if type === "BoltWall"}
         <Boltwall host={$selectedNode.host} {updateBody} />
       {:else if type === "Cln"}

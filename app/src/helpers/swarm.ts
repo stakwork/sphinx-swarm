@@ -15,8 +15,6 @@ export async function getImageVersion(
       version_object[image_version.name] = image_version.version;
     }
 
-    console.log(version_object);
-
     stack.update((stack) => {
       for (let i = 0; i < stack.nodes.length; i++) {
         const new_version = version_object[stack.nodes[i].name];

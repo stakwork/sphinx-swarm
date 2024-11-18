@@ -10,6 +10,7 @@
   import Apikeys from "./components/SecondBrain/apikeys.svelte";
 
   export let host = "";
+  export let updateBody = () => {};
   let link = host ? `https://${host}` : "http://localhost:8001";
   if ($stack && $stack.custom_2b_domain) {
     link = `https://${$stack.custom_2b_domain}`;
@@ -91,7 +92,7 @@
     </div>
     <div class="tab-content">
       {#if currentTab === "General"}
-        <General />
+        <General {updateBody} />
       {:else if currentTab === "Roles"}
         <!-- <SetupAdmin /> -->
         <Roles />

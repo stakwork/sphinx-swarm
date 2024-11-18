@@ -6,15 +6,29 @@
     get_feature_flag,
     update_second_brain_about,
     update_feature_flags,
+    update_node,
   } from "../../api/swarm";
   import { onMount } from "svelte";
+  import Select from "../select/select.svelte";
+  import { Loading } from "carbon-components-svelte";
+  import { selectedNode, stack } from "../../store";
+  import { getImageVersion, handleGetImageTags } from "../../helpers/swarm";
+  let tags = [];
+  export let updateBody = () => {};
 
   $: isChange = false;
   $: isLoading = false;
+  $: page_loading = true;
+
   $: state = {
     graph_name: {
       value: "",
       method: async (title: string) => updateGraphDetails(title),
+    },
+    imageVersion: {
+      value: "",
+      method: async (image_version: string) =>
+        updateImageVersion(image_version),
     },
     trendingTopics: {
       value: true,
@@ -47,6 +61,7 @@
     addContent: { value: true, isChange: false },
     settings: { value: true, isChange: false },
     chatInterface: { value: true, isChange: false },
+    imageVersion: { value: "", isChange: false },
   };
 
   const featureFlags = [
@@ -120,10 +135,10 @@
       };
     }
 
-    //assume nothing changed and check
+    // assume nothing changed and check
     isChange = false;
 
-    //change the global value of isChange
+    // change the global value of isChange
     checkChangeState();
   }
 
@@ -134,14 +149,49 @@
     return { success: parsedResult.success, message: parsedResult.message };
   }
 
-  //update graph name
+  // update graph name
   async function updateGraphDetails(title: string) {
     return await update_second_brain_about({ ...about, title });
   }
 
-  //update trending topics
+  // update trending topics
   async function updateTrendingTopic(value) {
     return await update_feature_flags({ trendingTopics: value });
+  }
+
+  // update image version
+  async function updateImageVersion(image_version) {
+    page_loading = true;
+    try {
+      const res = await update_node($selectedNode.name, image_version);
+      if (res === "{}") {
+        await getImageVersion(stack, selectedNode);
+        updateBody();
+      }
+    } catch (error) {
+    } finally {
+      page_loading = false;
+    }
+  }
+
+  function handleImageVersionChange(image_version: string) {
+    if (image_version !== state.imageVersion.value) {
+      changedState = {
+        ...changedState,
+        imageVersion: { value: image_version, isChange: true },
+      };
+    } else if (image_version === state.imageVersion.value) {
+      changedState = {
+        ...changedState,
+        imageVersion: { value: image_version, isChange: false },
+      };
+    }
+
+    // assume nothing changed and check
+    isChange = false;
+
+    // change the global value of isChange
+    checkChangeState();
   }
 
   async function discardButtonHandler() {
@@ -222,72 +272,98 @@
   }
 
   onMount(async () => {
-    // get about details
-    const aboutResult = await get_second_brain_about_details();
-    const parsedAbout = await JSON.parse(aboutResult);
-    about = { ...parsedAbout };
+    try {
+      // get about details
+      const aboutResult = await get_second_brain_about_details();
+      const parsedAbout = await JSON.parse(aboutResult);
+      about = { ...parsedAbout };
 
-    // get trendingTopics feature flag state
-    const featureFlagResult = await get_feature_flag();
-    const parsedFeatureFlag = JSON.parse(featureFlagResult);
+      // get trendingTopics feature flag state
+      const featureFlagResult = await get_feature_flag();
+      const parsedFeatureFlag = JSON.parse(featureFlagResult);
 
-    // get public graph status
-    const result = await get_graph_accessibility();
-    const parsedResult = JSON.parse(result);
+      // get public graph status
+      const result = await get_graph_accessibility();
+      const parsedResult = JSON.parse(result);
 
-    //update state
-    state = {
-      public: {
-        value: parsedResult.data.isPublic,
-        method: async (value: boolean) => toggleGraphStatus(value),
-      },
-      graph_name: {
-        value: parsedAbout.title,
-        method: async (title: string) => updateGraphDetails(title),
-      },
-      trendingTopics: {
-        value: parsedFeatureFlag.data.trendingTopics.user,
-      },
-      addItem: {
-        value: parsedFeatureFlag.data.addItem.user,
-      },
-      addContent: {
-        value: parsedFeatureFlag.data.addContent.user,
-      },
-      settings: {
-        value: parsedFeatureFlag.data.settings.user,
-      },
-      chatInterface: {
-        value: parsedFeatureFlag.data.chatInterface.user,
-      },
-    };
+      //update state
+      state = {
+        public: {
+          value: parsedResult.data.isPublic,
+          method: async (value: boolean) => toggleGraphStatus(value),
+        },
+        graph_name: {
+          value: parsedAbout.title,
+          method: async (title: string) => updateGraphDetails(title),
+        },
+        imageVersion: {
+          value: $selectedNode.version,
+          method: async (image_version: string) =>
+            updateImageVersion(image_version),
+        },
+        trendingTopics: {
+          value: parsedFeatureFlag.data.trendingTopics.user,
+        },
+        addItem: {
+          value: parsedFeatureFlag.data.addItem.user,
+        },
+        addContent: {
+          value: parsedFeatureFlag.data.addContent.user,
+        },
+        settings: {
+          value: parsedFeatureFlag.data.settings.user,
+        },
+        chatInterface: {
+          value: parsedFeatureFlag.data.chatInterface.user,
+        },
+      };
 
-    //update changedState
-    changedState = {
-      public: { value: parsedResult.data.isPublic, isChange: false },
-      graph_name: { value: parsedAbout.title, isChange: false },
-      trendingTopics: {
-        value: parsedFeatureFlag.data.trendingTopics.user,
-        isChange: false,
-      },
-      addContent: {
-        value: parsedFeatureFlag.data.addContent.user,
-        isChange: false,
-      },
-      addItem: { value: parsedFeatureFlag.data.addItem.user, isChange: false },
-      settings: {
-        value: parsedFeatureFlag.data.settings.user,
-        isChange: false,
-      },
-      chatInterface: {
-        value: parsedFeatureFlag.data.chatInterface.user,
-        isChange: false,
-      },
-    };
+      //update changedState
+      changedState = {
+        public: { value: parsedResult.data.isPublic, isChange: false },
+        imageVersion: { value: $selectedNode.version, isChange: false },
+        graph_name: { value: parsedAbout.title, isChange: false },
+        trendingTopics: {
+          value: parsedFeatureFlag.data.trendingTopics.user,
+          isChange: false,
+        },
+        addContent: {
+          value: parsedFeatureFlag.data.addContent.user,
+          isChange: false,
+        },
+        addItem: {
+          value: parsedFeatureFlag.data.addItem.user,
+          isChange: false,
+        },
+        settings: {
+          value: parsedFeatureFlag.data.settings.user,
+          isChange: false,
+        },
+        chatInterface: {
+          value: parsedFeatureFlag.data.chatInterface.user,
+          isChange: false,
+        },
+      };
+
+      let image_tags = await handleGetImageTags($selectedNode.name);
+      let parsedTags = [];
+      for (let i = 0; i < image_tags.length; i++) {
+        let tag = image_tags[i];
+        parsedTags.push({ value: tag, label: tag });
+      }
+      tags = [...parsedTags];
+    } catch (error) {
+      console.log(error);
+    } finally {
+      page_loading = false;
+    }
   });
 </script>
 
 <div class="container">
+  {#if page_loading}
+    <Loading />
+  {/if}
   <div class="header">
     <h2 class="title">General</h2>
     <div class="button-container">
@@ -326,6 +402,14 @@
         class="graph-input"
         bind:value={changedState.graph_name.value}
         on:input={handleInputChange}
+      />
+    </div>
+    <div class="select_container">
+      <Select
+        options={tags}
+        label="Update Image Version"
+        value={changedState.imageVersion.value}
+        valueChange={handleImageVersionChange}
       />
     </div>
     <div class="checkbox-content">
@@ -517,6 +601,10 @@
     font-weight: 400;
     line-height: 1rem; /* 114.286% */
     letter-spacing: 0.00875rem;
+  }
+
+  .select_container {
+    margin-top: 1rem;
   }
 
   .checkbox-content {
