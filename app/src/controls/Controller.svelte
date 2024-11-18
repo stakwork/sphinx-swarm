@@ -15,6 +15,8 @@
   import FirstConnect from "./FirstConnect.svelte";
   import Jarvis from "../Jarvis.svelte";
 
+  export let updateBody = () => {};
+
   $: type = $selectedNode && $selectedNode.type;
   $: ctrls = $selectedNode && controls[type];
 
@@ -91,13 +93,13 @@
       {:else if type === "Proxy"}
         <Proxy {tag} />
       {:else if type === "NavFiber"}
-        <NavFiber host={$selectedNode.host} />
+        <NavFiber host={$selectedNode.host} {updateBody} />
       {:else if type === "BoltWall"}
-        <Boltwall host={$selectedNode.host} />
+        <Boltwall host={$selectedNode.host} {updateBody} />
       {:else if type === "Cln"}
         <Lnd {tag} {type} />
       {:else if type === "Jarvis"}
-        <Jarvis />
+        <Jarvis {updateBody} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}

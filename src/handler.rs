@@ -120,8 +120,13 @@ pub async fn handle(
             }
             SwarmCmd::UpdateNode(un) => {
                 log::info!("UpdateNode -> {}", un.id);
+                for node in state.stack.nodes.iter_mut() {
+                    if node.name() == un.id {
+                        let _ = node.set_version(&un.version)?;
+                    }
+                }
                 builder::update_node_and_make_client(proj, &docker, &un.id, &mut state).await?;
-                // must_save_stack = true; // no "version" now. Its always "latest"
+                must_save_stack = true;
                 Some(serde_json::to_string("{}")?)
             }
             SwarmCmd::GetContainerLogs(container_name) => {
