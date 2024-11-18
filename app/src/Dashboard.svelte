@@ -94,6 +94,10 @@
     await api.swarm.update_swarm();
   }
 
+  function updateBody() {
+    body = body;
+  }
+
   let body;
 
   $: {
@@ -191,7 +195,7 @@
           <Loading />
         </div>
       {/if}
-      <Controller />
+      <Controller {updateBody} />
     {/if}
   </div>
 </main>
