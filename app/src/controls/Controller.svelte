@@ -99,7 +99,7 @@
       {:else if type === "Cln"}
         <Lnd {tag} {type} />
       {:else if type === "Jarvis"}
-        <Jarvis />
+        <Jarvis {updateBody} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}
