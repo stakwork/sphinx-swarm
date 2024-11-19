@@ -13,6 +13,7 @@
     update_aws_instance_type,
     get_swarm_instance_type,
     get_child_swarm_image_versions,
+    update_swarm_details,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -29,6 +30,7 @@
     InlineNotification,
     Select,
     SelectItem,
+    TextInput,
   } from "carbon-components-svelte";
   import type { Remote } from "./types/types";
 
@@ -48,6 +50,8 @@
   let isSubmitting = false;
   let error_notification = false;
   let selected_instance = "";
+  let swarm_description = "letnbooks";
+  let current_description = "";
 
   async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
@@ -104,6 +108,8 @@
       const remote = $remotes[i];
       if (remote.host === $selectedNode) {
         node = { ...remote };
+        swarm_description = remote.note;
+        current_description = remote.note;
         try {
           const response = await get_swarm_instance_type({
             instance_id: remote.ec2_instance_id,
@@ -122,6 +128,64 @@
   function handleOpenUpdateInstanceType() {
     selected_instance = current_instance_type;
     open_update_instance_type = true;
+  }
+
+  async function handleEditSwarm() {
+    isSubmitting = true;
+    try {
+      if (selected_instance !== current_instance_type) {
+        if (!node || !node.ec2_instance_id) {
+          error_notification = true;
+          message = "Can't edit this instance type currently";
+          isSubmitting = false;
+          return;
+        }
+        const result = await update_aws_instance_type({
+          instance_id: node.ec2_instance_id,
+          instance_type: selected_instance,
+        });
+        message = result.message;
+        if (result.success) {
+          errorMessage = false;
+          show_notification = true;
+          // close modal
+          // open_update_instance_type = false;
+          current_instance_type = selected_instance;
+        } else {
+          error_notification = true;
+          return;
+        }
+      }
+
+      // update basic swarm details
+      const data = {
+        id: $selectedNode,
+        host: $selectedNode, // to be changed when we are abltto update host
+        instance: current_instance_type,
+        description: swarm_description,
+      };
+      let response = await update_swarm_details(data);
+      message = response?.message;
+      if (response?.success === true) {
+        //clear host, instance, description
+        isSubmitting = false;
+
+        //close modal
+        open_update_instance_type = false;
+
+        //add notification for success
+        show_notification = true;
+      } else {
+        error_notification = true;
+      }
+    } catch (error) {
+      console.log(
+        "ERROR EDITING INSTANCE TYPE OR INSTANCE DETAILS: ",
+        JSON.stringify(error)
+      );
+    } finally {
+      isSubmitting = false;
+    }
   }
 
   async function handleSubmitNewInstanceType() {
@@ -453,7 +517,7 @@
             >
             <ToolbarMenuItem
               on:click={() => handleOpenUpdateInstanceType()}
-              hasDivider>Update Instance Type</ToolbarMenuItem
+              hasDivider>Edit Swarm</ToolbarMenuItem
             >
           </ToolbarMenu>
         </ToolbarContent>
@@ -486,18 +550,20 @@
         {/if}
       </svelte:fragment>
     </DataTable>
+
     <Modal
       bind:open={open_update_instance_type}
-      modalHeading="Update Ec2 Instance Type"
-      primaryButtonDisabled={selected_instance === current_instance_type ||
-        !selected_instance ||
+      modalHeading="Update Swarm"
+      primaryButtonDisabled={(current_description === swarm_description &&
+        selected_instance === current_instance_type &&
+        !selected_instance) ||
         isSubmitting}
       primaryButtonText={isSubmitting ? "Loading..." : "Update"}
       secondaryButtonText="Cancel"
       on:click:button--secondary={() => (open_update_instance_type = false)}
       on:open
       on:close={handleOnCloseUpdateInstanceType}
-      on:submit={handleSubmitNewInstanceType}
+      on:submit={handleEditSwarm}
     >
       {#if error_notification}
         <InlineNotification
@@ -511,6 +577,21 @@
           }}
         />
       {/if}
+      <div class="input_container">
+        <TextInput
+          value={$selectedNode}
+          labelText="Host"
+          placeholder="Please enter Swarm host..."
+          readonly
+        />
+      </div>
+      <div class="input_container">
+        <TextInput
+          labelText="Description"
+          placeholder="Enter Swarm description..."
+          bind:value={swarm_description}
+        />
+      </div>
       <div class="select_instance_container">
         <Select
           on:change={(e) => (selected_instance = e.target.value)}
@@ -543,6 +624,10 @@
   }
 
   .node_host {
+    margin-bottom: 1rem;
+  }
+
+  .input_container {
     margin-bottom: 1rem;
   }
 </style>
