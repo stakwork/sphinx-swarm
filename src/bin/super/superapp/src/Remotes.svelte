@@ -6,7 +6,6 @@
     ToolbarContent,
     ToolbarSearch,
     Modal,
-    TextInput,
     ToastNotification,
     InlineNotification,
     Loading,
@@ -20,14 +19,10 @@
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import Tribes from "./Tribes.svelte";
   import * as api from "../../../../../app/src/api";
-  import { remotes, tribes } from "./store";
+  import { remotes } from "./store";
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
-  import {
-    getSwarmNumber,
-    isValidVanityAddress,
-    splitHost,
-  } from "./utils/index";
+  import { getSwarmNumber, isValidVanityAddress } from "./utils/index";
   import { selectedNode } from "./store";
   import {
     create_new_swarm_ec2,
@@ -37,22 +32,13 @@
     update_child_swarm_containers,
     get_aws_instance_types,
     restart_child_swarm_containers,
-    update_aws_instance_type,
   } from "../../../../../app/src/api/swarm";
 
-  let open_create_edit = false;
-  let open_delete = false;
   let open_create_ec2 = false;
-  let host = "";
-  let description = "";
-  let instance = "";
   let show_notification = false;
   let message = "";
   let isSubmitting = false;
   let error_notification = false;
-  let isUpdate = false;
-  let swarm_id = "";
-  let delete_host = "";
   let errorMessage = false;
   let loading = true;
   let errors = [];
@@ -75,8 +61,6 @@
     const conf = await api.swarm.get_config();
     if (conf && conf.stacks && conf.stacks.length) {
       remotes.set(conf.stacks);
-      const serverTribes = await getTribes(conf.stacks);
-      tribes.set(serverTribes);
     }
   }
 
@@ -105,11 +89,6 @@
       }
 
       remotes.set([...unhealthyRemotes, ...healthyRemotes]);
-      const serverTribes = await getTribes([
-        ...unhealthyRemotes,
-        ...healthyRemotes,
-      ]);
-      tribes.set(serverTribes);
     }
   }
 
@@ -134,67 +113,6 @@
     await getConfigSortByUnhealthy();
   });
 
-  function openAddSwarmModal() {
-    open_create_edit = true;
-  }
-
-  function handleDeleteSwarm(id: string) {
-    open_delete = true;
-    delete_host = id;
-  }
-
-  async function submitDeleteSwarm() {
-    isSubmitting = true;
-    try {
-      const response = await api.swarm.delete_swarm({
-        host: delete_host,
-      });
-      message = response?.message;
-      if (response?.success === "true") {
-        await getConfig();
-      } else {
-        errorMessage = true;
-      }
-    } catch (error) {
-      errorMessage = true;
-      message = "An internal Error occurred";
-      console.log(`Swarm Delete Error: ${error}`);
-    }
-    open_delete = false;
-    isSubmitting = false;
-    show_notification = true;
-  }
-
-  function handleOnCloseDelete() {
-    delete_host = "";
-  }
-
-  async function getTribes(r: Remote[]) {
-    const hostPrefixes = [];
-    for (let i = 0; i < r.length; i++) {
-      const hostPrefix = splitHost(r[i].host);
-      if (hostPrefix) {
-        hostPrefixes.push(hostPrefix);
-      }
-    }
-    //Get all tribes that belong to Swarm
-    return await getAllTribeFromTribeHost(hostPrefixes.join());
-  }
-
-  async function getAllTribeFromTribeHost(swarms) {
-    try {
-      const r = await fetch(
-        `https://tribes.sphinx.chat/tribes/app_urls/${swarms}`
-      );
-      const j = await r.json();
-      console.log(j);
-      return j;
-    } catch (e) {
-      console.warn(e);
-      return {};
-    }
-  }
-
   function remoterow(r: Remote) {
     let swarmNumber = "";
     if (r.default_host) {
@@ -203,90 +121,7 @@
     return { ...r, id: r.host, number: swarmNumber };
   }
 
-  async function handleSubmitAddSwarm() {
-    if (!host) {
-      message = "Host is a required field";
-      error_notification = true;
-      return;
-    }
-    isSubmitting = true;
-
-    //send data to backened
-    let response;
-    if (isUpdate) {
-      const data = {
-        id: swarm_id,
-        host: host,
-        instance: instance,
-        description: description,
-      };
-      response = await api.swarm.update_swarm_details(data);
-    } else {
-      const data = {
-        host: host,
-        instance: instance,
-        description: description,
-      };
-      response = await api.swarm.add_new_swarm(data);
-    }
-    message = response?.message;
-
-    if (response?.success === true) {
-      //get config again
-      await getConfig();
-
-      //clear host, instance, description
-      clear_swarm_data();
-      isSubmitting = false;
-
-      //close modal
-      open_create_edit = false;
-
-      //add notification for success
-      show_notification = true;
-    } else {
-      isSubmitting = false;
-      error_notification = true;
-    }
-  }
-
-  function clear_swarm_data() {
-    host = "";
-    instance = "";
-    description = "";
-    isUpdate = false;
-    swarm_id = "";
-  }
-
-  function findSwarm(id: string) {
-    for (let i = 0; i < $remotes.length; i++) {
-      const swarm = $remotes[i];
-      if (swarm.host === id) {
-        return swarm;
-      }
-    }
-
-    return { host: "", ec2: "", note: "" };
-  }
-
-  function handleEditSwarm(id: string) {
-    isUpdate = true;
-    const swarm = findSwarm(id);
-    if (swarm.host) {
-      open_create_edit = true;
-      host = swarm.host;
-      description = swarm.note;
-      instance = swarm.ec2;
-      swarm_id = id;
-    }
-  }
-
-  function handleOnClose() {
-    clear_swarm_data();
-  }
-
   function handleViewNodes(id: string) {
-    console.log(id);
     selectedNode.set(id);
     viewNode();
   }
@@ -553,17 +388,14 @@
   {#if loading}
     <Loading />
   {/if}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
   <DataTable
     headers={[
       { key: "host", value: "Host" },
       { key: "number", value: "Number" },
       { key: "note", value: "Description" },
       { key: "ec2", value: "Instance" },
-      { key: "tribes", value: "Tribes" },
       { key: "health", value: "Health" },
-      { key: "nodes", value: "Nodes" },
-      { key: "edit", value: "Edit" },
-      { key: "delete", value: "Delete" },
     ]}
     rows={$remotes.map(remoterow)}
     selectable
@@ -585,9 +417,6 @@
       </ToolbarBatchActions>
       <ToolbarContent>
         <ToolbarSearch value="" shouldFilterRows />
-        <Button kind="tertiary" on:click={openAddSwarmModal} icon={UploadIcon}>
-          Add New Swarm
-        </Button>
         <Button kind="primary" on:click={openCreateSwarmEc2} icon={UploadIcon}>
           Create New Swarm Ec2 Instance
         </Button>
@@ -598,96 +427,15 @@
         <Healthcheck host={row.id} />
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
-      {:else if cell.key === "edit"}
-        <Button size={"small"} on:click={() => handleEditSwarm(row.id)}>
-          Edit
-        </Button>
-      {:else if cell.key === "nodes"}
-        <Button size={"small"} on:click={() => handleViewNodes(row.id)}>
-          View Services
-        </Button>
-      {:else if cell.key === "delete"}
-        <Button
-          kind="danger"
-          size={"small"}
-          on:click={() => handleDeleteSwarm(row.id)}
-        >
-          Delete
-        </Button>
+      {:else if cell.key === "host"}
+        <p class="host_name" on:click={() => handleViewNodes(row.id)}>
+          {cell.value}
+        </p>
       {:else}
         {cell.value}
       {/if}
     </svelte:fragment>
   </DataTable>
-
-  <Modal
-    bind:open={open_create_edit}
-    modalHeading={isUpdate ? "Update Swarm" : "Add new Swarm"}
-    primaryButtonDisabled={isSubmitting}
-    primaryButtonText={isSubmitting ? "Loading..." : "Confirm"}
-    secondaryButtonText="Cancel"
-    selectorPrimaryFocus="#db-name"
-    on:click:button--secondary={() => (open_create_edit = false)}
-    on:open
-    on:close={handleOnClose}
-    on:submit={handleSubmitAddSwarm}
-  >
-    {#if error_notification}
-      <InlineNotification
-        kind="error"
-        title="Error:"
-        subtitle={message}
-        timeout={3000}
-        on:close={(e) => {
-          e.preventDefault();
-          error_notification = false;
-        }}
-      />
-    {/if}
-    {#if isUpdate}
-      <p>Update Swarm details.</p>
-    {:else}
-      <p>Add a new swarm to the list of swarms.</p>
-    {/if}
-    <div class="text_input_container">
-      <TextInput
-        id="host"
-        labelText="Host"
-        placeholder="Enter Swarm Host..."
-        bind:value={host}
-      />
-    </div>
-    <div class="text_input_container">
-      <TextInput
-        id="description"
-        labelText="Description"
-        placeholder="Enter Swarm Description..."
-        bind:value={description}
-      />
-    </div>
-    <div class="text_input_container">
-      <TextInput
-        id="instance"
-        labelText="Instance"
-        placeholder="Enter Swarm Instance Size..."
-        bind:value={instance}
-      />
-    </div>
-  </Modal>
-  <Modal
-    danger
-    bind:open={open_delete}
-    modalHeading={`Delete ${delete_host}`}
-    primaryButtonDisabled={isSubmitting}
-    primaryButtonText={isSubmitting ? "Loading..." : "Delete"}
-    secondaryButtonText="Cancel"
-    on:click:button--secondary={() => (open_delete = false)}
-    on:open
-    on:close={handleOnCloseDelete}
-    on:submit={submitDeleteSwarm}
-  >
-    <p>This is a permanent action and cannot be undone.</p>
-  </Modal>
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
@@ -777,10 +525,6 @@
     width: 100%;
   }
 
-  .text_input_container {
-    margin-top: 1rem;
-  }
-
   .success_toast_container {
     margin-bottom: 1.2rem;
   }
@@ -853,5 +597,10 @@
   .select_instance_container {
     margin-bottom: 1rem;
     margin-top: 1rem;
+  }
+
+  .host_name {
+    text-decoration: underline;
+    cursor: pointer;
   }
 </style>
