@@ -24,9 +24,9 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
-    AccessNodesInfo, AddSwarmResponse, ChangeSwarmChildPasswordData, ChangeSwarmChildPasswordInfo,
-    ChangeUserPasswordBySuperAdminRequest, CreateEc2InstanceInfo, GetInstanceTypeByInstanceId,
-    GetInstanceTypeRes, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
+    AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
+    CreateEc2InstanceInfo, GetInstanceTypeByInstanceId, GetInstanceTypeRes, LoginResponse,
+    SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
@@ -175,9 +175,9 @@ pub fn get_child_base_route(host: String) -> Result<String, Error> {
         return Err(anyhow!("child swarm default host not provided"));
     };
 
-    // return Ok(format!("https://app.{}/api", host));
+    return Ok(format!("https://app.{}/api", host));
 
-    return Ok(format!("http://{}/api", host));
+    // return Ok(format!("http://{}/api", host));
 }
 
 pub async fn get_child_swarm_containers(
