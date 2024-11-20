@@ -438,7 +438,16 @@
         new_password,
         host: $selectedNode,
       });
-      console.log(response);
+      message = response.message;
+      if (response.success === true) {
+        show_notification = true;
+        errorMessage = false;
+        open_change_swarm_password = false;
+        current_password = "";
+        new_password = "";
+      } else {
+        error_notification = true;
+      }
     } catch (error) {
       console.log("ERROR CHANGING SWARM PASSWORD");
     } finally {

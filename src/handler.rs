@@ -53,6 +53,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::RestartContainer(_) => true,
                 SwarmCmd::GetAllImageActualVersion => true,
                 SwarmCmd::ChangePassword(_) => true,
+                SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 _ => false,
             },
             _ => false,

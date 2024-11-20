@@ -15,15 +15,18 @@ use aws_smithy_types::retry::RetryConfig;
 use chrono::Local;
 use reqwest::Response;
 use serde_json::Value;
-use sphinx_swarm::cmd::{send_cmd_request, Cmd, LoginInfo, SwarmCmd, UpdateNode};
+use sphinx_swarm::cmd::{
+    send_cmd_request, ChangeUserPasswordBySuperAdminInfo, Cmd, LoginInfo, SwarmCmd, UpdateNode,
+};
 use sphinx_swarm::config::Stack;
+use sphinx_swarm::conn::swarm::ChangePasswordBySuperAdminResponse;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeSwarmChildPasswordData, ChangeSwarmChildPasswordInfo,
-    CreateEc2InstanceInfo, GetInstanceTypeByInstanceId, GetInstanceTypeRes, LoginResponse,
-    SuperSwarmResponse, UpdateInstanceDetails,
+    ChangeUserPasswordBySuperAdminRequest, CreateEc2InstanceInfo, GetInstanceTypeByInstanceId,
+    GetInstanceTypeRes, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
@@ -1102,7 +1105,7 @@ pub fn get_today_dash_date() -> String {
 }
 
 pub async fn update_swarm_child_password(
-    info: ChangeSwarmChildPasswordInfo,
+    info: ChangeUserPasswordBySuperAdminRequest,
     state: &Super,
 ) -> SuperSwarmResponse {
     let res: SuperSwarmResponse;
@@ -1130,42 +1133,55 @@ pub async fn update_swarm_child_password(
 
 async fn handle_update_swarm_child_password(
     swarm_details: &RemoteStack,
-    passwords: ChangeSwarmChildPasswordInfo,
+    passwords: ChangeUserPasswordBySuperAdminRequest,
 ) -> Result<SuperSwarmResponse, Error> {
-    let url = get_child_base_route(swarm_details.host.clone())?;
     let token = login_to_child_swarm(swarm_details).await?;
 
-    // make request to swarm endpoint
-    let res = update_password_request(token, passwords, url).await?;
+    let cmd = Cmd::Swarm(SwarmCmd::ChangeUserPasswordBySuperAdmin(
+        ChangeUserPasswordBySuperAdminInfo {
+            username: passwords.username,
+            new_password: passwords.new_password,
+            current_password: passwords.old_password,
+        },
+    ));
+    let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
 
-    log::info!("status from Chnage Password: {:?}", res.status());
-    log::info!("body from Chnage Password: {:?}", res.text().await);
+    let result: ChangePasswordBySuperAdminResponse = match res.json().await {
+        Ok(res_body) => res_body,
+        Err(err) => {
+            return Ok(SuperSwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            })
+        }
+    };
 
     Ok(SuperSwarmResponse {
-        success: true,
-        message: format!("{} password updated successfully", swarm_details.host),
+        success: result.success,
+        message: result.message,
         data: None,
     })
 }
 
-async fn update_password_request(
-    token: String,
-    data: ChangeSwarmChildPasswordInfo,
-    url: String,
-) -> Result<Response, Error> {
-    let client = make_reqwest_client();
+// async fn update_password_request(
+//     token: String,
+//     data: ChangeSwarmChildPasswordInfo,
+//     url: String,
+// ) -> Result<Response, Error> {
+//     let client = make_reqwest_client();
 
-    let route = format!("{}/admin/password", url);
+//     let route = format!("{}/admin/password", url);
 
-    let body = ChangeSwarmChildPasswordData {
-        old_pass: data.old_password,
-        password: data.new_password,
-    };
+//     let body = ChangeSwarmChildPasswordData {
+//         old_pass: data.old_password,
+//         password: data.new_password,
+//     };
 
-    Ok(client
-        .put(route)
-        .header("x-jwt", token)
-        .json(&body)
-        .send()
-        .await?)
-}
+//     Ok(client
+//         .put(route)
+//         .header("x-jwt", token)
+//         .json(&body)
+//         .send()
+//         .await?)
+// }

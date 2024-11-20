@@ -94,6 +94,7 @@ pub async fn change_swarm_user_password_by_user_admin(
         };
     }
 
+    // we should find a way to find users properly and not reply on username, user_id might be a great option
     match state
         .stack
         .users

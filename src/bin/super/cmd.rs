@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sphinx_swarm::cmd::ChangeUserPasswordBySuperAdminInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -51,7 +52,13 @@ pub struct ChangeSwarmChildPasswordInfo {
     pub old_password: String,
     pub new_password: String,
 }
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangeUserPasswordBySuperAdminRequest {
+    pub host: String,
+    pub old_password: String,
+    pub new_password: String,
+    pub username: String,
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChangeSwarmChildPasswordData {
     pub old_pass: String,
@@ -93,7 +100,7 @@ pub enum SwarmCmd {
     UpdateAwsInstanceType(UpdateInstanceDetails),
     GetInstanceType(GetInstanceTypeByInstanceId),
     GetSwarmChildImageVersions(ChildSwarmIdentifier),
-    ChangeChildSwarmPassword(ChangeSwarmChildPasswordInfo),
+    ChangeChildSwarmPassword(ChangeUserPasswordBySuperAdminRequest),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
