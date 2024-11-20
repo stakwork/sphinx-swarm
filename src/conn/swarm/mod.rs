@@ -2,11 +2,20 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::cmd::GetDockerImageTagsDetails;
+use crate::{
+    cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails},
+    config::State,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateSwarmBody {
     pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangePasswordBySuperAdminResponse {
+    pub success: bool,
+    pub message: String,
 }
 
 pub async fn update_swarm() -> Result<String> {
@@ -47,4 +56,95 @@ pub async fn get_image_tags(image_details: GetDockerImageTagsDetails) -> Result<
     let response_text = response.text().await?;
 
     Ok(response_text)
+}
+
+pub async fn change_swarm_user_password_by_user_admin(
+    state: &mut State,
+    current_user_id: u32,
+    password_change_details: ChangeUserPasswordBySuperAdminInfo,
+    must_save_stack: &mut bool,
+) -> ChangePasswordBySuperAdminResponse {
+    if password_change_details.username == "super" {
+        return ChangePasswordBySuperAdminResponse {
+            success: false,
+            message: "Unauthorized, you are not authorized to change Super admin password"
+                .to_string(),
+        };
+    }
+
+    // check if super admin is performing his operation
+    let superadmin_details = state
+        .stack
+        .users
+        .iter()
+        .find(|user| user.id == current_user_id);
+
+    if superadmin_details.is_none() {
+        return ChangePasswordBySuperAdminResponse {
+            success: false,
+            message: "invalid super admin details".to_string(),
+        };
+    }
+
+    if superadmin_details.unwrap().username != "super" {
+        return ChangePasswordBySuperAdminResponse {
+            success: false,
+            message: "Unauthorized, you don't have permissions to perform this operation"
+                .to_string(),
+        };
+    }
+
+    // we should find a way to find users properly and not reply on username, user_id might be a great option
+    match state
+        .stack
+        .users
+        .iter()
+        .position(|u| u.username == password_change_details.username)
+    {
+        Some(pos) => {
+            let old_pass_hash = &state.stack.users[pos].pass_hash;
+            let verify_password =
+                match bcrypt::verify(password_change_details.current_password, old_pass_hash) {
+                    Ok(result) => result,
+                    Err(err) => {
+                        return ChangePasswordBySuperAdminResponse {
+                            success: false,
+                            message: err.to_string(),
+                        }
+                    }
+                };
+            if verify_password {
+                let new_password_hash = match bcrypt::hash(
+                    password_change_details.new_password,
+                    bcrypt::DEFAULT_COST,
+                ) {
+                    Ok(hash) => hash,
+                    Err(err) => {
+                        return ChangePasswordBySuperAdminResponse {
+                            success: false,
+                            message: err.to_string(),
+                        }
+                    }
+                };
+                state.stack.users[pos].pass_hash = new_password_hash;
+                *must_save_stack = true;
+
+                return ChangePasswordBySuperAdminResponse {
+                    success: true,
+                    message: "password updated successfully".to_string(),
+                };
+            } else {
+                return ChangePasswordBySuperAdminResponse {
+                    success: false,
+                    message: "You provided invalid password".to_string(),
+                };
+            }
+        }
+        None => {
+            return ChangePasswordBySuperAdminResponse {
+                success: false,
+                message: "Invalid user".to_string(),
+            }
+        }
+    }
 }

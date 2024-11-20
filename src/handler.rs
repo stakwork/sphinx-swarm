@@ -10,7 +10,7 @@ use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
-use crate::conn::swarm::get_image_tags;
+use crate::conn::swarm::{change_swarm_user_password_by_user_admin, get_image_tags};
 use crate::dock::*;
 use crate::images::DockerHubImage;
 use crate::rocket_utils::CmdRequest;
@@ -52,6 +52,8 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::UpdateNode(_) => true,
                 SwarmCmd::RestartContainer(_) => true,
                 SwarmCmd::GetAllImageActualVersion => true,
+                SwarmCmd::ChangePassword(_) => true,
+                SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 _ => false,
             },
             _ => false,
@@ -431,6 +433,21 @@ pub async fn handle(
                     }
                     None => Some("invalid user".to_string()),
                 }
+            }
+            SwarmCmd::ChangeUserPasswordBySuperAdmin(info) => {
+                log::info!("Change user password from superadmin");
+                if user_id.is_none() {
+                    Some("invalid user".to_string());
+                }
+                let active_user_id = user_id.unwrap();
+                let res = change_swarm_user_password_by_user_admin(
+                    &mut state,
+                    active_user_id,
+                    info,
+                    &mut must_save_stack,
+                )
+                .await;
+                Some(serde_json::to_string(&res)?)
             }
         },
         Cmd::Relay(c) => {

@@ -13,6 +13,8 @@
     update_aws_instance_type,
     get_swarm_instance_type,
     get_child_swarm_image_versions,
+    update_swarm_details,
+    change_child_swarm_password,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -29,6 +31,7 @@
     InlineNotification,
     Select,
     SelectItem,
+    TextInput,
   } from "carbon-components-svelte";
   import type { Remote } from "./types/types";
 
@@ -44,10 +47,15 @@
   let aws_instance_types = [];
   let current_instance_type = "";
   let node: Remote | null = null;
-  let open_update_instance_type = false;
+  let open_edit_swarm = false;
   let isSubmitting = false;
   let error_notification = false;
   let selected_instance = "";
+  let swarm_description = "letnbooks";
+  let current_description = "";
+  let open_change_swarm_password = false;
+  let new_password = "";
+  let current_password = "";
 
   async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
@@ -104,6 +112,8 @@
       const remote = $remotes[i];
       if (remote.host === $selectedNode) {
         node = { ...remote };
+        swarm_description = remote.note;
+        current_description = remote.note;
         try {
           const response = await get_swarm_instance_type({
             instance_id: remote.ec2_instance_id,
@@ -119,46 +129,74 @@
     }
   }
 
-  function handleOpenUpdateInstanceType() {
+  function handleOpenEditSwarm() {
     selected_instance = current_instance_type;
-    open_update_instance_type = true;
+    swarm_description = current_description;
+    open_edit_swarm = true;
   }
 
-  async function handleSubmitNewInstanceType() {
+  async function handleEditSwarm() {
     isSubmitting = true;
-    if (!node || !node.ec2_instance_id) {
-      error_notification = true;
-      message = "Can't edit this instance type currently";
-      isSubmitting = false;
-      return;
-    }
     try {
-      const result = await update_aws_instance_type({
-        instance_id: node.ec2_instance_id,
-        instance_type: selected_instance,
-      });
+      if (selected_instance !== current_instance_type) {
+        if (!node || !node.ec2_instance_id) {
+          error_notification = true;
+          message = "Can't edit this instance type currently";
+          isSubmitting = false;
+          return;
+        }
+        const result = await update_aws_instance_type({
+          instance_id: node.ec2_instance_id,
+          instance_type: selected_instance,
+        });
+        message = result.message;
+        if (result.success) {
+          errorMessage = false;
+          show_notification = true;
+          // close modal
+          current_instance_type = selected_instance;
+        } else {
+          error_notification = true;
+          return;
+        }
+      }
 
-      message = result.message;
-      if (result.success) {
-        errorMessage = false;
+      // update basic swarm details
+      const data = {
+        id: $selectedNode,
+        host: $selectedNode, // to be changed when we are abltto update host
+        instance: current_instance_type,
+        description: swarm_description,
+      };
+      let response = await update_swarm_details(data);
+      message = response?.message;
+      if (response?.success === true) {
+        //clear host, instance, description
+        isSubmitting = false;
+
+        //close modal
+        open_edit_swarm = false;
+
+        //add notification for success
         show_notification = true;
-        // close modal
-        open_update_instance_type = false;
-        current_instance_type = selected_instance;
       } else {
         error_notification = true;
       }
     } catch (error) {
-      console.log("ERROR EDITING INSTANCE TYPE: ", JSON.stringify(error));
+      console.log(
+        "ERROR EDITING INSTANCE TYPE OR INSTANCE DETAILS: ",
+        JSON.stringify(error)
+      );
     } finally {
       isSubmitting = false;
     }
   }
 
-  function handleOnCloseUpdateInstanceType() {
+  function handleOnCloseEditSwarm() {
     selected_instance = current_instance_type;
+    swarm_description = current_description;
     isSubmitting = false;
-    open_update_instance_type = false;
+    open_edit_swarm = false;
   }
 
   onMount(async () => {
@@ -377,6 +415,46 @@
     show_notification = true;
   }
 
+  function handleOpenChangeSwarmPassword() {
+    open_change_swarm_password = true;
+  }
+
+  function handleOnCloseChangePassword() {
+    open_change_swarm_password = false;
+    current_password = "";
+    new_password = "";
+  }
+
+  async function handleChangePasword() {
+    isSubmitting = true;
+    try {
+      if (current_password === new_password) {
+        error_notification = true;
+        message = "current password and new password cannot be the same";
+        return;
+      }
+      const response = await change_child_swarm_password({
+        old_password: current_password,
+        new_password,
+        host: $selectedNode,
+      });
+      message = response.message;
+      if (response.success === true) {
+        show_notification = true;
+        errorMessage = false;
+        open_change_swarm_password = false;
+        current_password = "";
+        new_password = "";
+      } else {
+        error_notification = true;
+      }
+    } catch (error) {
+      console.log("ERROR CHANGING SWARM PASSWORD");
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
   export let back = () => {};
 </script>
 
@@ -451,9 +529,12 @@
             <ToolbarMenuItem on:click={() => upgradeAllContainer()} hasDivider
               >Upgrade All</ToolbarMenuItem
             >
+            <ToolbarMenuItem on:click={() => handleOpenEditSwarm()} hasDivider
+              >Edit Swarm</ToolbarMenuItem
+            >
             <ToolbarMenuItem
-              on:click={() => handleOpenUpdateInstanceType()}
-              hasDivider>Update Instance Type</ToolbarMenuItem
+              on:click={() => handleOpenChangeSwarmPassword()}
+              hasDivider>Change Password</ToolbarMenuItem
             >
           </ToolbarMenu>
         </ToolbarContent>
@@ -486,18 +567,20 @@
         {/if}
       </svelte:fragment>
     </DataTable>
+
     <Modal
-      bind:open={open_update_instance_type}
-      modalHeading="Update Ec2 Instance Type"
-      primaryButtonDisabled={selected_instance === current_instance_type ||
-        !selected_instance ||
+      bind:open={open_edit_swarm}
+      modalHeading="Update Swarm"
+      primaryButtonDisabled={(current_description === swarm_description &&
+        selected_instance === current_instance_type &&
+        !selected_instance) ||
         isSubmitting}
       primaryButtonText={isSubmitting ? "Loading..." : "Update"}
       secondaryButtonText="Cancel"
-      on:click:button--secondary={() => (open_update_instance_type = false)}
+      on:click:button--secondary={() => (open_edit_swarm = false)}
       on:open
-      on:close={handleOnCloseUpdateInstanceType}
-      on:submit={handleSubmitNewInstanceType}
+      on:close={handleOnCloseEditSwarm}
+      on:submit={handleEditSwarm}
     >
       {#if error_notification}
         <InlineNotification
@@ -511,6 +594,21 @@
           }}
         />
       {/if}
+      <div class="input_container">
+        <TextInput
+          value={$selectedNode}
+          labelText="Host"
+          placeholder="Please enter Swarm host..."
+          readonly
+        />
+      </div>
+      <div class="input_container">
+        <TextInput
+          labelText="Description"
+          placeholder="Enter Swarm description..."
+          bind:value={swarm_description}
+        />
+      </div>
       <div class="select_instance_container">
         <Select
           on:change={(e) => (selected_instance = e.target.value)}
@@ -523,6 +621,44 @@
             <SelectItem value={option.value} text={option.name} />
           {/each}
         </Select>
+      </div>
+    </Modal>
+    <Modal
+      bind:open={open_change_swarm_password}
+      modalHeading="Update Swarm"
+      primaryButtonDisabled={!current_password || !new_password || isSubmitting}
+      primaryButtonText={isSubmitting ? "Loading..." : "Update"}
+      secondaryButtonText="Cancel"
+      on:click:button--secondary={() => (open_change_swarm_password = false)}
+      on:open
+      on:close={handleOnCloseChangePassword}
+      on:submit={handleChangePasword}
+    >
+      {#if error_notification}
+        <InlineNotification
+          kind="error"
+          title="Error:"
+          subtitle={message}
+          timeout={8000}
+          on:close={(e) => {
+            e.preventDefault();
+            error_notification = false;
+          }}
+        />
+      {/if}
+      <div class="input_container">
+        <TextInput
+          labelText="Current Password"
+          placeholder="Enter Current Password..."
+          bind:value={current_password}
+        />
+      </div>
+      <div class="input_container">
+        <TextInput
+          labelText="New Password"
+          placeholder="Enter New Password..."
+          bind:value={new_password}
+        />
       </div>
     </Modal>
   {/if}
@@ -543,6 +679,10 @@
   }
 
   .node_host {
+    margin-bottom: 1rem;
+  }
+
+  .input_container {
     margin-bottom: 1rem;
   }
 </style>
