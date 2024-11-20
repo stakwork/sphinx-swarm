@@ -299,6 +299,22 @@ export async function restart_child_swarm_containers({
   return await swarmCmd("RestartChildSwarmContainers", { nodes, host });
 }
 
+export async function update_child_swarm_password({
+  old_password,
+  new_password,
+  host,
+}: {
+  old_password: string;
+  new_password: string;
+  host: string;
+}) {
+  return await swarmCmd("UpdateChildSwarmPassword", {
+    old_password,
+    new_password,
+    host,
+  });
+}
+
 export async function start_child_swarm_containers({
   nodes,
   host,

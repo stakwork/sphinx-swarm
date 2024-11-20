@@ -46,7 +46,7 @@
   let aws_instance_types = [];
   let current_instance_type = "";
   let node: Remote | null = null;
-  let open_update_instance_type = false;
+  let open_edit_swarm = false;
   let isSubmitting = false;
   let error_notification = false;
   let selected_instance = "";
@@ -125,9 +125,10 @@
     }
   }
 
-  function handleOpenUpdateInstanceType() {
+  function handleOpenEditSwarm() {
     selected_instance = current_instance_type;
-    open_update_instance_type = true;
+    swarm_description = current_description;
+    open_edit_swarm = true;
   }
 
   async function handleEditSwarm() {
@@ -171,7 +172,7 @@
         isSubmitting = false;
 
         //close modal
-        open_update_instance_type = false;
+        open_edit_swarm = false;
 
         //add notification for success
         show_notification = true;
@@ -188,41 +189,11 @@
     }
   }
 
-  async function handleSubmitNewInstanceType() {
-    isSubmitting = true;
-    if (!node || !node.ec2_instance_id) {
-      error_notification = true;
-      message = "Can't edit this instance type currently";
-      isSubmitting = false;
-      return;
-    }
-    try {
-      const result = await update_aws_instance_type({
-        instance_id: node.ec2_instance_id,
-        instance_type: selected_instance,
-      });
-
-      message = result.message;
-      if (result.success) {
-        errorMessage = false;
-        show_notification = true;
-        // close modal
-        open_update_instance_type = false;
-        current_instance_type = selected_instance;
-      } else {
-        error_notification = true;
-      }
-    } catch (error) {
-      console.log("ERROR EDITING INSTANCE TYPE: ", JSON.stringify(error));
-    } finally {
-      isSubmitting = false;
-    }
-  }
-
-  function handleOnCloseUpdateInstanceType() {
+  function handleOnCloseEditSwarm() {
     selected_instance = current_instance_type;
+    swarm_description = current_description;
     isSubmitting = false;
-    open_update_instance_type = false;
+    open_edit_swarm = false;
   }
 
   onMount(async () => {
@@ -515,9 +486,8 @@
             <ToolbarMenuItem on:click={() => upgradeAllContainer()} hasDivider
               >Upgrade All</ToolbarMenuItem
             >
-            <ToolbarMenuItem
-              on:click={() => handleOpenUpdateInstanceType()}
-              hasDivider>Edit Swarm</ToolbarMenuItem
+            <ToolbarMenuItem on:click={() => handleOpenEditSwarm()} hasDivider
+              >Edit Swarm</ToolbarMenuItem
             >
             <ToolbarMenuItem
               on:click={() => handleOpenUpdateInstanceType()}
@@ -556,7 +526,7 @@
     </DataTable>
 
     <Modal
-      bind:open={open_update_instance_type}
+      bind:open={open_edit_swarm}
       modalHeading="Update Swarm"
       primaryButtonDisabled={(current_description === swarm_description &&
         selected_instance === current_instance_type &&
@@ -564,9 +534,9 @@
         isSubmitting}
       primaryButtonText={isSubmitting ? "Loading..." : "Update"}
       secondaryButtonText="Cancel"
-      on:click:button--secondary={() => (open_update_instance_type = false)}
+      on:click:button--secondary={() => (open_edit_swarm = false)}
       on:open
-      on:close={handleOnCloseUpdateInstanceType}
+      on:close={handleOnCloseEditSwarm}
       on:submit={handleEditSwarm}
     >
       {#if error_notification}
