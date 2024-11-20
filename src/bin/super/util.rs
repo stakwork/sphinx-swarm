@@ -21,9 +21,9 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
-    AccessNodesInfo, AddSwarmResponse, CreateEc2InstanceInfo, GetInstanceTypeByInstanceId,
-    GetInstanceTypeRes, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
-    UpdateSwarmChildPasswordData, UpdateSwarmChildPasswordInfo,
+    AccessNodesInfo, AddSwarmResponse, ChangeSwarmChildPasswordData, ChangeSwarmChildPasswordInfo,
+    CreateEc2InstanceInfo, GetInstanceTypeByInstanceId, GetInstanceTypeRes, LoginResponse,
+    SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
@@ -1102,7 +1102,7 @@ pub fn get_today_dash_date() -> String {
 }
 
 pub async fn update_swarm_child_password(
-    info: UpdateSwarmChildPasswordInfo,
+    info: ChangeSwarmChildPasswordInfo,
     state: &Super,
 ) -> SuperSwarmResponse {
     let res: SuperSwarmResponse;
@@ -1130,7 +1130,7 @@ pub async fn update_swarm_child_password(
 
 async fn handle_update_swarm_child_password(
     swarm_details: &RemoteStack,
-    passwords: UpdateSwarmChildPasswordInfo,
+    passwords: ChangeSwarmChildPasswordInfo,
 ) -> Result<SuperSwarmResponse, Error> {
     let url = get_child_base_route(swarm_details.host.clone())?;
     let token = login_to_child_swarm(swarm_details).await?;
@@ -1138,7 +1138,8 @@ async fn handle_update_swarm_child_password(
     // make request to swarm endpoint
     let res = update_password_request(token, passwords, url).await?;
 
-    log::info!("response from Chnage Password: {:?}", res);
+    log::info!("status from Chnage Password: {:?}", res.status());
+    log::info!("body from Chnage Password: {:?}", res.text().await);
 
     Ok(SuperSwarmResponse {
         success: true,
@@ -1149,14 +1150,14 @@ async fn handle_update_swarm_child_password(
 
 async fn update_password_request(
     token: String,
-    data: UpdateSwarmChildPasswordInfo,
+    data: ChangeSwarmChildPasswordInfo,
     url: String,
 ) -> Result<Response, Error> {
     let client = make_reqwest_client();
 
     let route = format!("{}/admin/password", url);
 
-    let body = UpdateSwarmChildPasswordData {
+    let body = ChangeSwarmChildPasswordData {
         old_pass: data.old_password,
         password: data.new_password,
     };

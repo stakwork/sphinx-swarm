@@ -4,8 +4,6 @@ use crate::utils::{domain, getenv};
 use anyhow::{Context, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
-use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
-use aws_sdk_s3::operation::create_multipart_upload::CreateMultipartUploadOutput;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart, Delete, ObjectIdentifier};
 use aws_sdk_s3::Client;
 use aws_smithy_types::byte_stream::{ByteStream, Length};

@@ -115,6 +115,13 @@ pub struct FeatureFlagUserRoles {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangeUserPasswordBySuperAdminInfo {
+    pub new_password: String,
+    pub current_password: String,
+    pub username: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -153,6 +160,7 @@ pub enum SwarmCmd {
     SetGlobalMemLimit(u64),
     GetSignedInUserDetails,
     GetAllImageActualVersion,
+    ChangeUserPasswordBySuperAdmin(ChangeUserPasswordBySuperAdminInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

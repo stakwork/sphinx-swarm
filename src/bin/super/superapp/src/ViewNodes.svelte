@@ -14,6 +14,7 @@
     get_swarm_instance_type,
     get_child_swarm_image_versions,
     update_swarm_details,
+    change_child_swarm_password,
   } from "../../../../../app/src/api/swarm";
   import {
     Button,
@@ -52,6 +53,9 @@
   let selected_instance = "";
   let swarm_description = "letnbooks";
   let current_description = "";
+  let open_change_swarm_password = false;
+  let new_password = "";
+  let current_password = "";
 
   async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
@@ -150,7 +154,6 @@
           errorMessage = false;
           show_notification = true;
           // close modal
-          // open_update_instance_type = false;
           current_instance_type = selected_instance;
         } else {
           error_notification = true;
@@ -412,6 +415,37 @@
     show_notification = true;
   }
 
+  function handleOpenChangeSwarmPassword() {
+    open_change_swarm_password = true;
+  }
+
+  function handleOnCloseChangePassword() {
+    open_change_swarm_password = false;
+    current_password = "";
+    new_password = "";
+  }
+
+  async function handleChangePasword() {
+    isSubmitting = true;
+    try {
+      if (current_password === new_password) {
+        error_notification = true;
+        message = "current password and new password cannot be the same";
+        return;
+      }
+      const response = await change_child_swarm_password({
+        old_password: current_password,
+        new_password,
+        host: $selectedNode,
+      });
+      console.log(response);
+    } catch (error) {
+      console.log("ERROR CHANGING SWARM PASSWORD");
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
   export let back = () => {};
 </script>
 
@@ -490,8 +524,8 @@
               >Edit Swarm</ToolbarMenuItem
             >
             <ToolbarMenuItem
-              on:click={() => handleOpenUpdateInstanceType()}
-              hasDivider>Update Password</ToolbarMenuItem
+              on:click={() => handleOpenChangeSwarmPassword()}
+              hasDivider>Change Password</ToolbarMenuItem
             >
           </ToolbarMenu>
         </ToolbarContent>
@@ -578,6 +612,44 @@
             <SelectItem value={option.value} text={option.name} />
           {/each}
         </Select>
+      </div>
+    </Modal>
+    <Modal
+      bind:open={open_change_swarm_password}
+      modalHeading="Update Swarm"
+      primaryButtonDisabled={!current_password || !new_password || isSubmitting}
+      primaryButtonText={isSubmitting ? "Loading..." : "Update"}
+      secondaryButtonText="Cancel"
+      on:click:button--secondary={() => (open_change_swarm_password = false)}
+      on:open
+      on:close={handleOnCloseChangePassword}
+      on:submit={handleChangePasword}
+    >
+      {#if error_notification}
+        <InlineNotification
+          kind="error"
+          title="Error:"
+          subtitle={message}
+          timeout={8000}
+          on:close={(e) => {
+            e.preventDefault();
+            error_notification = false;
+          }}
+        />
+      {/if}
+      <div class="input_container">
+        <TextInput
+          labelText="Current Password"
+          placeholder="Enter Current Password..."
+          bind:value={current_password}
+        />
+      </div>
+      <div class="input_container">
+        <TextInput
+          labelText="New Password"
+          placeholder="Enter New Password..."
+          bind:value={new_password}
+        />
       </div>
     </Modal>
   {/if}

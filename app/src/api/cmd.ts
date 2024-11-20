@@ -95,7 +95,7 @@ export type Cmd =
   | "GetInstanceType"
   | "GetAllImageActualVersion"
   | "GetSwarmChildImageVersions"
-  | "UpdateChildSwarmPassword";
+  | "ChangeChildSwarmPassword";
 
 interface CmdData {
   cmd: Cmd;

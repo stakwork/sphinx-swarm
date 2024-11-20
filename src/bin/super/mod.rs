@@ -397,7 +397,7 @@ pub async fn super_handle(
                 }
                 Some(serde_json::to_string(&res)?)
             }
-            SwarmCmd::UpdateChildSwarmPassword(info) => {
+            SwarmCmd::ChangeChildSwarmPassword(info) => {
                 let res: SuperSwarmResponse = update_swarm_child_password(info, &state).await;
                 Some(serde_json::to_string(&res)?)
             }
