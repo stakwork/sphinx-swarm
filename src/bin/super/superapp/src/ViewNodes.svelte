@@ -519,6 +519,10 @@
               on:click={() => handleOpenUpdateInstanceType()}
               hasDivider>Edit Swarm</ToolbarMenuItem
             >
+            <ToolbarMenuItem
+              on:click={() => handleOpenUpdateInstanceType()}
+              hasDivider>Update Password</ToolbarMenuItem
+            >
           </ToolbarMenu>
         </ToolbarContent>
       </Toolbar>

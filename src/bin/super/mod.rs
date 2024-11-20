@@ -17,6 +17,7 @@ use util::{
     accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
     get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
     get_child_swarm_image_versions, get_config, get_swarm_instance_type, update_aws_instance_type,
+    update_swarm_child_password,
 };
 
 use crate::checker::swarm_checker;
@@ -394,6 +395,10 @@ pub async fn super_handle(
                         }
                     }
                 }
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateChildSwarmPassword(info) => {
+                let res: SuperSwarmResponse = update_swarm_child_password(info, &state).await;
                 Some(serde_json::to_string(&res)?)
             }
         },

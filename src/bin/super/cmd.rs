@@ -46,6 +46,19 @@ pub struct UpdateSwarmInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSwarmChildPasswordInfo {
+    pub host: String,
+    pub old_password: String,
+    pub new_password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSwarmChildPasswordData {
+    pub old_pass: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeleteSwarmInfo {
     pub host: String,
 }
@@ -80,6 +93,7 @@ pub enum SwarmCmd {
     UpdateAwsInstanceType(UpdateInstanceDetails),
     GetInstanceType(GetInstanceTypeByInstanceId),
     GetSwarmChildImageVersions(ChildSwarmIdentifier),
+    UpdateChildSwarmPassword(UpdateSwarmChildPasswordInfo),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
