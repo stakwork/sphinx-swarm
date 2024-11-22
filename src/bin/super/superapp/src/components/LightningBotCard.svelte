@@ -1,17 +1,51 @@
 <script lang="ts">
-  import { ToastNotification } from "carbon-components-svelte";
+  import {
+    Button,
+    InlineNotification,
+    Modal,
+    TextInput,
+    ToastNotification,
+  } from "carbon-components-svelte";
   import {
     convertMillisatsToSats,
     formatSatsNumbers,
   } from "../../../../../../app/src/helpers";
   import { splitPubkey } from "../../../../../../app/src/helpers/swarm";
   import type { ILightningBot } from "../types/types";
-  import { onMount } from "svelte";
-
+  import { change_lightning_bot_label } from "../../../../../../app/src/api/swarm";
   export let lightningBot: ILightningBot;
-  onMount(() => {
-    // console.log("tester");
-  });
+
+  let open_change_label = false;
+  let isSubmitting = false;
+  let new_label = "";
+  let error_notification = false;
+  let message = "";
+
+  function handleOpenChangeBotLabelModal() {
+    open_change_label = true;
+    new_label = lightningBot.label;
+  }
+
+  function handleOnCloseChangeBotLabel() {
+    open_change_label = false;
+    new_label = "";
+  }
+
+  async function handleChangeBotLabel() {
+    isSubmitting = true;
+    try {
+      let res = await change_lightning_bot_label({
+        id: lightningBot.id,
+        new_label,
+      });
+    } catch (error) {
+      console.log("Error trying to change label: ", error);
+      message = "Error trying to change label";
+      error_notification = true;
+    } finally {
+      isSubmitting = false;
+    }
+  }
 </script>
 
 <div class="bot_card_container">
@@ -46,8 +80,45 @@
       <p>
         Alias : <span class="card_value">{lightningBot.alias} </span>
       </p>
+      <div class="action_container">
+        <Button on:click={() => handleOpenChangeBotLabelModal()}
+          >Change Bot Label</Button
+        >
+      </div>
     </div>
   {/if}
+
+  <Modal
+    bind:open={open_change_label}
+    modalHeading="Change Bot Label"
+    primaryButtonDisabled={lightningBot.label === new_label || isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Update"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_change_label = false)}
+    on:open
+    on:close={handleOnCloseChangeBotLabel}
+    on:submit={handleChangeBotLabel}
+  >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={8000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
+    <div class="input_container">
+      <TextInput
+        labelText="Current Password"
+        placeholder="Enter Current Password..."
+        bind:value={new_label}
+      />
+    </div>
+  </Modal>
 </div>
 
 <style>
@@ -68,5 +139,12 @@
   .bot_card {
     display: flex;
     flex-direction: column;
+  }
+
+  .action_container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
   }
 </style>
