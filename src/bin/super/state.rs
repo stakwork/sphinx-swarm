@@ -60,6 +60,17 @@ pub struct LightningBot {
     pub label: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+pub struct LightningBotsDetails {
+    pub balance_in_msat: u64,
+    pub contact_info: String,
+    pub alias: String,
+    pub network: String,
+    pub error_message: String,
+    pub id: String,
+    pub label: String,
+}
+
 impl Default for Super {
     fn default() -> Self {
         Self {

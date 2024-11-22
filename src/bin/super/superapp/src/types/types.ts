@@ -39,8 +39,11 @@ export interface Remote {
 }
 
 export interface ILightningBot {
-  balance: number;
+  balance_in_msat: number;
   label: string;
   id: string;
-  pubkey: string;
+  contact_info: string;
+  network: string;
+  error_message: string;
+  alias: string;
 }

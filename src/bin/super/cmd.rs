@@ -100,6 +100,7 @@ pub enum SwarmCmd {
     GetInstanceType(GetInstanceTypeByInstanceId),
     GetSwarmChildImageVersions(ChildSwarmIdentifier),
     ChangeChildSwarmPassword(ChangeUserPasswordBySuperAdminRequest),
+    GetLightningBotsDetails,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -152,4 +153,16 @@ pub struct GetInstanceTypeByInstanceId {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetInstanceTypeRes {
     pub instance_type: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LightningBotAccountRes {
+    pub contact_info: String,
+    pub alias: String,
+    pub network: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LightningBotBalanceRes {
+    pub msat: u64,
 }

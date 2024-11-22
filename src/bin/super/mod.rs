@@ -3,6 +3,7 @@ mod aws_util;
 mod checker;
 mod cmd;
 mod ec2;
+mod lightning_bots;
 mod route53;
 mod routes;
 mod state;
@@ -10,6 +11,7 @@ mod util;
 
 use cmd::{AddSwarmResponse, SuperSwarmResponse};
 use cmd::{Cmd, SwarmCmd};
+use lightning_bots::get_lightning_bots_details;
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
@@ -399,6 +401,10 @@ pub async fn super_handle(
             }
             SwarmCmd::ChangeChildSwarmPassword(info) => {
                 let res: SuperSwarmResponse = update_swarm_child_password(info, &state).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetLightningBotsDetails => {
+                let res: SuperSwarmResponse = get_lightning_bots_details(&state).await;
                 Some(serde_json::to_string(&res)?)
             }
         },

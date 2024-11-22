@@ -2,9 +2,12 @@
   import { onMount } from "svelte";
   import { lightningBots } from "./store";
   import LightningBotCard from "./components/LightningBotCard.svelte";
+  import { get_lightning_bots_detail } from "../../../../../app/src/api/swarm";
 
-  onMount(() => {
+  onMount(async () => {
     // get all lightning bots
+    let res = await get_lightning_bots_detail();
+    console.log(res);
   });
 </script>
 

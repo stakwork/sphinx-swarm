@@ -378,3 +378,8 @@ export async function get_swarm_instance_type({
 }) {
   return await swarmCmd("GetInstanceType", { instance_id });
 }
+
+// GetLightningBotDetails
+export async function get_lightning_bots_detail() {
+  return await swarmCmd("GetLightningBotsDetails");
+}
