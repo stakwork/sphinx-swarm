@@ -74,3 +74,13 @@ export async function handleGetImageTags(node_name: string): Promise<string[]> {
     return [];
   }
 }
+
+export function splitPubkey(pubkey: string) {
+  if (pubkey.includes("_")) {
+    return pubkey.split("_")[0];
+  }
+  if (pubkey.includes(":")) {
+    return pubkey.split(":")[0];
+  }
+  return pubkey;
+}
