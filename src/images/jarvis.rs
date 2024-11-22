@@ -221,6 +221,15 @@ fn jarvis(
         env.push(format!("GITHUB_REQUEST_TOKEN={}", github_request_token))
     }
 
+    if let Ok(single_audio_or_video_episode_workflow_id) =
+        getenv("SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID")
+    {
+        env.push(format!(
+            "SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID={}",
+            single_audio_or_video_episode_workflow_id
+        ))
+    }
+
     Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
