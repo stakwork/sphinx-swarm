@@ -13,6 +13,7 @@ pub struct Super {
     pub jwt_key: String,
     pub bots: Vec<BotCred>,
     pub ec2_limit: Ec2Limit,
+    pub lightning_bots: Vec<LightningBot>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -52,6 +53,13 @@ pub struct InstanceFromAws {
     pub intance_type: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+pub struct LightningBot {
+    pub url: String,
+    pub token: String,
+    pub label: String,
+}
+
 impl Default for Super {
     fn default() -> Self {
         Self {
@@ -60,6 +68,7 @@ impl Default for Super {
             jwt_key: secrets::random_word(16),
             bots: Vec::new(),
             ec2_limit: default_ec2_limit(),
+            lightning_bots: Vec::new(),
         }
     }
 }
@@ -127,6 +136,7 @@ impl Super {
                 count: 0,
                 date: "".to_string(),
             },
+            lightning_bots: vec![],
         }
     }
 
