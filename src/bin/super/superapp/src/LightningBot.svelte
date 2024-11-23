@@ -43,10 +43,14 @@
           fullWidth={true}
         />
       </div>
-    {:else}
+    {:else if $lightningBots.length > 0}
       {#each $lightningBots as lightningBot}
         <LightningBotCard {lightningBot} />
       {/each}
+    {:else}
+      <div class="empty_state_container">
+        <p>No Lightning Bot available, Contact Admin to add Lightning bot</p>
+      </div>
     {/if}
   </div>
 </main>
@@ -60,5 +64,15 @@
 
   .success_toast_container {
     margin-bottom: 2rem;
+  }
+
+  .empty_state_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .empty_state_container p {
+    font-size: 1.5rem;
   }
 </style>
