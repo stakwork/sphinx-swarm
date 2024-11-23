@@ -1,5 +1,7 @@
 use crate::{
-    cmd::{LightningBotAccountRes, LightningBotBalanceRes, SuperSwarmResponse},
+    cmd::{
+        ChangeLigthningBotLabel, LightningBotAccountRes, LightningBotBalanceRes, SuperSwarmResponse,
+    },
     state::{LightningBotsDetails, Super},
 };
 use anyhow::Error;
@@ -155,5 +157,41 @@ fn make_err_response(err_msg: String, label: String, id: String) -> LightningBot
         network: "".to_string(),
         id: id,
         label: label,
+    }
+}
+
+pub async fn change_lightning_bot_label(
+    state: &mut Super,
+    must_save_stack: &mut bool,
+    info: ChangeLigthningBotLabel,
+) -> SuperSwarmResponse {
+    if info.new_lable.is_empty() {
+        return SuperSwarmResponse {
+            success: false,
+            message: "Label cannot be empty".to_string(),
+            data: None,
+        };
+    }
+    let bot_pos = &state
+        .lightning_bots
+        .iter()
+        .position(|bot| bot.url == info.id);
+
+    if bot_pos.is_none() {
+        return SuperSwarmResponse {
+            success: false,
+            message: "Invalid bot".to_string(),
+            data: None,
+        };
+    }
+
+    let actual_bot_pos = bot_pos.unwrap();
+
+    state.lightning_bots[actual_bot_pos].label = info.new_lable;
+    *must_save_stack = true;
+    SuperSwarmResponse {
+        success: true,
+        message: "label updated successfully".to_string(),
+        data: None,
     }
 }

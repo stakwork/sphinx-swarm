@@ -101,6 +101,7 @@ pub enum SwarmCmd {
     GetSwarmChildImageVersions(ChildSwarmIdentifier),
     ChangeChildSwarmPassword(ChangeUserPasswordBySuperAdminRequest),
     GetLightningBotsDetails,
+    ChangeLigthningBotLabel(ChangeLigthningBotLabel),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -165,4 +166,10 @@ pub struct LightningBotAccountRes {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LightningBotBalanceRes {
     pub msat: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangeLigthningBotLabel {
+    pub id: String,
+    pub new_lable: String,
 }

@@ -383,7 +383,6 @@ export async function get_lightning_bots_detail() {
   return await swarmCmd("GetLightningBotsDetails");
 }
 
-// ChangeLigthningBotLable
 export async function change_lightning_bot_label({
   id,
   new_label,
@@ -391,5 +390,5 @@ export async function change_lightning_bot_label({
   id: string;
   new_label: string;
 }) {
-  return await swarmCmd("ChangeLigthningBotLable", { id, new_label });
+  return await swarmCmd("ChangeLigthningBotLabel", { id, new_label });
 }
