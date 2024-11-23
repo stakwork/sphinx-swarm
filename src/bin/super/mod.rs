@@ -407,7 +407,7 @@ pub async fn super_handle(
                 let res: SuperSwarmResponse = get_lightning_bots_details(&state).await;
                 Some(serde_json::to_string(&res)?)
             }
-            SwarmCmd::ChangeLigthningBotLabel(info) => {
+            SwarmCmd::ChangeLightningBotLabel(info) => {
                 let res: SuperSwarmResponse =
                     change_lightning_bot_label(&mut state, &mut must_save_stack, info).await;
                 Some(serde_json::to_string(&res)?)

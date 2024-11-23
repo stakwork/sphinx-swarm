@@ -1,6 +1,6 @@
 use crate::{
     cmd::{
-        ChangeLigthningBotLabel, LightningBotAccountRes, LightningBotBalanceRes, SuperSwarmResponse,
+        ChangeLightningBotLabel, LightningBotAccountRes, LightningBotBalanceRes, SuperSwarmResponse,
     },
     state::{LightningBotsDetails, Super},
 };
@@ -163,9 +163,9 @@ fn make_err_response(err_msg: String, label: String, id: String) -> LightningBot
 pub async fn change_lightning_bot_label(
     state: &mut Super,
     must_save_stack: &mut bool,
-    info: ChangeLigthningBotLabel,
+    info: ChangeLightningBotLabel,
 ) -> SuperSwarmResponse {
-    if info.new_lable.is_empty() {
+    if info.new_label.is_empty() {
         return SuperSwarmResponse {
             success: false,
             message: "Label cannot be empty".to_string(),
@@ -187,8 +187,10 @@ pub async fn change_lightning_bot_label(
 
     let actual_bot_pos = bot_pos.unwrap();
 
-    state.lightning_bots[actual_bot_pos].label = info.new_lable;
+    state.lightning_bots[actual_bot_pos].label = info.new_label;
+
     *must_save_stack = true;
+
     SuperSwarmResponse {
         success: true,
         message: "label updated successfully".to_string(),

@@ -390,5 +390,5 @@ export async function change_lightning_bot_label({
   id: string;
   new_label: string;
 }) {
-  return await swarmCmd("ChangeLigthningBotLabel", { id, new_label });
+  return await swarmCmd("ChangeLightningBotLabel", { id, new_label });
 }

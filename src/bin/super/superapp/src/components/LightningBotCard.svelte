@@ -13,6 +13,8 @@
   import { splitPubkey } from "../../../../../../app/src/helpers/swarm";
   import type { ILightningBot } from "../types/types";
   import { change_lightning_bot_label } from "../../../../../../app/src/api/swarm";
+  import { fectAndRefreshLightningBotDetails } from "../utils";
+  import { lightningBots } from "../store";
   export let lightningBot: ILightningBot;
 
   let open_change_label = false;
@@ -20,6 +22,7 @@
   let new_label = "";
   let error_notification = false;
   let message = "";
+  let show_notification = false;
 
   function handleOpenChangeBotLabelModal() {
     open_change_label = true;
@@ -38,6 +41,20 @@
         id: lightningBot.id,
         new_label,
       });
+      message = res.message;
+      if (res.success) {
+        const refresh = await fectAndRefreshLightningBotDetails(lightningBots);
+        if (!refresh.success) {
+          message = refresh.message;
+          error_notification = true;
+          return;
+        }
+        show_notification = true;
+        open_change_label = false;
+        new_label = "";
+      } else {
+        error_notification = true;
+      }
     } catch (error) {
       console.log("Error trying to change label: ", error);
       message = "Error trying to change label";
@@ -60,6 +77,22 @@
       />
     </div>{:else}
     <div class="bot_card">
+      {#if show_notification}
+        <div class="success_toast_container">
+          <ToastNotification
+            lowContrast
+            kind={"success"}
+            title={"Success"}
+            subtitle={message}
+            timeout={3000}
+            on:close={(e) => {
+              e.preventDefault();
+              show_notification = false;
+            }}
+            fullWidth={true}
+          />
+        </div>
+      {/if}
       <p>Label: <span class="card_value">{lightningBot.label}</span></p>
       <p>
         Public Key: <span class="card_value"
