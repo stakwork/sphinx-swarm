@@ -7,16 +7,25 @@
 
   let open = false;
   export let nodeName = "";
-  let logs = [];
+  let logs = "";
+
+  function cleanLog(log) {
+    return log.replace(/\x1B\[[0-9;]*m/g, ""); // Remove ANSI escape codes
+  }
 
   async function getNodeLogs() {
     open = true;
     const theLogs = await api.swarm.get_logs(`${nodeName}.sphinx`);
-    if (theLogs) logs = theLogs.reverse();
+    if (theLogs) {
+      logs = "";
+      for (let i = 0; i < theLogs.length; i++) {
+        logs = `${logs}${cleanLog(theLogs[i])}`;
+      }
+    }
   }
 
   onDestroy(() => {
-    logs = [];
+    logs = "";
   });
 </script>
 
@@ -34,9 +43,7 @@
     </section>
     <section class="modal-content">
       <div class="logs">
-        {#each logs as log}
-          <div class="log">{log}</div>
-        {/each}
+        <pre class="log">{logs}</pre>
       </div>
     </section>
   </div>
@@ -93,8 +100,11 @@
     flex-direction: column-reverse;
   }
   .log {
-    color: white;
-    margin: 1px 0;
+    font-family: monospace;
     font-size: 0.8rem;
+    background-color: #1e1e1e;
+    color: white;
+    padding: 1rem;
+    white-space: pre-wrap;
   }
 </style>
