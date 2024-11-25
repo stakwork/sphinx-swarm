@@ -6,13 +6,18 @@
     TextInput,
     ToastNotification,
   } from "carbon-components-svelte";
+  import QrCode from "svelte-qrcode";
   import {
     convertMillisatsToSats,
+    convertSatsToMilliSats,
     formatSatsNumbers,
   } from "../../../../../../app/src/helpers";
   import { splitPubkey } from "../../../../../../app/src/helpers/swarm";
   import type { ILightningBot } from "../types/types";
-  import { change_lightning_bot_label } from "../../../../../../app/src/api/swarm";
+  import {
+    change_lightning_bot_label,
+    create_invoice_for_lightning_bot,
+  } from "../../../../../../app/src/api/swarm";
   import { fectAndRefreshLightningBotDetails } from "../utils";
   import { lightningBots } from "../store";
   export let lightningBot: ILightningBot;
@@ -24,9 +29,10 @@
   let message = "";
   let show_notification = false;
   let open_create_invoice = false;
-  let amount = 0
-  let show_invoice_notification = false
+  let amount = 0;
+  let show_invoice_notification = false;
   let invoice_success = false;
+  let invoice = "";
 
   function handleOpenChangeBotLabelModal() {
     open_change_label = true;
@@ -69,18 +75,41 @@
   }
 
   function handleOpenCreateInvoice() {
-    open_create_invoice = true
-    amount = 0
+    open_create_invoice = true;
+    amount = 0;
   }
 
-  function handleCreateInvoice() {
+  async function handleCreateInvoice() {
+    isSubmitting = true;
     try {
-        //convert amount to number, convert to milisats and send to the backend
+      //convert amount to number, convert to milisats and send to the backend
+      const res = await create_invoice_for_lightning_bot({
+        id: lightningBot.id,
+        amt_msat: convertSatsToMilliSats(amount),
+      });
+      message = res.message;
+      if (res.success !== true) {
+        return;
+      }
+      invoice = res.data.bolt11;
+      invoice_success = true;
     } catch (error) {
-        
+      console.log("Error creating Invoice: ", error);
+      message = "Error creating invoice, please contact admin";
     } finally {
-        isSubmitting = false
+      isSubmitting = false;
+      show_invoice_notification = true;
     }
+  }
+
+  function copyToClipboard(value) {
+    navigator.clipboard.writeText(value);
+  }
+
+  function handleOnCloseCreateInvoice() {
+    invoice = "";
+    amount = 0;
+    open_create_invoice = false;
   }
 </script>
 
@@ -178,38 +207,56 @@
   </Modal>
 
   <Modal
-  bind:open={open_create_invoice}
-  modalHeading="Create Invoice"
-  primaryButtonDisabled={amount === 0 || !amount || isSubmitting}
-  primaryButtonText={isSubmitting ? "Loading..." : "Create"}
-  secondaryButtonText="Cancel"
-  on:click:button--secondary={() => (open_create_invoice = false)}
-  on:open
-  on:close={handleOnCloseChangeBotLabel}
-  on:submit={handleCreateInvoice}
->
-{#if show_invoice_notification}
-<InlineNotification
-  lowContrast
-  kind={invoice_success ? "success" : "error"}
-  title={invoice_success ? "Success:" : "Error:"}
-  subtitle={message}
-  timeout={9000}
-  on:close={(e) => {
-    e.preventDefault();
-    show_invoice_notification = false;
-  }}
-/>
-{/if}
-  <div class="input_container">
-    <TextInput
-      labelText="Amount (satoshis)"
-      placeholder="Enter Invoice Amount in Sats..."
-      type="number"
-      bind:value={amount}
-    />
-  </div>
-</Modal>
+    bind:open={open_create_invoice}
+    modalHeading="Create Invoice"
+    primaryButtonDisabled={amount === 0 || !amount || isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Create"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_create_invoice = false)}
+    on:open
+    on:close={handleOnCloseCreateInvoice}
+    on:submit={handleCreateInvoice}
+  >
+    {#if show_invoice_notification}
+      <InlineNotification
+        lowContrast
+        kind={invoice_success ? "success" : "error"}
+        title={invoice_success ? "Success:" : "Error:"}
+        subtitle={message}
+        timeout={9000}
+        on:close={(e) => {
+          e.preventDefault();
+          show_invoice_notification = false;
+        }}
+      />
+    {/if}
+    <div class="input_container">
+      <TextInput
+        labelText="Amount (satoshis)"
+        placeholder="Enter Invoice Amount in Sats..."
+        type="number"
+        bind:value={amount}
+      />
+    </div>
+    {#if invoice}
+      <section class="invoice-data">
+        <div class="qr_container">
+          <p class="invoice-title">Invoice QR code</p>
+          <QrCode size={256} padding={22} value={invoice} />
+        </div>
+
+        <div class="invoice">
+          {invoice}
+        </div>
+
+        <Button
+          kind="tertiary"
+          class="invoice-btn"
+          on:click={() => copyToClipboard(invoice)}>Copy Invoice</Button
+        >
+      </section>
+    {/if}
+  </Modal>
 </div>
 
 <style>
@@ -237,5 +284,43 @@
     gap: 2rem;
     flex-wrap: wrap;
     margin-top: 2rem;
+  }
+
+  .qr_container {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .invoice-title {
+    text-align: center;
+    font-size: 1rem;
+    margin-bottom: 0.7rem;
+    margin-top: 0.7rem;
+    padding-right: 0;
+  }
+
+  .invoice-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .invoice {
+    overflow: scroll;
+    text-overflow: clip;
+    height: 110px;
+    overflow-wrap: break-word;
+    font-size: 0.9rem;
+    border: 0.5px solid #fff;
+    min-width: 100%;
+    max-width: 100%;
+    border-radius: 10px;
+    margin-top: 20px;
+    padding: 10px;
+    margin-bottom: 0.7rem;
   }
 </style>
