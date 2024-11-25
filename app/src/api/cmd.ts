@@ -95,7 +95,10 @@ export type Cmd =
   | "GetInstanceType"
   | "GetAllImageActualVersion"
   | "GetSwarmChildImageVersions"
-  | "ChangeChildSwarmPassword";
+  | "ChangeChildSwarmPassword"
+  | "GetLightningBotsDetails"
+  | "ChangeLightningBotLabel"
+  | "CreateInvoiceForLightningBot";
 
 interface CmdData {
   cmd: Cmd;

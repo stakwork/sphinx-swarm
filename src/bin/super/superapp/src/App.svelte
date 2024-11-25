@@ -3,9 +3,16 @@
   import Login from "../../../../../app/src/auth/Login.svelte";
   import { activeUser, saveUserToStore, logoutUser } from "./store";
   import User from "carbon-icons-svelte/lib/User.svelte";
-  import { OverflowMenu, OverflowMenuItem } from "carbon-components-svelte";
+  import {
+    OverflowMenu,
+    OverflowMenuItem,
+    Tabs,
+    Tab,
+    TabContent,
+  } from "carbon-components-svelte";
   import ChangePassword from "./ChangePassword.svelte";
   import ViewNodes from "./ViewNodes.svelte";
+  import LightningBot from "./LightningBot.svelte";
   let page = "main";
 
   async function backToMain() {
@@ -43,10 +50,23 @@
     <div class="body">
       {#if page === "change_password"}
         <ChangePassword back={backToMain} />
-      {:else if page === "view_nodes"}
-        <ViewNodes back={backToMain} />
       {:else}
-        <Remotes {viewNode} />
+        <Tabs width="100%">
+          <Tab label="Swarms" />
+          <Tab label="Lightning" />
+          <svelte:fragment slot="content">
+            <TabContent>
+              <div>
+                {#if page === "view_nodes"}
+                  <ViewNodes back={backToMain} />
+                {:else}
+                  <Remotes {viewNode} />
+                {/if}
+              </div>
+            </TabContent>
+            <TabContent><LightningBot /></TabContent>
+          </svelte:fragment>
+        </Tabs>
       {/if}
     </div>
   {/if}
@@ -83,6 +103,7 @@
     display: flex;
     height: calc(100vh - 4.2rem);
     width: 100%;
+    flex-direction: column;
   }
   .stack-title {
     color: white;

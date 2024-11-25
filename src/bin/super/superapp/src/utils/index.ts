@@ -1,3 +1,7 @@
+import type { ILightningBot } from "../types/types";
+import type { Writable } from "svelte/store";
+import { get_lightning_bots_detail } from "../../../../../../app/src/api/swarm";
+
 export function splitHost(hostFullPath: string) {
   if (hostFullPath) {
     const arr = hostFullPath.split(".");
@@ -43,4 +47,27 @@ export function extract_instance_type(instance_type: string) {
   const split_array = instance_type.split(" ");
   const temp_instance = split_array[1];
   return temp_instance.slice(1, temp_instance.length - 1);
+}
+
+export async function fectAndRefreshLightningBotDetails(
+  lightningBots: Writable<ILightningBot[]>
+): Promise<{ success: boolean; message: string }> {
+  try {
+    let res = await get_lightning_bots_detail();
+    let message = res.message;
+    if (res.success) {
+      if (res.data) {
+        lightningBots.set(res.data);
+      }
+      return { success: true, message };
+    } else {
+      return { success: false, message };
+    }
+  } catch (error) {
+    console.log("error: ", error);
+    return {
+      success: false,
+      message: "Error occured while trying to get lightning bots details",
+    };
+  }
 }

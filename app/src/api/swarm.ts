@@ -378,3 +378,21 @@ export async function get_swarm_instance_type({
 }) {
   return await swarmCmd("GetInstanceType", { instance_id });
 }
+
+export async function get_lightning_bots_detail() {
+  return await swarmCmd("GetLightningBotsDetails");
+}
+
+export async function change_lightning_bot_label({
+  id,
+  new_label,
+}: {
+  id: string;
+  new_label: string;
+}) {
+  return await swarmCmd("ChangeLightningBotLabel", { id, new_label });
+}
+
+export async function create_invoice_for_lightning_bot({id, amt_msat}: {id: string, amt_msat: number}) {
+  return await swarmCmd("CreateInvoiceForLightningBot", {id, amt_msat})
+}

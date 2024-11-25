@@ -1,19 +1,11 @@
 <script lang="ts">
+  import { splitPubkey } from "../../helpers/swarm";
+
   export let value = "";
   export let placeholder = "Enter text";
   export let onInput;
   export let label;
   export let isPubkey = false;
-
-  function splitPubkey(pubkey: string) {
-    if (pubkey.includes("_")) {
-      return pubkey.split("_")[0];
-    }
-    if (pubkey.includes(":")) {
-      return pubkey.split(":")[0];
-    }
-    return pubkey;
-  }
 
   function handleInput(event) {
     let value = event.target.value;
