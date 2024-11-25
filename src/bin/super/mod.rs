@@ -11,7 +11,7 @@ mod util;
 
 use cmd::{AddSwarmResponse, SuperSwarmResponse};
 use cmd::{Cmd, SwarmCmd};
-use lightning_bots::{change_lightning_bot_label, get_lightning_bots_details};
+use lightning_bots::{change_lightning_bot_label, get_lightning_bots_details, create_invoice_lightning_bot};
 use sphinx_swarm::utils::getenv;
 use state::RemoteStack;
 use state::Super;
@@ -410,6 +410,11 @@ pub async fn super_handle(
             SwarmCmd::ChangeLightningBotLabel(info) => {
                 let res: SuperSwarmResponse =
                     change_lightning_bot_label(&mut state, &mut must_save_stack, info).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::CreateInvoiceForLightningBot(info) => {
+                let res: SuperSwarmResponse =
+                create_invoice_lightning_bot(&state, info).await;
                 Some(serde_json::to_string(&res)?)
             }
         },

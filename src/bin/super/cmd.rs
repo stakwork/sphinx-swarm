@@ -102,6 +102,7 @@ pub enum SwarmCmd {
     ChangeChildSwarmPassword(ChangeUserPasswordBySuperAdminRequest),
     GetLightningBotsDetails,
     ChangeLightningBotLabel(ChangeLightningBotLabel),
+    CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -172,4 +173,14 @@ pub struct LightningBotBalanceRes {
 pub struct ChangeLightningBotLabel {
     pub id: String,
     pub new_label: String,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreateInvoiceLightningBotReq {
+    pub id: String,
+    pub amt_msat: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LightningBotCreateInvoiceReq {
+    pub amt_msat: u64,
 }
