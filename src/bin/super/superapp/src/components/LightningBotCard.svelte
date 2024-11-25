@@ -23,6 +23,10 @@
   let error_notification = false;
   let message = "";
   let show_notification = false;
+  let open_create_invoice = false;
+  let amount = 0
+  let show_invoice_notification = false
+  let invoice_success = false;
 
   function handleOpenChangeBotLabelModal() {
     open_change_label = true;
@@ -63,11 +67,27 @@
       isSubmitting = false;
     }
   }
+
+  function handleOpenCreateInvoice() {
+    open_create_invoice = true
+    amount = 0
+  }
+
+  function handleCreateInvoice() {
+    try {
+        //convert amount to number, convert to milisats and send to the backend
+    } catch (error) {
+        
+    } finally {
+        isSubmitting = false
+    }
+  }
 </script>
 
 <div class="bot_card_container">
   {#if lightningBot.error_message}
     <div class="success_toast_container">
+      <p>Label: <span class="card_value">{lightningBot.label}</span></p>
       <ToastNotification
         lowContrast
         kind={"error"}
@@ -117,6 +137,10 @@
         <Button on:click={() => handleOpenChangeBotLabelModal()}
           >Change Bot Label</Button
         >
+
+        <Button on:click={() => handleOpenCreateInvoice()}
+          >Create Invoice</Button
+        >
       </div>
     </div>
   {/if}
@@ -152,6 +176,40 @@
       />
     </div>
   </Modal>
+
+  <Modal
+  bind:open={open_create_invoice}
+  modalHeading="Create Invoice"
+  primaryButtonDisabled={amount === 0 || !amount || isSubmitting}
+  primaryButtonText={isSubmitting ? "Loading..." : "Create"}
+  secondaryButtonText="Cancel"
+  on:click:button--secondary={() => (open_create_invoice = false)}
+  on:open
+  on:close={handleOnCloseChangeBotLabel}
+  on:submit={handleCreateInvoice}
+>
+{#if show_invoice_notification}
+<InlineNotification
+  lowContrast
+  kind={invoice_success ? "success" : "error"}
+  title={invoice_success ? "Success:" : "Error:"}
+  subtitle={message}
+  timeout={9000}
+  on:close={(e) => {
+    e.preventDefault();
+    show_invoice_notification = false;
+  }}
+/>
+{/if}
+  <div class="input_container">
+    <TextInput
+      labelText="Amount (satoshis)"
+      placeholder="Enter Invoice Amount in Sats..."
+      type="number"
+      bind:value={amount}
+    />
+  </div>
+</Modal>
 </div>
 
 <style>

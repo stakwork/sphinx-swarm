@@ -392,3 +392,7 @@ export async function change_lightning_bot_label({
 }) {
   return await swarmCmd("ChangeLightningBotLabel", { id, new_label });
 }
+
+export async function create_invoice_for_lightning_bot({id, amt_msat}: {id: string, amt_msat: number}) {
+  return await swarmCmd("CreateInvoiceForLightningBot", {id, amt_msat})
+}
