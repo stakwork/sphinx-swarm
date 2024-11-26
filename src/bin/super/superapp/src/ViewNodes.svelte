@@ -56,6 +56,7 @@
   let open_change_swarm_password = false;
   let new_password = "";
   let current_password = "";
+  let swarm_version = "";
 
   async function setupNodes() {
     const result = await get_child_swarm_config({ host: $selectedNode });
@@ -229,6 +230,9 @@
         for (let i = 0; i < response.data.data.length; i++) {
           version_object[response.data.data[i].name] =
             response.data.data[i].version;
+        }
+        if (version_object["swarm"]) {
+          swarm_version = version_object["swarm"];
         }
 
         let tempSortedNodes = [];
@@ -463,7 +467,10 @@
   <div class="back" on:click={back}>
     <ArrowLeft size={32} />
   </div>
-  <h2 class="node_host">{$selectedNode}</h2>
+  <div class="host_container">
+    <h2 class="node_host">{$selectedNode}</h2>
+    <p class="swarm_version">{swarm_version}</p>
+  </div>
   {#if show_notification}
     <div class="success_toast_container">
       <ToastNotification
@@ -684,5 +691,15 @@
 
   .input_container {
     margin-bottom: 1rem;
+  }
+
+  .host_container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .swarm_version {
+    color: rgba(255, 255, 255, 0.613);
   }
 </style>
