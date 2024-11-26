@@ -6,6 +6,7 @@
   import { getImageVersion } from "../helpers/swarm";
 
   let updating = false;
+  export let updateBody = () => {};
 
   async function upgradeContainer() {
     let name = $selectedNode.name;
@@ -13,6 +14,7 @@
     updating = true;
     await api.swarm.update_node(name);
     await getImageVersion(stack, selectedNode);
+    updateBody();
     updating = false;
   }
 </script>

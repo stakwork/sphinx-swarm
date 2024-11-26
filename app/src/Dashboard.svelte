@@ -162,7 +162,7 @@
             on:start_message={removeStopClass}
           />
 
-          <NodeUpdate />
+          <NodeUpdate {updateBody} />
 
           <RestartNode />
         {/if}
