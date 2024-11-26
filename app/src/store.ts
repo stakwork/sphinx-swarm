@@ -26,6 +26,8 @@ export const users = writable<User[]>(initialUsers);
 
 export const current_swarm_user = writable<SwarmUser>();
 
+export const swarmVersion = writable<string>("");
+
 export const tribes = writable<Tribe>({
   page: 1,
   total: 0,

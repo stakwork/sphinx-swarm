@@ -102,7 +102,7 @@ pub enum SwarmCmd {
     ChangeChildSwarmPassword(ChangeUserPasswordBySuperAdminRequest),
     GetLightningBotsDetails,
     ChangeLightningBotLabel(ChangeLightningBotLabel),
-    CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq)
+    CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -7,6 +7,7 @@
     selectedNode,
     nodes_exited,
     current_swarm_user,
+    swarmVersion,
   } from "./store";
   import {
     Loading,
@@ -139,10 +140,14 @@
     <div class="head_section">
       <div class="lefty logo-wrap">
         <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
-        <span
-          class="stack-title"
-          style={`color:${$stack.ready ? "white" : "#999"}`}>Sphinx Stack</span
-        >
+        <div>
+          <span
+            class="stack-title"
+            style={`color:${$stack.ready ? "white" : "#999"}`}
+            >Sphinx Stack
+          </span>
+          <p class="swarm_version">{$swarmVersion}</p>
+        </div>
         {#if !$stack.ready}
           <InlineLoading />
         {/if}
@@ -220,6 +225,7 @@
   .logo-wrap {
     display: flex;
     align-items: center;
+    gap: 2.5rem;
   }
 
   .head_section {
@@ -230,7 +236,6 @@
   .logo-wrap .logo {
     width: 70px;
     padding: 12px;
-    margin-left: 2.5rem;
   }
   .body {
     display: flex;
@@ -239,10 +244,10 @@
   .lefty {
     height: 100%;
     border-right: 1px solid #101317;
+    padding: 1rem;
   }
   .stack-title {
     color: white;
-    margin-left: 0.5rem;
     font-size: 1.2rem;
     width: 18rem;
   }
@@ -269,5 +274,10 @@
     font-size: 0.88rem;
     font-weight: 500;
     cursor: pointer;
+  }
+
+  .swarm_version {
+    font-size: 0.9rem;
+    font-family: "Barlow";
   }
 </style>

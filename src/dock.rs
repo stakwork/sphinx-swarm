@@ -565,6 +565,13 @@ pub struct ImageVersion {
     pub version: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ParsedNode {
+    pub name: String,
+    pub org: String,
+    pub host: String,
+}
+
 // get image digest
 pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse> {
     let docker = Docker::connect_with_local_defaults()?;
@@ -595,12 +602,31 @@ pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse
 pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActualVersionResponse> {
     let docker = Docker::connect_with_local_defaults()?;
 
-    let mut images_version: Vec<ImageVersion> = Vec::new();
+    let mut parsed_node: Vec<ParsedNode> = vec![ParsedNode {
+        name: "swarm".to_string(),
+        host: "sphinx-swarm".to_string(),
+        org: "".to_string(),
+    }];
 
     for node in nodes.iter() {
         let node_name = node.name();
         let host = domain(&node_name);
-        let image_id = get_image_id(&docker, &host).await;
+
+        let node_image = find_img(&node_name, nodes)?;
+        let org = node_image.repo().org;
+
+        parsed_node.push(ParsedNode {
+            name: node_name,
+            org: org,
+            host: host,
+        })
+    }
+
+    let mut images_version: Vec<ImageVersion> = Vec::new();
+
+    for node in parsed_node.iter() {
+        let node_name = node.name.clone();
+        let image_id = get_image_id(&docker, &node.host).await;
         if image_id.is_empty() {
             images_version.push(ImageVersion {
                 name: node_name,
@@ -624,10 +650,8 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
         let mut image_name = digest_parts[0].to_string();
         let checksome = digest_parts[1];
 
-        let node_image = find_img(&node_name, nodes)?;
-
-        if node_image.repo().org == "library" {
-            image_name = format!("{}/{}", node_image.repo().org, image_name);
+        if node.org == "library" {
+            image_name = format!("{}/{}", node.org, image_name);
         }
 
         let version = get_image_version_from_digest(&image_name, checksome).await;

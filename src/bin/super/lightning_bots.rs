@@ -1,6 +1,7 @@
 use crate::{
     cmd::{
-        ChangeLightningBotLabel, LightningBotAccountRes, LightningBotBalanceRes, SuperSwarmResponse, CreateInvoiceLightningBotReq,LightningBotCreateInvoiceReq
+        ChangeLightningBotLabel, CreateInvoiceLightningBotReq, LightningBotAccountRes,
+        LightningBotBalanceRes, LightningBotCreateInvoiceReq, SuperSwarmResponse,
     },
     state::{LightningBotsDetails, Super},
 };
@@ -199,15 +200,21 @@ pub async fn change_lightning_bot_label(
     }
 }
 
-pub async fn create_invoice_lightning_bot(state: &Super,info: CreateInvoiceLightningBotReq)-> SuperSwarmResponse {
+pub async fn create_invoice_lightning_bot(
+    state: &Super,
+    info: CreateInvoiceLightningBotReq,
+) -> SuperSwarmResponse {
     // find bot
-    let bot_option = state.lightning_bots.iter().find(|lightning_bot | lightning_bot.url == info.id);
+    let bot_option = state
+        .lightning_bots
+        .iter()
+        .find(|lightning_bot| lightning_bot.url == info.id);
     if bot_option.is_none() {
         return SuperSwarmResponse {
             success: false,
             message: "bot does not exist".to_string(),
-            data: None
-        }
+            data: None,
+        };
     }
 
     let bot = bot_option.unwrap();
@@ -216,33 +223,39 @@ pub async fn create_invoice_lightning_bot(state: &Super,info: CreateInvoiceLight
     let invoice_res = match create_invoice_request(&bot.url, &bot.token, info.amt_msat).await {
         Ok(res) => res,
         Err(err) => {
-            log::error!("Error making request to create invoice: {}", err.to_string());
+            log::error!(
+                "Error making request to create invoice: {}",
+                err.to_string()
+            );
             return SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
-                data: None
-            }
+                data: None,
+            };
         }
     };
 
     if invoice_res.status() != StatusCode::OK {
-        log::error!("Did not get status created OK for creating invoice: {}", invoice_res.status());
+        log::error!(
+            "Did not get status created OK for creating invoice: {}",
+            invoice_res.status()
+        );
         return SuperSwarmResponse {
             success: false,
-            message:format!("Got unexpected status response {}", invoice_res.status()),
-            data: None
-        }
+            message: format!("Got unexpected status response {}", invoice_res.status()),
+            data: None,
+        };
     }
 
-    let invoice_details:Value =  match invoice_res.json().await {
+    let invoice_details: Value = match invoice_res.json().await {
         Ok(value) => value,
         Err(err) => {
             log::error!("Error converting response to value: {}", err.to_string());
             return SuperSwarmResponse {
                 success: false,
                 message: format!("Error converting response to value: {}", err.to_string()),
-                data: None
-            }
+                data: None,
+            };
         }
     };
 
@@ -250,18 +263,21 @@ pub async fn create_invoice_lightning_bot(state: &Super,info: CreateInvoiceLight
     SuperSwarmResponse {
         success: true,
         message: "invoice created".to_string(),
-        data: Some(invoice_details)
+        data: Some(invoice_details),
     }
 }
 
 async fn create_invoice_request(url: &str, token: &str, amt_msat: u64) -> Result<Response, Error> {
     let client = make_reqwest_client();
 
-    let body = LightningBotCreateInvoiceReq {
-        amt_msat: amt_msat
-    };
+    let body = LightningBotCreateInvoiceReq { amt_msat: amt_msat };
 
-    let res = client.post(format!("https://{}/invoice", url)).header("x-admin-token", token).json(&body).send().await?;
+    let res = client
+        .post(format!("https://{}/invoice", url))
+        .header("x-admin-token", token)
+        .json(&body)
+        .send()
+        .await?;
 
-    Ok (res)
+    Ok(res)
 }
