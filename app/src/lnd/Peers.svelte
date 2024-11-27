@@ -3,6 +3,7 @@
     Button,
     TextInput,
     InlineNotification,
+    Modal,
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
@@ -15,6 +16,7 @@
     isOnboarding,
   } from "../store";
   import { parseClnListPeerRes } from "../helpers/cln";
+  import { add_lightning_peer } from "../api/swarm";
 
   $: pubkey = "";
   $: host = "";
@@ -29,19 +31,28 @@
 
   let show_notification = false;
   let message = "";
+  let open_add_peer_detail = false;
+  let isSubmitting = false;
+  let alias = "";
+  let peerPubkey = "";
+  let error_notification = false;
+  let error_message = false;
 
   async function addPeer() {
+    message = "";
     if (type === "Cln") {
       const peer = await CLN.add_peer(tag, pubkey, host);
       show_notification = true;
 
       if (typeof peer === "string") {
         message = peer;
+        error_message = true;
         return;
       }
 
       if (typeof peer !== "object") {
         message = "unexpected error";
+        error_message = true;
         console.log(peer);
         return;
       }
@@ -84,14 +95,48 @@
     }
   }
 
+  function handleOpenAddPeer() {
+    open_add_peer_detail = true;
+    alias = "";
+    peerPubkey = "";
+  }
+
+  function handleOnCloseAddPeer() {
+    open_add_peer_detail = false;
+    alias = "";
+    peerPubkey = "";
+  }
+
+  async function handleAddPeer() {
+    message = "";
+    isSubmitting = true;
+    try {
+      const res = await add_lightning_peer({ pubkey: peerPubkey, alias });
+      message = res.message;
+      if (res.success) {
+        show_notification = true;
+        handleOnCloseAddPeer();
+        return;
+      }
+      error_notification = true;
+    } catch (error) {
+      error_notification = true;
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
   $: peersLength = peers && peers.length ? peers.length : "No";
   $: peersLabel = peers && peers.length <= 1 ? "peer" : "peers";
   $: addDisabled = !pubkey || !host;
 </script>
 
 <section class="peer-wrap">
-  <div class="back" on:click={back} on:keypress={() => {}}>
-    <ArrowLeft size={24} />
+  <div class="header_container">
+    <div class="back" on:click={back} on:keypress={() => {}}>
+      <ArrowLeft size={24} />
+    </div>
+    <Button on:click={handleOpenAddPeer}>Add New Peer Detail</Button>
   </div>
 
   {#if peers && peers.length}
@@ -113,8 +158,8 @@
   {#if show_notification}
     <InlineNotification
       lowContrast
-      kind={message ? "error" : "success"}
-      title={message ? "Error" : "Success:"}
+      kind={error_message ? "error" : "success"}
+      title={error_message ? "Error" : "Success:"}
       subtitle={message || "Pair has been added."}
       timeout={3000}
       on:close={(e) => {
@@ -147,9 +192,52 @@
       ></center
     >
   </section>
+  <Modal
+    bind:open={open_add_peer_detail}
+    modalHeading="Update Swarm"
+    primaryButtonDisabled={!peerPubkey || !alias || isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Add Peer"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_add_peer_detail = false)}
+    on:open
+    on:close={handleOnCloseAddPeer}
+    on:submit={handleAddPeer}
+  >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={8000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
+    <div class="input_container">
+      <TextInput
+        labelText="Alias"
+        placeholder="Enter Peer Alias..."
+        bind:value={alias}
+      />
+    </div>
+    <div class="input_container">
+      <TextInput
+        labelText="Pubkey"
+        placeholder="Enter Peer Pubkey..."
+        bind:value={peerPubkey}
+      />
+    </div>
+  </Modal>
 </section>
 
 <style>
+  .header_container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
   .peer-wrap {
     padding: 20px 30px;
   }
@@ -187,5 +275,9 @@
   .peer-address {
     margin: 0 1rem 0 0.4rem;
     font-size: 0.95rem;
+  }
+
+  .input_container {
+    margin-bottom: 1rem;
   }
 </style>

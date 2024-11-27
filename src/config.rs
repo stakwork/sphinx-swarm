@@ -70,7 +70,7 @@ pub struct Stack {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub global_mem_limit: Option<u64>,
     pub backup_services: Option<Vec<String>>,
-    pub lightning_peers: Option<LightningPeer>,
+    pub lightning_peers: Option<Vec<LightningPeer>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]

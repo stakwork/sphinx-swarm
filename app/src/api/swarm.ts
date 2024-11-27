@@ -406,3 +406,13 @@ export async function create_invoice_for_lightning_bot({
 export async function get_lightning_peers() {
   return await swarmCmd("GetLightningPeers");
 }
+
+export async function add_lightning_peer({
+  pubkey,
+  alias,
+}: {
+  pubkey: string;
+  alias: string;
+}) {
+  return await swarmCmd("AddLightningPeer", { pubkey, alias });
+}
