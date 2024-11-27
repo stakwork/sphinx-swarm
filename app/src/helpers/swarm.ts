@@ -1,7 +1,11 @@
 import type { Writable } from "svelte/store";
-import { get_all_image_actual_version, get_image_tags } from "../api/swarm";
+import {
+  get_all_image_actual_version,
+  get_image_tags,
+  get_lightning_peers,
+} from "../api/swarm";
 import type { Stack, Node } from "../nodes";
-import { swarmVersion } from "../store";
+import { lightningPeers, swarmVersion } from "../store";
 
 export async function getImageVersion(
   stack: Writable<Stack>,
@@ -86,4 +90,15 @@ export function splitPubkey(pubkey: string) {
     return pubkey.split(":")[0];
   }
   return pubkey;
+}
+
+export async function handleGetLightningPeers() {
+  const res = await get_lightning_peers();
+  if (Array.isArray(res)) {
+    lightningPeers.set(res);
+  }
+}
+
+export function formatPubkey(pk: string) {
+  return `${pk.substring(0, 6)}...${pk.substring(pk.length - 6)}`;
 }

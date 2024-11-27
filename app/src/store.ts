@@ -1,5 +1,5 @@
 import { writable, derived, type Readable } from "svelte/store";
-import type { Node, Stack } from "./nodes";
+import type { LightningPeer, Node, Stack } from "./nodes";
 import { initialUsers } from "./relay/users";
 import type { User } from "./relay/users";
 import type { Tribe, Person } from "./api/tribes";
@@ -38,7 +38,7 @@ export const people = writable<Person[]>([]);
 
 export const channels = writable<{ [tag: string]: LndChannel[] }>({});
 
-export const lightningPeers = writable<{ [pubkey: string]: string }>({});
+export const lightningPeers = writable<LightningPeer[]>([]);
 
 export const proxy = writable<ProxyBalance>({
   total: 0,

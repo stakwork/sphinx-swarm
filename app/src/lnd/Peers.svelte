@@ -14,9 +14,14 @@
     finishedOnboarding,
     createdPeerForOnboarding,
     isOnboarding,
+    lightningPeers,
   } from "../store";
-  import { parseClnListPeerRes } from "../helpers/cln";
+  import {
+    convertLightningPeersToObject,
+    parseClnListPeerRes,
+  } from "../helpers/cln";
   import { add_lightning_peer } from "../api/swarm";
+  import { formatPubkey, handleGetLightningPeers } from "../helpers/swarm";
 
   $: pubkey = "";
   $: host = "";
@@ -115,6 +120,7 @@
       message = res.message;
       if (res.success) {
         show_notification = true;
+        await handleGetLightningPeers();
         handleOnCloseAddPeer();
         return;
       }
@@ -129,6 +135,11 @@
   $: peersLength = peers && peers.length ? peers.length : "No";
   $: peersLabel = peers && peers.length <= 1 ? "peer" : "peers";
   $: addDisabled = !pubkey || !host;
+  $: peerObj = convertLightningPeersToObject($lightningPeers);
+
+  function formatPubkeyAliasDisplay(pubkey: string, alias: string) {
+    return `${alias} (${formatPubkey(pubkey)})`;
+  }
 </script>
 
 <section class="peer-wrap">
@@ -144,7 +155,9 @@
     <div class="peer-list">
       {#each peers as peer}
         <div class="peer">
-          <div class="peer-pubkey">{peer.pub_key}</div>
+          <div class="peer-pubkey">
+            {`${peerObj[peer.pub_key] ? formatPubkeyAliasDisplay(peer.pub_key, peerObj[peer.pub_key]) : peer.pub_key}`}
+          </div>
           <div class="peer-address">{peer.address}</div>
           <Button size="small" kind="tertiary" on:click={() => newChannel(peer)}
             >New Channel</Button
