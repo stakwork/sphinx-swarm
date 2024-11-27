@@ -70,6 +70,7 @@ pub struct Stack {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub global_mem_limit: Option<u64>,
     pub backup_services: Option<Vec<String>>,
+    pub lightning_peers: Option<LightningPeer>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -86,6 +87,12 @@ pub struct User {
     pub pass_hash: String,
     pub pubkey: Option<String>,
     pub role: Role,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct LightningPeer {
+    pub alias: String,
+    pub pubkey: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -308,6 +315,7 @@ impl Stack {
             custom_2b_domain: self.custom_2b_domain.clone(),
             global_mem_limit: self.global_mem_limit,
             backup_services: self.backup_services.clone(),
+            lightning_peers: self.lightning_peers.clone(),
         }
     }
 }
