@@ -449,6 +449,11 @@ pub async fn handle(
                 .await;
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::GetLightningPeers => {
+                log::info!("Get all lightning peers");
+                let res = &state.stack.lightning_peers;
+                Some(serde_json::to_string(&res)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

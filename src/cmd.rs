@@ -161,6 +161,7 @@ pub enum SwarmCmd {
     GetSignedInUserDetails,
     GetAllImageActualVersion,
     ChangeUserPasswordBySuperAdmin(ChangeUserPasswordBySuperAdminInfo),
+    GetLightningPeers,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

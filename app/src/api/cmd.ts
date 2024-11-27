@@ -98,7 +98,8 @@ export type Cmd =
   | "ChangeChildSwarmPassword"
   | "GetLightningBotsDetails"
   | "ChangeLightningBotLabel"
-  | "CreateInvoiceForLightningBot";
+  | "CreateInvoiceForLightningBot"
+  | "GetLightningPeers";
 
 interface CmdData {
   cmd: Cmd;

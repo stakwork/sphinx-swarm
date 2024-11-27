@@ -38,6 +38,8 @@ export const people = writable<Person[]>([]);
 
 export const channels = writable<{ [tag: string]: LndChannel[] }>({});
 
+export const lightningPeers = writable<{ [pubkey: string]: string }>({});
+
 export const proxy = writable<ProxyBalance>({
   total: 0,
   user_count: 0,

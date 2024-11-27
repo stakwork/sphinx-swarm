@@ -13,6 +13,7 @@
   } from "../store";
   import { onMount } from "svelte";
   import { get_clients } from "../api/hsmd";
+  import { get_lightning_peers } from "../api/swarm";
 
   export let tag = "";
   export let type = "";
@@ -47,6 +48,9 @@
       const clients = await get_clients(tag);
       if (clients) hsmdClients.set(clients);
     }
+
+    //get all lightning peers
+    const res = await get_lightning_peers();
   });
 </script>
 
