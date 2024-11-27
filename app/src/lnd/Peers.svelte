@@ -20,7 +20,7 @@
     convertLightningPeersToObject,
     parseClnListPeerRes,
   } from "../helpers/cln";
-  import { add_lightning_peer } from "../api/swarm";
+  import { add_lightning_peer, update_lightning_peer } from "../api/swarm";
   import {
     formatPubkey,
     formatPubkeyAliasDisplay,
@@ -46,6 +46,7 @@
   let peerPubkey = "";
   let error_notification = false;
   let error_message = false;
+  let isUpdate = false;
 
   async function addPeer() {
     message = "";
@@ -114,13 +115,19 @@
     open_add_peer_detail = false;
     alias = "";
     peerPubkey = "";
+    isUpdate = false;
   }
 
   async function handleAddPeer() {
     message = "";
     isSubmitting = true;
     try {
-      const res = await add_lightning_peer({ pubkey: peerPubkey, alias });
+      let res;
+      if (isUpdate) {
+        res = await update_lightning_peer({ pubkey: peerPubkey, alias });
+      } else {
+        res = await add_lightning_peer({ pubkey: peerPubkey, alias });
+      }
       message = res.message;
       if (res.success) {
         show_notification = true;
@@ -134,6 +141,13 @@
     } finally {
       isSubmitting = false;
     }
+  }
+
+  function openEditAlias(pubkey: string) {
+    isUpdate = true;
+    peerPubkey = pubkey;
+    alias = peerObj[pubkey];
+    open_add_peer_detail = true;
   }
 
   $: peersLength = peers && peers.length ? peers.length : "No";
@@ -159,6 +173,14 @@
             {`${peerObj[peer.pub_key] ? formatPubkeyAliasDisplay(peer.pub_key, peerObj[peer.pub_key]) : peer.pub_key}`}
           </div>
           <div class="peer-address">{peer.address}</div>
+          {#if peerObj[peer.pub_key]}
+            <Button
+              size="small"
+              kind="ghost"
+              on:click={() => openEditAlias(peer.pub_key)}
+              class="edit_peers_alias">Edit Alias</Button
+            >
+          {/if}
           <Button size="small" kind="tertiary" on:click={() => newChannel(peer)}
             >New Channel</Button
           >
@@ -207,9 +229,13 @@
   </section>
   <Modal
     bind:open={open_add_peer_detail}
-    modalHeading="Update Swarm"
+    modalHeading={isUpdate ? "Update Alias" : "Add Peer Alias"}
     primaryButtonDisabled={!peerPubkey || !alias || isSubmitting}
-    primaryButtonText={isSubmitting ? "Loading..." : "Add Peer"}
+    primaryButtonText={isSubmitting
+      ? "Loading..."
+      : isUpdate
+        ? "Update Alias"
+        : "Add Peer"}
     secondaryButtonText="Cancel"
     on:click:button--secondary={() => (open_add_peer_detail = false)}
     on:open
@@ -240,6 +266,7 @@
         labelText="Pubkey"
         placeholder="Enter Peer Pubkey..."
         bind:value={peerPubkey}
+        readonly={isUpdate || false}
       />
     </div>
   </Modal>

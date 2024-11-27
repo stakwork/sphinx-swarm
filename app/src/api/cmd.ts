@@ -100,7 +100,8 @@ export type Cmd =
   | "ChangeLightningBotLabel"
   | "CreateInvoiceForLightningBot"
   | "GetLightningPeers"
-  | "AddLightningPeer";
+  | "AddLightningPeer"
+  | "UpdateLightningPeer";
 
 interface CmdData {
   cmd: Cmd;

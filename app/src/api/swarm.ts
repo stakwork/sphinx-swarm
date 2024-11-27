@@ -416,3 +416,13 @@ export async function add_lightning_peer({
 }) {
   return await swarmCmd("AddLightningPeer", { pubkey, alias });
 }
+
+export async function update_lightning_peer({
+  pubkey,
+  alias,
+}: {
+  pubkey: string;
+  alias: string;
+}) {
+  return await swarmCmd("UpdateLightningPeer", { pubkey, alias });
+}
