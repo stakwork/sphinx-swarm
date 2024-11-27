@@ -102,3 +102,7 @@ export async function handleGetLightningPeers() {
 export function formatPubkey(pk: string) {
   return `${pk.substring(0, 6)}...${pk.substring(pk.length - 6)}`;
 }
+
+export function formatPubkeyAliasDisplay(pubkey: string, alias: string) {
+  return `${alias} (${formatPubkey(pubkey)})`;
+}

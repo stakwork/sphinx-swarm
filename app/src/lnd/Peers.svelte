@@ -21,7 +21,11 @@
     parseClnListPeerRes,
   } from "../helpers/cln";
   import { add_lightning_peer } from "../api/swarm";
-  import { formatPubkey, handleGetLightningPeers } from "../helpers/swarm";
+  import {
+    formatPubkey,
+    formatPubkeyAliasDisplay,
+    handleGetLightningPeers,
+  } from "../helpers/swarm";
 
   $: pubkey = "";
   $: host = "";
@@ -136,10 +140,6 @@
   $: peersLabel = peers && peers.length <= 1 ? "peer" : "peers";
   $: addDisabled = !pubkey || !host;
   $: peerObj = convertLightningPeersToObject($lightningPeers);
-
-  function formatPubkeyAliasDisplay(pubkey: string, alias: string) {
-    return `${alias} (${formatPubkey(pubkey)})`;
-  }
 </script>
 
 <section class="peer-wrap">

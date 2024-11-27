@@ -4,16 +4,19 @@
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
-  import { channels } from "../store";
+  import { channels, lightningPeers } from "../store";
   import { formatSatsNumbers } from "../helpers";
   import { getTransactionStatus, getBlockTip } from "../helpers/bitcoin";
   import Exit from "carbon-icons-svelte/lib/Exit.svelte";
   import { onDestroy, onMount } from "svelte";
+  import { convertLightningPeersToObject } from "../helpers/cln";
 
   export let tag = "";
   export let onclose = (id: string, dest: string) => {};
 
   let channel_arr = $channels[tag];
+
+  $: peersObj = convertLightningPeersToObject($lightningPeers);
 
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);
@@ -157,7 +160,9 @@
             </div>
           {/if}
           <div class="td">
-            <span class="pubkey">{chan.remote_pubkey}</span>
+            <span class="pubkey"
+              >{peersObj[chan.remote_pubkey] || chan.remote_pubkey}</span
+            >
           </div>
         </div>
         {#if selectedChannelParter === chan.remote_pubkey}
