@@ -11,6 +11,7 @@ use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
 use crate::conn::swarm::add_new_lightning_peer;
+use crate::conn::swarm::update_lightning_peer;
 use crate::conn::swarm::{change_swarm_user_password_by_user_admin, get_image_tags};
 use crate::dock::*;
 use crate::images::DockerHubImage;
@@ -456,8 +457,13 @@ pub async fn handle(
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::AddLightningPeer(info) => {
-                log::info!("Add new lightning peers");
+                log::info!("Add new lightning peer");
                 let res = add_new_lightning_peer(&mut state, info, &mut must_save_stack);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateLightningPeer(info) => {
+                log::info!("Update Lightning peer");
+                let res = update_lightning_peer(&mut state, info, &mut must_save_stack);
                 Some(serde_json::to_string(&res)?)
             }
         },

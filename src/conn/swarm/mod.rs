@@ -196,3 +196,48 @@ pub fn add_new_lightning_peer(
         data: None,
     }
 }
+
+pub fn update_lightning_peer(
+    state: &mut State,
+    info: LightningPeer,
+    must_save_stack: &mut bool,
+) -> SwarmResponse {
+    if info.alias.is_empty() {
+        return SwarmResponse {
+            success: false,
+            message: "alias cannot be empty".to_string(),
+            data: None,
+        };
+    }
+
+    if state.stack.lightning_peers.is_none() {
+        return SwarmResponse {
+            success: false,
+            message: "pubkey does not exist".to_string(),
+            data: None,
+        };
+    };
+
+    if let Some(mut clone_lightning_peers) = state.stack.lightning_peers.clone() {
+        let pos = clone_lightning_peers
+            .iter()
+            .position(|peer| peer.pubkey == info.pubkey);
+
+        if pos.is_none() {
+            return SwarmResponse {
+                success: false,
+                message: "invalid pubkey".to_string(),
+                data: None,
+            };
+        }
+
+        clone_lightning_peers[pos.unwrap()] = info;
+        state.stack.lightning_peers = Some(clone_lightning_peers);
+    }
+    *must_save_stack = true;
+    SwarmResponse {
+        success: true,
+        message: "alias updated successfully".to_string(),
+        data: None,
+    }
+}

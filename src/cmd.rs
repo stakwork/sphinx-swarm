@@ -163,6 +163,7 @@ pub enum SwarmCmd {
     ChangeUserPasswordBySuperAdmin(ChangeUserPasswordBySuperAdminInfo),
     GetLightningPeers,
     AddLightningPeer(LightningPeer),
+    UpdateLightningPeer(LightningPeer),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
