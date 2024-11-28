@@ -47,11 +47,12 @@
   let error_notification = false;
   let error_message = false;
   let isUpdate = false;
+  let peerAlias = "";
 
   async function addPeer() {
     message = "";
     if (type === "Cln") {
-      const peer = await CLN.add_peer(tag, pubkey, host);
+      const peer = await CLN.add_peer(tag, pubkey, host, peerAlias);
       show_notification = true;
 
       if (typeof peer === "string") {
@@ -69,6 +70,8 @@
       if (peer) {
         pubkey = "";
         host = "";
+        peerAlias = "";
+        await handleGetLightningPeers();
         const peersData = await CLN.list_peers(tag);
         const thepeers = await parseClnListPeerRes(peersData);
         peersStore.update((peer) => {
@@ -77,11 +80,12 @@
         createdPeerForOnboarding.update(() => true);
       }
     } else {
-      if (await add_peer(tag, pubkey, host)) {
+      if (await add_peer(tag, pubkey, host, peerAlias)) {
         show_notification = true;
         pubkey = "";
         host = "";
-
+        peerAlias = "";
+        await handleGetLightningPeers();
         setTimeout(async () => {
           const peersData = await list_peers(tag);
           peersStore.update((ps) => {
@@ -215,6 +219,12 @@
       labelText={"Address"}
       placeholder={"New node address"}
       bind:value={host}
+    />
+    <div class="spacer" />
+    <TextInput
+      labelText={"Alias"}
+      placeholder={"Peer Alias"}
+      bind:value={peerAlias}
     />
     <div class="spacer" />
     <center

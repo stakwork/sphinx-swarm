@@ -197,6 +197,7 @@ pub struct TestMine {
 pub struct AddPeer {
     pub pubkey: String,
     pub host: String,
+    pub alias: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

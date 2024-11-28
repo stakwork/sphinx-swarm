@@ -5,6 +5,7 @@ use crate::auth;
 use crate::builder;
 use crate::cmd::*;
 use crate::config;
+use crate::config::LightningPeer;
 use crate::config::Role;
 use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
@@ -523,8 +524,22 @@ pub async fn handle(
                     Some(serde_json::to_string(&channel_list.channels)?)
                 }
                 LndCmd::AddPeer(peer) => {
-                    let result = client.add_peer(peer).await?;
-                    Some(serde_json::to_string(&result)?)
+                    if let Some(alias) = peer.alias.clone() {
+                        add_new_lightning_peer(
+                            &mut state,
+                            LightningPeer {
+                                pubkey: peer.pubkey.clone(),
+                                alias,
+                            },
+                            &mut must_save_stack,
+                        );
+                        let client = state.clients.lnd.get_mut(tag).context("no lnd client")?;
+                        let result = client.add_peer(peer).await?;
+                        Some(serde_json::to_string(&result)?)
+                    } else {
+                        let result = client.add_peer(peer).await?;
+                        Some(serde_json::to_string(&result)?)
+                    }
                 }
                 LndCmd::ListPeers => {
                     let result = client.list_peers().await?;
@@ -604,8 +619,22 @@ pub async fn handle(
                     } else {
                         peer.host
                     };
-                    let result = client.connect_peer(&peer.pubkey, &host, port).await?;
-                    Some(serde_json::to_string(&result)?)
+                    if let Some(alias) = peer.alias.clone() {
+                        add_new_lightning_peer(
+                            &mut state,
+                            LightningPeer {
+                                alias,
+                                pubkey: peer.pubkey.clone(),
+                            },
+                            &mut must_save_stack,
+                        );
+                        let client = state.clients.cln.get_mut(tag).context("no cln client")?;
+                        let result = client.connect_peer(&peer.pubkey, &host, port).await?;
+                        Some(serde_json::to_string(&result)?)
+                    } else {
+                        let result = client.connect_peer(&peer.pubkey, &host, port).await?;
+                        Some(serde_json::to_string(&result)?)
+                    }
                 }
                 ClnCmd::AddChannel(channel) => {
                     let channel = client
