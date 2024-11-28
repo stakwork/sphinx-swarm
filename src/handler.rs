@@ -5,11 +5,14 @@ use crate::auth;
 use crate::builder;
 use crate::cmd::*;
 use crate::config;
+use crate::config::LightningPeer;
 use crate::config::Role;
 use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
+use crate::conn::swarm::add_new_lightning_peer;
+use crate::conn::swarm::update_lightning_peer;
 use crate::conn::swarm::{change_swarm_user_password_by_user_admin, get_image_tags};
 use crate::dock::*;
 use crate::images::DockerHubImage;
@@ -449,6 +452,21 @@ pub async fn handle(
                 .await;
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::GetLightningPeers => {
+                log::info!("Get all lightning peers");
+                let res = &state.stack.lightning_peers;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::AddLightningPeer(info) => {
+                log::info!("Add new lightning peer");
+                let res = add_new_lightning_peer(&mut state, info, &mut must_save_stack);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateLightningPeer(info) => {
+                log::info!("Update Lightning peer");
+                let res = update_lightning_peer(&mut state, info, &mut must_save_stack);
+                Some(serde_json::to_string(&res)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;
@@ -506,8 +524,22 @@ pub async fn handle(
                     Some(serde_json::to_string(&channel_list.channels)?)
                 }
                 LndCmd::AddPeer(peer) => {
-                    let result = client.add_peer(peer).await?;
-                    Some(serde_json::to_string(&result)?)
+                    if let Some(alias) = peer.alias.clone() {
+                        add_new_lightning_peer(
+                            &mut state,
+                            LightningPeer {
+                                pubkey: peer.pubkey.clone(),
+                                alias,
+                            },
+                            &mut must_save_stack,
+                        );
+                        let client = state.clients.lnd.get_mut(tag).context("no lnd client")?;
+                        let result = client.add_peer(peer).await?;
+                        Some(serde_json::to_string(&result)?)
+                    } else {
+                        let result = client.add_peer(peer).await?;
+                        Some(serde_json::to_string(&result)?)
+                    }
                 }
                 LndCmd::ListPeers => {
                     let result = client.list_peers().await?;
@@ -587,8 +619,22 @@ pub async fn handle(
                     } else {
                         peer.host
                     };
-                    let result = client.connect_peer(&peer.pubkey, &host, port).await?;
-                    Some(serde_json::to_string(&result)?)
+                    if let Some(alias) = peer.alias.clone() {
+                        add_new_lightning_peer(
+                            &mut state,
+                            LightningPeer {
+                                alias,
+                                pubkey: peer.pubkey.clone(),
+                            },
+                            &mut must_save_stack,
+                        );
+                        let client = state.clients.cln.get_mut(tag).context("no cln client")?;
+                        let result = client.connect_peer(&peer.pubkey, &host, port).await?;
+                        Some(serde_json::to_string(&result)?)
+                    } else {
+                        let result = client.connect_peer(&peer.pubkey, &host, port).await?;
+                        Some(serde_json::to_string(&result)?)
+                    }
                 }
                 ClnCmd::AddChannel(channel) => {
                     let channel = client

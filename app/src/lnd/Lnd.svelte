@@ -10,9 +10,11 @@
     selectedNode,
     hsmd,
     hsmdClients,
+    lightningPeers,
   } from "../store";
   import { onMount } from "svelte";
   import { get_clients } from "../api/hsmd";
+  import { handleGetLightningPeers } from "../helpers/swarm";
 
   export let tag = "";
   export let type = "";
@@ -43,9 +45,16 @@
   }
 
   onMount(async () => {
-    if (type === "Cln") {
-      const clients = await get_clients(tag);
-      if (clients) hsmdClients.set(clients);
+    try {
+      if (type === "Cln") {
+        const clients = await get_clients(tag);
+        if (clients) hsmdClients.set(clients);
+      }
+
+      //get all lightning peers
+      await handleGetLightningPeers();
+    } catch (error) {
+      console.log(error);
     }
   });
 </script>

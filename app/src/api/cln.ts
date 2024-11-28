@@ -86,6 +86,11 @@ export async function create_channel(
   return await clnCmd("AddChannel", tag, { pubkey, amount, satsperbyte });
 }
 
-export async function add_peer(tag: string, pubkey: string, host: string) {
-  return await clnCmd("AddPeer", tag, { pubkey, host });
+export async function add_peer(
+  tag: string,
+  pubkey: string,
+  host: string,
+  alias?: string
+) {
+  return await clnCmd("AddPeer", tag, { pubkey, host, alias });
 }

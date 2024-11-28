@@ -6,6 +6,7 @@ import {
 } from "./";
 import long from "long";
 import type { LndChannel, LndPeer } from "../api/lnd";
+import type { LightningPeer } from "../nodes";
 
 enum ClnChannelState {
   CHANNELD_AWAITING_LOCKIN = "CHANNELD_AWAITING_LOCKIN",
@@ -237,4 +238,12 @@ export function parseClnInvoices(transactions) {
   } else {
     return [];
   }
+}
+
+export function convertLightningPeersToObject(lightningPeers: LightningPeer[]) {
+  const peersObj = {};
+  for (let i = 0; i < lightningPeers.length; i++) {
+    peersObj[lightningPeers[i].pubkey] = lightningPeers[i].alias;
+  }
+  return peersObj;
 }

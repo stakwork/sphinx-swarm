@@ -3,6 +3,7 @@
     Button,
     TextInput,
     InlineNotification,
+    Modal,
   } from "carbon-components-svelte";
   import Add from "carbon-icons-svelte/lib/Add.svelte";
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
@@ -13,8 +14,18 @@
     finishedOnboarding,
     createdPeerForOnboarding,
     isOnboarding,
+    lightningPeers,
   } from "../store";
-  import { parseClnListPeerRes } from "../helpers/cln";
+  import {
+    convertLightningPeersToObject,
+    parseClnListPeerRes,
+  } from "../helpers/cln";
+  import { add_lightning_peer, update_lightning_peer } from "../api/swarm";
+  import {
+    formatPubkey,
+    formatPubkeyAliasDisplay,
+    handleGetLightningPeers,
+  } from "../helpers/swarm";
 
   $: pubkey = "";
   $: host = "";
@@ -29,25 +40,38 @@
 
   let show_notification = false;
   let message = "";
+  let open_add_peer_detail = false;
+  let isSubmitting = false;
+  let alias = "";
+  let peerPubkey = "";
+  let error_notification = false;
+  let error_message = false;
+  let isUpdate = false;
+  let peerAlias = "";
 
   async function addPeer() {
+    message = "";
     if (type === "Cln") {
-      const peer = await CLN.add_peer(tag, pubkey, host);
+      const peer = await CLN.add_peer(tag, pubkey, host, peerAlias);
       show_notification = true;
 
       if (typeof peer === "string") {
         message = peer;
+        error_message = true;
         return;
       }
 
       if (typeof peer !== "object") {
         message = "unexpected error";
+        error_message = true;
         console.log(peer);
         return;
       }
       if (peer) {
         pubkey = "";
         host = "";
+        peerAlias = "";
+        await handleGetLightningPeers();
         const peersData = await CLN.list_peers(tag);
         const thepeers = await parseClnListPeerRes(peersData);
         peersStore.update((peer) => {
@@ -56,11 +80,12 @@
         createdPeerForOnboarding.update(() => true);
       }
     } else {
-      if (await add_peer(tag, pubkey, host)) {
+      if (await add_peer(tag, pubkey, host, peerAlias)) {
         show_notification = true;
         pubkey = "";
         host = "";
-
+        peerAlias = "";
+        await handleGetLightningPeers();
         setTimeout(async () => {
           const peersData = await list_peers(tag);
           peersStore.update((ps) => {
@@ -84,14 +109,63 @@
     }
   }
 
+  function handleOpenAddPeer() {
+    open_add_peer_detail = true;
+    alias = "";
+    peerPubkey = "";
+  }
+
+  function handleOnCloseAddPeer() {
+    open_add_peer_detail = false;
+    alias = "";
+    peerPubkey = "";
+    isUpdate = false;
+  }
+
+  async function handleAddPeer() {
+    message = "";
+    isSubmitting = true;
+    try {
+      let res;
+      if (isUpdate) {
+        res = await update_lightning_peer({ pubkey: peerPubkey, alias });
+      } else {
+        res = await add_lightning_peer({ pubkey: peerPubkey, alias });
+      }
+      message = res.message;
+      if (res.success) {
+        show_notification = true;
+        await handleGetLightningPeers();
+        handleOnCloseAddPeer();
+        return;
+      }
+      error_notification = true;
+    } catch (error) {
+      error_notification = true;
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  function openEditAlias(pubkey: string) {
+    isUpdate = true;
+    peerPubkey = pubkey;
+    alias = peerObj[pubkey];
+    open_add_peer_detail = true;
+  }
+
   $: peersLength = peers && peers.length ? peers.length : "No";
   $: peersLabel = peers && peers.length <= 1 ? "peer" : "peers";
   $: addDisabled = !pubkey || !host;
+  $: peerObj = convertLightningPeersToObject($lightningPeers);
 </script>
 
 <section class="peer-wrap">
-  <div class="back" on:click={back} on:keypress={() => {}}>
-    <ArrowLeft size={24} />
+  <div class="header_container">
+    <div class="back" on:click={back} on:keypress={() => {}}>
+      <ArrowLeft size={24} />
+    </div>
+    <Button on:click={handleOpenAddPeer}>Add New Peer Detail</Button>
   </div>
 
   {#if peers && peers.length}
@@ -99,8 +173,18 @@
     <div class="peer-list">
       {#each peers as peer}
         <div class="peer">
-          <div class="peer-pubkey">{peer.pub_key}</div>
+          <div class="peer-pubkey">
+            {`${peerObj[peer.pub_key] ? formatPubkeyAliasDisplay(peer.pub_key, peerObj[peer.pub_key]) : peer.pub_key}`}
+          </div>
           <div class="peer-address">{peer.address}</div>
+          {#if peerObj[peer.pub_key]}
+            <Button
+              size="small"
+              kind="ghost"
+              on:click={() => openEditAlias(peer.pub_key)}
+              class="edit_peers_alias">Edit Alias</Button
+            >
+          {/if}
           <Button size="small" kind="tertiary" on:click={() => newChannel(peer)}
             >New Channel</Button
           >
@@ -113,8 +197,8 @@
   {#if show_notification}
     <InlineNotification
       lowContrast
-      kind={message ? "error" : "success"}
-      title={message ? "Error" : "Success:"}
+      kind={error_message ? "error" : "success"}
+      title={error_message ? "Error" : "Success:"}
       subtitle={message || "Pair has been added."}
       timeout={3000}
       on:close={(e) => {
@@ -137,6 +221,12 @@
       bind:value={host}
     />
     <div class="spacer" />
+    <TextInput
+      labelText={"Alias"}
+      placeholder={"Peer Alias"}
+      bind:value={peerAlias}
+    />
+    <div class="spacer" />
     <center
       ><Button
         disabled={addDisabled}
@@ -147,9 +237,57 @@
       ></center
     >
   </section>
+  <Modal
+    bind:open={open_add_peer_detail}
+    modalHeading={isUpdate ? "Update Alias" : "Add Peer Alias"}
+    primaryButtonDisabled={!peerPubkey || !alias || isSubmitting}
+    primaryButtonText={isSubmitting
+      ? "Loading..."
+      : isUpdate
+        ? "Update Alias"
+        : "Add Peer"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_add_peer_detail = false)}
+    on:open
+    on:close={handleOnCloseAddPeer}
+    on:submit={handleAddPeer}
+  >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={8000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
+    <div class="input_container">
+      <TextInput
+        labelText="Alias"
+        placeholder="Enter Peer Alias..."
+        bind:value={alias}
+      />
+    </div>
+    <div class="input_container">
+      <TextInput
+        labelText="Pubkey"
+        placeholder="Enter Peer Pubkey..."
+        bind:value={peerPubkey}
+        readonly={isUpdate || false}
+      />
+    </div>
+  </Modal>
 </section>
 
 <style>
+  .header_container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
   .peer-wrap {
     padding: 20px 30px;
   }
@@ -187,5 +325,9 @@
   .peer-address {
     margin: 0 1rem 0 0.4rem;
     font-size: 0.95rem;
+  }
+
+  .input_container {
+    margin-bottom: 1rem;
   }
 </style>

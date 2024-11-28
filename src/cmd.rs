@@ -2,7 +2,7 @@ use anyhow::Error;
 use reqwest::Response;
 use std::collections::HashMap;
 
-use crate::{images::Image, utils::make_reqwest_client};
+use crate::{config::LightningPeer, images::Image, utils::make_reqwest_client};
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use sphinx_auther::secp256k1::PublicKey;
@@ -161,6 +161,9 @@ pub enum SwarmCmd {
     GetSignedInUserDetails,
     GetAllImageActualVersion,
     ChangeUserPasswordBySuperAdmin(ChangeUserPasswordBySuperAdminInfo),
+    GetLightningPeers,
+    AddLightningPeer(LightningPeer),
+    UpdateLightningPeer(LightningPeer),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -194,6 +197,7 @@ pub struct TestMine {
 pub struct AddPeer {
     pub pubkey: String,
     pub host: String,
+    pub alias: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -1,10 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::time::Duration;
 
 use crate::{
     cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails},
-    config::State,
+    config::{LightningPeer, State},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -16,6 +17,13 @@ pub struct UpdateSwarmBody {
 pub struct ChangePasswordBySuperAdminResponse {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwarmResponse {
+    pub success: bool,
+    pub message: String,
+    pub data: Option<Value>,
 }
 
 pub async fn update_swarm() -> Result<String> {
@@ -146,5 +154,90 @@ pub async fn change_swarm_user_password_by_user_admin(
                 message: "Invalid user".to_string(),
             }
         }
+    }
+}
+
+pub fn add_new_lightning_peer(
+    state: &mut State,
+    info: LightningPeer,
+    must_save_stack: &mut bool,
+) -> SwarmResponse {
+    if info.pubkey.is_empty() || info.alias.is_empty() {
+        return SwarmResponse {
+            success: false,
+            message: "pubkey and alias cannot be empty".to_string(),
+            data: None,
+        };
+    }
+
+    let lightning_peers_clone = state.stack.lightning_peers.clone();
+
+    if let Some(mut lightning_peers) = lightning_peers_clone {
+        let peer_exist = lightning_peers
+            .iter()
+            .position(|peer| peer.pubkey == info.pubkey);
+        if peer_exist.is_some() {
+            return SwarmResponse {
+                success: false,
+                message: "public key already exist, please update".to_string(),
+                data: None,
+            };
+        }
+        lightning_peers.push(info);
+        state.stack.lightning_peers = Some(lightning_peers);
+    } else {
+        state.stack.lightning_peers = Some(vec![info]);
+    }
+
+    *must_save_stack = true;
+    SwarmResponse {
+        success: true,
+        message: "peer added successfully".to_string(),
+        data: None,
+    }
+}
+
+pub fn update_lightning_peer(
+    state: &mut State,
+    info: LightningPeer,
+    must_save_stack: &mut bool,
+) -> SwarmResponse {
+    if info.alias.is_empty() {
+        return SwarmResponse {
+            success: false,
+            message: "alias cannot be empty".to_string(),
+            data: None,
+        };
+    }
+
+    if state.stack.lightning_peers.is_none() {
+        return SwarmResponse {
+            success: false,
+            message: "pubkey does not exist".to_string(),
+            data: None,
+        };
+    };
+
+    if let Some(mut clone_lightning_peers) = state.stack.lightning_peers.clone() {
+        let pos = clone_lightning_peers
+            .iter()
+            .position(|peer| peer.pubkey == info.pubkey);
+
+        if pos.is_none() {
+            return SwarmResponse {
+                success: false,
+                message: "invalid pubkey".to_string(),
+                data: None,
+            };
+        }
+
+        clone_lightning_peers[pos.unwrap()] = info;
+        state.stack.lightning_peers = Some(clone_lightning_peers);
+    }
+    *must_save_stack = true;
+    SwarmResponse {
+        success: true,
+        message: "alias updated successfully".to_string(),
+        data: None,
     }
 }

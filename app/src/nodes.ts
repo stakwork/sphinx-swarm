@@ -7,6 +7,11 @@ export interface Stack {
   custom_2b_domain?: string;
 }
 
+export interface LightningPeer {
+  alias: string;
+  pubkey: string;
+}
+
 export interface Node {
   name: string;
   type: NodeType;

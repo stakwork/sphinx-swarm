@@ -15,20 +15,24 @@
     peers as peersStore,
     channels,
     channelCreatedForOnboarding,
+    lightningPeers,
   } from "../store";
   import { formatSatsNumbers, convertSatsToMilliSats } from "../helpers";
   import {
+    convertLightningPeersToObject,
     parseClnListFunds,
     parseClnListPeerChannelsRes,
     parseClnListPeerRes,
   } from "../helpers/cln";
   import { getLndPendingAndActiveChannels } from "../helpers/lnd";
+  import { formatPubkeyAliasDisplay } from "../helpers/swarm";
 
   export let activeKey: string = null;
 
   $: pubkey = activeKey ? activeKey : "";
   $: amount = 0;
   $: sats = 0;
+  $: peersObj = convertLightningPeersToObject($lightningPeers);
 
   export let tag = "";
   export let type = "";
@@ -47,7 +51,9 @@
   $: peerData = peers?.length
     ? peers.map((p) => ({
         id: p.pub_key,
-        text: p.pub_key,
+        text: peersObj[p.pub_key]
+          ? formatPubkeyAliasDisplay(p.pub_key, peersObj[p.pub_key])
+          : p.pub_key,
       }))
     : [];
 
