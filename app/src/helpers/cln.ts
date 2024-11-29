@@ -46,7 +46,7 @@ export function parseClnListPeerChannelsRes(res: {
 }
 
 export function parseClnListPeerRes(res: {
-  peers: { id: Buffer; netaddr; channels }[];
+  peers: { id: Buffer; connected: boolean; netaddr; channels }[];
 }): LndPeer[] {
   if (typeof res !== "object") {
     return [];
@@ -74,6 +74,7 @@ export function parseClnListPeerRes(res: {
       inbound: 0,
       ping_time: 0,
       sync_type: 0,
+      connected: peer.connected,
     };
   });
   return peers;
@@ -246,4 +247,16 @@ export function convertLightningPeersToObject(lightningPeers: LightningPeer[]) {
     peersObj[lightningPeers[i].pubkey] = lightningPeers[i].alias;
   }
   return peersObj;
+}
+
+export function convertPeersToConnectObj(peers: LndPeer[]) {
+  const connectPeerObj = {};
+  if (!Array.isArray(peers)) {
+    return connectPeerObj;
+  }
+  for (let i = 0; i < peers.length; i++) {
+    const peer = peers[i];
+    connectPeerObj[peer.pub_key] = peer.connected;
+  }
+  return connectPeerObj;
 }

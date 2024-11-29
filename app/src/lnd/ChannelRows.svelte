@@ -4,19 +4,25 @@
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
-  import { channels, lightningPeers } from "../store";
+  import { channels, lightningPeers, peers } from "../store";
   import { formatSatsNumbers } from "../helpers";
   import { getTransactionStatus, getBlockTip } from "../helpers/bitcoin";
   import Exit from "carbon-icons-svelte/lib/Exit.svelte";
   import { onDestroy, onMount } from "svelte";
-  import { convertLightningPeersToObject } from "../helpers/cln";
+  import {
+    convertLightningPeersToObject,
+    convertPeersToConnectObj,
+  } from "../helpers/cln";
 
   export let tag = "";
+  export let type = "";
   export let onclose = (id: string, dest: string) => {};
 
   let channel_arr = $channels[tag];
 
   $: peersObj = convertLightningPeersToObject($lightningPeers);
+
+  $: peersConnectObj = convertPeersToConnectObj($peers[tag]);
 
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);
@@ -98,6 +104,18 @@
     // }
   }
 
+  function handlePeerReconnect(e) {
+    e.stopPropagation();
+    if (type !== "CLN") {
+      return;
+    }
+    try {
+      // reconnet to peer by sending pubkey
+      // check response
+      // update peers again
+    } catch (error) {}
+  }
+
   let chanInterval;
 
   onMount(() => {
@@ -160,9 +178,29 @@
             </div>
           {/if}
           <div class="td">
-            <span class="pubkey"
-              >{peersObj[chan.remote_pubkey] || chan.remote_pubkey}</span
-            >
+            {#if type === "Cln"}
+              {#if peersConnectObj[chan.remote_pubkey]}
+                <span class="pubkey">
+                  {peersObj[chan.remote_pubkey] || chan.remote_pubkey}
+                </span>
+              {:else}
+                <span>
+                  <Button
+                    skeleton={false}
+                    on:click={handlePeerReconnect}
+                    size="small"
+                    kind={"tertiary"}
+                    >Reconnet{peersObj[chan.remote_pubkey]
+                      ? ` to ${peersObj[chan.remote_pubkey]}`
+                      : ""}</Button
+                  >
+                </span>
+              {/if}
+            {:else}
+              <span class="pubkey">
+                {peersObj[chan.remote_pubkey] || chan.remote_pubkey}
+              </span>
+            {/if}
           </div>
         </div>
         {#if selectedChannelParter === chan.remote_pubkey}
