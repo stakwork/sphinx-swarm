@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { TextInput, Button, InlineLoading } from "carbon-components-svelte";
+  import {
+    TextInput,
+    Button,
+    InlineLoading,
+    Modal,
+    InlineNotification,
+  } from "carbon-components-svelte";
   import ReceiveLineWrap from "../components/ReceiveLineWrap.svelte";
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
@@ -12,7 +18,9 @@
   import {
     convertLightningPeersToObject,
     convertPeersToConnectObj,
+    fetchAndUpdateClnPeerStore,
   } from "../helpers/cln";
+  import { add_peer } from "../api/cln";
 
   export let tag = "";
   export let type = "";
@@ -51,6 +59,14 @@
 
   let selectedChannelParter = "";
   let forceCloseDestination = "";
+  let open_reconnect_peer = false;
+  let isSubmitting = false;
+  let reconnectPubkey = "";
+  let reconnectHost = "";
+  let error_notification = false;
+  let message = "";
+  let notification_error = false;
+  let show_notification = false;
 
   function clickRow(chan) {
     if (!chan.active) return;
@@ -104,16 +120,46 @@
     // }
   }
 
-  function handlePeerReconnect(e) {
+  function openReconnectPeerModal(e, pubkey) {
     e.stopPropagation();
-    if (type !== "CLN") {
+    if (type !== "Cln") {
       return;
     }
+    reconnectPubkey = pubkey;
+    open_reconnect_peer = true;
+  }
+
+  async function handlePeerReconnect() {
+    isSubmitting = true;
     try {
       // reconnet to peer by sending pubkey
+      const res = await add_peer(tag, reconnectPubkey, reconnectHost);
       // check response
-      // update peers again
-    } catch (error) {}
+      if (typeof res === "string") {
+        message = res;
+        error_notification = true;
+        return;
+      }
+      if (res.id && res.address) {
+        // update peers again
+        await fetchAndUpdateClnPeerStore(tag);
+        reconnectHost = "";
+        reconnectPubkey = "";
+        open_reconnect_peer = false;
+        show_notification = true;
+        message = "Peer Reconnected Successfully";
+      }
+    } catch (error) {
+      console.log("Error going well", error);
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  function handleOnCloseReconnectPeer() {
+    reconnectPubkey = "";
+    open_reconnect_peer = false;
+    reconnectHost = "";
   }
 
   let chanInterval;
@@ -129,6 +175,18 @@
 </script>
 
 <div class="lnd-table-wrap">
+  {#if show_notification}
+    <InlineNotification
+      kind={notification_error ? "error" : "success"}
+      title={notification_error ? "Error:" : "Success:"}
+      subtitle={message}
+      timeout={8000}
+      on:close={(e) => {
+        e.preventDefault();
+        show_notification = false;
+      }}
+    />
+  {/if}
   <section class="table-head">
     <div class="th" />
     <div class="th">CAN SEND</div>
@@ -187,7 +245,8 @@
                 <span>
                   <Button
                     skeleton={false}
-                    on:click={handlePeerReconnect}
+                    on:click={(e) =>
+                      openReconnectPeerModal(e, chan.remote_pubkey)}
                     size="small"
                     kind={"tertiary"}
                     >Reconnet{peersObj[chan.remote_pubkey]
@@ -238,6 +297,45 @@
       </section>
     {/each}
   </section>
+  <Modal
+    bind:open={open_reconnect_peer}
+    modalHeading={"Reconnect Peer"}
+    primaryButtonDisabled={!reconnectPubkey || !reconnectHost || isSubmitting}
+    primaryButtonText={isSubmitting ? "Loading..." : "Reconnect Peer"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_reconnect_peer = false)}
+    on:open
+    on:close={handleOnCloseReconnectPeer}
+    on:submit={handlePeerReconnect}
+  >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={8000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
+    <div class="input_container">
+      <TextInput
+        labelText="Pubkey"
+        placeholder="Enter Pubkey"
+        bind:value={reconnectPubkey}
+        readonly={true}
+      />
+    </div>
+    <div class="input_container">
+      <TextInput
+        labelText="Pubkey"
+        placeholder="Enter Peer Pubkey..."
+        bind:value={reconnectHost}
+      />
+    </div>
+  </Modal>
 </div>
 
 <style>

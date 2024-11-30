@@ -7,6 +7,8 @@ import {
 import long from "long";
 import type { LndChannel, LndPeer } from "../api/lnd";
 import type { LightningPeer } from "../nodes";
+import { list_peers } from "../api/cln";
+import { peers } from "../store";
 
 enum ClnChannelState {
   CHANNELD_AWAITING_LOCKIN = "CHANNELD_AWAITING_LOCKIN",
@@ -259,4 +261,12 @@ export function convertPeersToConnectObj(peers: LndPeer[]) {
     connectPeerObj[peer.pub_key] = peer.connected;
   }
   return connectPeerObj;
+}
+
+export async function fetchAndUpdateClnPeerStore(tag: string) {
+  const peersData = await list_peers(tag);
+  const thepeers = await parseClnListPeerRes(peersData);
+  peers.update((peer) => {
+    return { ...peer, [tag]: thepeers };
+  });
 }
