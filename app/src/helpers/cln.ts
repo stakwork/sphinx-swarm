@@ -7,6 +7,8 @@ import {
 import long from "long";
 import type { LndChannel, LndPeer } from "../api/lnd";
 import type { LightningPeer } from "../nodes";
+import { list_peers } from "../api/cln";
+import { peers } from "../store";
 
 enum ClnChannelState {
   CHANNELD_AWAITING_LOCKIN = "CHANNELD_AWAITING_LOCKIN",
@@ -46,7 +48,7 @@ export function parseClnListPeerChannelsRes(res: {
 }
 
 export function parseClnListPeerRes(res: {
-  peers: { id: Buffer; netaddr; channels }[];
+  peers: { id: Buffer; connected: boolean; netaddr; channels }[];
 }): LndPeer[] {
   if (typeof res !== "object") {
     return [];
@@ -74,6 +76,7 @@ export function parseClnListPeerRes(res: {
       inbound: 0,
       ping_time: 0,
       sync_type: 0,
+      connected: peer.connected,
     };
   });
   return peers;
@@ -246,4 +249,24 @@ export function convertLightningPeersToObject(lightningPeers: LightningPeer[]) {
     peersObj[lightningPeers[i].pubkey] = lightningPeers[i].alias;
   }
   return peersObj;
+}
+
+export function convertPeersToConnectObj(peers: LndPeer[]) {
+  const connectPeerObj = {};
+  if (!Array.isArray(peers)) {
+    return connectPeerObj;
+  }
+  for (let i = 0; i < peers.length; i++) {
+    const peer = peers[i];
+    connectPeerObj[peer.pub_key] = peer.connected;
+  }
+  return connectPeerObj;
+}
+
+export async function fetchAndUpdateClnPeerStore(tag: string) {
+  const peersData = await list_peers(tag);
+  const thepeers = await parseClnListPeerRes(peersData);
+  peers.update((peer) => {
+    return { ...peer, [tag]: thepeers };
+  });
 }

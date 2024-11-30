@@ -45,6 +45,7 @@ export interface LndPeer {
   inbound: number;
   ping_time: number;
   sync_type: number;
+  connected?: boolean;
 }
 
 async function lndCmd(cmd: Cmd, tag: string, content?: any) {

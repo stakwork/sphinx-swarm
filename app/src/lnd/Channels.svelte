@@ -242,7 +242,7 @@
     />
     <div />
   {:else if $channels?.hasOwnProperty(tag) && $channels[tag]?.length}
-    <ChannelRows {tag} onclose={onCloseChannel} />
+    <ChannelRows {tag} onclose={onCloseChannel} {type} />
   {:else}
     <section class="no-data-wrap">
       <h3>
