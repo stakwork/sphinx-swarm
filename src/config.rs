@@ -65,6 +65,7 @@ pub struct Stack {
     pub ready: bool,
     pub ip: Option<String>,
     pub auto_update: Option<Vec<String>>,
+    pub auto_restart: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_2b_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -312,6 +313,7 @@ impl Stack {
             ready: self.ready,
             ip: self.ip.clone(),
             auto_update: self.auto_update.clone(),
+            auto_restart: self.auto_restart.clone(),
             custom_2b_domain: self.custom_2b_domain.clone(),
             global_mem_limit: self.global_mem_limit,
             backup_services: self.backup_services.clone(),
