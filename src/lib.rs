@@ -1,5 +1,6 @@
 pub mod app_login;
 pub mod auth;
+pub mod auto_restart_cron;
 pub mod backup;
 pub mod builder;
 pub mod cmd;
