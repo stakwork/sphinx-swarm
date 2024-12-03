@@ -18,7 +18,7 @@ pub async fn auto_restart_cron(
 
     let cron_time = match getenv("AUTO_RESTART_CRON_TIME") {
         Ok(env) => env,
-        Err(_) => "@daily".to_string(),
+        Err(_) => "0 0 2 * * *".to_string(),
     };
 
     sched
