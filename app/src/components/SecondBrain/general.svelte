@@ -13,6 +13,7 @@
   import { Loading } from "carbon-components-svelte";
   import { selectedNode, stack } from "../../store";
   import { getImageVersion, handleGetImageTags } from "../../helpers/swarm";
+
   let tags = [];
   export let updateBody = () => {};
 
@@ -49,6 +50,9 @@
     chatInterface: {
       value: true,
     },
+    resetGraph: {
+      value: true,
+    },
   };
   $: about = {};
   $: isSuccess = false;
@@ -61,6 +65,7 @@
     addContent: { value: true, isChange: false },
     settings: { value: true, isChange: false },
     chatInterface: { value: true, isChange: false },
+    resetGraph: { value: true, isChange: false },
     imageVersion: { value: "", isChange: false },
   };
 
@@ -90,6 +95,7 @@
       label: "AI Summary",
       description: "Toggle AI Summary Feature flag",
     },
+    { key: "resetGraph", label: "Reset Graph", description: "Reset Graph" },
   ];
 
   function handleCheckBoxChange(e, value) {
@@ -316,6 +322,9 @@
         chatInterface: {
           value: parsedFeatureFlag.data.chatInterface.user,
         },
+        resetGraph: {
+          value: parsedFeatureFlag.data.resetGraph.user,
+        },
       };
 
       //update changedState
@@ -341,6 +350,10 @@
         },
         chatInterface: {
           value: parsedFeatureFlag.data.chatInterface.user,
+          isChange: false,
+        },
+        resetGraph: {
+          value: parsedFeatureFlag.data.resetGraph.value,
           isChange: false,
         },
       };
