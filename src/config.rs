@@ -212,6 +212,15 @@ async fn file_exists(file: &str) -> bool {
 
 const YAML: bool = true;
 
+pub fn load_config_file_sync(project: &str) -> Result<Stack> {
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => handle.block_on(load_config_file(project)),
+        Err(_) => tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(load_config_file(project)),
+    }
+}
+
 pub async fn load_config_file(project: &str) -> Result<Stack> {
     let path = format!("vol/{}/config.json", project);
     if !YAML {
