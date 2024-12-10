@@ -70,7 +70,9 @@ pub struct Stack {
     pub custom_2b_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub global_mem_limit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub backup_services: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub lightning_peers: Option<Vec<LightningPeer>>,
 }
 
