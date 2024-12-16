@@ -149,6 +149,15 @@ pub fn traefik_labels(
                 name, shared_host
             ));
             def.push(format!("traefik.http.routers.{}.priority=2", name));
+            def.push(format!(
+                "traefik.http.services.{}.loadBalancer.sticky.cookie.name=server_id",
+                name
+            ));
+
+            def.push(format!(
+                "traefik.http.services.{}.loadBalancer.sticky.cookie.httpOnly=true",
+                name
+            ));
         }
     } else {
         def.push(format!(
