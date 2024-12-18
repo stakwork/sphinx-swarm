@@ -95,7 +95,39 @@ services:
       - AWS_USER_ROLE=$AWS_USER_ROLE
       - GITHUB_REQUEST_TOKEN=$GITHUB_REQUEST_TOKEN
       - SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID=$SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elements.rule=Host(`grafana.${HOST}`)"
+      - "traefik.http.services.elements.loadbalancer.server.port=3000"
+      - "traefik.http.routers.elements.tls=true"
+      - "traefik.http.routers.elements.tls.certresolver=myresolver"
+      - "traefik.http.routers.elements.entrypoints=websecure"
+    environment:
+      - GF_SECURITY_ADMIN_USER=$GF_SECURITY_ADMIN_USER
+      - GF_SECURITY_ADMIN_PASSWORD=$GF_SECURITY_ADMIN_PASSWORD
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
     
 networks:
   sphinx-swarm:
     external: true
+
+volumes:
+  prom_data:
