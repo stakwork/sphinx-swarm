@@ -98,6 +98,8 @@ services:
   prometheus:
     image: prom/prometheus
     container_name: prometheus
+    networks:
+      - sphinx-swarm
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     ports:
@@ -109,16 +111,18 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
+    networks:
+      - sphinx-swarm
     ports:
       - 3000:3000
     restart: unless-stopped
-    # labels:
-    #   - "traefik.enable=true"
-    #   - "traefik.http.routers.elements.rule=Host(`grafana.${HOST}`)"
-    #   - "traefik.http.services.elements.loadbalancer.server.port=3000"
-    #   - "traefik.http.routers.elements.tls=true"
-    #   - "traefik.http.routers.elements.tls.certresolver=myresolver"
-    #   - "traefik.http.routers.elements.entrypoints=websecure"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elements.rule=Host(`grafana.${HOST}`)"
+      - "traefik.http.services.elements.loadbalancer.server.port=3000"
+      - "traefik.http.routers.elements.tls=true"
+      - "traefik.http.routers.elements.tls.certresolver=myresolver"
+      - "traefik.http.routers.elements.entrypoints=websecure"
     environment:
       - GF_SECURITY_ADMIN_USER=$GF_SECURITY_ADMIN_USER
       - GF_SECURITY_ADMIN_PASSWORD=$GF_SECURITY_ADMIN_PASSWORD
