@@ -78,6 +78,17 @@ services:
       - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
       - GITHUB_REQUEST_TOKEN=$GITHUB_REQUEST_TOKEN
       - SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID=$SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID
+  
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
 
 networks:
   sphinx-swarm:
