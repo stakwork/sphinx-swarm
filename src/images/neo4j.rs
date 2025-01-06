@@ -2,6 +2,7 @@
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
+use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -17,6 +18,7 @@ pub struct Neo4jImage {
     pub links: Links,
     pub host: Option<String>,
     pub mem_limit: Option<i64>,
+    pub password: String,
 }
 
 impl Neo4jImage {
@@ -31,6 +33,7 @@ impl Neo4jImage {
             links: vec![],
             host: None,
             mem_limit: None,
+            password: secrets::random_word(32),
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -159,7 +162,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         host_config: host_config(&name, ports, root_vol, None, node.mem_limit),
         env: Some(vec![
             // format!("NEO4J_URI=neo4j://neo4j:{}", &node.bolt_port),
-            format!("NEO4J_AUTH=neo4j/test"),
+            format!("NEO4J_AUTH=neo4j/{}", node.password),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
             format!("{}=512m", server_memory_heap_initial_size),
