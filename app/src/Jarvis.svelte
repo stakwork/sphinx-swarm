@@ -4,6 +4,8 @@
     Loading,
     Select,
     SelectItem,
+    TextInput,
+    PasswordInput,
   } from "carbon-components-svelte";
   import { selectedNode, stack } from "./store";
   import { update_node } from "./api/swarm";
@@ -17,6 +19,7 @@
   let success = false;
   let notification_message = "";
   let show_notification = false;
+  let neo4jPassword = "Loading Neo4j Password";
 
   async function handleUpdateNodeVersion() {
     isLoading = true;
@@ -37,6 +40,7 @@
   }
 
   onMount(async () => {
+    // get neo4j password
     tags = await handleGetImageTags($selectedNode.name);
     isLoading = false;
   });
@@ -46,6 +50,14 @@
   {#if isLoading}
     <Loading />
   {/if}
+
+  <div class="neo4j_container">
+    <PasswordInput
+      labelText="Neo4j 2 Password"
+      value={neo4jPassword}
+      readonly
+    />
+  </div>
 
   <div class="update_container">
     <Select
