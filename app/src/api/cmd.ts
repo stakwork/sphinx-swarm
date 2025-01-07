@@ -101,7 +101,8 @@ export type Cmd =
   | "CreateInvoiceForLightningBot"
   | "GetLightningPeers"
   | "AddLightningPeer"
-  | "UpdateLightningPeer";
+  | "UpdateLightningPeer"
+  | "GetNeo4jPassword";
 
 interface CmdData {
   cmd: Cmd;

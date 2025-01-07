@@ -164,6 +164,7 @@ pub enum SwarmCmd {
     GetLightningPeers,
     AddLightningPeer(LightningPeer),
     UpdateLightningPeer(LightningPeer),
+    GetNeo4jPassword,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

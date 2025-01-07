@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::app_login::sign_up_admin_pubkey;
 use crate::auth;
 use crate::builder;
+use crate::builder::find_img;
 use crate::cmd::*;
 use crate::config;
 use crate::config::LightningPeer;
@@ -12,6 +13,7 @@ use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
 use crate::conn::boltwall::update_user;
 use crate::conn::swarm::add_new_lightning_peer;
+use crate::conn::swarm::get_neo4j_password;
 use crate::conn::swarm::update_lightning_peer;
 use crate::conn::swarm::{change_swarm_user_password_by_user_admin, get_image_tags};
 use crate::dock::*;
@@ -465,6 +467,11 @@ pub async fn handle(
             SwarmCmd::UpdateLightningPeer(info) => {
                 log::info!("Update Lightning peer");
                 let res = update_lightning_peer(&mut state, info, &mut must_save_stack);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetNeo4jPassword => {
+                log::info!("Get Neo4j Password");
+                let res = get_neo4j_password(&state.stack.nodes);
                 Some(serde_json::to_string(&res)?)
             }
         },
