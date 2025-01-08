@@ -14,6 +14,7 @@
   import { chipSVG } from "../nodes";
   import FirstConnect from "./FirstConnect.svelte";
   import Jarvis from "../Jarvis.svelte";
+  import Neo4j from "../Neo4j.svelte";
 
   export let updateBody = () => {};
 
@@ -100,6 +101,8 @@
         <Lnd {tag} {type} />
       {:else if type === "Jarvis"}
         <Jarvis {updateBody} />
+      {:else if type === "Neo4j"}
+        <Neo4j />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}
