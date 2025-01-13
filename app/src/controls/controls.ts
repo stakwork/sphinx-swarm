@@ -82,6 +82,8 @@ const boltwallControls: Control[] = [];
 
 const jarvisControls: Control[] = [];
 
+const neo4jControls: Control[] = [];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
@@ -92,4 +94,5 @@ export const controls = {
   Cln: clnControls,
   BoltWall: boltwallControls,
   Jarvis: jarvisControls,
+  Neo4j: neo4jControls,
 };

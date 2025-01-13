@@ -4,8 +4,9 @@ use serde_json::Value;
 use std::time::Duration;
 
 use crate::{
+    builder::find_img,
     cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails},
-    config::{LightningPeer, State},
+    config::{LightningPeer, Node, State},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -239,5 +240,31 @@ pub fn update_lightning_peer(
         success: true,
         message: "alias updated successfully".to_string(),
         data: None,
+    }
+}
+
+pub fn get_neo4j_password(nodes: &Vec<Node>) -> SwarmResponse {
+    let neo4j = find_img("neo4j", nodes);
+    match neo4j {
+        Ok(image) => match image.as_neo4j() {
+            Ok(neo4j) => SwarmResponse {
+                success: true,
+                message: "neo4j password suucessfully retrived".to_string(),
+                data: Some(serde_json::Value::String(neo4j.password)),
+            },
+            Err(err) => {
+                log::error!("Error getting neo4j image: {}", err.to_string());
+                SwarmResponse {
+                    success: false,
+                    message: err.to_string(),
+                    data: None,
+                }
+            }
+        },
+        Err(err) => SwarmResponse {
+            success: false,
+            message: err.to_string(),
+            data: None,
+        },
     }
 }

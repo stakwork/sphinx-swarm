@@ -426,3 +426,7 @@ export async function update_lightning_peer({
 }) {
   return await swarmCmd("UpdateLightningPeer", { pubkey, alias });
 }
+
+export async function get_neo4j_password() {
+  return await swarmCmd("GetNeo4jPassword");
+}
