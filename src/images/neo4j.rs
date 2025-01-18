@@ -145,6 +145,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let mut dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
     let mut dbms_security_auth_minimum_password_length =
         "NEO4J_dbms_security_auth__minimum__password__length=4";
+    let mut dbms_memory_pagecache_size = "NEO4J_dbms_memory_pagecache_size";
     if *node.version > *"4.4.9" {
         server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size";
         dbms_memory_heap_max_size = "NEO4J_server_memory_heap_max__size";
@@ -153,6 +154,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
         dbms_security_auth_minimum_password_length =
             "NEO4J_dbms_security_auth__minimum__password__length=4";
+        dbms_memory_pagecache_size = "NEO4J_server_memory_pagecache_size"
     }
 
     let c = Config {
@@ -165,8 +167,9 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_AUTH=neo4j/{}", node.password),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
-            format!("{}=512m", server_memory_heap_initial_size),
-            format!("{}=2g", dbms_memory_heap_max_size),
+            format!("{}=1g", server_memory_heap_initial_size),
+            format!("{}=4g", dbms_memory_heap_max_size),
+            format!("{}=1g", dbms_memory_pagecache_size),
             format!("NEO4J_apoc_uuid_enabled=true"),
             format!("{}=0.0.0.0", dbms_default_listen_address),
             format!(
