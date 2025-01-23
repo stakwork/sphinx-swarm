@@ -23,6 +23,7 @@ pub struct BoltwallImage {
     pub links: Links,
     pub admin_token: Option<String>,
     pub stakwork_secret: Option<String>,
+    pub request_per_seconds: Option<i64>,
 }
 
 impl BoltwallImage {
@@ -37,6 +38,7 @@ impl BoltwallImage {
             links: vec![],
             admin_token: Some(secrets::random_word(32)),
             stakwork_secret: Some(secrets::random_word(32)),
+            request_per_seconds: Some(50),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -50,6 +52,9 @@ impl BoltwallImage {
     }
     pub fn set_stakwork_token(&mut self, ss: &str) {
         self.stakwork_secret = Some(ss.to_string());
+    }
+    pub fn set_request_per_seconds(&mut self, rps: i64) {
+        self.request_per_seconds = Some(rps);
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
@@ -209,6 +214,11 @@ fn boltwall(
     //stakwork secret to ensure we only accept request from stakwork
     if let Some(ss) = &node.stakwork_secret {
         env.push(format!("STAKWORK_SECRET={}", ss))
+    }
+
+    // add request per seconds to boltwall env
+    if let Some(rps) = &node.request_per_seconds {
+        env.push(format!("REQUEST_PER_SECONDS={}", rps))
     }
 
     match getenv("HOST") {
