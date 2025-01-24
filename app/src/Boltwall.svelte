@@ -11,6 +11,7 @@
   import { getImageVersion, handleGetImageTags } from "./helpers/swarm";
   import { selectedNode, stack } from "./store";
   import {
+    get_boltwall_request_per_seconds,
     update_boltwall_request_per_seconds,
     update_node,
   } from "./api/swarm";
@@ -28,9 +29,22 @@
   let storedRequestPerSeconds = 0;
 
   onMount(async () => {
+    await handleGetRequestPerSeconds();
     tags = await handleGetImageTags($selectedNode.name);
     isLoading = false;
   });
+
+  async function handleGetRequestPerSeconds() {
+    try {
+      const rps = await get_boltwall_request_per_seconds();
+      if (rps && rps.success) {
+        requestPerSeconds = rps.data;
+        storedRequestPerSeconds = rps.data;
+      }
+    } catch (error) {
+      console.log("Error getting boltwall request per seconds: ", error);
+    }
+  }
 
   async function handleUpdateNodeVersion() {
     isLoading = true;
