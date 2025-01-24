@@ -11,6 +11,7 @@ use crate::config::Role;
 use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
+use crate::conn::boltwall::update_request_per_seconds;
 use crate::conn::boltwall::update_user;
 use crate::conn::swarm::add_new_lightning_peer;
 use crate::conn::swarm::get_neo4j_password;
@@ -472,6 +473,20 @@ pub async fn handle(
             SwarmCmd::GetNeo4jPassword => {
                 log::info!("Get Neo4j Password");
                 let res = get_neo4j_password(&state.stack.nodes);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
+                log::info!("Update Boltwall Request to: {}", &info.request_per_seconds);
+                let mut boltwall = find_boltwall(&state.stack.nodes)?;
+                let res = update_request_per_seconds(
+                    &mut boltwall,
+                    info.request_per_seconds,
+                    &mut state,
+                    &mut must_save_stack,
+                    docker,
+                    proj,
+                )
+                .await;
                 Some(serde_json::to_string(&res)?)
             }
         },

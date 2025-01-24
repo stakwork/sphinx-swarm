@@ -1,10 +1,14 @@
 use crate::cmd::FeatureFlagUserRoles;
 use crate::config::{Role, State, User};
+use crate::dock::restart_node_container;
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
-use anyhow::{anyhow, Context, Ok, Result};
+use anyhow::{anyhow, Context, Result};
+use bollard::Docker;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
+
+use super::swarm::SwarmResponse;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetAdminPubkeyBody {
@@ -452,5 +456,49 @@ fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
             false
         }
         None => false,
+    }
+}
+
+pub async fn update_request_per_seconds(
+    boltwall: &mut BoltwallImage,
+    rps: i64,
+    state: &mut State,
+    must_save_stack: &mut bool,
+    docker: &Docker,
+    proj: &str,
+) -> SwarmResponse {
+    if rps < 1 {
+        return SwarmResponse {
+            success: false,
+            message: "request per seconds cannot be less then 1".to_string(),
+            data: None,
+        };
+    }
+    // set rps in boltwall node
+    boltwall.set_request_per_seconds(rps);
+    // restart node
+    match restart_node_container(docker, &boltwall.name, state, proj).await {
+        Ok(_) => {
+            *must_save_stack = true;
+            SwarmResponse {
+                success: true,
+                message: "Request per Seconds updated successfully".to_string(),
+                data: None,
+            }
+        }
+        Err(err) => {
+            log::error!(
+                "Error updating boltwall request per seconds: {}",
+                err.to_string()
+            );
+            SwarmResponse {
+                success: false,
+                message: format!(
+                    "Error updating boltwall request per seconds: {}",
+                    err.to_string()
+                ),
+                data: None,
+            }
+        }
     }
 }
