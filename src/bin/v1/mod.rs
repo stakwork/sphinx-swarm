@@ -251,6 +251,12 @@ fn make_stack() -> Stack {
 
     let mut nodes = vec![
         // bitcoin
+        Image::Btc(bitcoind.clone()),
+        // 1
+        Image::Cln(cln1.clone()),
+    ];
+    let mut _nodes = vec![
+        // bitcoin
         Image::Btc(bitcoind),
         // 1
         Image::Cln(cln1),

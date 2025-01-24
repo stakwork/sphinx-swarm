@@ -26,8 +26,14 @@ impl ClnRPC {
         Canceller: Fn() -> bool,
     {
         for iteration in 0..i {
-            if let Ok(c) = Self::new(cln, creds).await {
-                return Ok(c);
+            match Self::new(cln, creds).await {
+                Ok(c) => {
+                    log::info!("connected to CLN!");
+                    return Ok(c);
+                }
+                Err(e) => {
+                    log::error!("Error connecting to CLN: {:?}", e);
+                }
             }
             sleep_ms(1000).await;
             if canceller() {
@@ -58,7 +64,10 @@ impl ClnRPC {
             .await?;
         let client = pb::node_client::NodeClient::new(channel);
 
-        Ok(Self { client })
+        let mut s = Self { client };
+        s.get_info().await?;
+
+        Ok(s)
     }
 
     pub async fn get_info(&mut self) -> Result<pb::GetinfoResponse> {
@@ -250,7 +259,7 @@ impl ClnRPC {
                 let scid = scid_string.parse::<u64>()?;
                 let hop1 = pb::RouteHop {
                     id: hex::decode(pk)?,
-                    short_channel_id: ShortChannelId(scid).to_string(),
+                    scid: ShortChannelId(scid).to_string(),
                     feebase: Some(amount(0)),
                     ..Default::default()
                 };
