@@ -477,9 +477,8 @@ pub async fn handle(
             }
             SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
                 log::info!("Update Boltwall Request to: {}", &info.request_per_seconds);
-                let mut boltwall = find_boltwall(&state.stack.nodes)?;
+                // let mut boltwall = find_boltwall(&state.stack.nodes)?;
                 let res = update_request_per_seconds(
-                    &mut boltwall,
                     info.request_per_seconds,
                     &mut state,
                     &mut must_save_stack,

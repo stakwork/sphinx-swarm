@@ -1,6 +1,7 @@
 use crate::cmd::FeatureFlagUserRoles;
-use crate::config::{Role, State, User};
+use crate::config::{Node, Role, State, User};
 use crate::dock::restart_node_container;
+use crate::images::{self, Image};
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
 use anyhow::{anyhow, Context, Result};
@@ -460,7 +461,6 @@ fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
 }
 
 pub async fn update_request_per_seconds(
-    boltwall: &mut BoltwallImage,
     rps: i64,
     state: &mut State,
     must_save_stack: &mut bool,
@@ -474,10 +474,30 @@ pub async fn update_request_per_seconds(
             data: None,
         };
     }
-    // set rps in boltwall node
-    boltwall.set_request_per_seconds(rps);
+
+    let mut node_name = "".to_string();
+
+    let nodes: Vec<Node> = state
+        .stack
+        .nodes
+        .iter()
+        .map(|n| match n {
+            Node::External(e) => Node::External(e.clone()),
+            Node::Internal(i) => match i.clone() {
+                Image::BoltWall(mut b) => {
+                    b.set_request_per_seconds(rps);
+                    node_name = b.name.clone();
+                    Node::Internal(Image::BoltWall(b))
+                }
+                _ => Node::Internal(i.clone()),
+            },
+        })
+        .collect();
+
+    state.stack.nodes = nodes;
+
     // restart node
-    match restart_node_container(docker, &boltwall.name, state, proj).await {
+    match restart_node_container(docker, node_name.as_str(), state, proj).await {
         Ok(_) => {
             *must_save_stack = true;
             SwarmResponse {
