@@ -522,3 +522,19 @@ pub async fn update_request_per_seconds(
         }
     }
 }
+
+pub fn get_request_per_seconds(boltwall: &BoltwallImage) -> SwarmResponse {
+    let mut settled_rps: i64 = 50;
+
+    if let Some(rps) = boltwall.request_per_seconds {
+        settled_rps = rps
+    }
+
+    SwarmResponse {
+        success: true,
+        message: "boltwall request per seconds".to_string(),
+        data: Some(serde_json::Value::Number(serde_json::Number::from(
+            settled_rps,
+        ))),
+    }
+}

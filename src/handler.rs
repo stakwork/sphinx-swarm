@@ -11,6 +11,7 @@ use crate::config::Role;
 use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
 use crate::conn::boltwall::get_api_token;
+use crate::conn::boltwall::get_request_per_seconds;
 use crate::conn::boltwall::update_request_per_seconds;
 use crate::conn::boltwall::update_user;
 use crate::conn::swarm::add_new_lightning_peer;
@@ -476,7 +477,10 @@ pub async fn handle(
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
-                log::info!("Update Boltwall Request to: {}", &info.request_per_seconds);
+                log::info!(
+                    "Update Boltwall Request per seconds to: {}",
+                    &info.request_per_seconds
+                );
                 // let mut boltwall = find_boltwall(&state.stack.nodes)?;
                 let res = update_request_per_seconds(
                     info.request_per_seconds,
@@ -486,6 +490,12 @@ pub async fn handle(
                     proj,
                 )
                 .await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetBoltwallRequestPerSeconds => {
+                log::info!("Get Boltwall Request Per Seconds");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let res = get_request_per_seconds(&boltwall);
                 Some(serde_json::to_string(&res)?)
             }
         },
