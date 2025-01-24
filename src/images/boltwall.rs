@@ -23,6 +23,7 @@ pub struct BoltwallImage {
     pub links: Links,
     pub admin_token: Option<String>,
     pub stakwork_secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub request_per_seconds: Option<i64>,
 }
 
