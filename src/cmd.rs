@@ -122,6 +122,11 @@ pub struct ChangeUserPasswordBySuperAdminInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RequestPerSecondsInfo {
+    pub request_per_seconds: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -165,6 +170,8 @@ pub enum SwarmCmd {
     AddLightningPeer(LightningPeer),
     UpdateLightningPeer(LightningPeer),
     GetNeo4jPassword,
+    UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
+    GetBoltwallRequestPerSeconds,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

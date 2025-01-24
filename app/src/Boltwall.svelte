@@ -6,10 +6,16 @@
     Button,
     Loading,
     InlineNotification,
+    NumberInput,
   } from "carbon-components-svelte";
   import { getImageVersion, handleGetImageTags } from "./helpers/swarm";
   import { selectedNode, stack } from "./store";
-  import { update_node } from "./api/swarm";
+  import {
+    get_boltwall_request_per_seconds,
+    update_boltwall_request_per_seconds,
+    update_node,
+  } from "./api/swarm";
+  import { XAxis } from "carbon-icons-svelte";
   export let host = "";
   export let updateBody = () => {};
   let link = host ? `https://${host}` : "http://localhost:8444";
@@ -19,11 +25,26 @@
   let show_notification = false;
   let notification_message = "";
   let success = false;
+  let requestPerSeconds = 0;
+  let storedRequestPerSeconds = 0;
 
   onMount(async () => {
+    await handleGetRequestPerSeconds();
     tags = await handleGetImageTags($selectedNode.name);
     isLoading = false;
   });
+
+  async function handleGetRequestPerSeconds() {
+    try {
+      const rps = await get_boltwall_request_per_seconds();
+      if (rps && rps.success) {
+        requestPerSeconds = rps.data;
+        storedRequestPerSeconds = rps.data;
+      }
+    } catch (error) {
+      console.log("Error getting boltwall request per seconds: ", error);
+    }
+  }
 
   async function handleUpdateNodeVersion() {
     isLoading = true;
@@ -34,6 +55,25 @@
         updateBody();
         success = true;
         notification_message = `${$selectedNode.name} version updated successfully`;
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      isLoading = false;
+      show_notification = true;
+    }
+  }
+
+  async function handleUpdateBoltwallRequestPerSeconds() {
+    isLoading = true;
+    try {
+      const res = await update_boltwall_request_per_seconds({
+        request_per_seconds: Number(requestPerSeconds),
+      });
+      notification_message = res?.message;
+      if (res.success) {
+        success = true;
+        storedRequestPerSeconds = Number(requestPerSeconds);
       }
     } catch (error) {
       console.log(error);
@@ -81,6 +121,18 @@
       >Update Version</Button
     >
   </div>
+  <div class="updateReqPerSecs">
+    <NumberInput
+      label="Update Request Per seconds"
+      bind:value={requestPerSeconds}
+    />
+    <Button
+      on:click={handleUpdateBoltwallRequestPerSeconds}
+      disabled={!requestPerSeconds ||
+        storedRequestPerSeconds === requestPerSeconds}
+      >Update Request Per Seconds</Button
+    >
+  </div>
 </div>
 
 <style>
@@ -99,6 +151,10 @@
     display: flex;
     gap: 1rem;
     flex-direction: column;
+    margin-top: 2rem;
+  }
+
+  .updateReqPerSecs {
     margin-top: 2rem;
   }
 </style>

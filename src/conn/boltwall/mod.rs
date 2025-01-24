@@ -1,10 +1,15 @@
 use crate::cmd::FeatureFlagUserRoles;
-use crate::config::{Role, State, User};
+use crate::config::{Node, Role, State, User};
+use crate::dock::restart_node_container;
+use crate::images::{self, Image};
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
-use anyhow::{anyhow, Context, Ok, Result};
+use anyhow::{anyhow, Context, Result};
+use bollard::Docker;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
+
+use super::swarm::SwarmResponse;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetAdminPubkeyBody {
@@ -452,5 +457,84 @@ fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
             false
         }
         None => false,
+    }
+}
+
+pub async fn update_request_per_seconds(
+    rps: i64,
+    state: &mut State,
+    must_save_stack: &mut bool,
+    docker: &Docker,
+    proj: &str,
+) -> SwarmResponse {
+    if rps < 1 {
+        return SwarmResponse {
+            success: false,
+            message: "request per seconds cannot be less than 1".to_string(),
+            data: None,
+        };
+    }
+
+    let mut node_name = "".to_string();
+
+    let nodes: Vec<Node> = state
+        .stack
+        .nodes
+        .iter()
+        .map(|n| match n {
+            Node::External(e) => Node::External(e.clone()),
+            Node::Internal(i) => match i.clone() {
+                Image::BoltWall(mut b) => {
+                    b.set_request_per_seconds(rps);
+                    node_name = b.name.clone();
+                    Node::Internal(Image::BoltWall(b))
+                }
+                _ => Node::Internal(i.clone()),
+            },
+        })
+        .collect();
+
+    state.stack.nodes = nodes;
+
+    // restart node
+    match restart_node_container(docker, node_name.as_str(), state, proj).await {
+        Ok(_) => {
+            *must_save_stack = true;
+            SwarmResponse {
+                success: true,
+                message: "Request per Seconds updated successfully".to_string(),
+                data: None,
+            }
+        }
+        Err(err) => {
+            log::error!(
+                "Error updating boltwall request per seconds: {}",
+                err.to_string()
+            );
+            SwarmResponse {
+                success: false,
+                message: format!(
+                    "Error updating boltwall request per seconds: {}",
+                    err.to_string()
+                ),
+                data: None,
+            }
+        }
+    }
+}
+
+pub fn get_request_per_seconds(boltwall: &BoltwallImage) -> SwarmResponse {
+    let mut settled_rps: i64 = 50;
+
+    if let Some(rps) = boltwall.request_per_seconds {
+        settled_rps = rps
+    }
+
+    SwarmResponse {
+        success: true,
+        message: "boltwall request per seconds".to_string(),
+        data: Some(serde_json::Value::Number(serde_json::Number::from(
+            settled_rps,
+        ))),
     }
 }
