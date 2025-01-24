@@ -56,9 +56,9 @@
       const res = await update_boltwall_request_per_seconds({
         request_per_seconds: Number(requestPerSeconds),
       });
+      notification_message = res?.message;
       if (res.success) {
         success = true;
-        notification_message = "Request Per Seconds set successfuly";
         storedRequestPerSeconds = Number(requestPerSeconds);
       }
     } catch (error) {

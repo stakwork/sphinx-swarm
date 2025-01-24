@@ -470,7 +470,7 @@ pub async fn update_request_per_seconds(
     if rps < 1 {
         return SwarmResponse {
             success: false,
-            message: "request per seconds cannot be less then 1".to_string(),
+            message: "request per seconds cannot be less than 1".to_string(),
             data: None,
         };
     }
