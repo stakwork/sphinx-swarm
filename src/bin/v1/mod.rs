@@ -23,6 +23,7 @@ use tokio::sync::{mpsc, Mutex};
 /*
 export TESTING_ONLY_ADD_TO_SENDER=1
 export LOCAL_CLN_IMG=true
+export LOCAL_MIXER_IMG=true
 */
 
 const BTC: &str = "btc_1";

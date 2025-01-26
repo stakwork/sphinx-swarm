@@ -3,7 +3,7 @@ use super::*;
 use crate::config::Node;
 use crate::images::broker::BrokerImage;
 use crate::images::cln::ClnImage;
-use crate::utils::{domain, exposed_ports, host_config, volume_string};
+use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -182,8 +182,14 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
         env.push(format!("HUB_URL={}", hu));
     }
 
+    let mut image = format!("{}:{}", image, img.version);
+    if let Ok(ci) = getenv("LOCAL_MIXER_IMG") {
+        if ci == "true" || ci == "1" {
+            image = "sphinx-mixer:latest".to_string();
+        }
+    }
     let mut c = Config {
-        image: Some(format!("{}:{}", image, img.version)),
+        image: Some(image),
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&img.name, ports, root_vol, Some(extra_vols), None),
