@@ -47,7 +47,6 @@ bcrypt = "0.13"
 sha2 = "0.10"
 hmac = "0.12"
 async-trait = "0.1.64"
-# tonic = { version = "0.8", features = ["tls", "transport"] }
 tonic = { version = "0.11", features = ["tls", "transport"] }
 # cln-grpc = { git = "https://github.com/stakwork/lightning", rev = "ba0d317e751ee04c59c2400ddff201cf29ab76aa" }
 cln-grpc = "0.3.0"

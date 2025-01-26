@@ -57,7 +57,7 @@ impl ClnRPC {
             .ca_certificate(ca);
 
         let grpc_url = docker_domain_tonic(&cln.name);
-        let url = format!("http://{}:{}", grpc_url, &cln.grpc_port);
+        let url = format!("https://{}:{}", grpc_url, &cln.grpc_port);
         let channel = Channel::from_shared(url)?
             .tls_config(tls)?
             .connect()
