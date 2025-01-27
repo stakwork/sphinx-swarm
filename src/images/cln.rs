@@ -281,6 +281,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         format!("--grpc-port={}", &img.grpc_port),
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
+        format!("--grpc-host=0.0.0.0"),
         "--bitcoin-rpcport=18443".to_string(),
         "--log-level=info:gossipd".to_string(),
         "--log-level=info:channeld".to_string(),
@@ -289,7 +290,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         "--accept-htlc-tlv-type=133773310".to_string(),
         "--accept-htlc-tlv-type=13377331".to_string(),
         "--database-upgrade=true".to_string(),
-        "--cltv-delta=34".to_string(),
+        "--cltv-delta=34".to_string(), // FIXME is this optimal?
     ];
     if let Ok(eba) = getenv("ANNOUNCE_ADDRESS") {
         cmd.push(format!("--announce-addr={}", eba));
@@ -370,9 +371,14 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
             ports.push(plugin_port.to_string());
         }
     };
+    let mut image = Some(format!("{}:{}", image, img.version));
+    if let Ok(ci) = getenv("LOCAL_CLN_IMG") {
+        if ci == "true" || ci == "1" {
+            image = Some("cln-sphinx:latest".to_string());
+        }
+    }
     let mut c = Config {
-        image: Some(format!("{}:{}", image, img.version)),
-        // image: Some("cln-sphinx:latest".to_string()),
+        image,
         hostname: Some(domain(&img.name)),
         domainname: Some(img.name.clone()),
         cmd: Some(cmd),

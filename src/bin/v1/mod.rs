@@ -20,6 +20,12 @@ use tokio::sync::{mpsc, Mutex};
 
 // docker exec -it cln_1.sphinx sh
 
+/*
+export TESTING_ONLY_ADD_TO_SENDER=1
+export LOCAL_CLN_IMG=true
+export LOCAL_MIXER_IMG=true
+*/
+
 const BTC: &str = "btc_1";
 const CLN1: &str = "cln_1";
 const CLN2: &str = "cln_2";
@@ -249,6 +255,10 @@ fn make_stack() -> Stack {
     mixer3.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
     mixer1.set_initial_peers(&format!("{}@{}", mixer2pk, broker2ip));
 
+    // let mut nodes = vec![
+    //     Image::Btc(bitcoind.clone()),
+    //     Image::Cln(cln1.clone()),
+    // ];
     let mut nodes = vec![
         // bitcoin
         Image::Btc(bitcoind),

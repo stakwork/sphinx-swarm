@@ -124,7 +124,7 @@ pub async fn new_chan_from_cln1(
             .list_peer_channels(Some(hex::decode(peer_pubkey)?))
             .await?;
         for c in pc.channels {
-            // println!("{:?}", c.status);
+            println!("=> channel status: {:?}", c.status);
             if let Some(status) = c.status.get(0) {
                 if status.starts_with("CHANNELD_NORMAL") {
                     log::info!("channel confirmed!!!");
