@@ -74,7 +74,8 @@
       selectedChannelParter = "";
       forceCloseDestination = "";
     } else {
-      selectedChannelParter = chan.remote_pubkey;
+      // selectedChannelParter = chan.remote_pubkey; // We are stopping the ability to close channel from the UI
+      selectedChannelParter = ""
     }
   }
 
