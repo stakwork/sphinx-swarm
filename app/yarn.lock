@@ -828,6 +828,11 @@ svelte-tiny-virtual-list@^2.0.5:
   resolved "https://registry.npmjs.org/svelte-tiny-virtual-list/-/svelte-tiny-virtual-list-2.0.5.tgz"
   integrity sha512-xg9ckb8UeeIme4/5qlwCrl2QNmUZ8SCQYZn3Ji83cUsoASqRNy3KWjpmNmzYvPDqCHSZjruBBsoB7t5hwuzw5g==
 
+svelte-toast@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/svelte-toast/-/svelte-toast-1.0.0.tgz#9b562d8c819a38c524e07b3f17f30b46dae7c630"
+  integrity sha512-i6XHJgCgyAYmobEXS78iei6cQBLYIDgk1rrj65wM0sIi4RzCl/9205sVruZT7zUf0N2xsLkeN2rFh9inlRJXEg==
+
 svelte@^3.54.0:
   version "3.55.0"
   resolved "https://registry.npmjs.org/svelte/-/svelte-3.55.0.tgz"

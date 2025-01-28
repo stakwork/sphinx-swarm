@@ -21,6 +21,7 @@
     fetchAndUpdateClnPeerStore,
   } from "../helpers/cln";
   import { add_peer } from "../api/cln";
+  import Toast from "svelte-toast"
 
   export let tag = "";
   export let type = "";
@@ -35,6 +36,11 @@
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);
   }
+
+  const toast = new Toast({
+    position: 'top-center',
+    duration: 3000,         
+  });
 
   function getBarCalculation(chan) {
     const remote_balance = Number(chan.remote_balance);
@@ -70,11 +76,14 @@
 
   function clickRow(chan) {
     if (!chan.active) return;
+    copyText(chan.remote_pubkey)
+    toast.success("Pubkey copied")
     if (selectedChannelParter === chan.remote_pubkey) {
       selectedChannelParter = "";
       forceCloseDestination = "";
     } else {
-      selectedChannelParter = chan.remote_pubkey;
+      // selectedChannelParter = chan.remote_pubkey; // We are stopping the ability to close channel from the UI
+      selectedChannelParter = ""
     }
   }
 
@@ -160,6 +169,10 @@
     reconnectPubkey = "";
     open_reconnect_peer = false;
     reconnectHost = "";
+  }
+
+  function handleClickRemotePubkey(pubkey: string) {
+    console.log("Our Pubkey",pubkey)
   }
 
   let chanInterval;
@@ -249,7 +262,7 @@
                       openReconnectPeerModal(e, chan.remote_pubkey)}
                     size="small"
                     kind={"tertiary"}
-                    >Reconnet{peersObj[chan.remote_pubkey]
+                    >Reconnect{peersObj[chan.remote_pubkey]
                       ? ` to ${peersObj[chan.remote_pubkey]}`
                       : ""}</Button
                   >
@@ -328,10 +341,10 @@
         readonly={true}
       />
     </div>
-    <div class="input_container">
+    <div class="ip_address_container">
       <TextInput
-        labelText="Pubkey"
-        placeholder="Enter Peer Pubkey..."
+        labelText="IP Address"
+        placeholder="Enter IP Address..."
         bind:value={reconnectHost}
       />
     </div>
@@ -356,6 +369,10 @@
     flex-direction: row;
     border-bottom: 1px solid #101317;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+  }
+
+  .ip_address_container {
+    margin-top: 1.5rem;
   }
 
   .lnd-table-wrap .table-head .th {
