@@ -21,6 +21,7 @@
     fetchAndUpdateClnPeerStore,
   } from "../helpers/cln";
   import { add_peer } from "../api/cln";
+  import Toast from "svelte-toast"
 
   export let tag = "";
   export let type = "";
@@ -35,6 +36,11 @@
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);
   }
+
+  const toast = new Toast({
+    position: 'top-center',
+    duration: 3000,         
+  });
 
   function getBarCalculation(chan) {
     const remote_balance = Number(chan.remote_balance);
@@ -70,6 +76,8 @@
 
   function clickRow(chan) {
     if (!chan.active) return;
+    copyText(chan.remote_pubkey)
+    toast.success("Pubkey copied")
     if (selectedChannelParter === chan.remote_pubkey) {
       selectedChannelParter = "";
       forceCloseDestination = "";
@@ -161,6 +169,10 @@
     reconnectPubkey = "";
     open_reconnect_peer = false;
     reconnectHost = "";
+  }
+
+  function handleClickRemotePubkey(pubkey: string) {
+    console.log("Our Pubkey",pubkey)
   }
 
   let chanInterval;
