@@ -249,7 +249,7 @@
                       openReconnectPeerModal(e, chan.remote_pubkey)}
                     size="small"
                     kind={"tertiary"}
-                    >Reconnet{peersObj[chan.remote_pubkey]
+                    >Reconnect{peersObj[chan.remote_pubkey]
                       ? ` to ${peersObj[chan.remote_pubkey]}`
                       : ""}</Button
                   >
@@ -328,10 +328,10 @@
         readonly={true}
       />
     </div>
-    <div class="input_container">
+    <div class="ip_address_container">
       <TextInput
-        labelText="Pubkey"
-        placeholder="Enter Peer Pubkey..."
+        labelText="IP Address"
+        placeholder="Enter IP Address..."
         bind:value={reconnectHost}
       />
     </div>
@@ -356,6 +356,10 @@
     flex-direction: row;
     border-bottom: 1px solid #101317;
     box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.25);
+  }
+
+  .ip_address_container {
+    margin-top: 1.5rem;
   }
 
   .lnd-table-wrap .table-head .th {
