@@ -395,6 +395,7 @@
       { key: "number", value: "Number" },
       { key: "note", value: "Description" },
       { key: "ec2", value: "Instance" },
+      { key: "public_ip_address", value: "Public IP" },
       { key: "health", value: "Health" },
     ]}
     rows={$remotes.map(remoterow)}
@@ -431,6 +432,8 @@
         <p class="host_name" on:click={() => handleViewNodes(row.id)}>
           {cell.value}
         </p>
+      {:else if cell.key === "tribes"}
+        <Tribes host={row.id} />
       {:else}
         {cell.value}
       {/if}

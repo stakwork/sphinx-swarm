@@ -788,6 +788,7 @@ pub async fn create_swarm_ec2(
         user: Some("".to_string()),
         pass: Some("".to_string()),
         ec2_instance_id: ec2_intance.0,
+        public_ip_address: Some("".to_string()),
     };
 
     state.add_remote_stack(new_swarm);
@@ -1087,6 +1088,7 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
     for stack in state.stacks.iter_mut() {
         if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
             let aws_instance_hashmap = aws_instances_hashmap.get(&stack.ec2_instance_id).unwrap();
+            stack.public_ip_address = Some(aws_instance_hashmap.public_ip_address.clone());
             if stack.ec2.is_none() {
                 stack.ec2 = Some(aws_instance_hashmap.intance_type.clone());
             } else {
