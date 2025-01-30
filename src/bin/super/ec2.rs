@@ -33,6 +33,7 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
                     instances.push(InstanceFromAws {
                         instacne_id: instance.instance_id.unwrap(),
                         intance_type: instance.instance_type.unwrap().to_string(),
+                        public_ip_address: instance.public_ip_address.unwrap(),
                     });
                 }
             }
