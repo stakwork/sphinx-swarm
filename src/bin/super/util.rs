@@ -321,10 +321,10 @@ pub async fn accessing_child_container_controller(
 
 fn instance_types() -> Vec<AwsInstanceType> {
     return vec![
-        AwsInstanceType {
-            name: "Large".to_string(),
-            value: "m5.large".to_string(),
-        },
+        // AwsInstanceType {
+        //     name: "Large".to_string(),
+        //     value: "m5.large".to_string(),
+        // },
         AwsInstanceType {
             name: "Extra Large".to_string(),
             value: "m5.xlarge".to_string(),
