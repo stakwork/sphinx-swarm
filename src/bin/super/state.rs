@@ -25,6 +25,7 @@ pub struct RemoteStack {
     pub pass: Option<String>,
     pub default_host: String,
     pub ec2_instance_id: String,
+    pub public_ip_address: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -51,6 +52,7 @@ pub struct BotCred {
 pub struct InstanceFromAws {
     pub instacne_id: String,
     pub intance_type: String,
+    pub public_ip_address: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -126,6 +128,7 @@ impl Super {
                 pass: None,
                 default_host: n.default_host.clone(),
                 ec2_instance_id: n.ec2_instance_id.clone(),
+                public_ip_address: n.public_ip_address.clone(),
             })
             .collect();
         let bots = self
