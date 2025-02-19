@@ -49,6 +49,7 @@ impl BtcImage {
         client.load_wallet()?;
         log::info!("mine 20 blocks");
         client.test_mine(20, None)?;
+        sleep(1).await;
         Ok(())
     }
     pub fn remove_client(&self, clients: &mut Clients) {
