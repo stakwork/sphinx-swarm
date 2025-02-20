@@ -1,8 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::images::broker::BrokerImage;
-use crate::images::tribes::TribesImage;
+use crate::images::neo4j::Neo4jImage;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -15,6 +14,7 @@ pub struct Repo2GraphImage {
     pub version: String,
     pub port: String,
     pub links: Links,
+    pub host: Option<String>,
 }
 
 impl Repo2GraphImage {
@@ -24,6 +24,12 @@ impl Repo2GraphImage {
             version: version.to_string(),
             port: port.to_string(),
             links: vec![],
+            host: None,
+        }
+    }
+    pub fn host(&mut self, eh: Option<String>) {
+        if let Some(h) = eh {
+            self.host = Some(format!("{}.{}", self.name, h));
         }
     }
 }
@@ -56,9 +62,12 @@ fn repo2graph(img: &Repo2GraphImage, neo4j: &Neo4jImage) -> Result<Config<String
 
     let ports = vec![img.port.clone()];
 
-    let mut env = vec![
-        format!("NEO4J_HOST=http://{}:{}", domain(&neo4j.name), neo4j.port),
-        format!("NEO4J_USER={}", neo4j.user),
+    let env = vec![
+        format!(
+            "NEO4J_HOST=http://{}:{}",
+            domain(&neo4j.name),
+            neo4j.bolt_port
+        ),
         format!("NEO4J_PASSWORD={}", neo4j.password),
     ];
 
