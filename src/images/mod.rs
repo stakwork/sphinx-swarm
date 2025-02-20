@@ -20,6 +20,7 @@ pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
 pub mod relay;
+pub mod repo2graph;
 pub mod rqbit;
 pub mod runner;
 pub mod tome;
@@ -65,6 +66,7 @@ pub enum Image {
     Runner(runner::RunnerImage),
     Mongo(mongo::MongoImage),
     Jamie(jamie::JamieImage),
+    Repo2Graph(repo2graph::Repo2GraphImage),
 }
 
 pub struct Repository {
@@ -118,6 +120,7 @@ impl Image {
             Image::Runner(n) => n.name.clone(),
             Image::Mongo(n) => n.name.clone(),
             Image::Jamie(n) => n.name.clone(),
+            Image::Repo2Graph(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -149,6 +152,7 @@ impl Image {
             Image::Runner(_n) => "Runner",
             Image::Mongo(_n) => "Mongo",
             Image::Jamie(_n) => "Jamie",
+            Image::Repo2Graph(_n) => "Repo2Graph",
         }
         .to_string()
     }
@@ -181,7 +185,8 @@ impl Image {
             Image::Runner(n) => n.version = version.to_string(),
             Image::Mongo(n) => n.version = version.to_string(),
             Image::Jamie(n) => n.version = version.to_string(),
-        };
+            Image::Repo2Graph(n) => n.version = version.to_string(),
+        }
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
         Ok(match self {
@@ -272,6 +277,7 @@ impl DockerConfig for Image {
             Image::Runner(n) => n.make_config(nodes, docker).await,
             Image::Mongo(n) => n.make_config(nodes, docker).await,
             Image::Jamie(n) => n.make_config(nodes, docker).await,
+            Image::Repo2Graph(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -306,6 +312,7 @@ impl DockerHubImage for Image {
             Image::Runner(n) => n.repo(),
             Image::Mongo(n) => n.repo(),
             Image::Jamie(n) => n.repo(),
+            Image::Repo2Graph(n) => n.repo(),
         }
     }
 }

@@ -313,6 +313,7 @@ impl Stack {
                 Image::Runner(r) => Node::Internal(Image::Runner(r)),
                 Image::Mongo(m) => Node::Internal(Image::Mongo(m)),
                 Image::Jamie(c) => Node::Internal(Image::Jamie(c)),
+                Image::Repo2Graph(r) => Node::Internal(Image::Repo2Graph(r)),
             },
         });
         Stack {
