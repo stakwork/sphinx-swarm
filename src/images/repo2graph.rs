@@ -63,6 +63,7 @@ fn repo2graph(img: &Repo2GraphImage, neo4j: &Neo4jImage) -> Result<Config<String
     let ports = vec![img.port.clone()];
 
     let env = vec![
+        format!("PORT={}", img.port),
         format!(
             "NEO4J_HOST=http://{}:{}",
             domain(&neo4j.name),
