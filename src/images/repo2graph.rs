@@ -49,7 +49,7 @@ impl DockerHubImage for Repo2GraphImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "repo2graph".to_string(),
-            root_volume: "repo2graph".to_string(),
+            root_volume: "/home/.repo2graph".to_string(),
         }
     }
 }
