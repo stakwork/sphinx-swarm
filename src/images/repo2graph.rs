@@ -2,7 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::neo4j::Neo4jImage;
-use crate::utils::{domain, exposed_ports, host_config};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -49,7 +49,7 @@ impl DockerHubImage for Repo2GraphImage {
         Repository {
             org: "sphinxlightning".to_string(),
             repo: "repo2graph".to_string(),
-            root_volume: "/home/.repo2graph".to_string(),
+            root_volume: "/tmp".to_string(),
         }
     }
 }
@@ -62,11 +62,14 @@ fn repo2graph(img: &Repo2GraphImage, neo4j: &Neo4jImage) -> Result<Config<String
 
     let ports = vec![img.port.clone()];
 
-    let env = vec![
+    let mut env = vec![
         format!("PORT={}", img.port),
         format!("NEO4J_HOST={}:{}", domain(&neo4j.name), neo4j.bolt_port),
         format!("NEO4J_PASSWORD={}", neo4j.password),
     ];
+    if let Ok(github_request_token) = getenv("GITHUB_REQUEST_TOKEN") {
+        env.push(format!("PAT={}", github_request_token))
+    }
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
