@@ -23,7 +23,8 @@ if  [ $1 == "btc" ] || \
     [ $1 == "whisker" ] || \
     [ $1 == "runner" ] || \
     [ $1 == "mongo" ] || \
-    [ $1 == "jamie" ]
+    [ $1 == "jamie" ] || \
+    [ $1 == "repo2graph" ]
 
 then
     echo "=> stop $1.sphinx"
