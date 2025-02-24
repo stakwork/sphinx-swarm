@@ -162,6 +162,12 @@ fn jarvis(
             feature_flag_text_embeddings
         ));
     }
+    if let Ok(jarvis_feature_flag_codegraph_schemas) = getenv("JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS") {
+        env.push(format!(
+            "FEATURE_FLAG_CODEGRAPH_SCHEMAS={}",
+            jarvis_feature_flag_codegraph_schemas
+        ));
+    }
     if let Ok(radar_rss_scheduler_time_in_sec) = getenv("RADAR_RSS_SCHEDULER_TIME_IN_SEC") {
         env.push(format!(
             "RADAR_RSS_SCHEDULER_TIME_IN_SEC={}",
@@ -228,6 +234,12 @@ fn jarvis(
             "SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID={}",
             single_audio_or_video_episode_workflow_id
         ))
+    }
+    if let Ok(jarvis_features) = getenv("JARVIS_FEATURES") {
+        env.push(format!(
+            "FEATURES={}",
+           jarvis_features 
+        ));
     }
 
     Config {
