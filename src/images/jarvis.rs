@@ -241,6 +241,12 @@ fn jarvis(
            jarvis_features 
         ));
     }
+    if let Ok(single_tweet_workflow_id) = getenv("JARVIS_SINGLE_TWEET_WORKFLOW_ID") {
+        env.push(format!(
+            "SINGLE_TWEET_WORKFLOW_ID={}",
+            single_tweet_workflow_id 
+        ));
+    }
 
     Config {
         image: Some(format!("{}:{}", img, node.version)),
