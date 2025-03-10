@@ -29,11 +29,13 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
                 if instance.public_ip_address.is_some()
                     && instance.instance_id.is_some()
                     && instance.instance_type.is_some()
+                    && instance.private_ip_address.is_some()
                 {
                     instances.push(InstanceFromAws {
                         instacne_id: instance.instance_id.unwrap(),
                         intance_type: instance.instance_type.unwrap().to_string(),
                         public_ip_address: instance.public_ip_address.unwrap(),
+                        private_ip_address: instance.private_ip_address.unwrap(),
                     });
                 }
             }

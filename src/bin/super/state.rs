@@ -53,6 +53,7 @@ pub struct InstanceFromAws {
     pub instacne_id: String,
     pub intance_type: String,
     pub public_ip_address: String,
+    pub private_ip_address: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
