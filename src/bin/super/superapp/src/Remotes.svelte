@@ -396,6 +396,7 @@
       { key: "note", value: "Description" },
       { key: "ec2", value: "Instance" },
       { key: "public_ip_address", value: "Public IP" },
+      { key: "private_ip_address", value: "Private IP" },
       { key: "health", value: "Health" },
     ]}
     rows={$remotes.map(remoterow)}

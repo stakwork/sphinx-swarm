@@ -51,8 +51,8 @@ pub struct BotCred {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct InstanceFromAws {
-    pub instacne_id: String,
-    pub intance_type: String,
+    pub instance_id: String,
+    pub instance_type: String,
     pub public_ip_address: String,
     pub private_ip_address: String,
 }
