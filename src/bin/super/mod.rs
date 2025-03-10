@@ -184,6 +184,7 @@ pub async fn super_handle(
                     default_host: "".to_string(),
                     ec2_instance_id: "".to_string(),
                     public_ip_address: Some("".to_string()),
+                    private_ip_address: Some("".to_string()),
                 };
 
                 let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
@@ -203,6 +204,7 @@ pub async fn super_handle(
                             default_host: state.stacks[ui].default_host.clone(),
                             ec2_instance_id: state.stacks[ui].ec2_instance_id.clone(),
                             public_ip_address: state.stacks[ui].public_ip_address.clone(),
+                            private_ip_address: state.stacks[ui].private_ip_address.clone(),
                         };
                         must_save_stack = true;
                         hm = AddSwarmResponse {
@@ -245,6 +247,7 @@ pub async fn super_handle(
                     default_host: c.default_host,
                     ec2_instance_id: "".to_string(),
                     public_ip_address: Some("".to_string()),
+                    private_ip_address: Some("".to_string()),
                 };
                 let hm =
                     add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);
