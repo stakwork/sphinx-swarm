@@ -26,14 +26,21 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
     for reservation in response.reservations.unwrap() {
         if !reservation.instances().is_empty() {
             for instance in reservation.instances.unwrap() {
-                if instance.public_ip_address.is_some()
-                    && instance.instance_id.is_some()
-                    && instance.instance_type.is_some()
+                let instance_id = instance.instance_id.unwrap_or_default();
+                let mut instance_type = "".to_string();
+                let public_ip_address = instance.public_ip_address.unwrap_or_default();
+                let private_ip_address = instance.private_ip_address.unwrap_or_default();
+
+                if instance.instance_type.is_some() {
+                    instance_type = instance.instance_type.unwrap().to_string()
+                }
+
                 {
                     instances.push(InstanceFromAws {
-                        instacne_id: instance.instance_id.unwrap(),
-                        intance_type: instance.instance_type.unwrap().to_string(),
-                        public_ip_address: instance.public_ip_address.unwrap(),
+                        instance_id,
+                        instance_type,
+                        public_ip_address,
+                        private_ip_address,
                     });
                 }
             }
