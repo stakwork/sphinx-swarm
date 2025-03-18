@@ -12,6 +12,7 @@
   import { selectedNode, stack } from "./store";
   import {
     get_boltwall_request_per_seconds,
+    get_env_variables,
     update_boltwall_request_per_seconds,
     update_node,
   } from "./api/swarm";
@@ -29,6 +30,8 @@
   let storedRequestPerSeconds = 0;
 
   onMount(async () => {
+    const env_var = await get_env_variables($selectedNode.name);
+    console.log(env_var);
     await handleGetRequestPerSeconds();
     tags = await handleGetImageTags($selectedNode.name);
     isLoading = false;

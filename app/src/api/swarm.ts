@@ -171,6 +171,10 @@ export async function get_boltwall_request_per_seconds() {
   return await swarmCmd("GetBoltwallRequestPerSeconds");
 }
 
+export async function get_env_variables(id: string) {
+  return await swarmCmd("GetEnv", id);
+}
+
 export async function login(username, password) {
   const r = await fetch(`${root}/login`, {
     method: "POST",
