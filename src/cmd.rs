@@ -172,6 +172,7 @@ pub enum SwarmCmd {
     GetNeo4jPassword,
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
+    GetEnv(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

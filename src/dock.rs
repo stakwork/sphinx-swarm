@@ -27,6 +27,7 @@ use tokio::io::AsyncReadExt;
 use crate::backup::bucket_name;
 use crate::builder::{find_img, make_client};
 use crate::config::{Node, State, STATE};
+use crate::conn::swarm::SwarmResponse;
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
@@ -960,5 +961,68 @@ pub fn get_last_segment(path: &str) -> &str {
     match path.rfind('/') {
         Some(pos) => &path[pos + 1..],
         None => path,
+    }
+}
+
+pub async fn get_env_variables_by_container_name(docker: &Docker, id: &str) -> SwarmResponse {
+    let host = domain(id);
+    match docker.inspect_container(&host, None).await {
+        Ok(container_info) => {
+            if let Some(config) = container_info.config {
+                if let Some(envs) = config.env {
+                    let mut env_vars: HashMap<String, String> = HashMap::new();
+                    for env in envs {
+                        let parts: Vec<&str> = env.splitn(2, '=').collect();
+
+                        if let Some(env_value) = parts.get(1) {
+                            env_vars.insert(parts[0].to_string(), env_value.to_string());
+                        } else {
+                            env_vars.insert(parts[0].to_string(), "".to_string());
+                        }
+                    }
+                    let env_vars_json = match serde_json::to_value(env_vars) {
+                        Ok(json) => json,
+                        Err(err) => {
+                            log::error!("Error converting hashmap to Value: {}", err.to_string());
+                            return SwarmResponse {
+                                success: false,
+                                message: format!(
+                                    "Error converting hashmap to Value: {}",
+                                    err.to_string()
+                                ),
+                                data: None,
+                            };
+                        }
+                    };
+                    SwarmResponse {
+                        success: true,
+                        message: "Environment variables".to_string(),
+                        data: Some(env_vars_json),
+                    }
+                } else {
+                    log::error!("Could not find env");
+                    SwarmResponse {
+                        success: false,
+                        message: "Could not find env".to_string(),
+                        data: None,
+                    }
+                }
+            } else {
+                log::error!("Could not find container configs");
+                SwarmResponse {
+                    success: false,
+                    message: "Could not find container configs".to_string(),
+                    data: None,
+                }
+            }
+        }
+        Err(err) => {
+            log::error!("Error inspecting container: {:?}", err);
+            SwarmResponse {
+                success: false,
+                message: "Error inspecting container".to_string(),
+                data: None,
+            }
+        }
     }
 }

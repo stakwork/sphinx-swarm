@@ -498,6 +498,11 @@ pub async fn handle(
                 let res = get_request_per_seconds(&boltwall);
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::GetEnv(id) => {
+                log::info!("Get {} env variables", id);
+                let res = get_env_variables_by_container_name(&docker, &id).await;
+                Some(serde_json::to_string(&res)?)
+            }
         },
         Cmd::Relay(c) => {
             let client = state.clients.relay.get(tag).context("no relay client")?;

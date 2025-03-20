@@ -24,3 +24,4 @@ unzipped
 models/*
 !models/.gitkeep
 .*
+.qodo

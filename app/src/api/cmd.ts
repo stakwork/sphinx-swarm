@@ -104,7 +104,8 @@ export type Cmd =
   | "UpdateLightningPeer"
   | "GetNeo4jPassword"
   | "UpdateBoltwallRequestPerSeconds"
-  | "GetBoltwallRequestPerSeconds";
+  | "GetBoltwallRequestPerSeconds"
+  | "GetEnv";
 
 interface CmdData {
   cmd: Cmd;
