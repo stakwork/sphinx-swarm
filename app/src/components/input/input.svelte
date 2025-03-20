@@ -6,6 +6,7 @@
   export let onInput;
   export let label;
   export let isPubkey = false;
+  export let readonly = false;
 
   function handleInput(event) {
     let value = event.target.value;
@@ -25,6 +26,7 @@
     class="input"
     {placeholder}
     on:input={handleInput}
+    {readonly}
   />
 </div>
 

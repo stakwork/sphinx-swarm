@@ -7,6 +7,9 @@
     Loading,
     InlineNotification,
     NumberInput,
+    Tabs,
+    Tab,
+    TabContent,
   } from "carbon-components-svelte";
   import { getImageVersion, handleGetImageTags } from "./helpers/swarm";
   import { selectedNode, stack } from "./store";
@@ -16,7 +19,8 @@
     update_boltwall_request_per_seconds,
     update_node,
   } from "./api/swarm";
-  import { XAxis } from "carbon-icons-svelte";
+  import EnvContainer from "./components/envContainer/index.svelte";
+  import { formatEnv } from "./helpers/env";
   export let host = "";
   export let updateBody = () => {};
   let link = host ? `https://${host}` : "http://localhost:8444";
@@ -28,10 +32,13 @@
   let success = false;
   let requestPerSeconds = 0;
   let storedRequestPerSeconds = 0;
+  let envs = [];
 
   onMount(async () => {
     const env_var = await get_env_variables($selectedNode.name);
-    console.log(env_var);
+    if (env_var.success) {
+      envs = formatEnv(env_var.data);
+    }
     await handleGetRequestPerSeconds();
     tags = await handleGetImageTags($selectedNode.name);
     isLoading = false;
@@ -107,34 +114,46 @@
   {#if isLoading}
     <Loading />
   {/if}
-
-  <div class="update_container">
-    <Select
-      labelText={`Update ${$selectedNode.name} version`}
-      selected="g10"
-      on:change={(e) => (selected_tag = e.target.value)}
-    >
-      {#each tags as tag}
-        <SelectItem value={`${tag}`} text={`${tag}`} />
-      {/each}
-    </Select>
-    <Button
-      on:click={handleUpdateNodeVersion}
-      disabled={!selected_tag || $selectedNode.version === selected_tag}
-      >Update Version</Button
-    >
-  </div>
-  <div class="updateReqPerSecs">
-    <NumberInput
-      label="Update Request Per seconds"
-      bind:value={requestPerSeconds}
-    />
-    <Button
-      on:click={handleUpdateBoltwallRequestPerSeconds}
-      disabled={!requestPerSeconds ||
-        storedRequestPerSeconds === requestPerSeconds}
-      >Update Request Per Seconds</Button
-    >
+  <div class="tabContainer">
+    <Tabs>
+      <Tab label="General" />
+      <Tab label="Advance" />
+      <svelte:fragment slot="content">
+        <TabContent>
+          <div class="update_container">
+            <Select
+              labelText={`Update ${$selectedNode.name} version`}
+              selected="g10"
+              on:change={(e) => (selected_tag = e.target.value)}
+            >
+              {#each tags as tag}
+                <SelectItem value={`${tag}`} text={`${tag}`} />
+              {/each}
+            </Select>
+            <Button
+              on:click={handleUpdateNodeVersion}
+              disabled={!selected_tag || $selectedNode.version === selected_tag}
+              >Update Version</Button
+            >
+          </div>
+          <div class="updateReqPerSecs">
+            <NumberInput
+              label="Update Request Per seconds"
+              bind:value={requestPerSeconds}
+            />
+            <Button
+              on:click={handleUpdateBoltwallRequestPerSeconds}
+              disabled={!requestPerSeconds ||
+                storedRequestPerSeconds === requestPerSeconds}
+              >Update Request Per Seconds</Button
+            >
+          </div>
+        </TabContent>
+        <TabContent>
+          <EnvContainer EnvArray={envs} />
+        </TabContent>
+      </svelte:fragment>
+    </Tabs>
   </div>
 </div>
 
@@ -150,6 +169,9 @@
     height: 1rem;
   }
 
+  .tabContainer {
+    margin-top: 2rem;
+  }
   .update_container {
     display: flex;
     gap: 1rem;
