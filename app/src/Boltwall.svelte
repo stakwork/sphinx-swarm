@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import {
     Select,
@@ -10,12 +10,15 @@
     Tabs,
     Tab,
     TabContent,
+    TextInput,
   } from "carbon-components-svelte";
   import { getImageVersion, handleGetImageTags } from "./helpers/swarm";
   import { selectedNode, stack } from "./store";
   import {
+    get_boltwall_max_request_limit,
     get_boltwall_request_per_seconds,
     get_env_variables,
+    update_boltwall_max_request_limit,
     update_boltwall_request_per_seconds,
     update_node,
   } from "./api/swarm";
@@ -33,6 +36,8 @@
   let requestPerSeconds = 0;
   let storedRequestPerSeconds = 0;
   let envs = [];
+  let maxRequestLimit = "";
+  let storedMaxRequestLimit = "";
 
   onMount(async () => {
     const env_var = await get_env_variables($selectedNode.name);
@@ -40,6 +45,7 @@
       envs = formatEnv(env_var.data);
     }
     await handleGetRequestPerSeconds();
+    await handleGetMaxRequestLimit();
     tags = await handleGetImageTags($selectedNode.name);
     isLoading = false;
   });
@@ -53,6 +59,18 @@
       }
     } catch (error) {
       console.log("Error getting boltwall request per seconds: ", error);
+    }
+  }
+
+  async function handleGetMaxRequestLimit() {
+    try {
+      const mrl = await get_boltwall_max_request_limit();
+      if (mrl && mrl.success) {
+        maxRequestLimit = mrl.data;
+        storedMaxRequestLimit = mrl.data;
+      }
+    } catch (error) {
+      console.log("Error getting boltwall max request limit: ", error);
     }
   }
 
@@ -90,6 +108,42 @@
     } finally {
       isLoading = false;
       show_notification = true;
+    }
+  }
+
+  async function handleUpdateBoltwallMaxRequestLimit() {
+    isLoading = true;
+    const validatedMaxRequestLimit = validateMaxRequestLimit(maxRequestLimit);
+    if (!validatedMaxRequestLimit) {
+      notification_message = "Invalid Max Request Limit value";
+      isLoading = false;
+      show_notification = true;
+      return;
+    }
+    maxRequestLimit = validatedMaxRequestLimit;
+    try {
+      const res = await update_boltwall_max_request_limit({
+        max_request_limit: maxRequestLimit,
+      });
+      notification_message = res?.message;
+      if (res.success) {
+        success = true;
+        storedMaxRequestLimit = maxRequestLimit;
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      isLoading = false;
+      show_notification = true;
+    }
+  }
+
+  function validateMaxRequestLimit(size: string) {
+    const transaformedSize = size.toLocaleLowerCase();
+    if (/^(?!0)(\d+)(kb|mb)$/i.test(transaformedSize)) {
+      return transaformedSize;
+    } else {
+      return "";
     }
   }
 </script>
@@ -148,6 +202,20 @@
               >Update Request Per Seconds</Button
             >
           </div>
+          <div class="updateMaxRequestLimit">
+            <TextInput
+              bind:value={maxRequestLimit}
+              labelText={"Max Request Limit"}
+              placeholder={"Enter size (e.g., 500KB or 2MB)"}
+              type="text"
+            />
+            <Button
+              on:click={handleUpdateBoltwallMaxRequestLimit}
+              disabled={!maxRequestLimit ||
+                storedMaxRequestLimit === maxRequestLimit}
+              >Update Request Max Limit</Button
+            >
+          </div>
         </TabContent>
         <TabContent>
           <EnvContainer EnvArray={envs} />
@@ -176,10 +244,20 @@
     display: flex;
     gap: 1rem;
     flex-direction: column;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
   }
 
   .updateReqPerSecs {
-    margin-top: 2rem;
+    margin-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.5rem;
+  }
+
+  .updateMaxRequestLimit {
+    margin-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.5rem;
   }
 </style>

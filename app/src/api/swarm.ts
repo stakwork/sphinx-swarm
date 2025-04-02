@@ -167,12 +167,26 @@ export async function update_boltwall_request_per_seconds({
   });
 }
 
+export async function update_boltwall_max_request_limit({
+  max_request_limit,
+}: {
+  max_request_limit: string;
+}) {
+  return await swarmCmd("UpdateBoltwallMaxRequestLimit", {
+    max_request_limit,
+  });
+}
+
 export async function get_boltwall_request_per_seconds() {
   return await swarmCmd("GetBoltwallRequestPerSeconds");
 }
 
 export async function get_env_variables(id: string) {
   return await swarmCmd("GetEnv", id);
+}
+
+export async function get_boltwall_max_request_limit() {
+  return await swarmCmd("GetBoltwallMaxRequestLimit");
 }
 
 export async function login(username, password) {
