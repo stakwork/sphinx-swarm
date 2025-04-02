@@ -127,6 +127,11 @@ pub struct RequestPerSecondsInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MaxRequestLimitInfo {
+    pub max_request_limit: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -172,6 +177,8 @@ pub enum SwarmCmd {
     GetNeo4jPassword,
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
+    GetBoltwallMaxRequestLimit,
+    UpdateBoltwallMaxRequestLimit(MaxRequestLimitInfo),
     GetEnv(String),
 }
 

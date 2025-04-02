@@ -105,7 +105,9 @@ export type Cmd =
   | "GetNeo4jPassword"
   | "UpdateBoltwallRequestPerSeconds"
   | "GetBoltwallRequestPerSeconds"
-  | "GetEnv";
+  | "GetEnv"
+  | "GetBoltwallMaxRequestLimit"
+  | "UpdateBoltwallMaxRequestLimit";
 
 interface CmdData {
   cmd: Cmd;

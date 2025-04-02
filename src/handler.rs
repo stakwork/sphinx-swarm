@@ -3,17 +3,13 @@ use std::collections::HashMap;
 use crate::app_login::sign_up_admin_pubkey;
 use crate::auth;
 use crate::builder;
-use crate::builder::find_img;
 use crate::cmd::*;
 use crate::config;
 use crate::config::LightningPeer;
 use crate::config::Role;
 use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
-use crate::conn::boltwall::get_api_token;
-use crate::conn::boltwall::get_request_per_seconds;
-use crate::conn::boltwall::update_request_per_seconds;
-use crate::conn::boltwall::update_user;
+use crate::conn::boltwall::{get_api_token, get_request_per_seconds, update_request_per_seconds, update_user, get_max_request_size, update_max_request_size};
 use crate::conn::swarm::add_new_lightning_peer;
 use crate::conn::swarm::get_neo4j_password;
 use crate::conn::swarm::update_lightning_peer;
@@ -501,6 +497,27 @@ pub async fn handle(
             SwarmCmd::GetEnv(id) => {
                 log::info!("Get {} env variables", id);
                 let res = get_env_variables_by_container_name(&docker, &id).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetBoltwallMaxRequestLimit => {
+                log::info!("Get Boltwall Max Request Limit");
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let res = get_max_request_size(&boltwall);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateBoltwallMaxRequestLimit(info) => {
+                log::info!(
+                    "Update Boltwall Max Request Limit: {}",
+                    &info.max_request_limit
+                );
+                let res = update_max_request_size(
+                    &info.max_request_limit,
+                    &mut state,
+                    &mut must_save_stack,
+                    docker,
+                    proj,
+                )
+                .await;
                 Some(serde_json::to_string(&res)?)
             }
         },

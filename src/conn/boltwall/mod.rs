@@ -538,3 +538,80 @@ pub fn get_request_per_seconds(boltwall: &BoltwallImage) -> SwarmResponse {
         ))),
     }
 }
+
+pub fn get_max_request_size(boltwall: &BoltwallImage) -> SwarmResponse {
+    let mut settled_mrl: String = "1mb".to_string();
+
+    if let Some(mrl) = &boltwall.max_request_limit {
+        settled_mrl = mrl.to_string();
+    }
+
+    SwarmResponse {
+        success: true,
+        message: "boltwall max request limit".to_string(),
+        data: Some(serde_json::Value::String(settled_mrl)),
+    }
+}
+
+pub async fn update_max_request_size(
+    mrl: &str,
+    state: &mut State,
+    must_save_stack: &mut bool,
+    docker: &Docker,
+    proj: &str,
+) -> SwarmResponse {
+    if mrl.is_empty() {
+        return SwarmResponse {
+            success: false,
+            message: "max request limit cannot be empty".to_string(),
+            data: None,
+        };
+    }
+
+    let mut node_name = "".to_string();
+
+    let nodes: Vec<Node> = state
+        .stack
+        .nodes
+        .iter()
+        .map(|n| match n {
+            Node::External(e) => Node::External(e.clone()),
+            Node::Internal(i) => match i.clone() {
+                Image::BoltWall(mut b) => {
+                    b.set_max_request_limit(mrl);
+                    node_name = b.name.clone();
+                    Node::Internal(Image::BoltWall(b))
+                }
+                _ => Node::Internal(i.clone()),
+            },
+        })
+        .collect();
+
+    state.stack.nodes = nodes;
+
+    // restart node
+    match restart_node_container(docker, node_name.as_str(), state, proj).await {
+        Ok(_) => {
+            *must_save_stack = true;
+            SwarmResponse {
+                success: true,
+                message: "Max request limit updated successfully".to_string(),
+                data: None,
+            }
+        }
+        Err(err) => {
+            log::error!(
+                "Error updating boltwall max request limit: {}",
+                err.to_string()
+            );
+            SwarmResponse {
+                success: false,
+                message: format!(
+                    "Error updating boltwall max request limit: {}",
+                    err.to_string()
+                ),
+                data: None,
+            }
+        }
+    }
+}
