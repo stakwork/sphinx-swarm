@@ -53,6 +53,9 @@
     resetGraph: {
       value: true,
     },
+    chatSplashScreenAsDefault: {
+      value: true,
+    },
   };
   $: about = {};
   $: isSuccess = false;
@@ -66,6 +69,7 @@
     settings: { value: true, isChange: false },
     chatInterface: { value: true, isChange: false },
     resetGraph: { value: true, isChange: false },
+    chatSplashScreenAsDefault: { value: true, isChange: false },
     imageVersion: { value: "", isChange: false },
   };
 
@@ -96,6 +100,11 @@
       description: "Toggle AI Summary Feature flag",
     },
     { key: "resetGraph", label: "Reset Graph", description: "Reset Graph" },
+    {
+      key: "chatSplashScreenAsDefault",
+      label: "Chat Splash Screen as Default",
+      description: "Toggle Chat Splash Screen as Default",
+    },
   ];
 
   function handleCheckBoxChange(e, value) {
@@ -325,6 +334,9 @@
         resetGraph: {
           value: parsedFeatureFlag.data.resetGraph.user,
         },
+        chatSplashScreenAsDefault: {
+          value: parsedFeatureFlag.data.chatSplashScreenAsDefault.user,
+        },
       };
 
       //update changedState
@@ -354,6 +366,10 @@
         },
         resetGraph: {
           value: parsedFeatureFlag.data.resetGraph.value,
+          isChange: false,
+        },
+        chatSplashScreenAsDefault: {
+          value: parsedFeatureFlag.data.chatSplashScreenAsDefault.user,
           isChange: false,
         },
       };
