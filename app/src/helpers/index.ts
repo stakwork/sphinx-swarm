@@ -83,5 +83,6 @@ export function contructQrString(challenge: string) {
   } else if (root.includes("http://")) {
     parsedHost = parsedHost.substring(7);
   }
-  return `sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}`;
+  const callback = window.location.host;
+  return `sphinx.chat://?action=auth&host=${parsedHost}&challenge=${challenge}&ts=${milliseconds}&callback=${callback}`;
 }
