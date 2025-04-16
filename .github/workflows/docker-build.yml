@@ -8,8 +8,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
-    name: Build and push sphinx swarm image 
+    runs-on: ubuntu-latest
+    name: Build and push sphinx swarm image
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
