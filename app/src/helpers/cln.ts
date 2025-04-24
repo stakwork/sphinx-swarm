@@ -166,7 +166,7 @@ export function parseClnListFunds(res): number {
     if (
       output.status === 1 &&
       !output.reserved &&
-      ouput.status == "confirmed"
+      output.status == "confirmed"
     ) {
       balance += output.amount_msat.msat;
     }
