@@ -37,5 +37,9 @@
     "svelte-infinite-scroll": "^2.0.1",
     "svelte-materialify": "^0.3.11",
     "svelte-toast": "^1.0.0"
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "useTabs": false
   }
 }

@@ -155,29 +155,23 @@ function convertPeerChannelArrayToObj(peerChanObj) {
   return obj;
 }
 
-export function parseClnListFunds(res, peersChans): number {
+export function parseClnListFunds(res): number {
   let balance = 0;
-  let channelBal = 0;
   if (typeof res !== "object") {
     return 0;
-  }
-  const channelsObj = convertPeerChannelArrayToObj(peersChans);
-
-  for (let i = 0; i < res.channels.length; i++) {
-    const currentChan = res.channels[i];
-    if (channelsObj[currentChan.short_channel_id].opener === 0) {
-      channelBal += currentChan.amount_msat.msat;
-    }
   }
 
   for (let i = 0; i < res.outputs.length; i++) {
     let output = res.outputs[i];
-    if (output.status === 1 && !output.reserved) {
+    if (
+      output.status === 1 &&
+      !output.reserved &&
+      ouput.status == "confirmed"
+    ) {
       balance += output.amount_msat.msat;
     }
   }
-  const finalBalance = balance - channelBal;
-  return convertMillisatsToSats(finalBalance);
+  return convertMillisatsToSats(balance);
 }
 
 export function parseUnconfirmedClnBalance(res): number {
