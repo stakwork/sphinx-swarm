@@ -163,11 +163,7 @@ export function parseClnListFunds(res): number {
 
   for (let i = 0; i < res.outputs.length; i++) {
     let output = res.outputs[i];
-    if (
-      output.status === 1 &&
-      !output.reserved &&
-      output.status == "confirmed"
-    ) {
+    if (output.status === 1 && !output.reserved) {
       balance += output.amount_msat.msat;
     }
   }
