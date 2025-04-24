@@ -118,8 +118,7 @@
 
   async function listClnFunds() {
     const funds = await CLN.list_funds(tag);
-    const thechans = await CLN.list_peer_channels(tag);
-    const balance = parseClnListFunds(funds, thechans);
+    const balance = parseClnListFunds(funds);
     if (lndBalances.hasOwnProperty(tag) && lndBalances[tag] === balance) return;
 
     lndBalances.update((n) => {
