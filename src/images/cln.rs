@@ -23,6 +23,7 @@ pub struct ClnImage {
     pub frontend: Option<bool>,
     pub seed: Option<String>,
     pub developer: Option<bool>,
+    pub rescan: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -52,6 +53,7 @@ impl ClnImage {
             frontend: None,
             seed: None,
             developer: None,
+            rescan: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -76,6 +78,9 @@ impl ClnImage {
     }
     pub fn set_dev(&mut self) {
         self.developer = Some(true);
+    }
+    pub fn set_rescan(&mut self, rescan: i32) {
+        self.rescan = Some(rescan);
     }
     pub fn remove_client(&self, clients: &mut Clients) {
         clients.cln.remove(&self.name);
@@ -299,6 +304,9 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         if dev {
             cmd.push(format!("--developer"));
         }
+    }
+    if let Some(rescan) = img.rescan {
+        cmd.push(format!("--rescan={}", rescan));
     }
     if let Some(hsms) = &img.seed {
         cmd.push(format!("--dev-force-bip32-seed={}", hsms));
