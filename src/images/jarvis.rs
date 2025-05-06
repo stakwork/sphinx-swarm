@@ -186,6 +186,12 @@ fn jarvis(
             radar_twitter_scheduler_job
         ));
     }
+    if let Ok(radar_topic_scheduler_job) = getenv("RADAR_TOPIC_SCHEDULER_JOB") {
+        env.push(format!(
+            "RADAR_TOPIC_SCHEDULER_JOB={}",
+            radar_topic_scheduler_job
+        ));
+    }
     if let Ok(max_payment_hierarcy_depth) = getenv("MAX_PAYMENT_HIERARCY_DEPTH") {
         env.push(format!(
             "MAX_PAYMENT_HIERARCY_DEPTH={}",
