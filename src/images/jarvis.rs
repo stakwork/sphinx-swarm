@@ -1,4 +1,4 @@
-use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, *};
+use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, redis::RedisImage, *};
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, extract_swarm_number, getenv, host_config};
 use anyhow::{Context, Result};
@@ -39,7 +39,8 @@ impl DockerConfig for JarvisImage {
         let neo4j_node = li.find_neo4j().context("Jarvis: No Neo4j")?;
         let boltwall_node = li.find_boltwall().context("Jarvis: No Boltwall")?;
         let elastic_node = li.find_elastic();
-        Ok(jarvis(&self, &neo4j_node, &boltwall_node, &elastic_node))
+        let redis_node = li.find_redis();
+        Ok(jarvis(&self, &neo4j_node, &boltwall_node, &elastic_node, &redis_node))
     }
 }
 
@@ -58,6 +59,7 @@ fn jarvis(
     neo4j: &Neo4jImage,
     boltwall: &BoltwallImage,
     elastic: &Option<ElasticImage>,
+    redis: &Option<RedisImage>,
 ) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
@@ -88,6 +90,16 @@ fn jarvis(
             "ELASTIC_URI=http://{}:{}",
             domain(&elastic.name),
             elastic.http_port
+        ));
+    }
+    if let Some(redis) = redis {
+        env.push(format!(
+            "CACHE_REDIS_HOST={}",
+            domain(&redis.name)
+        ));
+        env.push(format!(
+            "CACHE_REDIS_PORT={}",
+            redis.http_port
         ));
     }
     if node.self_generating {

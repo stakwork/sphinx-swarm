@@ -46,14 +46,15 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     let mut elastic = ElasticImage::new("elastic", v);
     elastic.host(host.clone());
 
+    // redis
+    v = "latest";
+    let redis = RedisImage::new("redis", v);
+
     // jarvis
     v = "latest";
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
-    jarvis.links(vec!["neo4j", "elastic", "boltwall"]);
+    jarvis.links(vec!["neo4j", "elastic", "boltwall", "redis"]);
 
-    // redis
-    v = "latest";
-    let mut redis = RedisImage::new("redis", v);
 
 
     // boltwall
