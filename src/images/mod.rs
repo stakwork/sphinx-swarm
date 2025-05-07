@@ -28,6 +28,7 @@ pub mod traefik;
 pub mod tribes;
 pub mod whisker;
 pub mod whisper;
+pub mod redis;
 
 use crate::config;
 use anyhow::Result;
@@ -67,6 +68,7 @@ pub enum Image {
     Mongo(mongo::MongoImage),
     Jamie(jamie::JamieImage),
     Repo2Graph(repo2graph::Repo2GraphImage),
+    Redis(redis::RedisImage),
 }
 
 pub struct Repository {
@@ -121,6 +123,7 @@ impl Image {
             Image::Mongo(n) => n.name.clone(),
             Image::Jamie(n) => n.name.clone(),
             Image::Repo2Graph(n) => n.name.clone(),
+            Image::Redis(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -153,6 +156,7 @@ impl Image {
             Image::Mongo(_n) => "Mongo",
             Image::Jamie(_n) => "Jamie",
             Image::Repo2Graph(_n) => "Repo2Graph",
+            Image::Redis(_n) => "Redis",
         }
         .to_string()
     }
@@ -186,6 +190,7 @@ impl Image {
             Image::Mongo(n) => n.version = version.to_string(),
             Image::Jamie(n) => n.version = version.to_string(),
             Image::Repo2Graph(n) => n.version = version.to_string(),
+            Image::Redis(n) => n.version = version.to_string(),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -278,6 +283,7 @@ impl DockerConfig for Image {
             Image::Mongo(n) => n.make_config(nodes, docker).await,
             Image::Jamie(n) => n.make_config(nodes, docker).await,
             Image::Repo2Graph(n) => n.make_config(nodes, docker).await,
+            Image::Redis(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -313,6 +319,7 @@ impl DockerHubImage for Image {
             Image::Mongo(n) => n.repo(),
             Image::Jamie(n) => n.repo(),
             Image::Repo2Graph(n) => n.repo(),
+            Image::Redis(n) => n.repo(),
         }
     }
 }
@@ -468,6 +475,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_redis(&self) -> Option<redis::RedisImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_redis() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -589,6 +604,12 @@ impl Image {
         match self {
             Image::Llama(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Llama".to_string())),
+        }
+    }
+    pub fn as_redis(&self) -> anyhow::Result<redis::RedisImage> {
+        match self {
+            Image::Redis(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Redis".to_string())),
         }
     }
 }

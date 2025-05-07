@@ -6,6 +6,7 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::redis::RedisImage;
 use crate::images::Image;
 use crate::secrets;
 
@@ -45,10 +46,16 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     let mut elastic = ElasticImage::new("elastic", v);
     elastic.host(host.clone());
 
+    // redis
+    v = "latest";
+    let redis = RedisImage::new("redis", v);
+
     // jarvis
     v = "latest";
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
-    jarvis.links(vec!["neo4j", "elastic", "boltwall"]);
+    jarvis.links(vec!["neo4j", "elastic", "boltwall", "redis"]);
+
+
 
     // boltwall
     v = "latest";
@@ -73,6 +80,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Elastic(elastic),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),
+        Image::Redis(redis),
     ];
 
     if env_is_true("LOCAL_LLAMA") {

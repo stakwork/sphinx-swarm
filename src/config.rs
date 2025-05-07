@@ -314,6 +314,7 @@ impl Stack {
                 Image::Mongo(m) => Node::Internal(Image::Mongo(m)),
                 Image::Jamie(c) => Node::Internal(Image::Jamie(c)),
                 Image::Repo2Graph(r) => Node::Internal(Image::Repo2Graph(r)),
+                Image::Redis(r) => Node::Internal(Image::Redis(r)),
             },
         });
         Stack {
