@@ -1,4 +1,6 @@
-use super::{boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, redis::RedisImage, *};
+use super::{
+    boltwall::BoltwallImage, elastic::ElasticImage, neo4j::Neo4jImage, redis::RedisImage, *,
+};
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, extract_swarm_number, getenv, host_config};
 use anyhow::{Context, Result};
@@ -40,7 +42,13 @@ impl DockerConfig for JarvisImage {
         let boltwall_node = li.find_boltwall().context("Jarvis: No Boltwall")?;
         let elastic_node = li.find_elastic();
         let redis_node = li.find_redis();
-        Ok(jarvis(&self, &neo4j_node, &boltwall_node, &elastic_node, &redis_node))
+        Ok(jarvis(
+            &self,
+            &neo4j_node,
+            &boltwall_node,
+            &elastic_node,
+            &redis_node,
+        ))
     }
 }
 
@@ -93,14 +101,8 @@ fn jarvis(
         ));
     }
     if let Some(redis) = redis {
-        env.push(format!(
-            "CACHE_REDIS_HOST={}",
-            domain(&redis.name)
-        ));
-        env.push(format!(
-            "CACHE_REDIS_PORT={}",
-            redis.http_port
-        ));
+        env.push(format!("CACHE_REDIS_HOST={}", domain(&redis.name)));
+        env.push(format!("CACHE_REDIS_PORT={}", redis.http_port));
     }
     if node.self_generating {
         env.push(format!("SELF_GENERATING_GRAPH=1"));
@@ -174,7 +176,9 @@ fn jarvis(
             feature_flag_text_embeddings
         ));
     }
-    if let Ok(jarvis_feature_flag_codegraph_schemas) = getenv("JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS") {
+    if let Ok(jarvis_feature_flag_codegraph_schemas) =
+        getenv("JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS")
+    {
         env.push(format!(
             "FEATURE_FLAG_CODEGRAPH_SCHEMAS={}",
             jarvis_feature_flag_codegraph_schemas
@@ -254,15 +258,18 @@ fn jarvis(
         ))
     }
     if let Ok(jarvis_features) = getenv("JARVIS_FEATURES") {
-        env.push(format!(
-            "FEATURES={}",
-           jarvis_features 
-        ));
+        env.push(format!("FEATURES={}", jarvis_features));
     }
     if let Ok(single_tweet_workflow_id) = getenv("JARVIS_SINGLE_TWEET_WORKFLOW_ID") {
         env.push(format!(
             "SINGLE_TWEET_WORKFLOW_ID={}",
-            single_tweet_workflow_id 
+            single_tweet_workflow_id
+        ));
+    }
+    if let Ok(radar_topic_scheduler_time_in_sec) = getenv("RADAR_TOPIC_SCHEDULER_TIME_IN_SEC") {
+        env.push(format!(
+            "RADAR_TOPIC_SCHEDULER_TIME_IN_SEC={}",
+            radar_topic_scheduler_time_in_sec
         ));
     }
 
