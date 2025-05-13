@@ -7,6 +7,7 @@ use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
+use crate::images::repo2graph::Repo2GraphImage;
 use crate::images::Image;
 use crate::secrets;
 
@@ -26,6 +27,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "jarvis".to_string(),
             "boltwall".to_string(),
             "navfiber".to_string(),
+            "repo2graph".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -55,7 +57,11 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
     jarvis.links(vec!["neo4j", "elastic", "boltwall", "redis"]);
 
-
+    // repo2graph
+    v = "latest";
+    let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
+    repo2graph.host(host.clone());
+    repo2graph.links(vec!["neo4j", "boltwall"]);
 
     // boltwall
     v = "latest";
@@ -78,6 +84,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::NavFiber(nav),
         Image::Neo4j(neo4j),
         Image::Elastic(elastic),
+        Image::Repo2Graph(repo2graph),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),
         Image::Redis(redis),
