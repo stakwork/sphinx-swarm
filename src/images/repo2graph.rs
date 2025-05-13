@@ -28,6 +28,9 @@ impl Repo2GraphImage {
             host: None,
         }
     }
+    pub fn links(&mut self, links: Vec<&str>) {
+        self.links = strarr(links);
+    }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
             self.host = Some(format!("{}.{}", self.name, h));
