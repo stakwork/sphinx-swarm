@@ -1,9 +1,4 @@
-import {
-  bufferToHexString,
-  convertMillisatsToSats,
-  parseDate,
-  shortTransactionId,
-} from "./";
+import { bufferToHexString, convertMillisatsToSats, parseDate } from "./";
 import long from "long";
 import type { LndChannel, LndPeer } from "../api/lnd";
 import type { LightningPeer } from "../nodes";
@@ -195,7 +190,7 @@ export function parseClnPayments(transactions) {
         trans.push({
           id,
           index: `${i + 1}.`,
-          invoice: shortTransactionId(id),
+          invoice: id,
           date: parseDate(transaction.created_at),
           amount: `${convertMillisatsToSats(
             transaction.amount_sent_msat.msat
@@ -219,7 +214,7 @@ export function parseClnInvoices(transactions) {
         trans.push({
           id,
           index: `${i + 1}.`,
-          invoice: shortTransactionId(id),
+          invoice: id,
           date: parseDate(transaction.paid_at),
           amount: `${convertMillisatsToSats(
             transaction.amount_received_msat?.msat
