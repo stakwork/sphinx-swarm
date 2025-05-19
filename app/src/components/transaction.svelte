@@ -6,6 +6,7 @@
   export let paymentType = "";
   import * as CLN from "../api/cln";
   import * as LND from "../api/lnd";
+  import { shortTransactionId } from "../helpers";
   import { parseClnInvoices, parseClnPayments } from "../helpers/cln";
   import { parseLndPayments, parseLndInvoices } from "../helpers/lnd";
 
@@ -87,7 +88,23 @@
         rows={transactions}
         {pageSize}
         {page}
-      />
+      >
+        <svelte:fragment slot="cell" let:cell>
+          {#if cell.key === "invoice"}
+            <div>
+              {shortTransactionId(cell.value)}
+              <button
+                class="button"
+                on:click={() => navigator.clipboard.writeText(cell.value)}
+              >
+                Copy
+              </button>
+            </div>
+          {:else}
+            {cell.value}
+          {/if}
+        </svelte:fragment>
+      </DataTable>
       <Pagination
         bind:pageSize
         bind:page
@@ -124,5 +141,36 @@
 
   .message p {
     font-size: 1.5rem;
+  }
+  .button {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #636363;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    transition: background-color 0.2s ease;
+  }
+
+  .button:hover {
+    background-color: #222222; 
+  }
+
+  .button:active {
+    background-color: #004085;
+  }
+
+  .button:focus {
+    outline: 2px solid #0056b3;
+    outline-offset: 2px;
+  }
+
+  .button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
   }
 </style>
