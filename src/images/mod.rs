@@ -19,6 +19,7 @@ pub mod navfiber;
 pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
+pub mod redis;
 pub mod relay;
 pub mod repo2graph;
 pub mod rqbit;
@@ -28,7 +29,6 @@ pub mod traefik;
 pub mod tribes;
 pub mod whisker;
 pub mod whisper;
-pub mod redis;
 
 use crate::config;
 use anyhow::Result;

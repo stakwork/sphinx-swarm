@@ -9,7 +9,10 @@ use crate::config::LightningPeer;
 use crate::config::Role;
 use crate::config::User;
 use crate::config::{Clients, Node, Stack, State, STATE};
-use crate::conn::boltwall::{get_api_token, get_request_per_seconds, update_request_per_seconds, update_user, get_max_request_size, update_max_request_size};
+use crate::conn::boltwall::{
+    get_api_token, get_max_request_size, get_request_per_seconds, update_max_request_size,
+    update_request_per_seconds, update_user,
+};
 use crate::conn::swarm::add_new_lightning_peer;
 use crate::conn::swarm::get_neo4j_password;
 use crate::conn::swarm::update_lightning_peer;

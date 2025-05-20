@@ -25,7 +25,7 @@ pub struct BoltwallImage {
     pub stakwork_secret: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_per_seconds: Option<i64>,
-    pub max_request_limit: Option<String>
+    pub max_request_limit: Option<String>,
 }
 
 impl BoltwallImage {
@@ -41,7 +41,7 @@ impl BoltwallImage {
             admin_token: Some(secrets::random_word(32)),
             stakwork_secret: Some(secrets::random_word(32)),
             request_per_seconds: Some(50),
-            max_request_limit: Some("1mb".to_string())
+            max_request_limit: Some("1mb".to_string()),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -59,7 +59,7 @@ impl BoltwallImage {
     pub fn set_request_per_seconds(&mut self, rps: i64) {
         self.request_per_seconds = Some(rps);
     }
-    pub fn set_max_request_limit(&mut self, mrl: &str){
+    pub fn set_max_request_limit(&mut self, mrl: &str) {
         self.max_request_limit = Some(mrl.to_string());
     }
     pub fn host(&mut self, eh: Option<String>) {

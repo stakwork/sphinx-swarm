@@ -63,9 +63,7 @@ fn redis(node: &RedisImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 
-    let mut env = vec![
-        format!("PUBLIC_APP_NAME=SphinxChat"),
-    ];
+    let mut env = vec![format!("PUBLIC_APP_NAME=SphinxChat")];
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, node.version)),
@@ -80,4 +78,3 @@ fn redis(node: &RedisImage) -> Config<String> {
     }
     c
 }
-
