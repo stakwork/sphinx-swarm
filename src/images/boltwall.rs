@@ -22,6 +22,7 @@ pub struct BoltwallImage {
     pub external_lnd: Option<ExternalLnd>,
     pub links: Links,
     pub admin_token: Option<String>,
+    // stakwork_secret is NOT the api for stakwork, but the x_api_token in jarvis
     pub stakwork_secret: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_per_seconds: Option<i64>,

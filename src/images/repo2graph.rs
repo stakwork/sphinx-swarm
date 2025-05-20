@@ -81,8 +81,8 @@ fn repo2graph(
         env.push(format!("PAT={}", github_request_token))
     }
     if let Some(boltwall) = boltwall {
-        if let Some(stakwork_secret) = &boltwall.stakwork_secret {
-            env.push(format!("API_TOKEN={}", stakwork_secret));
+        if let Some(api_token) = &boltwall.stakwork_secret {
+            env.push(format!("API_TOKEN={}", api_token));
         }
     }
 
