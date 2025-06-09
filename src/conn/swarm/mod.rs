@@ -1,12 +1,14 @@
 use anyhow::Result;
+use bollard::Docker;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
 
 use crate::{
     builder::find_img,
-    cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails},
+    cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails, UpdateEnvRequest},
     config::{LightningPeer, Node, State},
+    utils::update_or_write_to_env_file,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -266,5 +268,28 @@ pub fn get_neo4j_password(nodes: &Vec<Node>) -> SwarmResponse {
             message: err.to_string(),
             data: None,
         },
+    }
+}
+
+pub async fn update_env_variables(
+    docker: &Docker,
+    update_value: UpdateEnvRequest,
+) -> SwarmResponse {
+    // write to .env file
+    if let Err(e) = update_or_write_to_env_file(&update_value.values) {
+        return SwarmResponse {
+            success: false,
+            message: e.to_string(),
+            data: None,
+        };
+    }
+    // write to stack.yml file
+    // stop the expected service
+    // stop swarm itself
+    // restart swarm
+    SwarmResponse {
+        success: true,
+        message: "Environment variables updated successfully".to_string(),
+        data: None,
     }
 }

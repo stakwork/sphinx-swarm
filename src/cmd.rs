@@ -132,6 +132,12 @@ pub struct MaxRequestLimitInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateEnvRequest {
+    pub id: String,
+    pub values: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -180,6 +186,7 @@ pub enum SwarmCmd {
     GetBoltwallMaxRequestLimit,
     UpdateBoltwallMaxRequestLimit(MaxRequestLimitInfo),
     GetEnv(String),
+    UpdateEvn(UpdateEnvRequest),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
