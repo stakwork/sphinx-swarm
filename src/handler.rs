@@ -527,7 +527,13 @@ pub async fn handle(
             }
             SwarmCmd::UpdateEvn(update_env) => {
                 log::info!("Update env variables for {}", update_env.id);
-                let res = update_env_variables(&docker, update_env).await;
+                let res = update_env_variables(
+                    &docker,
+                    &mut update_env.clone(),
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await;
                 Some(serde_json::to_string(&res)?)
             }
         },

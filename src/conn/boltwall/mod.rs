@@ -1,7 +1,7 @@
 use crate::cmd::FeatureFlagUserRoles;
 use crate::config::{Node, Role, State, User};
 use crate::dock::restart_node_container;
-use crate::images::{self, Image};
+use crate::images::Image;
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
 use anyhow::{anyhow, Context, Result};

@@ -2,13 +2,18 @@ use anyhow::Result;
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use crate::{
     builder::find_img,
     cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails, UpdateEnvRequest},
     config::{LightningPeer, Node, State},
-    utils::update_or_write_to_env_file,
+    dock::stop_and_remove,
+    images::{
+        boltwall::{ExternalLnd, LndCreds},
+        Image,
+    },
+    utils::{domain, update_or_write_to_env_file},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -273,8 +278,21 @@ pub fn get_neo4j_password(nodes: &Vec<Node>) -> SwarmResponse {
 
 pub async fn update_env_variables(
     docker: &Docker,
-    update_value: UpdateEnvRequest,
+    update_value: &mut UpdateEnvRequest,
+    state: &mut State,
+    must_save_stack: &mut bool,
 ) -> SwarmResponse {
+    // write to stack.yml file
+    if update_value.id == "boltwall" {
+        update_boltwall_node(state, &mut update_value.values);
+    }
+
+    log::info!(
+        "Updating env variables for {}: {:?}",
+        update_value.id,
+        update_value.values
+    );
+
     // write to .env file
     if let Err(e) = update_or_write_to_env_file(&update_value.values) {
         return SwarmResponse {
@@ -283,13 +301,149 @@ pub async fn update_env_variables(
             data: None,
         };
     }
-    // write to stack.yml file
-    // stop the expected service
+
+    *must_save_stack = true;
+    // stop the expected service(Boltwall and Jarvis)
+    let _ = stop_and_remove(&docker, &domain("boltwall")).await;
+    let _ = stop_and_remove(&docker, &domain("jarvis")).await;
+
     // stop swarm itself
     // restart swarm
     SwarmResponse {
         success: true,
         message: "Environment variables updated successfully".to_string(),
         data: None,
+    }
+}
+
+fn get_boltwall_stored_env() -> HashMap<String, (String, String)> {
+    let mut boltwall_envs: HashMap<String, (String, String)> = HashMap::new();
+    boltwall_envs.insert(
+        "SESSION_SECRET".to_string(),
+        ("session_secret".to_string(), "".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "LND_SOCKET".to_string(),
+        ("address".to_string(), "EXTERNAL_LND_ADDRESS".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "LND_TLS_CERT".to_string(),
+        ("cert".to_string(), "EXTERNAL_LND_CERT".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "LND_MACAROON".to_string(),
+        ("macaroon".to_string(), "EXTERNAL_LND_MACAROON".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "ADMIN_TOKEN".to_string(),
+        ("admin_token".to_string(), "".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "STAKWORK_SECRET".to_string(),
+        ("stakwork_secret".to_string(), "".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "REQUEST_PER_SECONDS".to_string(),
+        ("request_per_seconds".to_string(), "".to_string()),
+    );
+
+    boltwall_envs.insert(
+        "MAX_REQUEST_SIZE".to_string(),
+        ("max_request_limit".to_string(), "".to_string()),
+    );
+
+    return boltwall_envs;
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct KeyToBeUpdated {
+    pub old_key: String,
+    pub new_key: String,
+}
+
+fn update_boltwall_node(state: &mut State, env_values: &mut HashMap<String, String>) {
+    let mut to_be_updated_env: Vec<KeyToBeUpdated> = Vec::new();
+    let nodes: Vec<Node> = state
+        .stack
+        .nodes
+        .iter()
+        .map(|n| match n {
+            Node::External(e) => Node::External(e.clone()),
+            Node::Internal(i) => match i.clone() {
+                Image::BoltWall(mut b) => {
+                    let boltwall_envs = get_boltwall_stored_env();
+                    for (key, value) in &mut *env_values {
+                        if let Some(boltwall_values) = boltwall_envs.get(key) {
+                            if !boltwall_values.1.is_empty() {
+                                to_be_updated_env.push(KeyToBeUpdated {
+                                    new_key: boltwall_values.1.clone(),
+                                    old_key: key.clone(),
+                                });
+                            }
+                            if boltwall_values.0 == "session_secret" {
+                                b.session_secret = value.clone();
+                            } else if boltwall_values.0 == "address" {
+                                if let Some(external_lnd) = b.external_lnd {
+                                    b.external_lnd = Some(ExternalLnd {
+                                        address: value.clone(),
+                                        creds: LndCreds {
+                                            cert: external_lnd.creds.cert,
+                                            macaroon: external_lnd.creds.macaroon,
+                                        },
+                                    });
+                                }
+                            } else if boltwall_values.0 == "cert" {
+                                if let Some(external_lnd) = b.external_lnd {
+                                    b.external_lnd = Some(ExternalLnd {
+                                        address: external_lnd.address,
+                                        creds: LndCreds {
+                                            cert: value.clone(),
+                                            macaroon: external_lnd.creds.macaroon,
+                                        },
+                                    });
+                                }
+                            } else if boltwall_values.0 == "macaroon" {
+                                if let Some(external_lnd) = b.external_lnd {
+                                    b.external_lnd = Some(ExternalLnd {
+                                        address: external_lnd.address,
+                                        creds: LndCreds {
+                                            cert: external_lnd.creds.cert,
+                                            macaroon: value.clone(),
+                                        },
+                                    });
+                                }
+                            } else if boltwall_values.0 == "admin_token" {
+                                b.set_admin_token(&value.clone());
+                            } else if boltwall_values.0 == "stakwork_secret" {
+                                b.set_stakwork_token(&value.clone());
+                            } else if boltwall_values.0 == "request_per_seconds" {
+                                if let Ok(parse_value) = value.parse() {
+                                    b.set_request_per_seconds(parse_value);
+                                }
+                            } else if boltwall_values.0 == "max_request_limit" {
+                                b.set_max_request_limit(&value.clone());
+                            }
+                        }
+                    }
+                    Node::Internal(Image::BoltWall(b))
+                }
+                _ => Node::Internal(i.clone()),
+            },
+        })
+        .collect();
+
+    state.stack.nodes = nodes;
+
+    for env in to_be_updated_env {
+        if let Some(value) = env_values.get(&env.old_key) {
+            env_values.insert(env.new_key, value.clone());
+            env_values.remove(&env.old_key);
+        }
     }
 }
