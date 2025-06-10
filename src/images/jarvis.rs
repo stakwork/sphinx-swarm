@@ -170,6 +170,12 @@ fn jarvis(
             jarvis_feature_flag_schema
         ));
     }
+    if let Ok(jarvis_feature_flag_wfa_schemas) = getenv("JARVIS_FEATURE_FLAG_WFA_SCHEMAS") {
+        env.push(format!(
+            "FEATURE_FLAG_WFA_SCHEMAS={}",
+            jarvis_feature_flag_wfa_schemas 
+        ));
+    }
     if let Ok(feature_flag_text_embeddings) = getenv("FEATURE_FLAG_TEXT_EMBEDDINGS") {
         env.push(format!(
             "FEATURE_FLAG_TEXT_EMBEDDINGS={}",
