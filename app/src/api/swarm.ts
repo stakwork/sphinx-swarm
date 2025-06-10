@@ -185,6 +185,16 @@ export async function get_env_variables(id: string) {
   return await swarmCmd("GetEnv", id);
 }
 
+export async function update_env_variables({
+  id,
+  values,
+}: {
+  id: string;
+  values: Record<string, string>;
+}) {
+  return await swarmCmd("UpdateEvn", { id, values });
+}
+
 export async function get_boltwall_max_request_limit() {
   return await swarmCmd("GetBoltwallMaxRequestLimit");
 }

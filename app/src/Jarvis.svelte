@@ -80,7 +80,7 @@
           </div>
         </TabContent>
         <TabContent>
-          <EnvContainer EnvArray={envs} />
+          <EnvContainer />
         </TabContent>
       </svelte:fragment>
     </Tabs>

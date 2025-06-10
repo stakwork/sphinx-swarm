@@ -17,7 +17,6 @@
   import {
     get_boltwall_max_request_limit,
     get_boltwall_request_per_seconds,
-    get_env_variables,
     update_boltwall_max_request_limit,
     update_boltwall_request_per_seconds,
     update_node,
@@ -40,10 +39,6 @@
   let storedMaxRequestLimit = "";
 
   onMount(async () => {
-    const env_var = await get_env_variables($selectedNode.name);
-    if (env_var.success) {
-      envs = formatEnv(env_var.data);
-    }
     await handleGetRequestPerSeconds();
     await handleGetMaxRequestLimit();
     tags = await handleGetImageTags($selectedNode.name);
@@ -218,7 +213,7 @@
           </div>
         </TabContent>
         <TabContent>
-          <EnvContainer EnvArray={envs} />
+          <EnvContainer />
         </TabContent>
       </svelte:fragment>
     </Tabs>
