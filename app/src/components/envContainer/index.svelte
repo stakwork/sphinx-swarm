@@ -135,7 +135,7 @@
   .env_container {
     display: flex;
     flex-direction: column;
-    height: 20rem;
-    overflow-y: scroll;
+    height: 30rem;
+    overflow-y: auto;
   }
 </style>
