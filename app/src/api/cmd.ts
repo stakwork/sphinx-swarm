@@ -107,7 +107,8 @@ export type Cmd =
   | "GetBoltwallRequestPerSeconds"
   | "GetEnv"
   | "GetBoltwallMaxRequestLimit"
-  | "UpdateBoltwallMaxRequestLimit";
+  | "UpdateBoltwallMaxRequestLimit"
+  | "UpdateEvn";
 
 interface CmdData {
   cmd: Cmd;

@@ -16,7 +16,9 @@ use crate::conn::boltwall::{
 use crate::conn::swarm::add_new_lightning_peer;
 use crate::conn::swarm::get_neo4j_password;
 use crate::conn::swarm::update_lightning_peer;
-use crate::conn::swarm::{change_swarm_user_password_by_user_admin, get_image_tags};
+use crate::conn::swarm::{
+    change_swarm_user_password_by_user_admin, get_image_tags, update_env_variables,
+};
 use crate::dock::*;
 use crate::images::DockerHubImage;
 use crate::rocket_utils::CmdRequest;
@@ -519,6 +521,17 @@ pub async fn handle(
                     &mut must_save_stack,
                     docker,
                     proj,
+                )
+                .await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateEvn(update_env) => {
+                log::info!("Update env variables for {}", update_env.id);
+                let res = update_env_variables(
+                    &docker,
+                    &mut update_env.clone(),
+                    &mut state,
+                    &mut must_save_stack,
                 )
                 .await;
                 Some(serde_json::to_string(&res)?)

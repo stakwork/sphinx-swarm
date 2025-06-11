@@ -1,6 +1,6 @@
-export function formatEnv(envsObj) {
+export function formatEnv(envsObj): { key: string; value: string }[] {
   return Object.entries(envsObj).map(([key, value]) => ({
     key,
-    value,
+    value: String(value),
   }));
 }

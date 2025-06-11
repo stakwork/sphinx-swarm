@@ -152,8 +152,8 @@ impl ExternalLnd {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct LndCreds {
-    macaroon: String,
-    cert: String,
+    pub macaroon: String,
+    pub cert: String,
 }
 
 fn boltwall(

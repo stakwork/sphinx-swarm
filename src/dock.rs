@@ -964,6 +964,28 @@ pub fn get_last_segment(path: &str) -> &str {
     }
 }
 
+fn do_not_show_env_vars() -> HashMap<String, bool> {
+    let mut envs = HashMap::new();
+    envs.insert("AWS_S3_BUCKET_PATH".to_string(), true);
+    envs.insert("AWS_S3_PRESIGN_URL_EXPIRY".to_string(), true);
+    envs.insert("AWS_S3_REGION_NAME".to_string(), true);
+    envs.insert("FLASK_APP".to_string(), true);
+    envs.insert("FROM_GUNICORN".to_string(), true);
+    envs.insert("GPG_KEY".to_string(), true);
+    envs.insert("LANG".to_string(), true);
+    envs.insert("OMP_NUM_THREADS".to_string(), true);
+    envs.insert("PATH".to_string(), true);
+    envs.insert("PYTHON_SHA256".to_string(), true);
+    envs.insert("PYTHON_VERSION".to_string(), true);
+    envs.insert("STAKWORK_REQUEST_LOG_PATH".to_string(), true);
+    envs.insert("NODE_ENV".to_string(), true);
+    envs.insert("NODE_VERSION".to_string(), true);
+    envs.insert("YARN_VERSION".to_string(), true);
+    envs.insert("JARVIS_BACKEND_PORT".to_string(), true);
+    envs.insert("TOKENIZERS_PARALLELISM".to_string(), true);
+    envs
+}
+
 pub async fn get_env_variables_by_container_name(docker: &Docker, id: &str) -> SwarmResponse {
     let host = domain(id);
     match docker.inspect_container(&host, None).await {
@@ -973,6 +995,11 @@ pub async fn get_env_variables_by_container_name(docker: &Docker, id: &str) -> S
                     let mut env_vars: HashMap<String, String> = HashMap::new();
                     for env in envs {
                         let parts: Vec<&str> = env.splitn(2, '=').collect();
+                        let donot_show = do_not_show_env_vars();
+
+                        if donot_show.contains_key(parts[0]) {
+                            continue;
+                        }
 
                         if let Some(env_value) = parts.get(1) {
                             env_vars.insert(parts[0].to_string(), env_value.to_string());

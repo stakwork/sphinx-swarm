@@ -464,6 +464,7 @@ async fn create_ec2_instance(
           cd sphinx-swarm && \
           pwd && \
           touch .env && \
+          chmod 644 .env && \
           
           # Populate the .env file
           echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \

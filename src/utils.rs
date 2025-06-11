@@ -9,7 +9,9 @@ use bollard_stubs::models::{
 };
 use rocket::tokio;
 use serde::{de::DeserializeOwned, Serialize};
+use std::fs::{read_to_string, write};
 use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
 use std::{collections::HashMap, time::Duration};
 use tokio::{fs, io::AsyncWriteExt};
 
@@ -367,4 +369,49 @@ pub fn getenv(envname: &str) -> Result<String> {
 
 pub fn extract_swarm_number(host: String) -> String {
     host.chars().filter(|c| c.is_numeric()).collect()
+}
+
+pub fn update_or_write_to_env_file(updates: &HashMap<String, String>) -> Result<()> {
+    let env_path_string = ".env";
+    let env_path = Path::new(env_path_string);
+
+    // Read existing file
+    let content = if env_path.exists() {
+        read_to_string(env_path)?
+    } else {
+        log::error!("Could not find env file at path: {}", env_path_string);
+        return Err(anyhow!(format!(
+            "Could not find env file at path: {}",
+            env_path_string
+        )));
+    };
+
+    // Parse into map
+    let mut lines: Vec<String> = Vec::new();
+    let mut keys_handled = HashMap::new();
+
+    for line in content.lines() {
+        if let Some((key, _)) = line.split_once('=') {
+            if let Some(new_val) = updates.get(key.trim()) {
+                lines.push(format!("{}={}", key.trim(), new_val));
+                keys_handled.insert(key.trim().to_string(), true);
+            } else {
+                lines.push(line.to_string());
+            }
+        } else {
+            lines.push(line.to_string()); // comments or empty lines
+        }
+    }
+
+    // Add any new keys that weren't in the original file
+    for (k, v) in updates {
+        if !keys_handled.contains_key(k) {
+            lines.push(format!("{}={}", k, v));
+        }
+    }
+
+    // Write back
+    write(env_path, lines.join("\n"))?;
+
+    Ok(())
 }

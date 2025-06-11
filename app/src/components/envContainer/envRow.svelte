@@ -1,12 +1,19 @@
-<script>
+<script lang="ts">
+  import { createEventDispatcher } from "svelte";
   import Input from "../input/input.svelte";
   export let value;
   export let key;
+
+  const dispatch = createEventDispatcher();
+
+  function handleChange(value) {
+    dispatch("update", { key, value });
+  }
 </script>
 
 <div class="container">
   <div class="keyContainer"><p class="key">{key}</p></div>
-  <Input label="" {value} readonly={true} onInput={() => {}} />
+  <Input label="" bind:value onInput={handleChange} />
 </div>
 
 <style>
