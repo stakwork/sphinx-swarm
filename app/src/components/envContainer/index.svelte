@@ -106,13 +106,15 @@
   <div class="button_container">
     <Button on:click={submitEnvChange} disabled={!isChanged}>Update Env</Button>
   </div>
-  {#each EnvArray as { key, value }}
-    <EnvRow
-      {key}
-      {value}
-      on:update={(e) => handleEnvChange(e.detail.key, e.detail.value)}
-    />
-  {/each}
+  <div class="env_container">
+    {#each EnvArray as { key, value }}
+      <EnvRow
+        {key}
+        {value}
+        on:update={(e) => handleEnvChange(e.detail.key, e.detail.value)}
+      />
+    {/each}
+  </div>
 </div>
 
 <style>
@@ -128,5 +130,12 @@
     display: flex;
     justify-content: flex-end;
     padding-right: 1rem;
+  }
+
+  .env_container {
+    display: flex;
+    flex-direction: column;
+    height: 20rem;
+    overflow-y: scroll;
   }
 </style>
