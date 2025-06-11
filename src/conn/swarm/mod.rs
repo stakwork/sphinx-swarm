@@ -284,7 +284,7 @@ pub async fn update_env_variables(
 ) -> SwarmResponse {
     // write to stack.yml file
     if update_value.id == "boltwall" {
-        update_boltwall_node(state, &mut update_value.values);
+        update_boltwall_env(state, &mut update_value.values);
     }
 
     log::info!(
@@ -309,6 +309,7 @@ pub async fn update_env_variables(
 
     // stop swarm itself
     // restart swarm
+    let _ = update_swarm().await;
     SwarmResponse {
         success: true,
         message: "Environment variables updated successfully".to_string(),
@@ -367,7 +368,7 @@ pub struct KeyToBeUpdated {
     pub new_key: String,
 }
 
-fn update_boltwall_node(state: &mut State, env_values: &mut HashMap<String, String>) {
+fn update_boltwall_env(state: &mut State, env_values: &mut HashMap<String, String>) {
     let mut to_be_updated_env: Vec<KeyToBeUpdated> = Vec::new();
     let nodes: Vec<Node> = state
         .stack
