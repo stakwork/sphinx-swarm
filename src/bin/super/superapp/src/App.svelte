@@ -28,10 +28,6 @@
   }
 </script>
 
-<svelte:head>
-  <meta name="robots" content="noindex" />
-</svelte:head>
-
 <main>
   {#if !$activeUser}
     <Login {saveUserToStore} />
