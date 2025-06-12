@@ -307,9 +307,6 @@ pub async fn update_env_variables(
     let _ = stop_and_remove(&docker, &domain("boltwall")).await;
     let _ = stop_and_remove(&docker, &domain("jarvis")).await;
 
-    // stop swarm itself
-    // restart swarm
-    let _ = update_swarm().await;
     SwarmResponse {
         success: true,
         message: "Environment variables updated successfully".to_string(),

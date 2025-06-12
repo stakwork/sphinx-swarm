@@ -2,9 +2,17 @@
   import { onMount } from "svelte";
   import EnvRow from "./envRow.svelte";
   import { selectedNode } from "../../store";
-  import { get_env_variables, update_env_variables } from "../../api/swarm";
+  import {
+    get_env_variables,
+    update_env_variables,
+    update_swarm,
+  } from "../../api/swarm";
   import { formatEnv } from "../../helpers/env";
-  import { Button, Loading } from "carbon-components-svelte";
+  import {
+    Button,
+    InlineNotification,
+    Loading,
+  } from "carbon-components-svelte";
 
   interface EnvKeyValue {
     key: string;
@@ -18,6 +26,9 @@
   const envObjects: { [k: string]: EnvKeyValue } = {};
   const trackEnvObjects: { [k: string]: TrackedEnvKeyValue } = {};
   let isChanged = false;
+  let notificationMessage = "";
+  let isSuccessNotfication = false;
+  let show_notification = false;
 
   async function getEnvValues() {
     const env_var = await get_env_variables($selectedNode.name);
@@ -64,21 +75,25 @@
       }
     }
     // make API call to the backend.
-
     try {
       const response = await update_env_variables({
         id: $selectedNode.name,
         values: updatedEnvObj,
       });
-
+      notificationMessage = response.message;
       if (response.success) {
+        isSuccessNotfication = true;
         isChanged = false;
-        await getEnvValues();
+        notificationMessage = `${notificationMessage}. Server will restart to apply changes.`;
+        show_notification = true;
+        await update_swarm();
       }
     } catch (error) {
-      console.log("Error updating environment variables:", error);
+      console.error("Error updating environment variables:", error);
+      notificationMessage = "Failed to update environment variables.";
+      isSuccessNotfication = false;
+      show_notification = true;
     }
-
     isLoading = false;
   }
 </script>
@@ -87,7 +102,19 @@
   {#if isLoading}
     <Loading />
   {/if}
-
+  {#if show_notification}
+    <InlineNotification
+      lowContrast
+      kind={isSuccessNotfication ? "success" : "error"}
+      title={isSuccessNotfication ? "Success:" : "Error:"}
+      subtitle={notificationMessage}
+      timeout={3000}
+      on:close={(e) => {
+        e.preventDefault();
+        show_notification = false;
+      }}
+    />
+  {/if}
   <div class="button_container">
     <Button on:click={submitEnvChange} disabled={!isChanged}>Update Env</Button>
   </div>
