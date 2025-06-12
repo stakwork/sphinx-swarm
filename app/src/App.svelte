@@ -5,7 +5,6 @@
 </script>
 
 <svelte:head>
-  <meta name="robots" content="noindex" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link
     rel="preconnect"
