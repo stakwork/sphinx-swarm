@@ -86,6 +86,7 @@
         isChanged = false;
         notificationMessage = `${notificationMessage}. Server will restart to apply changes.`;
         show_notification = true;
+        isLoading = false;
         await update_swarm();
       }
     } catch (error) {
@@ -93,8 +94,8 @@
       notificationMessage = "Failed to update environment variables.";
       isSuccessNotfication = false;
       show_notification = true;
+      isLoading = false;
     }
-    isLoading = false;
   }
 </script>
 
