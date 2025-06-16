@@ -16,6 +16,7 @@ pub mod lss;
 pub mod mixer;
 pub mod mongo;
 pub mod navfiber;
+pub mod chrome;
 pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
@@ -28,6 +29,7 @@ pub mod tome;
 pub mod traefik;
 pub mod tribes;
 pub mod whisker;
+pub mod stakgraph;
 pub mod whisper;
 
 use crate::config;
