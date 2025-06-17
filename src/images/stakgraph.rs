@@ -17,6 +17,19 @@ pub struct StakgraphImage {
     pub host: Option<String>,
 }
 
+/*
+
+- place: Internal
+  type: Stakgraph
+  name: stakgraph
+  version: latest
+  port: '7779'
+  host: stakgraph.swarm38.sphinx.chat
+  links:
+  - neo4j
+
+*/
+
 impl StakgraphImage {
     pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {

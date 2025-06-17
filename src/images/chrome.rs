@@ -15,6 +15,17 @@ pub struct ChromeImage {
     pub host: Option<String>,
 }
 
+/*
+
+- place: Internal
+  type: Chrome
+  name: chrome
+  version: latest
+  port: '8080'
+  host: chrome.swarm38.sphinx.chat
+
+*/
+
 impl ChromeImage {
     pub fn new(name: &str, version: &str, port: &str) -> Self {
         Self {
