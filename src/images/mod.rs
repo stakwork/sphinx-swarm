@@ -71,6 +71,8 @@ pub enum Image {
     Jamie(jamie::JamieImage),
     Repo2Graph(repo2graph::Repo2GraphImage),
     Redis(redis::RedisImage),
+    Chrome(chrome::ChromeImage),
+    Stakgraph(stakgraph::StakgraphImage),
 }
 
 pub struct Repository {
@@ -126,6 +128,8 @@ impl Image {
             Image::Jamie(n) => n.name.clone(),
             Image::Repo2Graph(n) => n.name.clone(),
             Image::Redis(n) => n.name.clone(),
+            Image::Chrome(n) => n.name.clone(),
+            Image::Stakgraph(n) => n.name.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -159,6 +163,8 @@ impl Image {
             Image::Jamie(_n) => "Jamie",
             Image::Repo2Graph(_n) => "Repo2Graph",
             Image::Redis(_n) => "Redis",
+            Image::Chrome(_n) => "Chrome",
+            Image::Stakgraph(_n) => "Stakgraph",
         }
         .to_string()
     }
@@ -193,6 +199,8 @@ impl Image {
             Image::Jamie(n) => n.version = version.to_string(),
             Image::Repo2Graph(n) => n.version = version.to_string(),
             Image::Redis(n) => n.version = version.to_string(),
+            Image::Chrome(n) => n.version = version.to_string(),
+            Image::Stakgraph(n) => n.version = version.to_string(),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -286,6 +294,8 @@ impl DockerConfig for Image {
             Image::Jamie(n) => n.make_config(nodes, docker).await,
             Image::Repo2Graph(n) => n.make_config(nodes, docker).await,
             Image::Redis(n) => n.make_config(nodes, docker).await,
+            Image::Chrome(n) => n.make_config(nodes, docker).await,
+            Image::Stakgraph(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -322,6 +332,8 @@ impl DockerHubImage for Image {
             Image::Jamie(n) => n.repo(),
             Image::Repo2Graph(n) => n.repo(),
             Image::Redis(n) => n.repo(),
+            Image::Chrome(n) => n.repo(),
+            Image::Stakgraph(n) => n.repo(),
         }
     }
 }

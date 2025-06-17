@@ -315,6 +315,8 @@ impl Stack {
                 Image::Jamie(c) => Node::Internal(Image::Jamie(c)),
                 Image::Repo2Graph(r) => Node::Internal(Image::Repo2Graph(r)),
                 Image::Redis(r) => Node::Internal(Image::Redis(r)),
+                Image::Chrome(c) => Node::Internal(Image::Chrome(c)),
+                Image::Stakgraph(p) => Node::Internal(Image::Stakgraph(p)),
             },
         });
         Stack {
