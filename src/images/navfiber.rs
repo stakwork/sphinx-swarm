@@ -46,6 +46,7 @@ impl DockerConfig for NavFiberImage {
 impl DockerHubImage for NavFiberImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-nav-fiber".to_string(),
             root_volume: "/usr/src/app/".to_string(),
@@ -56,7 +57,7 @@ impl DockerHubImage for NavFiberImage {
 fn navfiber(node: &NavFiberImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = node.image();
     let root_vol = repo.root_volume;
     let ports = vec![node.port.clone()];
 

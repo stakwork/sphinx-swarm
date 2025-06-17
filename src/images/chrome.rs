@@ -1,7 +1,7 @@
 use super::*;
 use crate::config::Node;
 use crate::utils::{domain, exposed_ports, host_config};
-use anyhow::{ Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
@@ -57,6 +57,7 @@ impl DockerConfig for ChromeImage {
 impl DockerHubImage for ChromeImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::Ghcr,
             org: "evanfeenstra".to_string(),
             repo: "chrome-playwright".to_string(),
             root_volume: "/root".to_string(),
@@ -64,19 +65,15 @@ impl DockerHubImage for ChromeImage {
     }
 }
 
-fn chrome(
-    img: &ChromeImage,
-) -> Result<Config<String>> {
+fn chrome(img: &ChromeImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("ghcr.io/{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 
     let ports = vec![img.port.clone()];
 
-    let env = vec![
-        format!("PORT={}", img.port),
-    ];
+    let env = vec![format!("PORT={}", img.port)];
 
     let c = Config {
         image: Some(format!("{}:{}", image, img.version)),

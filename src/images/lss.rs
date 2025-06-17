@@ -37,6 +37,7 @@ impl DockerConfig for LssImage {
 impl DockerHubImage for LssImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-lss".to_string(),
             root_volume: "/root/".to_string(),
@@ -47,7 +48,7 @@ impl DockerHubImage for LssImage {
 fn lss(node: &LssImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = node.image();
     let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
     let cmd = vec![

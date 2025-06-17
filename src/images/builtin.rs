@@ -51,6 +51,7 @@ impl DockerConfig for BuiltinImage {
 impl DockerHubImage for BuiltinImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-builtin-bots".to_string(),
             root_volume: "/home/.builtin".to_string(),
@@ -60,7 +61,7 @@ impl DockerHubImage for BuiltinImage {
 
 fn builtin(img: &BuiltinImage, bot: &BotImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

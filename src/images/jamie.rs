@@ -52,6 +52,7 @@ impl DockerConfig for JamieImage {
 impl DockerHubImage for JamieImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "jamie".to_string(),
             root_volume: "/data".to_string(),
@@ -62,7 +63,7 @@ impl DockerHubImage for JamieImage {
 fn jamie(node: &JamieImage, mongo: &MongoImage, llama_opt: &Option<LlamaImage>) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = node.image();
     // let image = format!("ghcr.io/{}", image_end);
 
     let root_vol = &repo.root_volume;

@@ -68,6 +68,7 @@ impl DockerConfig for BotImage {
 impl DockerHubImage for BotImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-bot".to_string(),
             root_volume: "/home/.bot".to_string(),
@@ -81,7 +82,7 @@ fn bot(
     tribes_opt: &Option<TribesImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

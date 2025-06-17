@@ -41,6 +41,7 @@ impl DockerConfig for ConfigImage {
 impl DockerHubImage for ConfigImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-config".to_string(),
             root_volume: "/home".to_string(),
@@ -54,7 +55,7 @@ fn getenv_(name: &str) -> String {
 
 fn config_server(img: &ConfigImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

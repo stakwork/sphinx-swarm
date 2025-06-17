@@ -52,8 +52,9 @@ impl DockerConfig for Repo2GraphImage {
 impl DockerHubImage for Repo2GraphImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "sphinxlightning".to_string(),
-            repo: "repo2graph".to_string(),
+            registry: Registry::Ghcr,
+            org: "stakwork".to_string(),
+            repo: "stakgraph-mcp".to_string(),
             root_volume: "/root".to_string(),
         }
     }
@@ -65,7 +66,7 @@ fn repo2graph(
     boltwall: &Option<BoltwallImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

@@ -66,6 +66,7 @@ impl DockerConfig for BrokerImage {
 impl DockerHubImage for BrokerImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-broker".to_string(),
             root_volume: "/root/.broker".to_string(),
@@ -75,7 +76,7 @@ impl DockerHubImage for BrokerImage {
 
 fn broker(img: &BrokerImage) -> Config<String> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

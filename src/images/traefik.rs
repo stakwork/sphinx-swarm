@@ -23,7 +23,8 @@ impl TraefikImage {
 impl DockerHubImage for TraefikImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "".to_string(),
+            registry: Registry::DockerHub,
+            org: "library".to_string(),
             repo: "traefik".to_string(),
             root_volume: "/data".to_string(),
         }

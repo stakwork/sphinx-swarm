@@ -1,8 +1,8 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{domain, exposed_ports, getenv, host_config};
-use anyhow::{Context, Result};
+use crate::utils::{domain, exposed_ports, host_config};
+use anyhow::Result;
 use async_trait::async_trait;
 use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
@@ -40,7 +40,6 @@ impl RedisImage {
 #[async_trait]
 impl DockerConfig for RedisImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
-        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         Ok(redis(self))
     }
 }
@@ -48,7 +47,8 @@ impl DockerConfig for RedisImage {
 impl DockerHubImage for RedisImage {
     fn repo(&self) -> Repository {
         Repository {
-            org: "redis".to_string(),
+            registry: Registry::DockerHub,
+            org: "library".to_string(),
             repo: "redis".to_string(),
             root_volume: "/data".to_string(),
         }
@@ -58,12 +58,12 @@ impl DockerHubImage for RedisImage {
 fn redis(node: &RedisImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let image = format!("{}", repo.org);
+    let image = node.image();
 
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 
-    let mut env = vec![format!("PUBLIC_APP_NAME=SphinxChat")];
+    let env = vec![format!("PUBLIC_APP_NAME=SphinxChat")];
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, node.version)),

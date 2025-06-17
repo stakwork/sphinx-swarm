@@ -65,6 +65,7 @@ impl DockerConfig for LlamaImage {
 impl DockerHubImage for LlamaImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::Ghcr,
             org: "ggerganov".to_string(),
             repo: "llama.cpp".to_string(),
             root_volume: "/home/llama".to_string(),
@@ -78,8 +79,7 @@ fn get_current_working_dir() -> std::io::Result<PathBuf> {
 
 fn llama(img: &LlamaImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image_end = format!("{}/{}", repo.org, repo.repo);
-    let image = format!("ghcr.io/{}", image_end);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

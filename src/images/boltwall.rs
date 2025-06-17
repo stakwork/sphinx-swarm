@@ -125,6 +125,7 @@ impl DockerConfig for BoltwallImage {
 impl DockerHubImage for BoltwallImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-boltwall".to_string(),
             root_volume: "/boltwall".to_string(),
@@ -166,7 +167,7 @@ fn boltwall(
 ) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = node.image();
     let ports = vec![node.port.clone()];
     let root_vol = &repo.root_volume;
 

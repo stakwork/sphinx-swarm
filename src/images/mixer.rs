@@ -97,6 +97,7 @@ impl DockerConfig for MixerImage {
 impl DockerHubImage for MixerImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-mixer".to_string(),
             root_volume: "/home".to_string(),
@@ -106,7 +107,7 @@ impl DockerHubImage for MixerImage {
 
 fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

@@ -4,6 +4,7 @@ pub mod broker;
 pub mod btc;
 pub mod builtin;
 pub mod cache;
+pub mod chrome;
 pub mod cln;
 pub mod config_server;
 pub mod dufs;
@@ -16,7 +17,6 @@ pub mod lss;
 pub mod mixer;
 pub mod mongo;
 pub mod navfiber;
-pub mod chrome;
 pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
@@ -25,11 +25,11 @@ pub mod relay;
 pub mod repo2graph;
 pub mod rqbit;
 pub mod runner;
+pub mod stakgraph;
 pub mod tome;
 pub mod traefik;
 pub mod tribes;
 pub mod whisker;
-pub mod stakgraph;
 pub mod whisper;
 
 use crate::config;
@@ -75,7 +75,13 @@ pub enum Image {
     Stakgraph(stakgraph::StakgraphImage),
 }
 
+pub enum Registry {
+    DockerHub,
+    Ghcr,
+}
+
 pub struct Repository {
+    pub registry: Registry,
     pub org: String,
     pub repo: String,
     pub root_volume: String,
@@ -83,6 +89,16 @@ pub struct Repository {
 
 pub trait DockerHubImage {
     fn repo(&self) -> Repository;
+    fn image(&self) -> String {
+        let repo = self.repo();
+        if repo.org == "library" {
+            return repo.repo.clone();
+        }
+        match repo.registry {
+            Registry::Ghcr => format!("ghcr.io/{}/{}", repo.org, repo.repo),
+            Registry::DockerHub => format!("{}/{}", repo.org, repo.repo),
+        }
+    }
 }
 
 #[async_trait]

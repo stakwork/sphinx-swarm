@@ -83,6 +83,7 @@ impl DockerConfig for RelayImage {
 impl DockerHubImage for RelayImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-relay-swarm".to_string(),
             root_volume: "/relay/data".to_string(),
@@ -99,7 +100,7 @@ fn relay(
     // let img = "sphinx-relay";
     // let version = "latest";
     let repo = relay.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = relay.image();
     let version = relay.version.clone();
     let root_vol = &repo.root_volume;
     let mut conf = RelayConfig::new(&relay.name, &relay.port);

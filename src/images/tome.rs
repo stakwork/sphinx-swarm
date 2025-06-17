@@ -70,6 +70,7 @@ impl DockerConfig for TomeImage {
 impl DockerHubImage for TomeImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "tome".to_string(),
             root_volume: "/home/.tome".to_string(),
@@ -88,7 +89,7 @@ fn tome(
     rqbit_opt: &Option<RqbitImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

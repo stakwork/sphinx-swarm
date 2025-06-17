@@ -63,6 +63,7 @@ impl DockerConfig for StakgraphImage {
 impl DockerHubImage for StakgraphImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::Ghcr,
             org: "stakwork".to_string(),
             repo: "stakgraph".to_string(),
             root_volume: "/root".to_string(),
@@ -70,12 +71,9 @@ impl DockerHubImage for StakgraphImage {
     }
 }
 
-fn stakgraph(
-    img: &StakgraphImage,
-    neo4j: &Neo4jImage,
-) -> Result<Config<String>> {
+fn stakgraph(img: &StakgraphImage, neo4j: &Neo4jImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("ghcr.io/{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 
@@ -83,7 +81,11 @@ fn stakgraph(
 
     let mut env = vec![
         format!("PORT={}", img.port),
-        format!("NEO4J_URI=bolt://{}:{}", domain(&neo4j.name), neo4j.bolt_port),
+        format!(
+            "NEO4J_URI=bolt://{}:{}",
+            domain(&neo4j.name),
+            neo4j.bolt_port
+        ),
         format!("NEO4J_PASSWORD={}", neo4j.password),
     ];
     if let Ok(github_request_token) = getenv("GITHUB_REQUEST_TOKEN") {

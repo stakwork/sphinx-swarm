@@ -66,6 +66,7 @@ impl DockerConfig for TribesImage {
 impl DockerHubImage for TribesImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-tribes-v2".to_string(),
             root_volume: "/home".to_string(),
@@ -79,7 +80,7 @@ fn tribes(
     builtin: &Option<BuiltinImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

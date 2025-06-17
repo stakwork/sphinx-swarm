@@ -82,6 +82,7 @@ impl DockerConfig for ProxyImage {
 impl DockerHubImage for ProxyImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-proxy".to_string(),
             root_volume: "/app/proxy".to_string(),
@@ -95,7 +96,7 @@ fn proxy(
     cln: Option<cln::ClnImage>,
 ) -> Config<String> {
     let repo = proxy.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = proxy.image();
     let version = proxy.version.clone();
     // let img = "sphinx-proxy";
     // let version = "latest";

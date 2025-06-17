@@ -165,6 +165,7 @@ impl DockerConfig for ClnImage {
 impl DockerHubImage for ClnImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "cln-sphinx".to_string(),
             root_volume: "/root/.lightning".to_string(),
@@ -264,7 +265,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
     let repo = img.repo();
     let root_vol = &repo.root_volume;
     // let version = "0.2.3";
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let mut environ = vec![
         "EXPOSE_TCP=true".to_string(),

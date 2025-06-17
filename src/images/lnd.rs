@@ -90,6 +90,7 @@ impl DockerConfig for LndImage {
 impl DockerHubImage for LndImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "lightninglabs".to_string(),
             repo: "lnd".to_string(),
             root_volume: "/home/.lnd".to_string(),
@@ -109,7 +110,7 @@ pub fn to_lnd_network(n: &str) -> &'static str {
 fn lnd(lnd: &LndImage, btc: &btc::BtcImage) -> Config<String> {
     let network = to_lnd_network(lnd.network.as_str());
     let repo = lnd.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = lnd.image();
     let mut ports = vec![lnd.peer_port.to_string(), lnd.rpc_port.clone()];
     // let home_dir = std::env::var("HOME").unwrap_or("/home".to_string());
     let root_vol = &repo.root_volume;

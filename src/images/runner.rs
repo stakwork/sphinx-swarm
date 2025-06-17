@@ -53,6 +53,7 @@ impl DockerConfig for RunnerImage {
 impl DockerHubImage for RunnerImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-runner".to_string(),
             root_volume: "/home".to_string(),
@@ -62,7 +63,7 @@ impl DockerHubImage for RunnerImage {
 
 fn runner(img: &RunnerImage, jarvis: &JarvisImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

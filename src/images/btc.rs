@@ -1,5 +1,5 @@
 use super::traefik::traefik_labels;
-use super::{DockerConfig, DockerHubImage, Repository};
+use super::{DockerConfig, DockerHubImage, Registry, Repository};
 use crate::config::{Clients, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::utils::{docker_domain_127, domain, host_config};
@@ -77,6 +77,7 @@ impl DockerConfig for BtcImage {
 impl DockerHubImage for BtcImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "lncm".to_string(),
             repo: "bitcoind".to_string(),
             root_volume: "/data/.bitcoin".to_string(),
@@ -94,7 +95,7 @@ pub fn btc(node: &BtcImage) -> Config<String> {
     ];
     // let image = "ruimarinho/bitcoin-core";
     let repo = node.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = node.image();
     let root_vol = &repo.root_volume;
     let mut cmd = vec![
         format!("-rpcbind={}", domain(&node.name)),

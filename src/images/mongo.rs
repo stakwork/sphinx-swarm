@@ -71,6 +71,7 @@ impl DockerConfig for MongoImage {
 impl DockerHubImage for MongoImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "library".to_string(),
             repo: "mongo".to_string(),
             root_volume: "/data".to_string(),
@@ -81,7 +82,7 @@ impl DockerHubImage for MongoImage {
 fn mongo(node: &MongoImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = node.image();
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 

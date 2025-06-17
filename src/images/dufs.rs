@@ -49,6 +49,7 @@ impl DockerConfig for DufsImage {
 impl DockerHubImage for DufsImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "dufs".to_string(),
             root_volume: self.files_dir.to_string(),
@@ -58,7 +59,7 @@ impl DockerHubImage for DufsImage {
 
 fn dufs(img: &DufsImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

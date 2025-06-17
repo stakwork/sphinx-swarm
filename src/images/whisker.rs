@@ -57,6 +57,7 @@ impl DockerConfig for WhiskerImage {
 impl DockerHubImage for WhiskerImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "whisker".to_string(),
             root_volume: "/root".to_string(),
@@ -66,7 +67,7 @@ impl DockerHubImage for WhiskerImage {
 
 fn whisker(img: &WhiskerImage, whisper: &WhisperImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 

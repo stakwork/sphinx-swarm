@@ -69,6 +69,7 @@ impl DockerConfig for CacheImage {
 impl DockerHubImage for CacheImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-cache".to_string(),
             root_volume: "/cache/data".to_string(),
@@ -79,7 +80,7 @@ impl DockerHubImage for CacheImage {
 fn cache(node: &CacheImage, meme_host: &str, mqtt_host: &str, mqtt_port: &str) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = node.image();
     let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
     Config {

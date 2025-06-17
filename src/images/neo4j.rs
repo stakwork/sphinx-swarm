@@ -120,6 +120,7 @@ impl DockerConfig for Neo4jImage {
 impl DockerHubImage for Neo4jImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "library".to_string(),
             repo: "neo4j".to_string(),
             root_volume: "/data".to_string(),
@@ -130,7 +131,7 @@ impl DockerHubImage for Neo4jImage {
 fn neo4j(node: &Neo4jImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}", repo.repo);
+    let img = node.image();
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone(), node.bolt_port.clone()];
 

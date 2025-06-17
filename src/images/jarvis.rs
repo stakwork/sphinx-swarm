@@ -55,6 +55,7 @@ impl DockerConfig for JarvisImage {
 impl DockerHubImage for JarvisImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "sphinx-jarvis-backend".to_string(),
             root_volume: "/data/jarvis".to_string(),
@@ -71,7 +72,7 @@ fn jarvis(
 ) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
-    let img = format!("{}/{}", repo.org, repo.repo);
+    let img = node.image();
     let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
 
@@ -173,7 +174,7 @@ fn jarvis(
     if let Ok(jarvis_feature_flag_wfa_schemas) = getenv("JARVIS_FEATURE_FLAG_WFA_SCHEMAS") {
         env.push(format!(
             "FEATURE_FLAG_WFA_SCHEMAS={}",
-            jarvis_feature_flag_wfa_schemas 
+            jarvis_feature_flag_wfa_schemas
         ));
     }
     if let Ok(feature_flag_text_embeddings) = getenv("FEATURE_FLAG_TEXT_EMBEDDINGS") {

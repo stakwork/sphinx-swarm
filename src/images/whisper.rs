@@ -1,9 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::utils::{
-    add_gpus_to_host_config, domain, exposed_ports, host_config, single_host_port_from,
-};
+use crate::utils::{add_gpus_to_host_config, domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -59,6 +57,7 @@ impl DockerConfig for WhisperImage {
 impl DockerHubImage for WhisperImage {
     fn repo(&self) -> Repository {
         Repository {
+            registry: Registry::DockerHub,
             org: "fedirz".to_string(),
             repo: "faster-whisper-server".to_string(),
             root_volume: "/home/whisper".to_string(),
@@ -68,7 +67,7 @@ impl DockerHubImage for WhisperImage {
 
 fn whisper(img: &WhisperImage) -> Result<Config<String>> {
     let repo = img.repo();
-    let image = format!("{}/{}", repo.org, repo.repo);
+    let image = img.image();
 
     let root_vol = &repo.root_volume;
 
