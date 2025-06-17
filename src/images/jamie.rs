@@ -64,7 +64,6 @@ fn jamie(node: &JamieImage, mongo: &MongoImage, llama_opt: &Option<LlamaImage>) 
     let name = node.name.clone();
     let repo = node.repo();
     let image = node.image();
-    // let image = format!("ghcr.io/{}", image_end);
 
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];

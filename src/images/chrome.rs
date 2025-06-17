@@ -21,7 +21,7 @@ pub struct ChromeImage {
   type: Chrome
   name: chrome
   version: latest
-  port: '8080'
+  port: '9222'
   host: chrome.swarm38.sphinx.chat
 
 */

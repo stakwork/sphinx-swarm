@@ -95,8 +95,8 @@ pub trait DockerHubImage {
             return repo.repo.clone();
         }
         match repo.registry {
-            Registry::Ghcr => format!("ghcr.io/{}/{}", repo.org, repo.repo),
             Registry::DockerHub => format!("{}/{}", repo.org, repo.repo),
+            Registry::Ghcr => format!("ghcr.io/{}/{}", repo.org, repo.repo),
         }
     }
 }
