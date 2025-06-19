@@ -111,16 +111,18 @@ services:
       - JARVIS_SINGLE_TWEET_WORKFLOW_ID=$JARVIS_SINGLE_TWEET_WORKFLOW_ID
       - JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=$JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS
       - RADAR_TOPIC_SCHEDULER_TIME_IN_SEC=$RADAR_TOPIC_SCHEDULER_TIME_IN_SEC
+      - ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+      - OPENAI_API_KEY=$OPENAI_API_KEY
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
     command:
-      - '--path.rootfs=/host'
+      - "--path.rootfs=/host"
     network_mode: host
     pid: host
     restart: unless-stopped
     volumes:
-      - '/:/host:ro,rslave'
+      - "/:/host:ro,rslave"
 
 networks:
   sphinx-swarm:

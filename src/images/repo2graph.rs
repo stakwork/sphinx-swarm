@@ -88,6 +88,13 @@ fn repo2graph(
         }
     }
 
+    if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
+        env.push(format!("OPENAI_API_KEY={}", openai_api_key));
+    }
+    if let Ok(anthropic_api_key) = getenv("ANTHROPIC_API_KEY") {
+        env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
+    }
+
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
