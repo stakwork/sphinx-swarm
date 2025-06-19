@@ -77,6 +77,7 @@ fn repo2graph(
         format!("NEO4J_HOST={}:{}", domain(&neo4j.name), neo4j.bolt_port),
         format!("NEO4J_PASSWORD={}", neo4j.password),
         format!("SAGE_CONFIG_PATH={}/sage_config.json", root_vol),
+        format!("USE_STAGEHAND=1"),
     ];
     if let Ok(github_request_token) = getenv("GITHUB_REQUEST_TOKEN") {
         env.push(format!("PAT={}", github_request_token))
