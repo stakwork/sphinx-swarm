@@ -16,6 +16,7 @@ pub struct Repo2GraphImage {
     pub port: String,
     pub links: Links,
     pub host: Option<String>,
+    pub llm_proivder: Option<String> // openai by default
 }
 
 impl Repo2GraphImage {
@@ -26,6 +27,7 @@ impl Repo2GraphImage {
             port: port.to_string(),
             links: vec![],
             host: None,
+            llm_proivder: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -79,6 +81,9 @@ fn repo2graph(
         format!("SAGE_CONFIG_PATH={}/sage_config.json", root_vol),
         format!("USE_STAGEHAND=1"),
     ];
+    if let Some(llm_provider) = &img.llm_proivder {
+        env.push(format!("LLM_PROVIDER={}", llm_provider));
+    }
     if let Ok(github_request_token) = getenv("GITHUB_REQUEST_TOKEN") {
         env.push(format!("PAT={}", github_request_token))
     }
