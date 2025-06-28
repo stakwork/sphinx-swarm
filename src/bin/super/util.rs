@@ -709,6 +709,10 @@ pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
 ) -> Result<(), Error> {
+    if !&info.name.starts_with("s-") {
+        return Err(anyhow!("swarm name does not match naming convention"));
+    }
+
     let daily_limit = getenv("EC2_DAILY_LIMIT")
         .unwrap_or("5".to_string())
         .parse()

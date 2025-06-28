@@ -45,10 +45,9 @@
   let name = "";
   let vanity_address = "";
   let domain = ".sphinx.chat";
-  let swarm_name_suffix = "-Swarm";
+  let swarm_name_prefix = "s-";
   const max_input_with = 600;
   let vanity_input_width = max_input_with;
-  let swarm_name_width = max_input_with;
   let aws_instance_types = [];
   let selected_instance = "";
   let vanity_address_error = "";
@@ -305,7 +304,6 @@
     vanity_address = "";
     selected_instance = "";
     vanity_input_width = max_input_with;
-    swarm_name_width = max_input_with;
   }
 
   async function handleSubmitCreateEc2() {
@@ -317,7 +315,7 @@
 
     try {
       const data = {
-        name: `${name}${swarm_name_suffix}`,
+        name: `${swarm_name_prefix}${name}`,
         vanity_address,
         instance_type: selected_instance,
       };
@@ -330,7 +328,6 @@
         vanity_address = "";
         selected_instance = "";
         vanity_input_width = max_input_with;
-        swarm_name_width = max_input_with;
         show_notification = true;
 
         await getConfig();
@@ -359,11 +356,6 @@
 
   function updateSwarmnameWidth(event) {
     name = event.target.value.replace(/\s+/g, "");
-    const span = document.querySelector(".swarm_name_measure");
-    swarm_name_width = span.offsetWidth;
-    if (!swarm_name_width) {
-      swarm_name_width = max_input_with;
-    }
   }
 </script>
 
@@ -470,20 +462,16 @@
     <div class="custom_text_input_container">
       <label class="customlabel" for="label">Swarm Name</label>
       <div class="custom_input_container">
-        <div>
-          <span class="swarm_name_measure">{name}</span>
-          <input
-            type="text"
-            bind:value={name}
-            on:input={updateSwarmnameWidth}
-            placeholder="Enter Swarm Name"
-            style="width: {swarm_name_width}px;"
-            class="custom_input"
-          />
-        </div>
         {#if name.length > 0}
-          <span class="suffix">{swarm_name_suffix}</span>
+          <span class="prefix">{swarm_name_prefix}</span>
         {/if}
+        <input
+          type="text"
+          bind:value={name}
+          on:input={updateSwarmnameWidth}
+          placeholder="Enter Swarm Name"
+          class="instance_name_input"
+        />
       </div>
     </div>
     <div class="select_instance_container">
@@ -558,6 +546,24 @@
     margin-left: -2px;
   }
 
+  .prefix {
+    font-size: 1rem;
+    font-family: "Barlow";
+    color: #49c998;
+  }
+
+  .instance_name_input {
+    border: none;
+    outline: none;
+    margin: 0;
+    font-size: 1rem;
+    font-family: "Barlow";
+    background-color: transparent;
+    width: 100%;
+    color: white;
+    padding: 0;
+  }
+
   .custom_input {
     border: none;
     outline: none;
@@ -571,17 +577,6 @@
   }
 
   .vanity_address_measure {
-    visibility: hidden;
-    position: absolute;
-    white-space: nowrap;
-    font-family: "Barlow";
-    font-size: 1rem;
-    padding: 0;
-    border: none;
-    margin: 0;
-  }
-
-  .swarm_name_measure {
     visibility: hidden;
     position: absolute;
     white-space: nowrap;
