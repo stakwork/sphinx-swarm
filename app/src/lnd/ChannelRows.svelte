@@ -75,9 +75,13 @@
   let show_notification = false;
 
   function clickRow(chan) {
-    if (!chan.active) return;
-    copyText(chan.remote_pubkey)
-    toast.success("Pubkey copied")
+    if (!chan.active && type === "Cln") {
+      copyText(chan.channel_point);
+      toast.success("Funding Txid copied");
+      return;
+    }
+    copyText(chan.remote_pubkey);
+    toast.success("Pubkey copied");
     if (selectedChannelParter === chan.remote_pubkey) {
       selectedChannelParter = "";
       forceCloseDestination = "";
