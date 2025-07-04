@@ -39,7 +39,7 @@ impl RedisImage {
 
 #[async_trait]
 impl DockerConfig for RedisImage {
-    async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
+    async fn make_config(&self, _nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         Ok(redis(self))
     }
 }

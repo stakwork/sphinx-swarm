@@ -141,11 +141,11 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let mut dbms_connector_bolt_listen_address = "NEO4J_dbms_connector_bolt_listen__address";
     let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
     let mut dbms_default_database = "NEO4J_dbms_default__database=neo4j";
-    let mut dbms_security_procedures_unrestricted =
-        "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*";
-    let mut dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
-    let mut dbms_security_auth_minimum_password_length =
-        "NEO4J_dbms_security_auth__minimum__password__length=4";
+    // let dbms_security_procedures_unrestricted =
+        // "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*";
+    // let dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
+    // let mut dbms_security_auth_minimum_password_length =
+    //     "NEO4J_dbms_security_auth__minimum__password__length=4";
     let mut dbms_memory_pagecache_size = "NEO4J_dbms_memory_pagecache_size";
     if *node.version > *"4.4.9" {
         server_memory_heap_initial_size = "NEO4J_server_memory_heap_initial__size";
@@ -153,8 +153,8 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         dbms_default_listen_address = "NEO4J_server_default__listen__address";
         dbms_connector_bolt_listen_address = "NEO4J_server_bolt_listen__address";
         dbms_default_database = "NEO4J_initial_dbms_default__database=neo4j";
-        dbms_security_auth_minimum_password_length =
-            "NEO4J_dbms_security_auth__minimum__password__length=4";
+        // dbms_security_auth_minimum_password_length =
+        //     "NEO4J_dbms_security_auth__minimum__password__length=4";
         dbms_memory_pagecache_size = "NEO4J_server_memory_pagecache_size"
     }
 

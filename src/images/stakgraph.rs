@@ -1,6 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
+use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
@@ -56,7 +57,8 @@ impl DockerConfig for StakgraphImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let neo4j = li.find_neo4j().context("Stakgraph: No Neo4j")?;
-        Ok(stakgraph(self, &neo4j)?)
+        let boltwall = li.find_boltwall();
+        Ok(stakgraph(self, &neo4j, &boltwall)?)
     }
 }
 
@@ -71,7 +73,11 @@ impl DockerHubImage for StakgraphImage {
     }
 }
 
-fn stakgraph(img: &StakgraphImage, neo4j: &Neo4jImage) -> Result<Config<String>> {
+fn stakgraph(
+    img: &StakgraphImage,
+    neo4j: &Neo4jImage,
+    boltwall: &Option<BoltwallImage>,
+) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
 
@@ -90,6 +96,11 @@ fn stakgraph(img: &StakgraphImage, neo4j: &Neo4jImage) -> Result<Config<String>>
     ];
     if let Ok(github_request_token) = getenv("GITHUB_REQUEST_TOKEN") {
         env.push(format!("PAT={}", github_request_token))
+    }
+    if let Some(boltwall) = boltwall {
+        if let Some(api_token) = &boltwall.stakwork_secret {
+            env.push(format!("API_TOKEN={}", api_token));
+        }
     }
 
     let mut c = Config {
