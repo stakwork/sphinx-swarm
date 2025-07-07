@@ -764,7 +764,7 @@ pub async fn create_swarm_ec2(
 
     let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
     let default_domain = format!("*.{}", default_host);
-    let mut domain_names = vec![default_domain.as_str()];
+    let mut domain_names = vec![default_domain];
 
     let mut host = default_host.clone();
 
@@ -772,7 +772,8 @@ pub async fn create_swarm_ec2(
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
-            domain_names.push(custom_domain.as_str());
+            domain_names.push(custom_domain.clone());
+            domain_names.push(format!("*.{}", custom_domain));
         }
     }
 
@@ -875,10 +876,11 @@ pub async fn update_aws_instance_type(
 
     let defailt_domain = format!("*.{}", current_swarm.default_host.clone());
 
-    let mut domain_names = vec![defailt_domain.as_str()];
+    let mut domain_names = vec![defailt_domain];
 
     if current_swarm.default_host.clone() != current_swarm.host {
-        domain_names.push(&current_swarm.host)
+        domain_names.push(current_swarm.host.clone());
+        domain_names.push(format!("*.{}", current_swarm.host.clone()));
     }
 
     //update route53 record for both host and default_host
