@@ -188,3 +188,8 @@ pub struct CreateInvoiceLightningBotReq {
 pub struct LightningBotCreateInvoiceReq {
     pub amt_msat: u64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreateEc2InstanceRes {
+    pub swarm_id: String,
+}

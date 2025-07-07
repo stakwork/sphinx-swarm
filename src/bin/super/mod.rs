@@ -337,12 +337,13 @@ pub async fn super_handle(
             SwarmCmd::CreateNewEc2Instance(info) => {
                 let res: SuperSwarmResponse;
                 match create_swarm_ec2(&info, &mut state).await {
-                    Ok(_) => {
+                    Ok(data) => {
                         must_save_stack = true;
+                        let parsed_data = serde_json::to_value(data)?;
                         res = SuperSwarmResponse {
                             success: true,
                             message: format!("{} was created successfully", &info.name.clone()),
-                            data: None,
+                            data: Some(parsed_data),
                         }
                     }
                     Err(err) => {

@@ -25,8 +25,8 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
-    CreateEc2InstanceInfo, GetInstanceTypeByInstanceId, GetInstanceTypeRes, LoginResponse,
-    SuperSwarmResponse, UpdateInstanceDetails,
+    CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
+    LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
@@ -726,7 +726,7 @@ async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
 pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
-) -> Result<(), Error> {
+) -> Result<CreateEc2InstanceRes, Error> {
     let daily_limit = getenv("EC2_DAILY_LIMIT")
         .unwrap_or("5".to_string())
         .parse()
@@ -804,7 +804,7 @@ pub async fn create_swarm_ec2(
     let new_swarm = RemoteStack {
         host: host,
         ec2: Some(info.instance_type.clone()),
-        default_host: default_host,
+        default_host: default_host.clone(),
         note: Some("".to_string()),
         user: Some("".to_string()),
         pass: Some("".to_string()),
@@ -816,7 +816,9 @@ pub async fn create_swarm_ec2(
     state.add_remote_stack(new_swarm);
 
     log::info!("New Swarm added to stack");
-    Ok(())
+    Ok(CreateEc2InstanceRes {
+        swarm_id: default_host.clone(),
+    })
 }
 
 fn is_valid_domain(domain: String) -> String {
