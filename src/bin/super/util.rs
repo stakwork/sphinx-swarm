@@ -376,6 +376,7 @@ async fn create_ec2_instance(
     swarm_name: String,
     vanity_address: Option<String>,
     instance_type_name: String,
+    env: Option<HashMap<String, String>>,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -422,6 +423,22 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
+    let mut env_lines = "".to_string();
+
+    if let Some(env_map) = env {
+        env_lines = env_map
+            .iter()
+            .map(|(key, value)| {
+                format!(
+                    r#"echo "{}={}" >> .env && \
+            "#,
+                    key, value
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("");
+    }
+
     let timeout_config = TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(5))
         .read_timeout(Duration::from_secs(60))
@@ -467,6 +484,7 @@ async fn create_ec2_instance(
           chmod 644 .env && \
           
           # Populate the .env file
+          {env_lines}
           echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
           echo "AWS_REGION=us-east-1" >> .env && \
@@ -755,6 +773,7 @@ pub async fn create_swarm_ec2(
         info.name.clone(),
         actual_vanity_address.clone(),
         info.instance_type.clone(),
+        info.env.clone(),
     )
     .await?;
 

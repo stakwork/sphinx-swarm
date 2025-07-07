@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -146,6 +148,7 @@ pub struct CreateEc2InstanceInfo {
     pub vanity_address: Option<String>,
     pub instance_type: String,
     pub token: Option<String>,
+    pub env: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
