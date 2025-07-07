@@ -1,6 +1,8 @@
 use crate::auth;
 use crate::auth_token::VerifySuperToken;
-use crate::cmd::{AddSwarmResponse, ChildSwarm, Cmd, SwarmCmd};
+use crate::cmd::{
+    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, SuperSwarmResponse, SwarmCmd,
+};
 use crate::events::EventChan;
 use crate::logs::LogChans;
 use fs::{relative, FileServer};
@@ -35,7 +37,8 @@ pub async fn launch_rocket(
                 all_options,
                 update_password,
                 events,
-                add_new_swarm
+                add_new_swarm,
+                create_new_swarm
             ],
         )
         .attach(CORS)
@@ -106,4 +109,49 @@ async fn add_new_swarm(
             message: response.message,
         }),
     ));
+}
+
+#[rocket::post("/super/new_swarm", data = "<body>")]
+async fn create_new_swarm(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    body: Json<CreateEc2InstanceInfo>,
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<SuperSwarmResponse>>> {
+    if let None = verify_super_token.token {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: "unauthorized, invalid token".to_string(),
+                data: None,
+            }),
+        ));
+    }
+
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::CreateNewEc2Instance(CreateEc2InstanceInfo {
+        name: body.name.clone(),
+        vanity_address: body.vanity_address.clone(),
+        instance_type: body.instance_type.clone(),
+        token: verify_super_token.token.clone(),
+    }));
+
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+
+    // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+
+    let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
+
+    let mut status = Status::Conflict;
+
+    if response.success == true {
+        status = Status::Created
+    }
+
+    return Ok(Custom(status, Json(response)));
 }

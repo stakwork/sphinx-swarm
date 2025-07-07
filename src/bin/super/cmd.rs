@@ -145,6 +145,7 @@ pub struct CreateEc2InstanceInfo {
     pub name: String,
     pub vanity_address: Option<String>,
     pub instance_type: String,
+    pub token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

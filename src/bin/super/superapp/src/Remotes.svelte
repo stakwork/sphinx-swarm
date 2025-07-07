@@ -310,15 +310,16 @@
 
   async function handleSubmitCreateEc2() {
     isSubmitting = true;
+    let formattedAddress = "";
 
     if (vanity_address) {
-      vanity_address = `${vanity_address}${domain}`;
+      formattedAddress = `${vanity_address}${domain}`;
     }
 
     try {
       const data = {
         name: `${name}${swarm_name_suffix}`,
-        vanity_address,
+        vanity_address: formattedAddress,
         instance_type: selected_instance,
       };
 
