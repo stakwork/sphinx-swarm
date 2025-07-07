@@ -25,8 +25,8 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
-    CreateEc2InstanceInfo, GetInstanceTypeByInstanceId, GetInstanceTypeRes, LoginResponse,
-    SuperSwarmResponse, UpdateInstanceDetails,
+    CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
+    LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
@@ -376,6 +376,7 @@ async fn create_ec2_instance(
     swarm_name: String,
     vanity_address: Option<String>,
     instance_type_name: String,
+    env: Option<HashMap<String, String>>,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -422,6 +423,22 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
+    let mut env_lines = "".to_string();
+
+    if let Some(env_map) = env {
+        env_lines = env_map
+            .iter()
+            .map(|(key, value)| {
+                format!(
+                    r#"echo "{}={}" >> .env && \
+            "#,
+                    key, value
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("");
+    }
+
     let timeout_config = TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(5))
         .read_timeout(Duration::from_secs(60))
@@ -467,6 +484,7 @@ async fn create_ec2_instance(
           chmod 644 .env && \
           
           # Populate the .env file
+          {env_lines}
           echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
           echo "AWS_REGION=us-east-1" >> .env && \
@@ -708,7 +726,7 @@ async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
 pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
-) -> Result<(), Error> {
+) -> Result<CreateEc2InstanceRes, Error> {
     let daily_limit = getenv("EC2_DAILY_LIMIT")
         .unwrap_or("5".to_string())
         .parse()
@@ -755,6 +773,7 @@ pub async fn create_swarm_ec2(
         info.name.clone(),
         actual_vanity_address.clone(),
         info.instance_type.clone(),
+        info.env.clone(),
     )
     .await?;
 
@@ -764,7 +783,7 @@ pub async fn create_swarm_ec2(
 
     let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
     let default_domain = format!("*.{}", default_host);
-    let mut domain_names = vec![default_domain.as_str()];
+    let mut domain_names = vec![default_domain];
 
     let mut host = default_host.clone();
 
@@ -772,7 +791,8 @@ pub async fn create_swarm_ec2(
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
-            domain_names.push(custom_domain.as_str());
+            domain_names.push(custom_domain.clone());
+            domain_names.push(format!("*.{}", custom_domain));
         }
     }
 
@@ -784,7 +804,7 @@ pub async fn create_swarm_ec2(
     let new_swarm = RemoteStack {
         host: host,
         ec2: Some(info.instance_type.clone()),
-        default_host: default_host,
+        default_host: default_host.clone(),
         note: Some("".to_string()),
         user: Some("".to_string()),
         pass: Some("".to_string()),
@@ -796,7 +816,9 @@ pub async fn create_swarm_ec2(
     state.add_remote_stack(new_swarm);
 
     log::info!("New Swarm added to stack");
-    Ok(())
+    Ok(CreateEc2InstanceRes {
+        swarm_id: default_host.clone(),
+    })
 }
 
 fn is_valid_domain(domain: String) -> String {
@@ -875,10 +897,11 @@ pub async fn update_aws_instance_type(
 
     let defailt_domain = format!("*.{}", current_swarm.default_host.clone());
 
-    let mut domain_names = vec![defailt_domain.as_str()];
+    let mut domain_names = vec![defailt_domain];
 
     if current_swarm.default_host.clone() != current_swarm.host {
-        domain_names.push(&current_swarm.host)
+        domain_names.push(current_swarm.host.clone());
+        domain_names.push(format!("*.{}", current_swarm.host.clone()));
     }
 
     //update route53 record for both host and default_host

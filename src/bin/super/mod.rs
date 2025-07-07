@@ -99,6 +99,13 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
                 }
                 return true;
             }
+            SwarmCmd::CreateNewEc2Instance(info) => {
+                let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+                if info.token.is_some() && !token.is_empty() && token == info.token.clone().unwrap()
+                {
+                    return true;
+                }
+            }
             _ => {}
         },
     }
@@ -330,12 +337,13 @@ pub async fn super_handle(
             SwarmCmd::CreateNewEc2Instance(info) => {
                 let res: SuperSwarmResponse;
                 match create_swarm_ec2(&info, &mut state).await {
-                    Ok(_) => {
+                    Ok(data) => {
                         must_save_stack = true;
+                        let parsed_data = serde_json::to_value(data)?;
                         res = SuperSwarmResponse {
                             success: true,
                             message: format!("{} was created successfully", &info.name.clone()),
-                            data: None,
+                            data: Some(parsed_data),
                         }
                     }
                     Err(err) => {

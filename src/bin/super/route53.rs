@@ -10,7 +10,7 @@ use aws_smithy_types::retry::RetryConfig;
 use sphinx_swarm::utils::getenv;
 
 pub async fn add_domain_name_to_route53(
-    domain_names: Vec<&str>,
+    domain_names: Vec<String>,
     public_ip: &str,
 ) -> Result<(), Error> {
     let region = getenv("AWS_REGION")?;
@@ -25,11 +25,11 @@ pub async fn add_domain_name_to_route53(
 
     let mut changes = Vec::new();
 
-    for &domain in &domain_names {
+    for domain in &domain_names {
         let resource_record = ResourceRecord::builder().value(public_ip).build()?;
 
         let resource_record_set = ResourceRecordSet::builder()
-            .name(domain)
+            .name(domain.as_str())
             .r#type("A".into()) // A record for IPv4
             .ttl(300) // Time-to-live (in seconds)
             .resource_records(resource_record)
