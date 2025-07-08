@@ -3,6 +3,7 @@ use super::*;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::traefik::navfiber_boltwall_shared_host;
 use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -35,8 +36,12 @@ impl Repo2GraphImage {
         self.links = strarr(links);
     }
     pub fn host(&mut self, eh: Option<String>) {
-        if let Some(h) = eh {
-            self.host = Some(format!("{}.{}", self.name, h));
+        if let Some(shared_host) = navfiber_boltwall_shared_host() {
+            self.host = Some(format!("{}.{}", self.name, shared_host))
+        } else {
+            if let Some(h) = eh {
+                self.host = Some(format!("{}.{}", self.name, h));
+            }
         }
     }
 }
