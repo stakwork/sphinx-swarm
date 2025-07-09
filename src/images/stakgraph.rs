@@ -73,7 +73,7 @@ impl DockerHubImage for StakgraphImage {
         Repository {
             registry: Registry::Ghcr,
             org: "stakwork".to_string(),
-            repo: "stakgraph".to_string(),
+            repo: "stakgraph-standalone".to_string(),
             root_volume: "/root".to_string(),
         }
     }
