@@ -5,5 +5,6 @@ docker pull sphinxlightning/sphinx-boltwall:latest
 docker pull sphinxlightning/sphinx-nav-fiber:latest
 docker pull sphinxlightning/sphinx-runner:latest
 docker pull ghcr.io/stakwork/stakgraph-mcp:latest
-docker pull ghcr.io/evanfeenstra/chrome-playwright:latest
+# docker pull ghcr.io/evanfeenstra/chrome-playwright:latest
+docker pull ghcr.io/stakwork/stakgraph-standalone:latest
 docker pull elasticsearch:8.11.1

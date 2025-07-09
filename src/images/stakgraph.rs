@@ -25,9 +25,10 @@ pub struct StakgraphImage {
   type: Stakgraph
   name: stakgraph
   version: latest
-  port: '7779'
+  port: '7799'
   host: stakgraph.swarm38.sphinx.chat
   links:
+  - boltwall
   - neo4j
 
 */
