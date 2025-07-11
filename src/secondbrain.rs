@@ -63,6 +63,12 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     repo2graph.host(host.clone());
     repo2graph.links(vec!["neo4j", "boltwall"]);
 
+    // stakgraph
+    v = "latest";
+    let mut stakgraph = crate::images::stakgraph::StakgraphImage::new("stakgraph", v, "7799");
+    stakgraph.host(host.clone());
+    stakgraph.links(vec!["neo4j", "boltwall"]);
+
     // boltwall
     v = "latest";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
@@ -88,6 +94,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Jarvis(jarvis),
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
+        Image::Stakgraph(stakgraph)
     ];
 
     if env_is_true("LOCAL_LLAMA") {
