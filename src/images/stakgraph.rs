@@ -17,6 +17,8 @@ pub struct StakgraphImage {
     pub port: String,
     pub links: Links,
     pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_log: Option<String>, // for debugging
 }
 
 /*
@@ -40,6 +42,7 @@ impl StakgraphImage {
             version: version.to_string(),
             port: port.to_string(),
             links: vec![],
+            rust_log: None,
             host: None,
         }
     }
@@ -106,6 +109,12 @@ fn stakgraph(
     if let Some(boltwall) = boltwall {
         if let Some(api_token) = &boltwall.stakwork_secret {
             env.push(format!("API_TOKEN={}", api_token));
+        }
+    }
+    if let Some(rust_log) = &img.rust_log {
+        env.push(format!("RUST_LOG={}", rust_log));
+        if rust_log == "debug"|| rust_log == "trace" {
+            env.push("RUST_BACKTRACE=1".to_string());
         }
     }
 
