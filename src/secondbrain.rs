@@ -8,6 +8,7 @@ use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::repo2graph::Repo2GraphImage;
+use crate::images::stakgraph::StakgraphImage;
 use crate::images::Image;
 use crate::secrets;
 
@@ -28,6 +29,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "boltwall".to_string(),
             "navfiber".to_string(),
             "repo2graph".to_string(),
+            "stakgraph".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -65,7 +67,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
 
     // stakgraph
     v = "latest";
-    let mut stakgraph = crate::images::stakgraph::StakgraphImage::new("stakgraph", v, "7799");
+    let mut stakgraph = StakgraphImage::new("stakgraph", v, "7799");
     stakgraph.host(host.clone());
     stakgraph.links(vec!["neo4j", "boltwall"]);
 
