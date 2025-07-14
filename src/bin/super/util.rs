@@ -820,7 +820,7 @@ pub async fn create_swarm_ec2(
 
     log::info!("New Swarm added to stack");
     Ok(CreateEc2InstanceRes {
-        swarm_id: default_host.clone(),
+        swarm_id: format!("swarm{}", ec2_intance.1),
     })
 }
 
