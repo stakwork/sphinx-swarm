@@ -19,6 +19,7 @@ use sphinx_swarm::cmd::{
     send_cmd_request, ChangeUserPasswordBySuperAdminInfo, Cmd, LoginInfo, SwarmCmd, UpdateNode,
 };
 use sphinx_swarm::config::Stack;
+use sphinx_swarm::conn::boltwall::ApiToken;
 use sphinx_swarm::conn::swarm::ChangePasswordBySuperAdminResponse;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
@@ -26,11 +27,11 @@ use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
     CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
-    LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
+    GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::get_swarms_by_tag;
 use crate::route53::add_domain_name_to_route53;
-use crate::state::{AwsInstanceType, InstanceFromAws, RemoteStack, Super};
+use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
@@ -175,9 +176,11 @@ pub fn get_child_base_route(host: String) -> Result<String, Error> {
         return Err(anyhow!("child swarm default host not provided"));
     };
 
-    return Ok(format!("https://app.{}/api", host));
+    if host.contains("localhost") {
+        return Ok(format!("http://{}/api", host));
+    }
 
-    // return Ok(format!("http://{}/api", host));
+    return Ok(format!("https://app.{}/api", host));
 }
 
 pub async fn get_child_swarm_containers(
@@ -817,7 +820,7 @@ pub async fn create_swarm_ec2(
 
     log::info!("New Swarm added to stack");
     Ok(CreateEc2InstanceRes {
-        swarm_id: default_host.clone(),
+        swarm_id: format!("swarm{}", ec2_intance.1),
     })
 }
 
@@ -1189,6 +1192,62 @@ async fn handle_update_swarm_child_password(
         success: result.success,
         message: result.message,
         data: None,
+    })
+}
+
+pub async fn get_swarm_details_by_id(id: &str) -> SuperSwarmResponse {
+    // conf can be mutated in place
+    let state = state::STATE.lock().await;
+    let default_host = format!("{}.sphinx.chat", id);
+    match state.find_swarm_by_default_host(default_host.as_str()) {
+        Some(value) => match handle_get_swarm_details_by_default_id(value).await {
+            Ok(result) => result,
+            Err(err) => SuperSwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            },
+        },
+        None => SuperSwarmResponse {
+            success: false,
+            message: "Invalid swarm id".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn handle_get_swarm_details_by_default_id(
+    swarm_details: &RemoteStack,
+) -> Result<SuperSwarmResponse, Error> {
+    let token = login_to_child_swarm(swarm_details).await?;
+
+    let cmd = Cmd::Swarm(SwarmCmd::GetApiToken);
+
+    let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
+
+    let result: ApiToken = match res.json().await {
+        Ok(res_body) => res_body,
+        Err(err) => {
+            return Ok(SuperSwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            })
+        }
+    };
+
+    let data = GetSwarmDetailsByDefaultHost {
+        x_api_key: result.x_api_token,
+        address: swarm_details.host.clone(),
+        ec2_id: swarm_details.ec2_instance_id.clone(),
+    };
+
+    let json_value: Value = serde_json::to_value(data)?;
+
+    Ok(SuperSwarmResponse {
+        success: true,
+        message: "Swarm details".to_string(),
+        data: Some(json_value),
     })
 }
 

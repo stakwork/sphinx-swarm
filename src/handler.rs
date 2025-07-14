@@ -62,6 +62,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::GetAllImageActualVersion => true,
                 SwarmCmd::ChangePassword(_) => true,
                 SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
+                SwarmCmd::GetApiToken => true,
                 _ => false,
             },
             _ => false,
