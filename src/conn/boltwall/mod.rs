@@ -32,7 +32,7 @@ pub struct UpdatePaidEndpointBody {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiToken {
-    x_api_token: String,
+    pub x_api_token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

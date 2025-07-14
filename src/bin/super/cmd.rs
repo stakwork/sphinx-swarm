@@ -162,6 +162,13 @@ pub struct GetInstanceTypeRes {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetSwarmDetailsByDefaultHost {
+    pub x_api_key: String,
+    pub address: String,
+    pub ec2_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LightningBotAccountRes {
     pub contact_info: String,
     pub alias: String,
