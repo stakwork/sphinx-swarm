@@ -51,3 +51,11 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
 
     return Ok(instances);
 }
+
+pub async fn instance_with_swarm_name_exists(swarm_name: &str) -> Result<bool, Error> {
+    match get_swarms_by_tag("Name", swarm_name).await {
+        Ok(instances) => Ok(!instances.is_empty()),
+        Err(err) if err.to_string() == "No instances found with the given tag." => Ok(false),
+        Err(err) => Err(err),
+    }
+}

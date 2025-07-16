@@ -2,6 +2,7 @@ use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
+use aws_sdk_route53::types::RrType;
 use aws_sdk_route53::types::{
     Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet,
 };
@@ -9,19 +10,24 @@ use aws_sdk_route53::Client as Route53Client;
 use aws_smithy_types::retry::RetryConfig;
 use sphinx_swarm::utils::getenv;
 
-pub async fn add_domain_name_to_route53(
-    domain_names: Vec<String>,
-    public_ip: &str,
-) -> Result<(), Error> {
+async fn make_route_53_client() -> Result<Route53Client, Error> {
     let region = getenv("AWS_REGION")?;
-    let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
         .region(region_provider)
         .retry_config(RetryConfig::standard().with_max_attempts(10))
         .load()
         .await;
-    let route53_client = Route53Client::new(&config);
+    Ok(Route53Client::new(&config))
+}
+
+pub async fn add_domain_name_to_route53(
+    domain_names: Vec<String>,
+    public_ip: &str,
+) -> Result<(), Error> {
+    let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
+
+    let route53_client = make_route_53_client().await?;
 
     let mut changes = Vec::new();
 
@@ -91,4 +97,47 @@ pub async fn add_domain_name_to_route53(
             return Err(anyhow!("Unexpected error"));
         }
     }
+}
+
+pub async fn domain_exists_in_route53(domain: &str) -> Result<bool, Error> {
+    let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
+
+    let client = make_route_53_client().await?;
+
+    let mut start_record_name = None;
+    let mut start_record_type = None;
+
+    loop {
+        let mut request = client
+            .list_resource_record_sets()
+            .hosted_zone_id(&hosted_zone_id);
+
+        if let Some(name) = start_record_name.clone() {
+            request = request.start_record_name(name);
+        }
+
+        if let Some(rrtype) = start_record_type.clone() {
+            request = request.start_record_type(rrtype);
+        }
+
+        let result = request.send().await?;
+
+        for record_set in result.resource_record_sets() {
+            let record_name = record_set.name().trim_end_matches('.');
+            let record_type = record_set.r#type();
+
+            if record_name == domain && *record_type == RrType::A {
+                return Ok(true);
+            }
+        }
+
+        if result.is_truncated() {
+            start_record_name = result.next_record_name().map(|s| s.to_string());
+            start_record_type = result.next_record_type().cloned();
+        } else {
+            break;
+        }
+    }
+
+    Ok(false)
 }
