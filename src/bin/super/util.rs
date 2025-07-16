@@ -29,7 +29,7 @@ use crate::cmd::{
     CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
-use crate::ec2::get_swarms_by_tag;
+use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
 use crate::route53::add_domain_name_to_route53;
 use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
@@ -770,6 +770,15 @@ pub async fn create_swarm_ec2(
                 return Err(anyhow!("Vanity Address doesn't match the expected format."));
             }
         }
+    }
+
+    let swarm_exist = instance_with_swarm_name_exists(&info.name).await?;
+
+    if swarm_exist {
+        return Err(anyhow!(
+            "Another Swarm with name: {} already exist!",
+            info.name
+        ));
     }
 
     let ec2_intance = create_ec2_instance(
