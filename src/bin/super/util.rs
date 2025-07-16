@@ -30,7 +30,7 @@ use crate::cmd::{
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
-use crate::route53::add_domain_name_to_route53;
+use crate::route53::{add_domain_name_to_route53, domain_exists_in_route53};
 use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
@@ -764,6 +764,12 @@ pub async fn create_swarm_ec2(
                 let domain_status = is_valid_domain(subdomain.to_string());
                 if !domain_status.is_empty() {
                     return Err(anyhow!(domain_status));
+                }
+                let vanity_address_exist = domain_exists_in_route53(&vanity_address).await?;
+                if vanity_address_exist {
+                    return Err(anyhow!(
+                        "Sorry another Service is using this vanity address"
+                    ));
                 }
                 actual_vanity_address = Some(vanity_address.to_string());
             } else {
