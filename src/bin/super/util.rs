@@ -336,6 +336,10 @@ fn instance_types() -> Vec<AwsInstanceType> {
             name: "Extra Large GPU".to_string(),
             value: "g4dn.2xlarge".to_string(),
         },
+        AwsInstanceType {
+            name: "New Test Medium".to_string(),
+            value: "x8g.medium".to_string(),
+        },
     ];
 }
 
