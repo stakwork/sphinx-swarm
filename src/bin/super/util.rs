@@ -337,8 +337,12 @@ fn instance_types() -> Vec<AwsInstanceType> {
             value: "g4dn.2xlarge".to_string(),
         },
         AwsInstanceType {
-            name: "New Test Medium".to_string(),
+            name: "8G Medium".to_string(),
             value: "x8g.medium".to_string(),
+        },
+        AwsInstanceType {
+            name: "8G Large".to_string(),
+            value: "x8g.large".to_string(),
         },
     ];
 }
