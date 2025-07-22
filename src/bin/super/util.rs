@@ -348,6 +348,10 @@ fn instance_types() -> Vec<AwsInstanceType> {
             name: "R6I Large".to_string(),
             value: "r6i.large".to_string(),
         },
+        AwsInstanceType {
+            name: "M6I Large".to_string(),
+            value: "m6i.xlarge".to_string(),
+        },
     ];
 }
 
