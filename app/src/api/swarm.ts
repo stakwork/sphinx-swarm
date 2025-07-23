@@ -384,15 +384,18 @@ export async function create_new_swarm_ec2({
   name,
   vanity_address,
   instance_type,
+  env,
 }: {
   vanity_address?: string;
   name: string;
   instance_type: string;
+  env: { [key: string]: string };
 }) {
   return await swarmCmd("CreateNewEc2Instance", {
     vanity_address,
     name,
     instance_type,
+    env,
   });
 }
 
