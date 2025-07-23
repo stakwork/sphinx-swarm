@@ -331,7 +331,7 @@ fn instance_types() -> Vec<AwsInstanceType> {
         // m5.xlarge
         AwsInstanceType {
             name: "Extra Large".to_string(),
-            value: "m6i.xlarge ".to_string(),
+            value: "m6i.xlarge".to_string(),
         },
         AwsInstanceType {
             name: "Extra Large GPU".to_string(),
