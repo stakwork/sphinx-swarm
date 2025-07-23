@@ -12,6 +12,7 @@
     ToolbarBatchActions,
     Select,
     SelectItem,
+    Checkbox,
   } from "carbon-components-svelte";
   import { UpdateNow, Stop } from "carbon-icons-svelte";
 
@@ -52,6 +53,11 @@
   let aws_instance_types = [];
   let selected_instance = "";
   let vanity_address_error = "";
+  let repo_2_graph_checked = false;
+  let repo_2_graph_env = {
+    JARVIS_FEATURE_FLAG_WFA_SCHEMAS: "true",
+    JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS: "true",
+  };
 
   let selectedRowIds = [];
 
@@ -321,6 +327,7 @@
         name: `${name}${swarm_name_suffix}`,
         vanity_address: formattedAddress,
         instance_type: selected_instance,
+        ...(repo_2_graph_checked && { env: { ...repo_2_graph_env } }),
       };
 
       const response = await create_new_swarm_ec2(data);
@@ -333,6 +340,7 @@
         vanity_input_width = max_input_with;
         swarm_name_width = max_input_with;
         show_notification = true;
+        repo_2_graph_checked = false;
 
         await getConfig();
 
@@ -520,6 +528,9 @@
       </div>
       <small class="error-message">{vanity_address_error}</small>
     </div>
+    <div class="checkbox_container">
+      <Checkbox labelText="Repo2Graph" bind:checked={repo_2_graph_checked} />
+    </div>
   </Modal>
 </main>
 
@@ -607,5 +618,9 @@
   .host_name {
     text-decoration: underline;
     cursor: pointer;
+  }
+
+  .checkbox_container {
+    margin-top: 1rem;
   }
 </style>
