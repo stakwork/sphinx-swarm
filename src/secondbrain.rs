@@ -1,7 +1,6 @@
 use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
-use crate::images::elastic::ElasticImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
@@ -41,14 +40,14 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
 
 pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<Image> {
     // neo4j
-    let v = "5.19.0";
+    let mut v = "5.19.0";
     let mut neo4j = Neo4jImage::new("neo4j", v);
     neo4j.host(host.clone());
 
     // elastic
-    let mut v = "8.11.1";
-    let mut elastic = ElasticImage::new("elastic", v);
-    elastic.host(host.clone());
+    // let mut v = "8.11.1";
+    // let mut elastic = ElasticImage::new("elastic", v);
+    // elastic.host(host.clone());
 
     // redis
     v = "latest";
@@ -91,7 +90,6 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     let mut imgs = vec![
         Image::NavFiber(nav),
         Image::Neo4j(neo4j),
-        Image::Elastic(elastic),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),
         Image::Redis(redis),
