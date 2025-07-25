@@ -175,8 +175,7 @@ fn filter_out_reserved_ports_if_using_port_based_ssl(ports: Vec<String>) -> Vec<
         .collect()
 }
 
-pub fn exposed_ports(mut ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
-    ports = filter_out_reserved_ports_if_using_port_based_ssl(ports);
+pub fn exposed_ports(ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
     let mut ps = HashMap::new();
     for port in ports {
         ps.insert(tcp_port(&port), HashMap::new());
