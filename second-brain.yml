@@ -24,7 +24,7 @@ services:
       - "--entrypoints.port6000.address=:6000"
       - "--entrypoints.port8001.address=:8001"
       - "--entrypoints.port8444.address=:8444"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=evanfeenstra@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
       # - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
@@ -51,6 +51,8 @@ services:
       - /home/admin/letsencrypt:/letsencrypt
     environment:
       - AWS_REGION=$AWS_REGION
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     logging:
       options:
         max-size: 10m
@@ -79,6 +81,7 @@ services:
     environment:
       - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
       - DOCKER_RUN=true # client use sphinx-swarm network
+      - PORT_BASED_SSL=1
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8800

@@ -169,29 +169,42 @@ pub fn traefik_labels(
     to_labels(def)
 }
 
+pub fn extract_base_domain(host: &str) -> String {
+    let parts: Vec<&str> = host.split('.').collect();
+    if parts.len() >= 4 {
+        // Skip the first part (subdomain) and join the rest
+        parts[1..].join(".")
+    } else {
+        // If it's already a base domain or malformed, return as-is
+        host.to_string()
+    }
+}
+
 pub fn traefik_labels_port_based_ssl(
     name: &str,
     host: &str,
-    port: &str, // Same port used internally and externally
+    port: &str,
     websockets: bool,
 ) -> HashMap<String, String> {
+    let base_host = extract_base_domain(host);
     let entrypoint_name = format!("port{}", port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
-
+    
     let mut def = vec![
         "traefik.enable=true".to_string(),
-        format!("{}={}", lb, port), // Container listens on same port
+        format!("{}={}", lb, port),
         format!("traefik.http.routers.{}.entrypoints={}", name, entrypoint_name),
-        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, host),
-
+        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, base_host), // Uses base domain
+        
         // SSL configuration
         format!("traefik.http.routers.{}.tls=true", name),
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
     ];
+
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string());
     }
-
+    
     to_labels(def)
 }
 
