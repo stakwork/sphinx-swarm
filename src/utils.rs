@@ -171,7 +171,7 @@ fn filter_out_reserved_ports_if_using_port_based_ssl(ports: Vec<String>) -> Vec<
     }
     ports
         .into_iter()
-        .filter(|p| p != "7799" && p != "3355" && p != "8001" && p != "6000" && p != "8444")
+        .filter(|p| p != "7799" && p != "3355" && p != "8000" && p != "6000" && p != "8444")
         .collect()
 }
 

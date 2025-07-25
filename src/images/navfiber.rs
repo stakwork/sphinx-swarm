@@ -72,7 +72,7 @@ fn navfiber(node: &NavFiberImage) -> Config<String> {
         ..Default::default()
     };
     let inner_port = "80";
-    // override the nginix port 80 -> 8001:80
+    // override the nginix port 80 -> 8000:80
     if !is_using_port_based_ssl() {
         c.host_config.as_mut().unwrap().port_bindings =
             single_host_port_from(&node.port, inner_port);

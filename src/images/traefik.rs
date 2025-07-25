@@ -190,9 +190,11 @@ pub fn traefik_labels_port_based_ssl(
     let entrypoint_name = format!("port{}", port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
 
+    // SPECIAL case for navfiber (map to internal port 80)
+    let container_port = if port == "8000" { "80" } else { port };
     let mut def = vec![
         "traefik.enable=true".to_string(),
-        format!("{}={}", lb, port),
+        format!("{}={}", lb, container_port),
         format!(
             "traefik.http.routers.{}.entrypoints={}",
             name, entrypoint_name

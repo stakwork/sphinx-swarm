@@ -24,7 +24,7 @@ services:
       - "--entrypoints.port7799.address=:7799"
       - "--entrypoints.port3355.address=:3355"
       - "--entrypoints.port6000.address=:6000"
-      - "--entrypoints.port8001.address=:8001"
+      - "--entrypoints.port8000.address=:8000"
       - "--entrypoints.port8444.address=:8444"
       - "--entrypoints.port8800.address=:8800"
     ports:
@@ -39,7 +39,7 @@ services:
       - 7799:7799 # stakgraph
       - 3355:3355 # repo2graph
       - 6000:6000 # jarvis
-      - 8001:8001 # navfiber
+      - 8000:8000 # navfiber
       - 8444:8444 # boltwall
       - 8800:8800 # swarm
     volumes:

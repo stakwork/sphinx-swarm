@@ -83,7 +83,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
 
     // navfiber
     v = "latest";
-    let mut nav = NavFiberImage::new("navfiber", v, "8001");
+    let mut nav = NavFiberImage::new("navfiber", v, "8000");
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
 
