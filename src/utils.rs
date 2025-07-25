@@ -156,7 +156,7 @@ pub fn docker_domain_tonic(name: &str) -> String {
     }
 }
 
-fn is_using_port_based_ssl() -> bool {
+pub fn is_using_port_based_ssl() -> bool {
     if let Ok(pbs) = std::env::var("PORT_BASED_SSL") {
         if pbs == "true" || pbs == "1" {
             return true;
