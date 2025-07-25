@@ -142,7 +142,7 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
     let dbms_allow_upgrade = "NEO4J_dbms_allow__upgrade=true";
     let mut dbms_default_database = "NEO4J_dbms_default__database=neo4j";
     // let dbms_security_procedures_unrestricted =
-        // "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*";
+    // "NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*,gds.*";
     // let dbms_security_procedures_whitelist = "NEO4J_dbms_security_procedures_whitelist=apoc.*";
     // let mut dbms_security_auth_minimum_password_length =
     //     "NEO4J_dbms_security_auth__minimum__password__length=4";

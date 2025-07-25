@@ -1,4 +1,4 @@
-# docker-compose -f second-brain.yml up sphinx-swarm -d
+# docker-compose -f second-brain-2.yml up sphinx-swarm -d
 
 version: "2"
 
@@ -61,8 +61,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/vol:/vol
       - /home/admin/sphinx-swarm/.env:/.env
-    ports:
-      - 8800:8800
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.elements.rule=Host(`${HOST}`)"

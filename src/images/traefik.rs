@@ -1,5 +1,5 @@
 use super::*;
-use crate::utils::{domain, manual_host_config, getenv};
+use crate::utils::{domain, getenv, manual_host_config};
 use bollard::container::Config;
 use std::collections::HashMap;
 
@@ -189,13 +189,15 @@ pub fn traefik_labels_port_based_ssl(
     let base_host = extract_base_domain(host);
     let entrypoint_name = format!("port{}", port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
-    
+
     let mut def = vec![
         "traefik.enable=true".to_string(),
         format!("{}={}", lb, port),
-        format!("traefik.http.routers.{}.entrypoints={}", name, entrypoint_name),
+        format!(
+            "traefik.http.routers.{}.entrypoints={}",
+            name, entrypoint_name
+        ),
         format!("traefik.http.routers.{}.rule=Host(`{}`)", name, base_host), // Uses base domain
-        
         // SSL configuration
         format!("traefik.http.routers.{}.tls=true", name),
         // format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
@@ -204,7 +206,7 @@ pub fn traefik_labels_port_based_ssl(
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string());
     }
-    
+
     to_labels(def)
 }
 

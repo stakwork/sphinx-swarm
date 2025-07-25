@@ -113,7 +113,7 @@ fn stakgraph(
     }
     if let Some(rust_log) = &img.rust_log {
         env.push(format!("RUST_LOG={}", rust_log));
-        if rust_log == "debug"|| rust_log == "trace" {
+        if rust_log == "debug" || rust_log == "trace" {
             env.push("RUST_BACKTRACE=1".to_string());
         }
     }

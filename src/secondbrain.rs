@@ -94,7 +94,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Jarvis(jarvis),
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
-        Image::Stakgraph(stakgraph)
+        Image::Stakgraph(stakgraph),
     ];
 
     if env_is_true("LOCAL_LLAMA") {
