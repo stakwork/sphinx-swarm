@@ -198,7 +198,7 @@ pub fn traefik_labels_port_based_ssl(
         
         // SSL configuration
         format!("traefik.http.routers.{}.tls=true", name),
-        format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+        // format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
     ];
 
     if websockets {
