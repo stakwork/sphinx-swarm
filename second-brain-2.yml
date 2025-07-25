@@ -26,6 +26,7 @@ services:
       - "--entrypoints.port6000.address=:6000"
       - "--entrypoints.port8001.address=:8001"
       - "--entrypoints.port8444.address=:8444"
+      - "--entrypoints.port8800.address=:8800"
     ports:
       # The HTTP port
       - 80:80
@@ -40,6 +41,7 @@ services:
       - 6000:6000 # jarvis
       - 8001:8001 # navfiber
       - 8444:8444 # boltwall
+      - 8800:8800 # swarm
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
@@ -63,16 +65,15 @@ services:
       - 8800:8800
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.elements.rule=Host(`app.${HOST}`)"
+      - "traefik.http.routers.elements.rule=Host(`${HOST}`)"
       - "traefik.http.services.elements.loadbalancer.server.port=8800"
       - "traefik.http.routers.elements.tls=true"
-      - "traefik.http.routers.elements.tls.certresolver=myresolver"
-      - "traefik.http.routers.elements.entrypoints=websecure"
+      - "traefik.http.routers.elements.entrypoints=port8800"
     restart: unless-stopped
     environment:
       - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
       - DOCKER_RUN=true # client use sphinx-swarm network
-      - PORT_BASED_SSL=$PORT_BASED_SSL
+      - PORT_BASED_SSL=1
       - NETWORK=bitcoin
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8800
