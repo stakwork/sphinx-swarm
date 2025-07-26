@@ -519,6 +519,7 @@ async fn create_ec2_instance(
           echo "SUPER_URL={super_url}" >> .env && \
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
+          echo "PORT_BASED_SSL=true" >> .env && \
           
           sleep 60 && \
           
