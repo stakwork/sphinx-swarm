@@ -550,7 +550,7 @@ async fn create_ec2_instance(
           startup_command=$(pm2 startup | grep "sudo" | tail -n 1) && \
           eval $startup_command && \
           pm2 save && \
-          ./restart-second-brain.sh
+          ./restart-second-brain-2.sh
       '
       "#
     );
