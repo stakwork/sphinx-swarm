@@ -123,7 +123,7 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
 pub fn traefik_labels(
     name: &str,
     host: &str, // stakgraph.swarm38.sphinx.chat
-    port: &str, // http port
+    port: &str, // inner port (like 80 for navfiber nginx, not 8000)
     websockets: bool,
 ) -> HashMap<String, String> {
     if let Ok(pbs) = getenv("PORT_BASED_SSL") {
@@ -187,14 +187,15 @@ pub fn traefik_labels_port_based_ssl(
     websockets: bool,
 ) -> HashMap<String, String> {
     let base_host = extract_base_domain(host);
-    let entrypoint_name = format!("port{}", port);
+
+    // SPECIAL case for navfiber (internal port 80 -> external port 8000)
+    let entrypoint_port = if port == "80" { "8000" } else { port };
+    let entrypoint_name = format!("port{}", entrypoint_port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
 
-    // SPECIAL case for navfiber (map to internal port 80)
-    let container_port = if port == "8000" { "80" } else { port };
     let mut def = vec![
         "traefik.enable=true".to_string(),
-        format!("{}={}", lb, container_port),
+        format!("{}={}", lb, port),
         format!(
             "traefik.http.routers.{}.entrypoints={}",
             name, entrypoint_name
