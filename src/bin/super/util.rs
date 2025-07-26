@@ -470,7 +470,7 @@ async fn create_ec2_instance(
           sudo chmod +x /usr/local/bin/docker-compose && \
           docker-compose version && \
           sudo apt update && \
-          sudo apt install -y git && \
+          sudo apt install -y git unzip awscli && \
           
           # Create Docker network
           echo "Creating Docker network..." && \
@@ -480,6 +480,16 @@ async fn create_ec2_instance(
           
           sleep 10 && \
           pwd && \
+
+          #Setup TLS Cert
+          cd /home/admin && \
+          mkdir -p certs && \
+          cd /home/admin/certs && \
+          aws s3 cp s3://{aws_s3_bucket_name}/data.zip . && \
+          unzip -j data.zip "home/admin/certs/*" && \
+          sudo chown admin:admin /home/admin/certs/* && \
+          sudo chmod 644 /home/admin/certs/sphinx.chat.crt && \
+          sudo chmod 600 /home/admin/certs/sphinx.chat.key && \
           cd /home/admin && \
           git clone https://github.com/stakwork/sphinx-swarm.git && \
           cd sphinx-swarm && \
