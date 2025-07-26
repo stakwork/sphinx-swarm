@@ -812,19 +812,24 @@ pub async fn create_swarm_ec2(
     let default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
 
     let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
-    let default_domain = format!("*.{}", default_host);
-    let mut domain_names = vec![default_domain];
+    // let default_domain = format!("*.{}", default_host);
+    // let mut domain_names = vec![default_domain];
 
-    let mut host = default_host.clone();
+    let mut domain_name = default_host.clone();
+
+    let host = default_host.clone();
 
     if let Some(custom_domain) = &actual_vanity_address {
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
-            host = custom_domain.clone();
-            domain_names.push(custom_domain.clone());
-            domain_names.push(format!("*.{}", custom_domain));
+            // host = custom_domain.clone();
+            // domain_names.push(custom_domain.clone());
+            // domain_names.push(format!("*.{}", custom_domain));
+            domain_name = custom_domain.to_string();
         }
     }
+
+    let domain_names = vec![domain_name];
 
     let _ = add_domain_name_to_route53(domain_names, &ec2_ip_address).await?;
 
