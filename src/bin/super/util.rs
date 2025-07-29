@@ -872,6 +872,8 @@ pub async fn create_swarm_ec2(
 
     log::info!("Public_IP: {}", ec2_ip_address);
 
+    let swarm_id = format!("swarm{}", ec2_intance.1);
+
     // add new ec2 to list of swarms
     let new_swarm = RemoteStack {
         host: host,
@@ -883,14 +885,13 @@ pub async fn create_swarm_ec2(
         ec2_instance_id: ec2_intance.0,
         public_ip_address: Some("".to_string()),
         private_ip_address: Some("".to_string()),
+        id: Some(swarm_id.clone()),
     };
 
     state.add_remote_stack(new_swarm);
 
     log::info!("New Swarm added to stack");
-    Ok(CreateEc2InstanceRes {
-        swarm_id: format!("swarm{}", ec2_intance.1),
-    })
+    Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
 }
 
 fn is_valid_domain(domain: String) -> String {
