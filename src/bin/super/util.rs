@@ -180,6 +180,10 @@ pub fn get_child_base_route(host: String) -> Result<String, Error> {
         return Ok(format!("http://{}/api", host));
     }
 
+    if host.contains(":8800") {
+        return Ok(format!("https://{}/api", host));
+    }
+
     return Ok(format!("https://app.{}/api", host));
 }
 
