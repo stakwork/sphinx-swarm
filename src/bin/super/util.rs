@@ -381,6 +381,7 @@ async fn create_ec2_instance(
     vanity_address: Option<String>,
     instance_type_name: String,
     env: Option<HashMap<String, String>>,
+    subdomain_ssl: Option<bool>,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -426,6 +427,31 @@ async fn create_ec2_instance(
     let key = getenv("SWARM_TAG_KEY")?;
 
     let value = getenv("SWARM_TAG_VALUE")?;
+
+    let mut host = custom_domain.clone();
+
+    let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
+
+    let mut setup_tls_cert = format!(
+        r#"cd /home/admin && \
+          mkdir -p certs && \
+          cd /home/admin/certs && \
+          aws s3 cp s3://{aws_s3_bucket_name}/data.zip . && \
+          unzip -j data.zip "home/admin/certs/*" && \
+          sudo chown admin:admin /home/admin/certs/* && \
+          sudo chmod 644 /home/admin/certs/sphinx.chat.crt && \
+          sudo chmod 600 /home/admin/certs/sphinx.chat.key && \"#,
+    );
+    let mut port_based_ssl = r#"echo "PORT_BASED_SSL=true" >> .env && \"#.to_string();
+
+    if let Some(is_subdomain_ssl) = subdomain_ssl {
+        if is_subdomain_ssl == true {
+            host = format!("swarm{}.sphinx.chat", swarm_number);
+            docker_compose_start_script = format!(r#"./restart-second-brain.sh"#);
+            setup_tls_cert = "".to_string();
+            port_based_ssl = "".to_string()
+        }
+    }
 
     let mut env_lines = "".to_string();
 
@@ -482,14 +508,7 @@ async fn create_ec2_instance(
           pwd && \
 
           #Setup TLS Cert
-          cd /home/admin && \
-          mkdir -p certs && \
-          cd /home/admin/certs && \
-          aws s3 cp s3://{aws_s3_bucket_name}/data.zip . && \
-          unzip -j data.zip "home/admin/certs/*" && \
-          sudo chown admin:admin /home/admin/certs/* && \
-          sudo chmod 644 /home/admin/certs/sphinx.chat.crt && \
-          sudo chmod 600 /home/admin/certs/sphinx.chat.key && \
+          {setup_tls_cert}
           cd /home/admin && \
           git clone https://github.com/stakwork/sphinx-swarm.git && \
           cd sphinx-swarm && \
@@ -499,7 +518,7 @@ async fn create_ec2_instance(
           
           # Populate the .env file
           {env_lines}
-          echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
+          echo "HOST={host}" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
           echo "AWS_REGION=us-east-1" >> .env && \
           echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env && \
@@ -519,7 +538,8 @@ async fn create_ec2_instance(
           echo "SUPER_URL={super_url}" >> .env && \
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
-          echo "PORT_BASED_SSL=true" >> .env && \
+          echo "SWARM_NUMBER={swarm_number}" >> .env && \
+          {port_based_ssl}
           
           sleep 60 && \
           
@@ -551,7 +571,7 @@ async fn create_ec2_instance(
           startup_command=$(pm2 startup | grep "sudo" | tail -n 1) && \
           eval $startup_command && \
           pm2 save && \
-          ./restart-second-brain-2.sh
+          {docker_compose_start_script}
       '
       "#
     );
@@ -804,6 +824,7 @@ pub async fn create_swarm_ec2(
         actual_vanity_address.clone(),
         info.instance_type.clone(),
         info.env.clone(),
+        info.subdomain_ssl.clone(),
     )
     .await?;
 
