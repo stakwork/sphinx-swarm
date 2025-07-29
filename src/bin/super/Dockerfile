@@ -1,7 +1,9 @@
 # docker build -f src/bin/super/Dockerfile -t sphinx-super .
+# or
+# docker buildx build --platform linux/amd64 -f src/bin/super/Dockerfile -t sphinx-super .
 
 # Rust as the base image
-FROM rust:1.78-slim-bullseye as build
+FROM rust:1.78-slim-bullseye AS build
 
 # Create a new empty shell project
 # RUN USER=root cargo new --lib sphinx-swarm
