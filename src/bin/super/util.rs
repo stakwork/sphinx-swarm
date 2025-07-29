@@ -839,6 +839,7 @@ pub async fn create_swarm_ec2(
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
+            default_host = format!("{}:8800", custom_domain.clone());
         }
     }
 
