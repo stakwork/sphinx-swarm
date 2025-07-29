@@ -136,6 +136,7 @@ async fn create_new_swarm(
         instance_type: body.instance_type.clone(),
         token: verify_super_token.token.clone(),
         env: body.env.clone(),
+        subdomain_ssl: body.subdomain_ssl.clone(),
     }));
 
     let txt = serde_json::to_string(&cmd)?;

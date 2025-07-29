@@ -381,6 +381,7 @@ async fn create_ec2_instance(
     vanity_address: Option<String>,
     instance_type_name: String,
     env: Option<HashMap<String, String>>,
+    subdomain_ssl: Option<bool>,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -427,6 +428,31 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
+    let mut host = custom_domain.clone();
+
+    let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
+
+    let mut setup_tls_cert = format!(
+        r#"cd /home/admin && \
+          mkdir -p certs && \
+          cd /home/admin/certs && \
+          aws s3 cp s3://{aws_s3_bucket_name}/data.zip . && \
+          unzip -j data.zip "home/admin/certs/*" && \
+          sudo chown admin:admin /home/admin/certs/* && \
+          sudo chmod 644 /home/admin/certs/sphinx.chat.crt && \
+          sudo chmod 600 /home/admin/certs/sphinx.chat.key && \"#,
+    );
+    let mut port_based_ssl = r#"echo "PORT_BASED_SSL=true" >> .env && \"#.to_string();
+
+    if let Some(is_subdomain_ssl) = subdomain_ssl {
+        if is_subdomain_ssl == true {
+            host = format!("swarm{}.sphinx.chat", swarm_number);
+            docker_compose_start_script = format!(r#"./restart-second-brain.sh"#);
+            setup_tls_cert = "".to_string();
+            port_based_ssl = "".to_string()
+        }
+    }
+
     let mut env_lines = "".to_string();
 
     if let Some(env_map) = env {
@@ -470,7 +496,7 @@ async fn create_ec2_instance(
           sudo chmod +x /usr/local/bin/docker-compose && \
           docker-compose version && \
           sudo apt update && \
-          sudo apt install -y git && \
+          sudo apt install -y git unzip awscli && \
           
           # Create Docker network
           echo "Creating Docker network..." && \
@@ -480,6 +506,9 @@ async fn create_ec2_instance(
           
           sleep 10 && \
           pwd && \
+
+          #Setup TLS Cert
+          {setup_tls_cert}
           cd /home/admin && \
           git clone https://github.com/stakwork/sphinx-swarm.git && \
           cd sphinx-swarm && \
@@ -489,7 +518,7 @@ async fn create_ec2_instance(
           
           # Populate the .env file
           {env_lines}
-          echo "HOST=swarm{swarm_number}.sphinx.chat" >> .env && \
+          echo "HOST={host}" >> .env && \
           echo "NETWORK=bitcoin" >> .env && \
           echo "AWS_REGION=us-east-1" >> .env && \
           echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env && \
@@ -509,6 +538,8 @@ async fn create_ec2_instance(
           echo "SUPER_URL={super_url}" >> .env && \
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
+          echo "SWARM_NUMBER={swarm_number}" >> .env && \
+          {port_based_ssl}
           
           sleep 60 && \
           
@@ -540,7 +571,7 @@ async fn create_ec2_instance(
           startup_command=$(pm2 startup | grep "sudo" | tail -n 1) && \
           eval $startup_command && \
           pm2 save && \
-          ./restart-second-brain.sh
+          {docker_compose_start_script}
       '
       "#
     );
@@ -793,31 +824,55 @@ pub async fn create_swarm_ec2(
         actual_vanity_address.clone(),
         info.instance_type.clone(),
         info.env.clone(),
+        info.subdomain_ssl.clone(),
     )
     .await?;
 
     sleep(Duration::from_secs(40)).await;
 
-    let default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+    let mut domain_names: Vec<String> = Vec::new();
 
-    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
-    let default_domain = format!("*.{}", default_host);
-    let mut domain_names = vec![default_domain];
-
-    let mut host = default_host.clone();
+    let mut default_host = format!("swarm{}.sphinx.chat:8800", &ec2_intance.1);
+    let mut host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
 
     if let Some(custom_domain) = &actual_vanity_address {
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
-            domain_names.push(custom_domain.clone());
-            domain_names.push(format!("*.{}", custom_domain));
+            default_host = format!("{}:8800", custom_domain.clone());
         }
     }
+
+    let mut subdomain_ssl = false;
+
+    if let Some(is_subdomain_ssl) = info.subdomain_ssl {
+        if is_subdomain_ssl == true {
+            subdomain_ssl = true
+        }
+    }
+
+    if subdomain_ssl == true {
+        default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+        let default_domain = format!("*.{}", default_host);
+        domain_names.push(default_domain);
+        if let Some(custom_domain) = &actual_vanity_address {
+            log::info!("vanity address is being set");
+            if !custom_domain.is_empty() {
+                host = custom_domain.clone();
+                domain_names.push(format!("*.{}", custom_domain));
+            }
+        }
+    }
+
+    domain_names.push(host.clone());
+
+    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
 
     let _ = add_domain_name_to_route53(domain_names, &ec2_ip_address).await?;
 
     log::info!("Public_IP: {}", ec2_ip_address);
+
+    let swarm_id = format!("swarm{}", ec2_intance.1);
 
     // add new ec2 to list of swarms
     let new_swarm = RemoteStack {
@@ -830,14 +885,13 @@ pub async fn create_swarm_ec2(
         ec2_instance_id: ec2_intance.0,
         public_ip_address: Some("".to_string()),
         private_ip_address: Some("".to_string()),
+        id: Some(swarm_id.clone()),
     };
 
     state.add_remote_stack(new_swarm);
 
     log::info!("New Swarm added to stack");
-    Ok(CreateEc2InstanceRes {
-        swarm_id: format!("swarm{}", ec2_intance.1),
-    })
+    Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
 }
 
 fn is_valid_domain(domain: String) -> String {
@@ -1214,8 +1268,7 @@ async fn handle_update_swarm_child_password(
 pub async fn get_swarm_details_by_id(id: &str) -> SuperSwarmResponse {
     // conf can be mutated in place
     let state = state::STATE.lock().await;
-    let default_host = format!("{}.sphinx.chat", id);
-    match state.find_swarm_by_default_host(default_host.as_str()) {
+    match state.find_swarm_by_id(id) {
         Some(value) => match handle_get_swarm_details_by_default_id(value).await {
             Ok(result) => result,
             Err(err) => SuperSwarmResponse {
