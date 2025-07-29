@@ -207,7 +207,7 @@ pub fn create_super_user() -> User {
             return;
         }
 
-        let default_host = getenv("HOST").unwrap_or("".to_string());
+        let mut default_host = getenv("HOST").unwrap_or("".to_string());
 
         if default_host.is_empty() {
             log::error!("HOST {}", &error_msg);
@@ -219,6 +219,12 @@ pub fn create_super_user() -> User {
 
         if my_domain.is_empty() {
             my_domain = default_host.clone();
+        }
+
+        let port_based_ssl = getenv("PORT_BASED_SSL").unwrap_or("".to_string());
+
+        if port_based_ssl == "true" || port_based_ssl == "1" {
+            default_host = format!("{}:8800", default_host)
         }
 
         let client = make_reqwest_client();
