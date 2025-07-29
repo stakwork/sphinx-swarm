@@ -830,27 +830,42 @@ pub async fn create_swarm_ec2(
 
     sleep(Duration::from_secs(40)).await;
 
-    let default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+    let mut domain_names: Vec<String> = Vec::new();
 
-    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
-    // let default_domain = format!("*.{}", default_host);
-    // let mut domain_names = vec![default_domain];
-
-    let mut domain_name = default_host.clone();
-
-    let host = default_host.clone();
+    let mut default_host = format!("swarm{}.sphinx.chat:8800", &ec2_intance.1);
+    let mut host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
 
     if let Some(custom_domain) = &actual_vanity_address {
         log::info!("vanity address is being set");
         if !custom_domain.is_empty() {
-            // host = custom_domain.clone();
-            // domain_names.push(custom_domain.clone());
-            // domain_names.push(format!("*.{}", custom_domain));
-            domain_name = custom_domain.to_string();
+            host = custom_domain.clone();
         }
     }
 
-    let domain_names = vec![domain_name];
+    let mut subdomain_ssl = false;
+
+    if let Some(is_subdomain_ssl) = info.subdomain_ssl {
+        if is_subdomain_ssl == true {
+            subdomain_ssl = true
+        }
+    }
+
+    if subdomain_ssl == true {
+        default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+        let default_domain = format!("*.{}", default_host);
+        domain_names.push(default_domain);
+        if let Some(custom_domain) = &actual_vanity_address {
+            log::info!("vanity address is being set");
+            if !custom_domain.is_empty() {
+                host = custom_domain.clone();
+                domain_names.push(format!("*.{}", custom_domain));
+            }
+        }
+    }
+
+    domain_names.push(host.clone());
+
+    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
 
     let _ = add_domain_name_to_route53(domain_names, &ec2_ip_address).await?;
 
