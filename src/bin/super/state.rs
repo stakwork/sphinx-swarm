@@ -190,6 +190,18 @@ impl Super {
         Some(swarm)
     }
 
+    pub fn find_swarm_by_id(&self, id: &str) -> Option<&RemoteStack> {
+        let pos = self.stacks.iter().position(|s| s.id.as_deref() == Some(id));
+        if let None = pos {
+            return None;
+        }
+        let pos = pos.unwrap();
+
+        let swarm = &self.stacks[pos];
+
+        Some(swarm)
+    }
+
     pub fn delete_swarm_by_host(&mut self, host: &str) -> Result<(), String> {
         let initial_len = self.stacks.len();
         self.stacks.retain(|stack| stack.host != host);
