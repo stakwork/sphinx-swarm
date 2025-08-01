@@ -156,6 +156,25 @@ pub fn docker_domain_tonic(name: &str) -> String {
     }
 }
 
+pub fn is_using_port_based_ssl() -> bool {
+    if let Ok(pbs) = std::env::var("PORT_BASED_SSL") {
+        if pbs == "true" || pbs == "1" {
+            return true;
+        }
+    }
+    false
+}
+
+fn filter_out_reserved_ports_if_using_port_based_ssl(ports: Vec<String>) -> Vec<String> {
+    if !is_using_port_based_ssl() {
+        return ports;
+    }
+    ports
+        .into_iter()
+        .filter(|p| p != "7799" && p != "3355" && p != "8000" && p != "6000" && p != "8444")
+        .collect()
+}
+
 pub fn exposed_ports(ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
     let mut ps = HashMap::new();
     for port in ports {
@@ -194,7 +213,8 @@ pub fn files_volume() -> String {
     format!("{}/files:/files:z", pwd.to_string_lossy())
 }
 
-pub fn host_port(ports_in: Vec<String>) -> Option<PortMap> {
+pub fn host_port(mut ports_in: Vec<String>) -> Option<PortMap> {
+    ports_in = filter_out_reserved_ports_if_using_port_based_ssl(ports_in);
     let mut ports = PortMap::new();
     for port in ports_in {
         ports.insert(

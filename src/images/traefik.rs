@@ -1,5 +1,5 @@
 use super::*;
-use crate::utils::{domain, manual_host_config};
+use crate::utils::{domain, getenv, manual_host_config};
 use bollard::container::Config;
 use std::collections::HashMap;
 
@@ -122,10 +122,16 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
 
 pub fn traefik_labels(
     name: &str,
-    host: &str,
-    port: &str,
+    host: &str, // stakgraph.swarm38.sphinx.chat
+    port: &str, // inner port (like 80 for navfiber nginx, not 8000)
     websockets: bool,
 ) -> HashMap<String, String> {
+    if let Ok(pbs) = getenv("PORT_BASED_SSL") {
+        if pbs == "true" || pbs == "1" {
+            // use port based SSL
+            return traefik_labels_port_based_ssl(name, host, port, websockets);
+        }
+    }
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
     let mut def = vec![
         "traefik.enable=true".to_string(),
@@ -160,6 +166,50 @@ pub fn traefik_labels(
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string())
     }
+    to_labels(def)
+}
+
+pub fn extract_base_domain(host: &str) -> String {
+    let parts: Vec<&str> = host.split('.').collect();
+    if parts.len() >= 4 {
+        // Skip the first part (subdomain) and join the rest
+        parts[1..].join(".")
+    } else {
+        // If it's already a base domain or malformed, return as-is
+        host.to_string()
+    }
+}
+
+pub fn traefik_labels_port_based_ssl(
+    name: &str,
+    host: &str,
+    port: &str,
+    websockets: bool,
+) -> HashMap<String, String> {
+    let base_host = extract_base_domain(host);
+
+    // SPECIAL case for navfiber (internal port 80 -> external port 8000)
+    let entrypoint_port = if port == "80" { "8000" } else { port };
+    let entrypoint_name = format!("port{}", entrypoint_port);
+    let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
+
+    let mut def = vec![
+        "traefik.enable=true".to_string(),
+        format!("{}={}", lb, port),
+        format!(
+            "traefik.http.routers.{}.entrypoints={}",
+            name, entrypoint_name
+        ),
+        format!("traefik.http.routers.{}.rule=Host(`{}`)", name, base_host), // Uses base domain
+        // SSL configuration
+        format!("traefik.http.routers.{}.tls=true", name),
+        // format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
+    ];
+
+    if websockets {
+        def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string());
+    }
+
     to_labels(def)
 }
 

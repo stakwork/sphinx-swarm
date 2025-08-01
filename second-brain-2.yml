@@ -1,0 +1,134 @@
+# docker-compose -f second-brain-2.yml up sphinx-swarm -d
+
+version: "2"
+
+services:
+  load_balancer:
+    image: traefik:v2.9
+    container_name: load_balancer
+    restart: unless-stopped
+    networks:
+      - sphinx-swarm
+    command:
+      # - "--log.level=DEBUG"
+      # - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/certs"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mqttsecure.address=:8883"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.port7799.address=:7799"
+      - "--entrypoints.port3355.address=:3355"
+      - "--entrypoints.port6000.address=:6000"
+      - "--entrypoints.port8000.address=:8000"
+      - "--entrypoints.port8444.address=:8444"
+      - "--entrypoints.port8800.address=:8800"
+    ports:
+      # The HTTP port
+      - 80:80
+      # The Web UI (enabled by --api.insecure=true)
+      # - 8080:8080
+      # entrypoints
+      - 443:443
+      - 8883:8883
+      # individual services
+      - 7799:7799 # stakgraph
+      - 3355:3355 # repo2graph
+      - 6000:6000 # jarvis
+      - 8000:8000 # navfiber
+      - 8444:8444 # boltwall
+      - 8800:8800 # swarm
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/admin/certs:/certs
+    logging:
+      options:
+        max-size: 10m
+
+  sphinx-swarm:
+    image: sphinxlightning/sphinx-swarm
+    container_name: sphinx-swarm
+    networks:
+      - sphinx-swarm
+    depends_on:
+      - load_balancer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/admin/vol:/vol
+      - /home/admin/sphinx-swarm/.env:/.env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elements.rule=Host(`${HOST}`)"
+      - "traefik.http.services.elements.loadbalancer.server.port=8800"
+      - "traefik.http.routers.elements.tls=true"
+      - "traefik.http.routers.elements.entrypoints=port8800"
+    restart: unless-stopped
+    environment:
+      - HOST=$HOST # subdomain e.g. swarmx.sphinx.chat
+      - DOCKER_RUN=true # client use sphinx-swarm network
+      - PORT_BASED_SSL=1
+      - NETWORK=bitcoin
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8800
+      - AWS_REGION=$AWS_REGION
+      - STAKWORK_ADD_NODE_TOKEN=$STAKWORK_ADD_NODE_TOKEN
+      - STAKWORK_RADAR_REQUEST_TOKEN=$STAKWORK_RADAR_REQUEST_TOKEN
+      - SECOND_BRAIN_ONLY=true
+      - EXTERNAL_LND_ADDRESS=$EXTERNAL_LND_ADDRESS
+      - EXTERNAL_LND_MACAROON=$EXTERNAL_LND_MACAROON
+      - EXTERNAL_LND_CERT=$EXTERNAL_LND_CERT
+      - TWEET_BY_AUTOR_WORKFLOW_ID=$TWEET_BY_AUTOR_WORKFLOW_ID
+      - TWITTER_BEARER=$TWITTER_BEARER
+      - YOUTUBE_API_TOKEN=$YOUTUBE_API_TOKEN
+      - SECOND_BRAIN_GRAPH_URL=$SECOND_BRAIN_GRAPH_URL
+      - RADAR_SCHEDULER_TIME_IN_SEC=$RADAR_SCHEDULER_TIME_IN_SEC
+      - RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC=$RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC
+      - RADAR_TWITTER_SCHEDULER_TIME_IN_SEC=$RADAR_TWITTER_SCHEDULER_TIME_IN_SEC
+      - NAV_BOLTWALL_SHARED_HOST=$NAV_BOLTWALL_SHARED_HOST
+      - SWARM_UPDATER_PASSWORD=$SWARM_UPDATER_PASSWORD
+      - JARVIS_FEATURE_FLAG_SCHEMA=$JARVIS_FEATURE_FLAG_SCHEMA
+      - JARVIS_FEATURE_FLAG_WFA_SCHEMAS=$JARVIS_FEATURE_FLAG_WFA_SCHEMAS
+      - BACKUP_KEY=$BACKUP_KEY
+      - BACKUP=$BACKUP
+      - SUPER_TOKEN=$SUPER_TOKEN
+      - FEATURE_FLAG_TEXT_EMBEDDINGS=$FEATURE_FLAG_TEXT_EMBEDDINGS
+      - RADAR_RSS_SCHEDULER_TIME_IN_SEC=$RADAR_RSS_SCHEDULER_TIME_IN_SEC
+      - RADAR_YOUTUBE_SCHEDULER_JOB=$RADAR_YOUTUBE_SCHEDULER_JOB
+      - RADAR_TWITTER_SCHEDULER_JOB=$RADAR_TWITTER_SCHEDULER_JOB
+      - RADAR_TOPIC_SCHEDULER_JOB=$RADAR_TOPIC_SCHEDULER_JOB
+      - MAX_PAYMENT_HIERARCY_DEPTH=$MAX_PAYMENT_HIERARCY_DEPTH
+      - DYNAMO_DB_AWS_ACCESS_KEY_ID=$DYNAMO_DB_AWS_ACCESS_KEY_ID
+      - DYNAMO_DB_AWS_REGION=$DYNAMO_DB_AWS_REGION
+      - DYNAMO_DB_AWS_SECRET_ACCESS_KEY=$DYNAMO_DB_AWS_SECRET_ACCESS_KEY
+      - WEBPAGE_TEXT_WORKFLOW_ID=$WEBPAGE_TEXT_WORKFLOW_ID
+      - SUPER_URL=$SUPER_URL
+      - LOCAL_LLAMA=$LOCAL_LLAMA
+      - QUESTION_AND_ANSWER_WORKFLOW_ID=$QUESTION_AND_ANSWER_WORKFLOW_ID
+      - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
+      - GITHUB_REQUEST_TOKEN=$GITHUB_REQUEST_TOKEN
+      - SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID=$SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID
+      - JARVIS_FEATURES=$JARVIS_FEATURES
+      - JARVIS_SINGLE_TWEET_WORKFLOW_ID=$JARVIS_SINGLE_TWEET_WORKFLOW_ID
+      - JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=$JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS
+      - RADAR_TOPIC_SCHEDULER_TIME_IN_SEC=$RADAR_TOPIC_SCHEDULER_TIME_IN_SEC
+      - ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+      - OPENAI_API_KEY=$OPENAI_API_KEY
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - "--path.rootfs=/host"
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - "/:/host:ro,rslave"
+
+networks:
+  sphinx-swarm:
+    external: true
