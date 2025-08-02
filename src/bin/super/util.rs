@@ -477,6 +477,9 @@ async fn create_ec2_instance(
     let mut password = hex_secret_32();
 
     if let Some(provided_swarm_password) = swarm_password {
+        if provided_swarm_password.is_empty() {
+            return Err(anyhow!("password cannot be an empty string"));
+        }
         password = provided_swarm_password
     }
 
