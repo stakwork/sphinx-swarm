@@ -21,6 +21,7 @@ use sphinx_swarm::cmd::{
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::conn::boltwall::ApiToken;
 use sphinx_swarm::conn::swarm::ChangePasswordBySuperAdminResponse;
+use sphinx_swarm::secrets::hex_secret_32;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
@@ -386,6 +387,7 @@ async fn create_ec2_instance(
     instance_type_name: String,
     env: Option<HashMap<String, String>>,
     subdomain_ssl: Option<bool>,
+    swarm_password: Option<String>,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -472,6 +474,11 @@ async fn create_ec2_instance(
             .collect::<Vec<_>>()
             .join("");
     }
+    let mut password = hex_secret_32();
+
+    if let Some(provided_swarm_password) = swarm_password {
+        password = provided_swarm_password
+    }
 
     let timeout_config = TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(5))
@@ -543,6 +550,7 @@ async fn create_ec2_instance(
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
           echo "SWARM_NUMBER={swarm_number}" >> .env && \
+          echo "PASSWORD={password}" >> .env && \
           {port_based_ssl}
           
           sleep 60 && \
@@ -829,6 +837,7 @@ pub async fn create_swarm_ec2(
         info.instance_type.clone(),
         info.env.clone(),
         info.subdomain_ssl.clone(),
+        info.swarm_password.clone(),
     )
     .await?;
 
