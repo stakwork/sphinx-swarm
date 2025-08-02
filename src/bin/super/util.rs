@@ -837,7 +837,7 @@ pub async fn create_swarm_ec2(
         info.instance_type.clone(),
         info.env.clone(),
         info.subdomain_ssl.clone(),
-        info.swarm_password.clone(),
+        info.password.clone(),
     )
     .await?;
 
