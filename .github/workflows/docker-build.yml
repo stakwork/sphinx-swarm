@@ -3,43 +3,94 @@ env:
   DOCKER_CLI_EXPERIMENTAL: enabled
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - test-arm64
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build and push sphinx swarm image
+    name: Build Node.js application
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
       - name: Check out from Git
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Test env
-        run: echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        run: echo "RELEASE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
       - name: Test print env
         run: |
           echo $RELEASE_TAG
           echo ${{ env.RELEASE_TAG }}
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-      - name: Checkout project
-        uses: actions/checkout@v2
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.yarn/cache
+            app/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('app/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
       - name: Run Build
         working-directory: ./app
         run: |
           yarn install
           yarn run build
-      - name: Setup Docker buildx action
-        uses: crazy-max/ghaction-docker-buildx@v1
-        id: buildx
+
+  push:
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-arm64
+    runs-on: ${{ matrix.runner }}
+    needs: build
+    name: Build and push sphinx swarm image
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+    steps:
+      - name: Check out from Git
+        uses: actions/checkout@v4
+      - name: Test env
+        run: echo "RELEASE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Test print env
+        run: |
+          echo $RELEASE_TAG
+          echo ${{ env.RELEASE_TAG }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          buildx-version: latest
-          qemu-version: latest
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.yarn/cache
+            app/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('app/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Run Build
+        working-directory: ./app
+        run: |
+          yarn install
+          yarn run build
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: buildx
       - name: Show available buildx platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
       - name: Cache Docker layers
@@ -47,19 +98,37 @@ jobs:
         id: cache
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ github.sha }}-${{ matrix.platform }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
-      - name: Test print env
-        run: |
-          echo $RELEASE_TAG
-          echo ${{ env.RELEASE_TAG }}
+            ${{ runner.os }}-buildx-${{ matrix.platform }}-
       - name: Run Docker buildx
         run: |
+          PLATFORM_TAG=$(echo ${{ matrix.platform }} | tr '/' '-')
           docker buildx build \
           -f src/bin/stack/Dockerfile \
-          --cache-to "type=local,dest=/tmp/.buildx-cache" \
-          --platform linux/amd64 \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:${{ env.RELEASE_TAG }}" \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:latest" \
+          --platform ${{ matrix.platform }} \
+          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:test-arm64-${{ env.RELEASE_TAG }}-${PLATFORM_TAG}" \
+          --cache-from "type=registry,ref=${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:cache-${PLATFORM_TAG}" \
+          --cache-to "type=registry,image-manifest=true,oci-mediatypes=true,mode=max,ref=${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:cache-${PLATFORM_TAG}" \
           --output "type=registry" ./
+
+  create-manifest:
+    runs-on: ubuntu-latest
+    needs: push
+    name: Create multi-platform manifest
+    steps:
+      - name: Check out from Git
+        uses: actions/checkout@v4
+      - name: Test env
+        run: echo "RELEASE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Create and push multi-platform manifest
+        run: |
+          docker buildx imagetools create \
+            --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:test-arm64-${{ env.RELEASE_TAG }}" \
+            "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:test-arm64-${{ env.RELEASE_TAG }}-linux-amd64" \
+            "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:test-arm64-${{ env.RELEASE_TAG }}-linux-arm64"
