@@ -4,7 +4,7 @@ use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::traefik::navfiber_boltwall_shared_host;
-use crate::utils::{domain, exposed_ports, getenv, host_config};
+use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -106,11 +106,13 @@ fn repo2graph(
         env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
 
+    let tests_vol = volume_string(&format!("{}-tests", img.name), "/usr/src/app/tests/generated_tests");
+    let extra_vols = vec![tests_vol];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&img.name, ports, root_vol, None, None),
+        host_config: host_config(&img.name, ports, root_vol, Some(extra_vols), None),
         env: Some(env),
         ..Default::default()
     };
