@@ -5,7 +5,7 @@ use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::proxy::ProxyAPI;
 use crate::conn::relay::RelayAPI;
 use crate::images::Image;
-use crate::utils;
+use crate::utils::{self, getenv};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rocket::tokio;
@@ -160,7 +160,7 @@ impl Node {
 impl Default for User {
     fn default() -> Self {
         let username = "admin";
-        let default_password = "password";
+        let default_password = getenv("PASSWORD").unwrap_or("password".to_string());
         let pass_hash =
             bcrypt::hash(default_password, bcrypt::DEFAULT_COST).expect("failed to bcrypt");
         Self {

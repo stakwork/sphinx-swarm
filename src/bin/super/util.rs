@@ -402,6 +402,7 @@ async fn create_ec2_instance(
     instance_type_name: String,
     env: Option<HashMap<String, String>>,
     subdomain_ssl: Option<bool>,
+    swarm_password: Option<String>,
 ) -> Result<(String, i32), Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -488,6 +489,14 @@ async fn create_ec2_instance(
             .collect::<Vec<_>>()
             .join("");
     }
+    let mut password = "password".to_string();
+
+    if let Some(provided_swarm_password) = swarm_password {
+        if provided_swarm_password.is_empty() {
+            return Err(anyhow!("password cannot be an empty string"));
+        }
+        password = provided_swarm_password
+    }
 
     let timeout_config = TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(5))
@@ -559,6 +568,7 @@ async fn create_ec2_instance(
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
           echo "SWARM_NUMBER={swarm_number}" >> .env && \
+          echo "PASSWORD={password}" >> .env && \
           {port_based_ssl}
           
           sleep 60 && \
@@ -845,6 +855,7 @@ pub async fn create_swarm_ec2(
         info.instance_type.clone(),
         info.env.clone(),
         info.subdomain_ssl.clone(),
+        info.password.clone(),
     )
     .await?;
 
