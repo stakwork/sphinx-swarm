@@ -449,7 +449,11 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
-    let mut host = custom_domain.clone();
+    let mut host = format!("swarm{}.sphinx.chat", swarm_number);
+
+    if !custom_domain.is_empty() {
+        host = custom_domain.clone();
+    }
 
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
 
