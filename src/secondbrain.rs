@@ -71,7 +71,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     stakgraph.links(vec!["neo4j", "boltwall"]);
 
     // boltwall
-    v = "latest";
+    v = "v0.0.1.181";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
     if let Some(ext) = external_lnd() {
         bolt.external_lnd(ext);
@@ -82,7 +82,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     bolt.host(host.clone());
 
     // navfiber
-    v = "latest";
+    v = "v0.1.842";
     let mut nav = NavFiberImage::new("navfiber", v, "8000");
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
