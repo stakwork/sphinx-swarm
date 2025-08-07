@@ -6,6 +6,7 @@ mod ec2;
 mod lightning_bots;
 mod route53;
 mod routes;
+mod service;
 mod state;
 mod util;
 

@@ -909,7 +909,7 @@ pub async fn create_swarm_ec2(
     Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
 }
 
-fn is_valid_domain(domain: String) -> String {
+pub fn is_valid_domain(domain: String) -> String {
     let valid_chars = |c: char| c.is_ascii_alphanumeric() || c == '-';
 
     if domain.starts_with('-') || domain.ends_with('-') {
