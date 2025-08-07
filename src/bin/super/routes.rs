@@ -5,6 +5,7 @@ use crate::cmd::{
 };
 use crate::events::EventChan;
 use crate::logs::LogChans;
+use crate::service::check_domain::check_domain;
 use crate::util::get_swarm_details_by_id;
 use fs::{relative, FileServer};
 use rocket::http::Status;
@@ -40,7 +41,8 @@ pub async fn launch_rocket(
                 events,
                 add_new_swarm,
                 create_new_swarm,
-                get_swarm_details
+                get_swarm_details,
+                check_duplicate_domain
             ],
         )
         .attach(CORS)
@@ -178,6 +180,32 @@ async fn get_swarm_details(
     }
 
     let response = get_swarm_details_by_id(id).await;
+    let mut status = Status::Ok;
+
+    if response.success != true {
+        status = Status::BadRequest
+    }
+
+    return Ok(Custom(status, Json(response)));
+}
+
+#[rocket::get("/super/check-domain?<domain>")]
+async fn check_duplicate_domain(
+    domain: &str,
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<SuperSwarmResponse>>> {
+    if let None = verify_super_token.token {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: "unauthorized, invalid token".to_string(),
+                data: None,
+            }),
+        ));
+    }
+
+    let response = check_domain(domain).await;
     let mut status = Status::Ok;
 
     if response.success != true {
