@@ -3,9 +3,11 @@ use super::*;
 use crate::config::Node;
 use crate::conn::lnd::utils::{dl_cert_to_base64, dl_macaroon};
 use crate::images::lnd::to_lnd_network;
+use crate::images::traefik::extract_base_domain;
 use crate::secrets;
 use crate::utils::{
-    domain, exposed_ports, extract_swarm_number, getenv, host_config, volume_string,
+    domain, exposed_ports, extract_swarm_number, getenv, host_config, is_using_port_based_ssl,
+    volume_string,
 };
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -70,6 +72,12 @@ impl BoltwallImage {
     }
     // boltwall host is on the vanity address /api
     pub fn get_host(&self) -> Option<String> {
+        if is_using_port_based_ssl() && self.host.is_some() {
+            return Some(format!(
+                "{}:8444",
+                extract_base_domain(&self.host.clone().unwrap())
+            ));
+        }
         if let Some(sh) = navfiber_boltwall_shared_host() {
             return Some(format!("{}/api", sh));
         }
