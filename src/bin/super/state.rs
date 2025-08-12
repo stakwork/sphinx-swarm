@@ -28,6 +28,8 @@ pub struct RemoteStack {
     pub public_ip_address: Option<String>,
     pub private_ip_address: Option<String>,
     pub id: Option<String>,
+    pub deleted: Option<bool>,
+    pub route53_ids: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -134,6 +136,8 @@ impl Super {
                 public_ip_address: n.public_ip_address.clone(),
                 private_ip_address: n.private_ip_address.clone(),
                 id: n.id.clone(),
+                deleted: n.deleted.clone(),
+                route53_ids: n.route53_ids.clone(),
             })
             .collect();
         let bots = self

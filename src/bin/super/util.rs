@@ -901,6 +901,8 @@ pub async fn create_swarm_ec2(
         public_ip_address: Some("".to_string()),
         private_ip_address: Some("".to_string()),
         id: Some(swarm_id.clone()),
+        deleted: Some(false),
+        route53_ids: None,
     };
 
     state.add_remote_stack(new_swarm);
