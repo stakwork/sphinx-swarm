@@ -1202,6 +1202,9 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
 
     for stack in state.stacks.iter_mut() {
         if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
+            if stack.deleted.is_none() || stack.deleted.unwrap() == true {
+                stack.deleted = Some(false);
+            }
             let aws_instance_hashmap = aws_instances_hashmap.get(&stack.ec2_instance_id).unwrap();
             stack.public_ip_address = Some(aws_instance_hashmap.public_ip_address.clone());
             stack.private_ip_address = Some(aws_instance_hashmap.private_ip_address.clone());
@@ -1212,6 +1215,9 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
                     stack.ec2 = Some(aws_instance_hashmap.instance_type.clone())
                 }
             }
+        } else {
+            // If we don't find the isnatnce in the AWS response, we can mark as deleted
+            stack.deleted = Some(true)
         }
     }
     let res = state.remove_tokens();

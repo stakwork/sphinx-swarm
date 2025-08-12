@@ -125,6 +125,7 @@ impl Super {
         let stacks = self
             .stacks
             .iter()
+            .filter(|s| s.deleted == Some(false))
             .map(|n| RemoteStack {
                 host: n.host.clone(),
                 note: n.note.clone(),
