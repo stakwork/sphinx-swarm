@@ -30,7 +30,9 @@ use crate::cmd::{
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
-use crate::route53::{add_domain_name_to_route53, domain_exists_in_route53};
+use crate::route53::{
+    add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
+};
 use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
@@ -1217,7 +1219,28 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
             }
         } else {
             // If we don't find the isnatnce in the AWS response, we can mark as deleted
-            stack.deleted = Some(true)
+            stack.deleted = Some(true);
+
+            // try deleting the records from route53
+            if let Some(route53_domain_names) = &stack.route53_domain_names {
+                if route53_domain_names.len() > 0 {
+                    match delete_multiple_route53_records(route53_domain_names.clone()).await {
+                        Ok(_) => {
+                            log::info!(
+                                "Deleted route53 records for swarm with domain names: {:#?}",
+                                route53_domain_names
+                            );
+                        }
+                        Err(err) => {
+                            log::error!(
+                                "Error deleting route53 records for swarm: {:#?}. Error: {}",
+                                route53_domain_names,
+                                err.to_string()
+                            );
+                        }
+                    };
+                }
+            }
         }
     }
     let res = state.remove_tokens();
