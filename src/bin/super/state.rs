@@ -28,6 +28,8 @@ pub struct RemoteStack {
     pub public_ip_address: Option<String>,
     pub private_ip_address: Option<String>,
     pub id: Option<String>,
+    pub deleted: Option<bool>,
+    pub route53_domain_names: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -123,6 +125,7 @@ impl Super {
         let stacks = self
             .stacks
             .iter()
+            .filter(|s| s.deleted == Some(false))
             .map(|n| RemoteStack {
                 host: n.host.clone(),
                 note: n.note.clone(),
@@ -134,6 +137,8 @@ impl Super {
                 public_ip_address: n.public_ip_address.clone(),
                 private_ip_address: n.private_ip_address.clone(),
                 id: n.id.clone(),
+                deleted: n.deleted.clone(),
+                route53_domain_names: n.route53_domain_names.clone(),
             })
             .collect();
         let bots = self

@@ -37,6 +37,7 @@ export interface Remote {
   default_host?: string;
   ec2_instance_id: string;
   public_ip_address?: string;
+  id?: string;
 }
 
 export interface ILightningBot {

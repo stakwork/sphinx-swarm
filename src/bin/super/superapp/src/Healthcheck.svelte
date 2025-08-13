@@ -3,6 +3,7 @@
   import WarningFilled from "carbon-icons-svelte/lib/WarningFilled.svelte";
 
   import { onMount } from "svelte";
+  import { getRemoteByHost } from "./utils";
 
   export let host = "";
 
@@ -10,11 +11,16 @@
   let status: Status = "checking";
 
   async function checkStatus() {
+    const swarm = getRemoteByHost(host);
     try {
       let url = `https://boltwall.${host}/stats`;
       // custom URLs
       if (!/swarm\d+/.test(host)) {
         url = `https://${host}/api/stats`;
+      }
+
+      if (swarm && swarm.default_host.endsWith(":8800")) {
+        url = `https://${swarm.host}:8444/stats`;
       }
       console.log("URL", url);
       const r = await fetch(url);

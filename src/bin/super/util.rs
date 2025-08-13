@@ -30,7 +30,9 @@ use crate::cmd::{
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
-use crate::route53::{add_domain_name_to_route53, domain_exists_in_route53};
+use crate::route53::{
+    add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
+};
 use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
@@ -903,7 +905,7 @@ pub async fn create_swarm_ec2(
 
     let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
 
-    let _ = add_domain_name_to_route53(domain_names, &ec2_ip_address).await?;
+    let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
     log::info!("Public_IP: {}", ec2_ip_address);
 
@@ -921,6 +923,8 @@ pub async fn create_swarm_ec2(
         public_ip_address: Some("".to_string()),
         private_ip_address: Some("".to_string()),
         id: Some(swarm_id.clone()),
+        deleted: Some(false),
+        route53_domain_names: Some(domain_names),
     };
 
     state.add_remote_stack(new_swarm);
@@ -929,7 +933,7 @@ pub async fn create_swarm_ec2(
     Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
 }
 
-fn is_valid_domain(domain: String) -> String {
+pub fn is_valid_domain(domain: String) -> String {
     let valid_chars = |c: char| c.is_ascii_alphanumeric() || c == '-';
 
     if domain.starts_with('-') || domain.ends_with('-') {
@@ -1220,6 +1224,9 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
 
     for stack in state.stacks.iter_mut() {
         if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
+            if stack.deleted.is_none() || stack.deleted.unwrap() == true {
+                stack.deleted = Some(false);
+            }
             let aws_instance_hashmap = aws_instances_hashmap.get(&stack.ec2_instance_id).unwrap();
             stack.public_ip_address = Some(aws_instance_hashmap.public_ip_address.clone());
             stack.private_ip_address = Some(aws_instance_hashmap.private_ip_address.clone());
@@ -1228,6 +1235,30 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
             } else {
                 if aws_instance_hashmap.instance_type != stack.ec2.clone().unwrap() {
                     stack.ec2 = Some(aws_instance_hashmap.instance_type.clone())
+                }
+            }
+        } else {
+            // If we don't find the isnatnce in the AWS response, we can mark as deleted
+            stack.deleted = Some(true);
+
+            // try deleting the records from route53
+            if let Some(route53_domain_names) = &stack.route53_domain_names {
+                if route53_domain_names.len() > 0 {
+                    match delete_multiple_route53_records(route53_domain_names.clone()).await {
+                        Ok(_) => {
+                            log::info!(
+                                "Deleted route53 records for swarm with domain names: {:#?}",
+                                route53_domain_names
+                            );
+                        }
+                        Err(err) => {
+                            log::error!(
+                                "Error deleting route53 records for swarm: {:#?}. Error: {}",
+                                route53_domain_names,
+                                err.to_string()
+                            );
+                        }
+                    };
                 }
             }
         }
