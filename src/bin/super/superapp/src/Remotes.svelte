@@ -466,7 +466,7 @@
             {cell.value}
           </p>
           <Link target={"_blank"} href={getSwarmAdminUrl(row.id)}
-            >Visit Swarm Admin</Link
+            >Visit Swarm Dashboard</Link
           >
         </div>
       {:else if cell.key === "tribes"}
