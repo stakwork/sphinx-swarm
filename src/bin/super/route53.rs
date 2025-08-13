@@ -141,3 +141,74 @@ pub async fn domain_exists_in_route53(domain: &str) -> Result<bool, Error> {
 
     Ok(false)
 }
+
+pub async fn delete_multiple_route53_records(domain_names: Vec<String>) -> Result<(), Error> {
+    let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
+
+    let client = make_route_53_client().await?;
+    let mut changes = Vec::new();
+
+    for domain_name in domain_names {
+        // Fetch the record
+        let resp = client
+            .list_resource_record_sets()
+            .hosted_zone_id(hosted_zone_id.clone())
+            .start_record_name(&domain_name)
+            .start_record_type(RrType::A)
+            .send()
+            .await?;
+
+        let records = resp.resource_record_sets();
+
+        // Validate exact match
+        if records.len() > 0 {
+            for record in records {
+                if record.name() == format!("{}.", domain_name) && record.r#type().as_str() == "A" {
+                    changes.push(
+                        Change::builder()
+                            .action(ChangeAction::Delete)
+                            .resource_record_set(record.clone())
+                            .build()
+                            .map_err(|e| anyhow!("Failed to build delete change: {}", e))?,
+                    );
+                } else {
+                    println!("No exact match for {}", domain_name);
+                }
+            }
+        } else {
+            log::info!("Record {}  not found", domain_name,);
+        }
+    }
+
+    if changes.is_empty() {
+        log::info!("No matching records to delete.");
+        return Ok(());
+    }
+
+    // Batch delete
+    let change_batch = ChangeBatch::builder()
+        .set_changes(Some(changes))
+        .build()
+        .map_err(|e| anyhow!("Failed to build change batch: {}", e))?;
+
+    match client
+        .change_resource_record_sets()
+        .hosted_zone_id(hosted_zone_id)
+        .change_batch(change_batch)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            log::info!(
+                "Batch delete submitted. Status: {:?}",
+                response.change_info()
+            );
+            Ok(())
+        }
+        Err(SdkError::ServiceError(err)) => Err(anyhow!(
+            "Service error: {}",
+            err.err().message().unwrap_or("")
+        )),
+        Err(e) => Err(anyhow!("Unexpected error: {}", e)),
+    }
+}

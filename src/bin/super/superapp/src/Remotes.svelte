@@ -13,6 +13,7 @@
     Select,
     SelectItem,
     Checkbox,
+    Link,
   } from "carbon-components-svelte";
   import { UpdateNow, Stop } from "carbon-icons-svelte";
 
@@ -20,11 +21,14 @@
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import Tribes from "./Tribes.svelte";
   import * as api from "../../../../../app/src/api";
-  import { remotes } from "./store";
+  import { remotes, selectedNode } from "./store";
   import { onMount } from "svelte";
   import type { Remote } from "./types/types";
-  import { getSwarmNumber, isValidVanityAddress } from "./utils/index";
-  import { selectedNode } from "./store";
+  import {
+    getRemoteByHost,
+    getSwarmNumber,
+    isValidVanityAddress,
+  } from "./utils/index";
   import {
     create_new_swarm_ec2,
     get_child_swarm_config,
@@ -84,9 +88,12 @@
           if (!/swarm\d+/.test(host)) {
             url = `https://${host}/api/stats`;
           }
+          if (el.default_host.endsWith(":8800")) {
+            url = `https://${el.host}:8444/stats`;
+          }
           console.log("URL", url);
           const r = await fetch(url);
-          await r.json();
+          const data = await r.json();
           healthyRemotes.push(el);
         } catch (e) {
           console.warn(e);
@@ -121,7 +128,9 @@
 
   function remoterow(r: Remote) {
     let swarmNumber = "";
-    if (r.default_host) {
+    if (r.id) {
+      swarmNumber = getSwarmNumber(r.id);
+    } else if (r.default_host) {
       swarmNumber = getSwarmNumber(r.default_host);
     }
     return { ...r, id: r.host, number: swarmNumber };
@@ -374,6 +383,19 @@
       swarm_name_width = max_input_with;
     }
   }
+
+  function getSwarmAdminUrl(host: string) {
+    const swarm = getRemoteByHost(host);
+    if (swarm) {
+      if (swarm.default_host.endsWith(":8800")) {
+        return `https://${swarm.default_host}`;
+      } else {
+        return `https://app.${swarm.default_host}`;
+      }
+    }
+
+    return "";
+  }
 </script>
 
 <main>
@@ -439,9 +461,14 @@
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
       {:else if cell.key === "host"}
-        <p class="host_name" on:click={() => handleViewNodes(row.id)}>
-          {cell.value}
-        </p>
+        <div class="host_name_container">
+          <p class="host_name" on:click={() => handleViewNodes(row.id)}>
+            {cell.value}
+          </p>
+          <Link target={"_blank"} href={getSwarmAdminUrl(row.id)}
+            >Visit Swarm Dashboard</Link
+          >
+        </div>
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
       {:else}
@@ -622,5 +649,11 @@
 
   .checkbox_container {
     margin-top: 1rem;
+  }
+
+  .host_name_container {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
   }
 </style>
