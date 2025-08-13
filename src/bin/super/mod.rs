@@ -195,7 +195,7 @@ pub async fn super_handle(
                     private_ip_address: Some("".to_string()),
                     id: None,
                     deleted: Some(false),
-                    route53_ids: None,
+                    route53_domain_names: None,
                 };
 
                 let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
@@ -218,7 +218,7 @@ pub async fn super_handle(
                             private_ip_address: state.stacks[ui].private_ip_address.clone(),
                             id: state.stacks[ui].id.clone(),
                             deleted: state.stacks[ui].deleted.clone(),
-                            route53_ids: state.stacks[ui].route53_ids.clone(),
+                            route53_domain_names: state.stacks[ui].route53_domain_names.clone(),
                         };
                         must_save_stack = true;
                         hm = AddSwarmResponse {
@@ -264,7 +264,7 @@ pub async fn super_handle(
                     private_ip_address: Some("".to_string()),
                     id: None,
                     deleted: Some(false),
-                    route53_ids: None,
+                    route53_domain_names: None,
                 };
                 let hm =
                     add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);

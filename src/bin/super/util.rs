@@ -883,7 +883,7 @@ pub async fn create_swarm_ec2(
 
     let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
 
-    let _ = add_domain_name_to_route53(domain_names, &ec2_ip_address).await?;
+    let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
     log::info!("Public_IP: {}", ec2_ip_address);
 
@@ -902,7 +902,7 @@ pub async fn create_swarm_ec2(
         private_ip_address: Some("".to_string()),
         id: Some(swarm_id.clone()),
         deleted: Some(false),
-        route53_ids: None,
+        route53_domain_names: Some(domain_names),
     };
 
     state.add_remote_stack(new_swarm);
