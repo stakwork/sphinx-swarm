@@ -462,11 +462,11 @@
         <Tribes host={row.id} />
       {:else if cell.key === "host"}
         <div class="host_name_container">
-          <p class="host_name" on:click={() => handleViewNodes(row.id)}>
+          <!-- <p class="host_name" on:click={() => handleViewNodes(row.id)}>
             {cell.value}
-          </p>
+          </p> -->
           <Link target={"_blank"} href={getSwarmAdminUrl(row.id)}
-            >Visit Swarm Dashboard</Link
+            >{cell.value}</Link
           >
         </div>
       {:else if cell.key === "tribes"}
@@ -642,10 +642,10 @@
     margin-top: 1rem;
   }
 
-  .host_name {
+  /* .host_name {
     text-decoration: underline;
     cursor: pointer;
-  }
+  } */
 
   .checkbox_container {
     margin-top: 1rem;
