@@ -737,9 +737,10 @@ pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> St
             return "".to_string();
         }
         let github_container_name = image_name_parts[2];
+        let org_name = image_name_parts[1];
         let url = format!(
-            "https://api.github.com/orgs/stakwork/packages/container/{}/versions",
-            github_container_name,
+            "https://api.github.com/orgs/{}/packages/container/{}/versions",
+            org_name, github_container_name,
         );
         return get_version_from_github_container_registry(&url, digest).await;
     }
