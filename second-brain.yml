@@ -113,6 +113,7 @@ services:
       - RADAR_TOPIC_SCHEDULER_TIME_IN_SEC=$RADAR_TOPIC_SCHEDULER_TIME_IN_SEC
       - ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
       - OPENAI_API_KEY=$OPENAI_API_KEY
+      - GITHUB_PAT=$GITHUB_PAT
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
