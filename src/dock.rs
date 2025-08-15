@@ -555,6 +555,29 @@ pub struct DockerHubImageResult {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct GitHubContainerResult {
+    pub id: i64,
+    pub name: String,
+    pub url: String,
+    pub package_html_url: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub html_url: String,
+    pub metadata: GitHubContainerMetadata,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GitHubContainerMetadata {
+    pub package_type: String,
+    pub container: GitHubContainerTags,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GitHubContainerTags {
+    pub tags: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DockerHubResponse {
     pub results: Vec<DockerHubImageResult>,
     pub next: Option<String>,
@@ -707,12 +730,65 @@ async fn get_image_digest_from_image_id(docker: &Docker, image_id: &str) -> Stri
 }
 
 pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> String {
+    if image_name.contains("ghcr.io") {
+        let image_name_parts: Vec<&str> = image_name.split("/").collect();
+        if image_name_parts.len() != 3 {
+            log::error!("Invalid image name format: {}", image_name);
+            return "".to_string();
+        }
+        let github_container_name = image_name_parts[2];
+        let url = format!(
+            "https://api.github.com/orgs/stakwork/packages/container/{}/versions",
+            github_container_name,
+        );
+        return get_version_from_github_container_registry(&url, digest).await;
+    }
     let docker_url = format!(
         "https://hub.docker.com/v2/repositories/{}/tags?page=1&page_size=100",
         image_name,
     );
     let version = get_version_from_docker_hub(&docker_url, digest).await;
     version
+}
+
+pub async fn get_version_from_github_container_registry(url: &str, digest: &str) -> String {
+    let token = getenv("GITHUB_PAT").unwrap_or("".to_string());
+    let client = reqwest::Client::builder()
+        .user_agent("sphinx-swarm/1.0")
+        .timeout(Duration::from_secs(40))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build swarm updater reqwest client");
+
+    let response = match client
+        .get(url)
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error making request to {}: {:?}", url, err);
+            return "".to_string();
+        }
+    };
+    let response_json: Vec<GitHubContainerResult> = match response.json().await {
+        Ok(json) => json,
+        Err(err) => {
+            log::error!("Error parsing JSON response: {:?}", err);
+            return "".to_string();
+        }
+    };
+
+    for image in response_json {
+        for tag in image.metadata.container.tags {
+            if digest == image.name && tag != "latest" {
+                return tag;
+            }
+        }
+    }
+
+    "".to_string()
 }
 
 pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> String {
