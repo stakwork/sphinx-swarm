@@ -43,7 +43,15 @@ http
           `docker rm sphinx-swarm`,
         ];
         if (is2b()) {
-          scripts.push(`docker-compose -f second-brain.yml up sphinx-swarm -d`);
+          if (body.port_based_ssl) {
+            scripts.push(
+              `docker-compose -f second-brain-2.yml up sphinx-swarm -d`
+            );
+          } else {
+            scripts.push(
+              `docker-compose -f second-brain.yml up sphinx-swarm -d`
+            );
+          }
         } else {
           scripts.push(`docker-compose up sphinx-swarm -d`);
         }
