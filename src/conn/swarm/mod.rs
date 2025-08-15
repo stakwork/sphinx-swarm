@@ -13,12 +13,13 @@ use crate::{
         boltwall::{ExternalLnd, LndCreds},
         Image,
     },
-    utils::{domain, update_or_write_to_env_file},
+    utils::{domain, is_using_port_based_ssl, update_or_write_to_env_file},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateSwarmBody {
     pub password: String,
+    pub port_based_ssl: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,6 +48,7 @@ pub async fn update_swarm() -> Result<String> {
 
     let body = UpdateSwarmBody {
         password: password.to_string(),
+        port_based_ssl: is_using_port_based_ssl(),
     };
     let response = client.post(route.as_str()).json(&body).send().await?;
 
