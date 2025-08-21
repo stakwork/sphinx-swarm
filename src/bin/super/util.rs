@@ -70,7 +70,7 @@ pub fn add_new_swarm_from_child_swarm(
     match state
         .stacks
         .iter()
-        .position(|swarm| swarm.default_host == swarm_details.default_host)
+        .position(|swarm| swarm.id == swarm_details.id)
     {
         Some(swarm_pos) => {
             if let Some(password) = &state.stacks[swarm_pos].pass {
