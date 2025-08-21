@@ -87,6 +87,7 @@ async fn add_new_swarm(
         password: body.password.clone(),
         token: verify_super_token.token.unwrap(),
         default_host: body.default_host.clone(),
+        id: body.id.clone(),
     }));
 
     let txt = serde_json::to_string(&cmd)?;

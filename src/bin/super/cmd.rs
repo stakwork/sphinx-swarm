@@ -78,6 +78,7 @@ pub struct ChildSwarm {
     pub username: String,
     pub token: String,
     pub default_host: String,
+    pub id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
