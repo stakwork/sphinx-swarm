@@ -51,7 +51,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm
+    image: sphinxlightning/sphinx-swarm:test-arm64-6c63fb2
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
