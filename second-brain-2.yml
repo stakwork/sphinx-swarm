@@ -120,6 +120,7 @@ services:
       - OPENAI_API_KEY=$OPENAI_API_KEY
       - GITHUB_PAT=$GITHUB_PAT
       - PASSWORD=$PASSWORD
+      - SWARM_NUMBER=$SWARM_NUMBER
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter

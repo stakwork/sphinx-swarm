@@ -262,7 +262,7 @@ pub async fn super_handle(
                     ec2_instance_id: "".to_string(),
                     public_ip_address: Some("".to_string()),
                     private_ip_address: Some("".to_string()),
-                    id: None,
+                    id: c.id,
                     deleted: Some(false),
                     route53_domain_names: None,
                 };
