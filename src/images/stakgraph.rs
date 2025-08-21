@@ -117,6 +117,9 @@ fn stakgraph(
             env.push("RUST_BACKTRACE=1".to_string());
         }
     }
+    if let Ok(sws) = getenv("STAKGRAPH_WEBHOOK_SECRET") {
+        env.push(format!("WEBHOOK_SECRET={}", sws))
+    }
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
