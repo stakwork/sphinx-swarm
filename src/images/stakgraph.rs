@@ -109,6 +109,7 @@ fn stakgraph(
     if let Some(boltwall) = boltwall {
         if let Some(api_token) = &boltwall.stakwork_secret {
             env.push(format!("API_TOKEN={}", api_token));
+            env.push(format!("WEBHOOK_SECRET={}", api_token));
         }
     }
     if let Some(rust_log) = &img.rust_log {
