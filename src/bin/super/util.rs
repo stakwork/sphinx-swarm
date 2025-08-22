@@ -813,7 +813,9 @@ pub async fn create_swarm_ec2(
                 if !domain_status.is_empty() {
                     return Err(anyhow!(domain_status));
                 }
-                let vanity_address_exist = domain_exists_in_route53(&vanity_address).await?;
+                let vanity_address_exist =
+                    domain_exists_in_route53(&vanity_address, state.reserved_domains.clone())
+                        .await?;
                 if vanity_address_exist {
                     return Err(anyhow!(
                         "Sorry another Service is using this vanity address"
