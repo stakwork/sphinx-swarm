@@ -124,9 +124,8 @@ pub async fn domain_exists_in_route53(domain: &str) -> Result<bool, Error> {
 
         for record_set in result.resource_record_sets() {
             let record_name = record_set.name().trim_end_matches('.');
-            let record_type = record_set.r#type();
 
-            if record_name == domain && *record_type == RrType::A {
+            if record_name == domain {
                 return Ok(true);
             }
         }
