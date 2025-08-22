@@ -1,6 +1,6 @@
 use crate::{
     cmd::SuperSwarmResponse, ec2::instance_with_swarm_name_exists,
-    route53::domain_exists_in_route53, util::is_valid_domain,
+    route53::domain_exists_in_route53, state, util::is_valid_domain,
 };
 use anyhow::{anyhow, Error};
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
         };
     }
     let normalize_domain = domain.to_lowercase();
+    let state = state::STATE.lock().await;
 
     let parsed_domain = if normalize_domain.strip_suffix(".sphinx.chat").is_none() {
         format!("{}.sphinx.chat", normalize_domain.to_string())
@@ -34,16 +35,18 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
     };
 
     // check if we have it has a domain
-    let domain_validate_res = match validate_and_check_domain(&parsed_domain).await {
-        Ok(data) => data,
-        Err(err) => {
-            return SuperSwarmResponse {
-                success: false,
-                message: err.to_string(),
-                data: None,
+    let domain_validate_res =
+        match validate_and_check_domain(&parsed_domain, state.reserved_domains.clone()).await {
+            Ok(data) => data,
+            Err(err) => {
+                return SuperSwarmResponse {
+                    success: false,
+                    message: err.to_string(),
+                    data: None,
+                }
             }
-        }
-    };
+        };
+    drop(state);
 
     let swarm_name_exist =
         match instance_with_swarm_name_exists(&domain_validate_res.domain_name).await {
@@ -77,7 +80,10 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
     }
 }
 
-async fn validate_and_check_domain(domain: &str) -> Result<ValidateDomainRes, Error> {
+async fn validate_and_check_domain(
+    domain: &str,
+    reserved_domains: Option<Vec<String>>,
+) -> Result<ValidateDomainRes, Error> {
     if let Some(subdomain) = domain.strip_suffix(".sphinx.chat") {
         if subdomain.is_empty() {
             return Err(anyhow!("Provide a valid vanity address"));
@@ -87,7 +93,7 @@ async fn validate_and_check_domain(domain: &str) -> Result<ValidateDomainRes, Er
         if !domain_status.is_empty() {
             return Err(anyhow!(domain_status));
         }
-        let vanity_address_exist = domain_exists_in_route53(domain).await?;
+        let vanity_address_exist = domain_exists_in_route53(domain, reserved_domains).await?;
         return Ok(ValidateDomainRes {
             exist: vanity_address_exist,
             domain_name: subdomain.to_string(),

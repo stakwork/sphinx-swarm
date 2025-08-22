@@ -14,6 +14,7 @@ pub struct Super {
     pub bots: Vec<BotCred>,
     pub ec2_limit: Ec2Limit,
     pub lightning_bots: Vec<LightningBot>,
+    pub reserved_domains: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -87,6 +88,7 @@ impl Default for Super {
             bots: Vec::new(),
             ec2_limit: default_ec2_limit(),
             lightning_bots: Vec::new(),
+            reserved_domains: Some(Vec::new()),
         }
     }
 }
@@ -161,6 +163,7 @@ impl Super {
                 date: "".to_string(),
             },
             lightning_bots: vec![],
+            reserved_domains: Some(vec![]),
         }
     }
 
