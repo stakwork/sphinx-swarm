@@ -435,6 +435,8 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
+    let github_pat = getenv("GITHUB_PAT")?;
+
     let mut host = custom_domain.clone();
 
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
@@ -555,6 +557,7 @@ async fn create_ec2_instance(
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
           echo "SWARM_NUMBER={swarm_number}" >> .env && \
           echo "PASSWORD={password}" >> .env && \
+          echo "GITHUB_PAT={github_pat}" >> .env && \
           {port_based_ssl}
           
           sleep 60 && \
