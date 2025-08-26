@@ -117,13 +117,13 @@ fn get_boltwall_and_navfiber_url(host: String) -> Result<(String, String)> {
     if subdomain.starts_with("swarm") && is_numeric(&subdomain[5..]) {
         return Ok((
             format!("https://nav.{}/", host.clone()),
-            format!("https://boltwall.{}/api/", host.clone()),
+            format!("https://{}:8444/api/", host.clone()),
         ));
     }
 
     return Ok((
-        format!("https://{}/", host),
-        format!("https://{}/api/", host),
+        format!("https://{}:8444/", host),
+        format!("https://{}:8444/api/", host),
     ));
 }
 

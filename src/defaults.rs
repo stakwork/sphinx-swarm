@@ -222,9 +222,16 @@ pub fn create_super_user() -> User {
         }
 
         let port_based_ssl = getenv("PORT_BASED_SSL").unwrap_or("".to_string());
+        let swarm_number = getenv("SWARM_NUMBER").unwrap_or("".to_string());
 
         if port_based_ssl == "true" || port_based_ssl == "1" {
             default_host = format!("{}:8800", default_host)
+        }
+
+        let mut swarm_id: Option<String> = None;
+
+        if !swarm_number.is_empty() {
+            swarm_id = Some(format!("swarm{}", swarm_number));
         }
 
         let client = make_reqwest_client();
@@ -236,6 +243,7 @@ pub fn create_super_user() -> User {
             password: password_,
             host: my_domain,
             default_host: default_host,
+            id: swarm_id,
         };
 
         match client

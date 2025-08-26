@@ -106,7 +106,10 @@ fn repo2graph(
         env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
 
-    let tests_vol = volume_string(&format!("{}-tests", img.name), "/usr/src/app/tests/generated_tests");
+    let tests_vol = volume_string(
+        &format!("{}-tests", img.name),
+        "/usr/src/app/tests/generated_tests",
+    );
     let extra_vols = vec![tests_vol];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),

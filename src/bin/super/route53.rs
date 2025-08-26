@@ -99,7 +99,17 @@ pub async fn add_domain_name_to_route53(
     }
 }
 
-pub async fn domain_exists_in_route53(domain: &str) -> Result<bool, Error> {
+pub async fn domain_exists_in_route53(
+    domain: &str,
+    reserved_domains: Option<Vec<String>>,
+) -> Result<bool, Error> {
+    if reserved_domains.is_some() {
+        for reserved_domain in reserved_domains.unwrap() {
+            if reserved_domain == domain.to_string() {
+                return Ok(true);
+            }
+        }
+    }
     let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
 
     let client = make_route_53_client().await?;
@@ -124,9 +134,8 @@ pub async fn domain_exists_in_route53(domain: &str) -> Result<bool, Error> {
 
         for record_set in result.resource_record_sets() {
             let record_name = record_set.name().trim_end_matches('.');
-            let record_type = record_set.r#type();
 
-            if record_name == domain && *record_type == RrType::A {
+            if record_name == domain {
                 return Ok(true);
             }
         }

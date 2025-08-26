@@ -70,7 +70,7 @@ pub fn add_new_swarm_from_child_swarm(
     match state
         .stacks
         .iter()
-        .position(|swarm| swarm.default_host == swarm_details.default_host)
+        .position(|swarm| swarm.id == swarm_details.id)
     {
         Some(swarm_pos) => {
             if let Some(password) = &state.stacks[swarm_pos].pass {
@@ -457,6 +457,8 @@ async fn create_ec2_instance(
         host = custom_domain.clone();
     }
 
+    let github_pat = getenv("GITHUB_PAT")?;
+
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
 
     let mut setup_tls_cert = format!(
@@ -575,6 +577,7 @@ async fn create_ec2_instance(
           echo "SECOND_BRAIN_ONLY=true" >> .env && \
           echo "SWARM_NUMBER={swarm_number}" >> .env && \
           echo "PASSWORD={password}" >> .env && \
+          echo "GITHUB_PAT={github_pat}" >> .env && \
           {port_based_ssl}
           
           sleep 60 && \
@@ -833,7 +836,9 @@ pub async fn create_swarm_ec2(
                 if !domain_status.is_empty() {
                     return Err(anyhow!(domain_status));
                 }
-                let vanity_address_exist = domain_exists_in_route53(&vanity_address).await?;
+                let vanity_address_exist =
+                    domain_exists_in_route53(&vanity_address, state.reserved_domains.clone())
+                        .await?;
                 if vanity_address_exist {
                     return Err(anyhow!(
                         "Sorry another Service is using this vanity address"
