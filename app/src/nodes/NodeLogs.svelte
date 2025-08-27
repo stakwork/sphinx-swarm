@@ -4,14 +4,11 @@
   import ArrowLeft from "carbon-icons-svelte/lib/ArrowLeft.svelte";
   import * as api from "../api";
   import { onDestroy } from "svelte";
+  import { cleanLog } from "../helpers/logs";
 
   let open = false;
   export let nodeName = "";
   let logs = "";
-
-  function cleanLog(log) {
-    return log.replace(/\x1B\[[0-9;]*m/g, ""); // Remove ANSI escape codes
-  }
 
   async function getNodeLogs() {
     open = true;

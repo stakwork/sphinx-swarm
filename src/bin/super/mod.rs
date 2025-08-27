@@ -26,6 +26,7 @@ use util::{
 };
 
 use crate::checker::swarm_checker;
+use crate::service::super_admin_logs::get_super_admin_docker_logs;
 use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
@@ -440,6 +441,10 @@ pub async fn super_handle(
             }
             SwarmCmd::CreateInvoiceForLightningBot(info) => {
                 let res: SuperSwarmResponse = create_invoice_lightning_bot(&state, info).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetSuperAdminLogs => {
+                let res = get_super_admin_docker_logs().await;
                 Some(serde_json::to_string(&res)?)
             }
         },
