@@ -343,6 +343,22 @@ fn instance_types() -> Vec<AwsInstanceType> {
             name: "Extra Large GPU".to_string(),
             value: "g4dn.2xlarge".to_string(),
         },
+        AwsInstanceType {
+            name: "X8G Medium".to_string(),
+            value: "x8g.medium".to_string(),
+        },
+        AwsInstanceType {
+            name: "X8G Large".to_string(),
+            value: "x8g.large".to_string(),
+        },
+        AwsInstanceType {
+            name: "R6I Large".to_string(),
+            value: "r6i.large".to_string(),
+        },
+        AwsInstanceType {
+            name: "M6I Large".to_string(),
+            value: "m6i.xlarge".to_string(),
+        },
     ];
 }
 
@@ -435,9 +451,13 @@ async fn create_ec2_instance(
 
     let value = getenv("SWARM_TAG_VALUE")?;
 
-    let github_pat = getenv("GITHUB_PAT")?;
+    let mut host = format!("swarm{}.sphinx.chat", swarm_number);
 
-    let mut host = custom_domain.clone();
+    if !custom_domain.is_empty() {
+        host = custom_domain.clone();
+    }
+
+    let github_pat = getenv("GITHUB_PAT")?;
 
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
 
@@ -527,7 +547,7 @@ async fn create_ec2_instance(
           #Setup TLS Cert
           {setup_tls_cert}
           cd /home/admin && \
-          git clone https://github.com/stakwork/sphinx-swarm.git && \
+          git clone https://github.com/stakwork/sphinx-swarm.git -b new/swarm-size && \
           cd sphinx-swarm && \
           pwd && \
           touch .env && \
