@@ -1,9 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { get_super_admin_logs } from "../../../../../app/src/api/swarm";
-  import { Loading, ToastNotification } from "carbon-components-svelte";
+  import { Loading } from "carbon-components-svelte";
   import { cleanLog } from "./utils/logs";
-  let error_message = "";
   let loading = true;
   let logs: string[] = [];
 
@@ -64,7 +63,7 @@
     color: white;
     padding: 0.3rem 0.5rem;
     white-space: pre-wrap;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.3rem;
   }
 
   .empty_state_container p {
