@@ -66,7 +66,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
         Ok(data) => data,
         Err(err) => {
             return SuperSwarmResponse {
-                success: true,
+                success: false,
                 message: err.to_string(),
                 data: None,
             };

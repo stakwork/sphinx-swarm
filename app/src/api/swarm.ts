@@ -428,6 +428,10 @@ export async function get_lightning_bots_detail() {
   return await swarmCmd("GetLightningBotsDetails");
 }
 
+export async function get_super_admin_logs() {
+  return await swarmCmd("GetSuperAdminLogs");
+}
+
 export async function change_lightning_bot_label({
   id,
   new_label,

@@ -106,6 +106,7 @@ pub enum SwarmCmd {
     GetLightningBotsDetails,
     ChangeLightningBotLabel(ChangeLightningBotLabel),
     CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq),
+    GetSuperAdminLogs,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

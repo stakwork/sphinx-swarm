@@ -96,6 +96,7 @@ services:
       - GITHUB_REQUEST_TOKEN=$GITHUB_REQUEST_TOKEN
       - SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID=$SINGLE_AUDIO_OR_VIDEO_EPISODE_WORKFLOW_ID
       - GITHUB_PAT=$GITHUB_PAT
+      - LOG_TAIL_LENGTH=$LOG_TAIL_LENGTH
   prometheus:
     image: prom/prometheus
     container_name: prometheus

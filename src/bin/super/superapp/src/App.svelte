@@ -13,6 +13,7 @@
   import ChangePassword from "./ChangePassword.svelte";
   import ViewNodes from "./ViewNodes.svelte";
   import LightningBot from "./LightningBot.svelte";
+  import Logs from "./logs.svelte";
   let page = "main";
 
   async function backToMain() {
@@ -54,6 +55,7 @@
         <Tabs width="100%">
           <Tab label="Swarms" />
           <Tab label="Lightning" />
+          <Tab label="Logs" />
           <svelte:fragment slot="content">
             <TabContent>
               <div>
@@ -65,6 +67,7 @@
               </div>
             </TabContent>
             <TabContent><LightningBot /></TabContent>
+            <TabContent><Logs /></TabContent>
           </svelte:fragment>
         </Tabs>
       {/if}
