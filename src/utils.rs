@@ -35,7 +35,7 @@ pub fn host_config(
             name: Some(RestartPolicyNameEnum::UNLESS_STOPPED),
             maximum_retry_count: None,
         }),
-        log_config: local_log_config(),
+        log_config: local_log_config(SWARM_ID_HERE),
         ..Default::default()
     };
     if let Some(ml) = mem_limit {
@@ -59,12 +59,17 @@ pub fn add_gpus_to_host_config(hc: &mut HostConfig, count: i64) {
     }]);
 }
 
-fn local_log_config() -> Option<HostConfigLogConfig> {
+fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
     let mut h = HashMap::new();
-    h.insert("max-size".to_string(), "10m".to_string());
-    h.insert("max-file".to_string(), "5".to_string());
+    h.insert("awslogs-region".to_string(), "us-east-1".to_string());
+    h.insert("awslogs-group".to_string(), format!("/swarms/{}", swarm_id));
+    h.insert("awslogs-create-group".to_string(), "true".to_string());
+    h.insert("tag".to_string(), "{{.Name}}".to_string());
+    // Optional: customize local cache
+    h.insert("cache-max-size".to_string(), "10m".to_string());
+    h.insert("cache-max-file".to_string(), "3".to_string());
     Some(HostConfigLogConfig {
-        typ: Some("local".to_string()),
+        typ: Some("awslogs".to_string()),
         config: Some(h),
     })
 }
