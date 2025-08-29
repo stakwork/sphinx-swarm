@@ -16,13 +16,15 @@ export interface Node {
   name: string;
   type: NodeType;
   place: Place;
-  version?: string; // Internal always have version
+  version?: string;
+  latest_version?: string;
+  is_latest?: boolean; // Internal always have version
   links?: string[];
   network?: Network;
   url?: string;
   host?: string;
   // any other optional field
-  [key: string]: string | string[];
+  [key: string]: string | string[] | boolean;
 }
 
 export type NodeType =
@@ -197,7 +199,7 @@ const defpos = {
   tribes_3: [1160, 675],
 };
 
-export const smalls = ["lss", "boltwall", "neo4j", "elastic", "cache", "lss_1"];
+export const smalls = ["lss", "neo4j", "elastic", "cache", "lss_1"];
 
 export { stack, defaultPositions };
 

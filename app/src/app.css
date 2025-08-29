@@ -41,6 +41,14 @@ html {
   border: 1px solid #5e717a !important;
 }
 
+.node-uptodate-border {
+  border: 1px solid #28a745 !important;
+}
+
+.node-outdated-border {
+  border: 1px solid #ffbf00 !important;
+}
+
 .node-external {
   border: 2px dotted #5e717a !important;
 }
@@ -126,8 +134,7 @@ html {
   align-items: center;
   justify-content: center;
   position: relative;
-  height: 90px;
-  position: absolute;
+  height: max-content;
   top: 1px;
   left: 1px;
   width: 100%;
@@ -177,6 +184,7 @@ html {
 .node-text-version-container {
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
 }
 
 .bx--tab-content {

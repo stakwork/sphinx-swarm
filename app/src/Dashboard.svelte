@@ -29,6 +29,7 @@
   import { get_signedin_user_details, type Container } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
+  import { determineIfShouldUpdate } from "./helpers/nodeBox";
   let selectedName = "";
 
   $: nodes = [...$stack.nodes];
@@ -146,7 +147,12 @@
             style={`color:${$stack.ready ? "white" : "#999"}`}
             >Sphinx Stack
           </span>
-          <p class="swarm_version">{$swarmVersion}</p>
+          <p class="swarm_version">{$swarmVersion.version}</p>
+          {#if determineIfShouldUpdate( { is_latest: $swarmVersion.is_latest, version: $swarmVersion.version, latest_version: $swarmVersion.latest_version }, )}
+            <button on:click={updateSwarm} class="update_swarm_button"
+              >Update to {$swarmVersion.latest_version}</button
+            >
+          {/if}
         </div>
         {#if !$stack.ready}
           <InlineLoading />
@@ -213,8 +219,8 @@
     flex-direction: column;
   }
   header {
-    height: 4.2rem;
-    min-height: 4.2rem;
+    height: 5.5rem;
+    min-height: 5.5rem;
     display: flex;
     background: #23252f;
     align-items: center;
@@ -279,5 +285,12 @@
   .swarm_version {
     font-size: 0.9rem;
     font-family: "Barlow";
+  }
+
+  .update_swarm_button {
+    font-size: 0.9rem;
+    font-family: "Barlow";
+    cursor: pointer;
+    outline: none;
   }
 </style>

@@ -26,7 +26,12 @@ export const users = writable<User[]>(initialUsers);
 
 export const current_swarm_user = writable<SwarmUser>();
 
-export const swarmVersion = writable<string>("");
+export const swarmVersion = writable<VersionInfo>({
+  name: "",
+  version: "",
+  is_latest: false,
+  latest_version: "",
+});
 
 export const tribes = writable<Tribe>({
   page: 1,
@@ -276,6 +281,13 @@ export interface SwarmUser {
   username: string;
   pubkey: string;
   role: SwarmUserRole;
+}
+
+export interface VersionInfo {
+  name: string;
+  version: string;
+  is_latest: boolean;
+  latest_version: string;
 }
 
 export const hsmdClients = writable<HsmdClients>();

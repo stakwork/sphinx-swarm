@@ -578,6 +578,13 @@ pub struct GitHubContainerTags {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct VersionInfo {
+    pub current_version: String,
+    pub is_latest: bool,
+    pub latest_version: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DockerHubResponse {
     pub results: Vec<DockerHubImageResult>,
     pub next: Option<String>,
@@ -587,6 +594,8 @@ pub struct DockerHubResponse {
 pub struct ImageVersion {
     pub name: String,
     pub version: String,
+    pub is_latest: bool,
+    pub latest_version: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -654,7 +663,9 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
         if image_id.is_empty() {
             images_version.push(ImageVersion {
                 name: node_name,
-                version: "unavaliable".to_string(),
+                version: "unavailable".to_string(),
+                is_latest: false,
+                latest_version: "unavailable".to_string(),
             });
             continue;
         }
@@ -664,7 +675,9 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
             log::error!("Error getting {} image digest", node_name);
             images_version.push(ImageVersion {
                 name: node_name,
-                version: "unavaliable".to_string(),
+                version: "unavailable".to_string(),
+                is_latest: false,
+                latest_version: "unavailable".to_string(),
             });
             continue;
         }
@@ -678,11 +691,13 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
             image_name = format!("{}/{}", node.org, image_name);
         }
 
-        let version = get_image_version_from_digest(&image_name, checksome).await;
+        let res = get_image_version_from_digest(&image_name, checksome).await;
 
         images_version.push(ImageVersion {
             name: node_name,
-            version: version,
+            version: res.current_version,
+            is_latest: res.is_latest,
+            latest_version: res.latest_version,
         });
     }
 
@@ -729,12 +744,16 @@ async fn get_image_digest_from_image_id(docker: &Docker, image_id: &str) -> Stri
     image_digest.unwrap()
 }
 
-pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> String {
+pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> VersionInfo {
     if image_name.contains("ghcr.io") {
         let image_name_parts: Vec<&str> = image_name.split("/").collect();
         if image_name_parts.len() != 3 {
             log::error!("Invalid image name format: {}", image_name);
-            return "".to_string();
+            return VersionInfo {
+                current_version: "".to_string(),
+                is_latest: false,
+                latest_version: "".to_string(),
+            };
         }
         let github_container_name = image_name_parts[2];
         let org_name = image_name_parts[1];
@@ -752,7 +771,12 @@ pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> St
     version
 }
 
-pub async fn get_version_from_github_container_registry(url: &str, digest: &str) -> String {
+pub async fn get_version_from_github_container_registry(url: &str, digest: &str) -> VersionInfo {
+    let mut current_tag = "".to_string();
+    let mut is_latest = false;
+    let mut latest_tag = "".to_string();
+    let mut latest_tag_digest = "".to_string();
+    let mut digest_to_tag_map: HashMap<String, String> = HashMap::new();
     let token = getenv("GITHUB_PAT").unwrap_or("".to_string());
     let client = reqwest::Client::builder()
         .user_agent("sphinx-swarm/1.0")
@@ -770,29 +794,62 @@ pub async fn get_version_from_github_container_registry(url: &str, digest: &str)
         Ok(res) => res,
         Err(err) => {
             log::error!("Error making request to {}: {:?}", url, err);
-            return "".to_string();
+            return VersionInfo {
+                current_version: "".to_string(),
+                is_latest: false,
+                latest_version: "".to_string(),
+            };
         }
     };
     let response_json: Vec<GitHubContainerResult> = match response.json().await {
         Ok(json) => json,
         Err(err) => {
             log::error!("Error parsing JSON response: {:?}", err);
-            return "".to_string();
+            return VersionInfo {
+                current_version: "".to_string(),
+                is_latest: false,
+                latest_version: "".to_string(),
+            };
         }
     };
 
     for image in response_json {
         for tag in image.metadata.container.tags {
-            if digest == image.name && tag != "latest" {
-                return tag;
+            if tag == "latest" {
+                latest_tag_digest = image.name.clone();
+            } else {
+                digest_to_tag_map
+                    .entry(image.name.clone())
+                    .or_insert(tag.clone());
             }
         }
     }
 
-    "".to_string()
+    if digest_to_tag_map.contains_key(digest) {
+        current_tag = digest_to_tag_map.get(digest).unwrap().clone();
+    }
+
+    if digest_to_tag_map.contains_key(&latest_tag_digest) {
+        latest_tag = digest_to_tag_map.get(&latest_tag_digest).unwrap().clone()
+    }
+
+    if latest_tag_digest == digest {
+        is_latest = true;
+    }
+
+    return VersionInfo {
+        current_version: current_tag,
+        is_latest: is_latest,
+        latest_version: latest_tag,
+    };
 }
 
-pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> String {
+pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> VersionInfo {
+    let mut current_version = "".to_string();
+    let mut is_latest = false;
+    let mut latest_version = "".to_string();
+    let mut latest_version_digest = "".to_string();
+    let mut digest_to_version_map: HashMap<String, String> = HashMap::new();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(40))
         .danger_accept_invalid_certs(true)
@@ -803,7 +860,11 @@ pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> Stri
         Ok(res) => res,
         Err(err) => {
             log::error!("Error making request to {}: {:?}", docker_url, err);
-            return "".to_string();
+            return VersionInfo {
+                current_version: "".to_string(),
+                is_latest: false,
+                latest_version: "".to_string(),
+            };
         }
     };
 
@@ -811,16 +872,49 @@ pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> Stri
         Ok(parsed) => parsed,
         Err(err) => {
             log::error!("Error parsing response from {}: {:?}", docker_url, err);
-            return "".to_string();
+            return VersionInfo {
+                current_version: "".to_string(),
+                is_latest: false,
+                latest_version: "".to_string(),
+            };
         }
     };
 
     for image in response_json.results {
         if let Some(image_digest) = image.digest {
-            if image_digest == digest && image.name != "latest" {
-                return image.name;
+            if image.name == "latest" {
+                latest_version_digest = image_digest.clone();
+            } else {
+                digest_to_version_map
+                    .entry(image_digest.clone())
+                    .or_insert(image.name.clone());
             }
         }
+    }
+    if digest_to_version_map.contains_key(digest) {
+        current_version = digest_to_version_map.get(digest).unwrap().clone();
+    }
+
+    if digest_to_version_map.contains_key(&latest_version_digest) {
+        latest_version = digest_to_version_map
+            .get(&latest_version_digest)
+            .unwrap()
+            .clone()
+    }
+
+    if latest_version_digest == digest {
+        is_latest = true;
+    }
+
+    if !latest_version_digest.is_empty()
+        && !current_version.is_empty()
+        && !latest_version.is_empty()
+    {
+        return VersionInfo {
+            current_version: current_version,
+            is_latest: is_latest,
+            latest_version: latest_version,
+        };
     }
     if let Some(next_url) = response_json.next {
         if !next_url.is_empty() {
@@ -828,7 +922,11 @@ pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> Stri
         }
     }
 
-    return "".to_string();
+    return VersionInfo {
+        current_version: current_version,
+        is_latest: is_latest,
+        latest_version: latest_version,
+    };
 }
 
 pub async fn prune_images(docker: &Docker) {

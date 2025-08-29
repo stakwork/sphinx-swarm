@@ -5,6 +5,10 @@
   import { chipSVG, type Node, type NodeType, smalls } from "./nodes";
   import type { Node as SvelvetNode, Edge } from "svelvet";
   import { selectedNode, stack } from "./store";
+  import {
+    determineBorderColor,
+    determineIfShouldUpdate,
+  } from "./helpers/nodeBox";
 
   $: flow = toSvelvet($stack.nodes, nodeCallback);
 
@@ -18,7 +22,7 @@
 
   function toSvelvet(
     ns: Node[],
-    clickCallback
+    clickCallback,
   ): { edges: Edge[]; nodes: SvelvetNode[] } {
     const edges: Edge[] = [];
     const nodes = ns.map((n, i) => {
@@ -30,7 +34,7 @@
               id: `edge-${i + 1}-${idx + 1}`,
               source: idx + 1,
               target: i + 1,
-              edgeColor: "#dddddd",
+              edgeColor: `#dddddd`,
               // noHandle: true,
               type: ns[idx].place === "Internal" ? "bezier" : "straight",
               animate: ns[idx].place === "External" || n.type === "Traefik",
@@ -45,20 +49,34 @@
       const isSmall = smalls.includes(n.name);
 
       let className = `node-${n.name}`;
-      if (n.place === "Internal") className += " node-internal";
+      if (n.place === "Internal")
+        className += ` ${determineBorderColor({ is_latest: n.is_latest, latest_version: n.latest_version, version: n.version })}`;
       else className += " node-external";
       if (isSmall) className += " node-small";
 
       return <SvelvetNode>{
         id: i + 1,
         position: { x: pos[0], y: pos[1] },
-        width: isSmall ? 140 : 180,
-        height: isSmall ? 70 : 90,
+        width: isSmall ? 150 : 190,
+        height: isSmall ? 80 : 100,
         borderRadius: 8,
         // bgColor: colorz[n.type],
         bgColor: "#1A242E",
         clickCallback,
-        data: { html: content(n.type, n.version, remoteHsmd), name: n.name },
+        data: {
+          html: content(
+            n.type,
+            n.version,
+            determineIfShouldUpdate({
+              is_latest: n.is_latest,
+              latest_version: n.latest_version,
+              version: n.version,
+            }),
+            n.latest_version,
+            remoteHsmd,
+          ),
+          name: n.name,
+        },
         sourcePosition: "right",
         targetPosition: "left",
         className,
@@ -72,12 +90,23 @@
     else return s;
   }
 
-  function content(t: NodeType, version: string, remoteHsmd = false) {
+  function handleUpdate(string) {
+    console.log(string);
+  }
+
+  function content(
+    t: NodeType,
+    version: string,
+    shouldUpdate: boolean,
+    latestVersion?: string,
+    remoteHsmd = false,
+  ) {
     return `<section class='node-html'>
       <img src='swarm/${t.toLowerCase()}.png' class='node-img'></img>
       <div class='node-text-version-container'>
         <p class="node-text">${namer(t)}</p>
         <p class="version-text">${version}</p>
+        ${shouldUpdate ? `<p class="version-text">Update to ${latestVersion}</p>` : `<span></span>`}
       </div>
       ${
         remoteHsmd
