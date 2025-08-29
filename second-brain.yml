@@ -39,9 +39,6 @@ services:
       - /home/admin/letsencrypt:/letsencrypt
     environment:
       - AWS_REGION=$AWS_REGION
-    logging:
-      options:
-        max-size: 10m
 
   sphinx-swarm:
     image: sphinxlightning/sphinx-swarm
