@@ -23,6 +23,8 @@ pub fn host_config(
     mem_limit: Option<i64>,
 ) -> Option<HostConfig> {
     let mut dvols = vec![volume_string(name, root_vol)];
+    let swarm_number = getenv("SWARM_NUMBER").unwrap_or("".to_string());
+
     if let Some(evs) = extra_vols {
         dvols.extend(evs);
     }
@@ -35,7 +37,7 @@ pub fn host_config(
             name: Some(RestartPolicyNameEnum::UNLESS_STOPPED),
             maximum_retry_count: None,
         }),
-        log_config: local_log_config(SWARM_ID_HERE),
+        log_config: local_log_config(&swarm_number),
         ..Default::default()
     };
     if let Some(ml) = mem_limit {
