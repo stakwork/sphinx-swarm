@@ -16,19 +16,21 @@ export async function getImageVersion(
     let version_object = {};
 
     for (let i = 0; i < image_versions.data.length; i++) {
-      const image_version = image_versions.data[i];
-      version_object[image_version.name] = image_version.version;
+      const image_data = image_versions.data[i];
+      version_object[image_data.name] = { ...image_data };
     }
 
     swarmVersion.set(version_object["swarm"]);
 
     stack.update((stack) => {
       for (let i = 0; i < stack.nodes.length; i++) {
-        const new_version = version_object[stack.nodes[i].name];
+        const version_details = version_object[stack.nodes[i].name];
         const newNode = {
           ...stack.nodes[i],
           ...(stack.nodes[i].name !== "neo4j" && {
-            version: new_version,
+            version: version_details.version,
+            latest_version: version_details.latest_version,
+            is_latest: version_details.is_latest,
           }),
         };
 

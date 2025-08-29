@@ -146,7 +146,7 @@
             style={`color:${$stack.ready ? "white" : "#999"}`}
             >Sphinx Stack
           </span>
-          <p class="swarm_version">{$swarmVersion}</p>
+          <p class="swarm_version">{$swarmVersion.version}</p>
         </div>
         {#if !$stack.ready}
           <InlineLoading />

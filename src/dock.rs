@@ -663,9 +663,9 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
         if image_id.is_empty() {
             images_version.push(ImageVersion {
                 name: node_name,
-                version: "unavaliable".to_string(),
+                version: "unavailable".to_string(),
                 is_latest: false,
-                latest_version: "unavaliable".to_string(),
+                latest_version: "unavailable".to_string(),
             });
             continue;
         }
@@ -675,9 +675,9 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
             log::error!("Error getting {} image digest", node_name);
             images_version.push(ImageVersion {
                 name: node_name,
-                version: "unavaliable".to_string(),
+                version: "unavailable".to_string(),
                 is_latest: false,
-                latest_version: "unavaliable".to_string(),
+                latest_version: "unavailable".to_string(),
             });
             continue;
         }
