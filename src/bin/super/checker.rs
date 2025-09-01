@@ -20,6 +20,12 @@ pub struct BotMsgBody {
     content: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HostDetails {
+    pub host: String,
+    pub default_host: String,
+}
+
 pub async fn swarm_checker() -> Result<JobScheduler> {
     log::info!(":Swarm Checker");
     let sched = JobScheduler::new().await?;
@@ -57,19 +63,27 @@ pub async fn check_all_swarms() -> Result<()> {
     // get all current swarms
     let state = state::STATE.lock().await;
 
-    let mut hosts: Vec<String> = vec![];
+    let mut hosts: Vec<HostDetails> = vec![];
     let mut message = "".to_string();
 
     for swarm in state.stacks.iter() {
-        hosts.push(swarm.host.clone())
+        if swarm.deleted.is_some() && swarm.deleted.unwrap() == false {
+            hosts.push(HostDetails {
+                host: swarm.host.clone(),
+                default_host: swarm.default_host.clone(),
+            })
+        }
     }
 
     drop(state);
 
     // loop through all swarms
-    for host in hosts.iter() {
+    for host_details in hosts.iter() {
         // figure out what the correct host is for boltwall
-        match get_boltwall_and_navfiber_url(host.clone()) {
+        match get_boltwall_and_navfiber_url(
+            host_details.host.clone(),
+            host_details.default_host.clone(),
+        ) {
             Ok((navfiber_url, boltwall_url)) => {
                 // ping each of the services for their current status
                 let boltwall_status = get_boltwall_or_jarvis_status(boltwall_url.clone()).await?;
@@ -78,8 +92,12 @@ pub async fn check_all_swarms() -> Result<()> {
                 let navfiber_status = get_navfiber_status(navfiber_url.clone()).await?;
 
                 // if any is not responding configure error message
-                let new_message =
-                    configure_error_msg(boltwall_status, jarvis_status, navfiber_status, &host);
+                let new_message = configure_error_msg(
+                    boltwall_status,
+                    jarvis_status,
+                    navfiber_status,
+                    &host_details.host,
+                );
                 if !new_message.is_empty() {
                     if message.is_empty() {
                         message = format!("{}", new_message)
@@ -104,7 +122,13 @@ pub async fn check_all_swarms() -> Result<()> {
     Ok(())
 }
 
-fn get_boltwall_and_navfiber_url(host: String) -> Result<(String, String)> {
+fn get_boltwall_and_navfiber_url(host: String, default_host: String) -> Result<(String, String)> {
+    if default_host.ends_with(":8800") {
+        return Ok((
+            format!("https://{}:8000/", host),
+            format!("https://{}:8444/api/", host),
+        ));
+    }
     let parts: Vec<&str> = host.split('.').collect();
 
     if parts.len() < 3 {
@@ -117,13 +141,13 @@ fn get_boltwall_and_navfiber_url(host: String) -> Result<(String, String)> {
     if subdomain.starts_with("swarm") && is_numeric(&subdomain[5..]) {
         return Ok((
             format!("https://nav.{}/", host.clone()),
-            format!("https://{}:8444/api/", host.clone()),
+            format!("https://boltwall.{}/api/", host.clone()),
         ));
     }
 
     return Ok((
-        format!("https://{}:8444/", host),
-        format!("https://{}:8444/api/", host),
+        format!("https://{}/", host),
+        format!("https://{}/api/", host),
     ));
 }
 
@@ -152,6 +176,7 @@ async fn get_boltwall_or_jarvis_status(url: String) -> Result<bool> {
             }
         }
         Err(error) => {
+            log::error!("URL: {}", url);
             log::error!("Error: {}", error);
             status = false
         }
