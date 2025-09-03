@@ -227,5 +227,5 @@ apoc.initializer.neo4j.15=CREATE INDEX ON :Replacement_Entity(replacement)
 apoc.initializer.neo4j.16=CREATE FULLTEXT INDEX schema_full_index IF NOT EXISTS FOR (n:Schema) ON EACH [n.type]
 apoc.initializer.neo4j.17=CREATE FULLTEXT INDEX query_full_index IF NOT EXISTS FOR (n:Query) ON EACH [n.query]
 apoc.initializer.neo4j.20=CREATE VECTOR INDEX query_text_embeddings_vector_index IF NOT EXISTS FOR (n:Query) ON n.query_embeddings OPTIONS { indexConfig: { `vector.dimensions`: 384, `vector.similarity_function`: 'cosine' }}
-apoc.initializer.neo4j.21=CALL db.labels() YIELD label WHERE EXISTS { MATCH (n:label) WHERE n.name IS NOT NULL } WITH collect(label) AS labels CALL apoc.cypher.run('CREATE FULLTEXT INDEX name_full_index IF NOT EXISTS FOR (n:' + apoc.text.join(labels, '|') + ') ON EACH [n.name]', {}) YIELD value RETURN value
+apoc.initializer.neo4j.16=CREATE FULLTEXT INDEX name_full_index IF NOT EXISTS FOR (n:Data_Bank) ON EACH [n.name]
 "#;
