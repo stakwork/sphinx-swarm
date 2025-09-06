@@ -79,10 +79,11 @@ pub async fn download_and_zip_from_container(
     let docker = Docker::connect_with_local_defaults()?;
 
     // Define the parent directory where all the container volumes will be saved
-    let parent_directory = getenv("HOST")?;
+    let swarm_number = getenv("SWARM_NUMBER")?;
+    let parent_directory = format!("swarm{}", swarm_number);
 
-    let current_timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-    let s3_parent_directory = format!("{}_{}", &parent_directory, current_timestamp);
+    let current_date = Local::now().format("%Y-%m-%d").to_string();
+    let s3_parent_directory = format!("{}_{}", &parent_directory, current_date);
 
     // Create the parent directory if it doesn't exist
     fs::create_dir_all(&s3_parent_directory)?;
@@ -114,10 +115,16 @@ pub async fn download_and_zip_from_container(
 
         tokio::io::copy(&mut body_reader, &mut file).await?;
 
-        upload_final_zip_to_s3(format!(
-            "{}/{}/{}.tar",
-            &s3_parent_directory, &sub_directory, &sub_directory
-        ))
+        upload_final_zip_to_s3(
+            format!(
+                "{}/{}/{}.tar",
+                &s3_parent_directory, &sub_directory, &sub_directory
+            ),
+            format!(
+                "{}/{}/{}/{}.tar",
+                &parent_directory, &current_date, &sub_directory, &sub_directory
+            ),
+        )
         .await?;
 
         log::info!(
@@ -133,8 +140,8 @@ pub async fn download_and_zip_from_container(
     Ok(())
 }
 
-async fn upload_final_zip_to_s3(parent_zip: String) -> Result<()> {
-    match upload_to_s3_multi(&bucket_name(), &parent_zip.clone()).await {
+async fn upload_final_zip_to_s3(parent_zip: String, key: String) -> Result<()> {
+    match upload_to_s3_multi(&bucket_name(), &parent_zip.clone(), &key.clone()).await {
         Ok(status) => {
             if status == true {
                 let _ = fs::remove_file(parent_zip);
@@ -176,7 +183,7 @@ pub fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
     Ok(())
 }
 
-async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
+async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<bool> {
     //In bytes, minimum chunk size of 150MB.
     const CHUNK_SIZE: u64 = 1024 * 1024 * 150;
     const MAX_CHUNKS: u64 = 10000;
@@ -226,10 +233,13 @@ async fn upload_to_s3_multi(bucket: &str, key: &str) -> Result<bool> {
         }
     };
 
-    let path = Path::new(&key);
+    let path = Path::new(&file_path);
     let file_size = tokio::fs::metadata(path)
         .await
-        .expect("it exists I swear")
+        .expect(&format!(
+            "unable to find file to upload in this path: {}",
+            file_path
+        ))
         .len();
 
     let mut chunk_count = (file_size / CHUNK_SIZE) + 1;
@@ -327,7 +337,9 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
-    let object_prefix = getenv("HOST")?;
+    let swarm_number = getenv("SWARM_NUMBER")?;
+
+    let object_prefix = format!("swarm{}/", swarm_number);
 
     // List objects in the bucket
     let resp = client
