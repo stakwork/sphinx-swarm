@@ -37,7 +37,7 @@ use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
-use tokio::time::{sleep, Duration};
+use tokio::time::Duration;
 
 pub fn add_new_swarm_details(
     state: &mut Super,
@@ -425,8 +425,13 @@ async fn create_ec2_instance(
         getenv("AWS_IMAGE_ID")?
     };
 
-    log::info!("Using {} AMI: {}", 
-        if use_custom_ami { "custom optimized" } else { "standard" }, 
+    log::info!(
+        "Using {} AMI: {}",
+        if use_custom_ami {
+            "custom optimized"
+        } else {
+            "standard"
+        },
         image_id
     );
 
@@ -1004,8 +1009,13 @@ pub async fn create_swarm_ec2(
 
     // Detect if we're using custom AMI
     let use_custom_ami = getenv("AWS_CUSTOM_AMI_ID").is_ok();
-    log::info!("Creating instance with {} AMI", 
-        if use_custom_ami { "optimized" } else { "standard" }
+    log::info!(
+        "Creating instance with {} AMI",
+        if use_custom_ami {
+            "optimized"
+        } else {
+            "standard"
+        }
     );
 
     let ec2_instance = create_ec2_instance(
@@ -1037,13 +1047,8 @@ pub async fn create_swarm_ec2(
 
     // Get IP address in parallel with domain setup
     let ip_future = get_instance_ip(instance_id);
-    let domain_setup_future = async {
-        prepare_domain_configuration(
-            swarm_number,
-            &actual_vanity_address,
-            info.subdomain_ssl
-        )
-    };
+    let domain_setup_future =
+        prepare_domain_configuration(swarm_number, &actual_vanity_address, info.subdomain_ssl);
 
     let (ec2_ip_address, domain_config) = tokio::try_join!(ip_future, domain_setup_future)?;
 
@@ -1139,17 +1144,17 @@ async fn wait_for_user_data_completion(
     timeout: Duration,
 ) -> Result<(), Error> {
     let start_time = std::time::Instant::now();
-    
+
     // First wait for status checks to pass
     log::info!("Waiting for instance status checks to pass...");
-    
+
     // Wait for system status check (shorter timeout)
     tokio::time::timeout(
         Duration::from_secs(120),
         client
             .wait_until_instance_status_ok()
             .instance_ids(instance_id)
-            .wait(Duration::from_secs(120))
+            .wait(Duration::from_secs(120)),
     )
     .await
     .map_err(|_| anyhow!("Timeout waiting for instance status checks"))?
@@ -1160,14 +1165,14 @@ async fn wait_for_user_data_completion(
     // Check user data completion by looking for log markers
     let mut attempts = 0;
     let max_attempts = (timeout.as_secs() / 10) as u32; // Check every 10 seconds
-    
+
     loop {
         if start_time.elapsed() > timeout {
             return Err(anyhow!("Timeout waiting for user data completion"));
         }
 
         attempts += 1;
-        
+
         // Try to get console output to check for completion markers
         match get_console_output_and_check_completion(client, instance_id).await {
             Ok(true) => {
@@ -1176,19 +1181,28 @@ async fn wait_for_user_data_completion(
             }
             Ok(false) => {
                 if attempts >= max_attempts {
-                    log::warn!("Could not verify user data completion, but proceeding after timeout");
+                    log::warn!(
+                        "Could not verify user data completion, but proceeding after timeout"
+                    );
                     return Ok(());
                 }
-                log::info!("User data still running, waiting... (attempt {}/{})", attempts, max_attempts);
+                log::info!(
+                    "User data still running, waiting... (attempt {}/{})",
+                    attempts,
+                    max_attempts
+                );
                 tokio::time::sleep(Duration::from_secs(10)).await;
             }
             Err(e) => {
-                log::warn!("Could not check console output: {}. Proceeding with time-based wait.", e);
+                log::warn!(
+                    "Could not check console output: {}. Proceeding with time-based wait.",
+                    e
+                );
                 // Fallback to a shorter time-based wait
-                let fallback_wait = if getenv("AWS_CUSTOM_AMI_ID").is_ok() { 
-                    Duration::from_secs(60) 
-                } else { 
-                    Duration::from_secs(120) 
+                let fallback_wait = if getenv("AWS_CUSTOM_AMI_ID").is_ok() {
+                    Duration::from_secs(60)
+                } else {
+                    Duration::from_secs(120)
                 };
                 tokio::time::sleep(fallback_wait).await;
                 return Ok(());
@@ -1213,7 +1227,7 @@ async fn get_console_output_and_check_completion(
         let decoded = base64::decode(console_output)
             .map_err(|e| anyhow!("Failed to decode console output: {}", e))?;
         let output_text = String::from_utf8_lossy(&decoded);
-        
+
         // Look for completion markers in the console output
         let completion_markers = [
             "OPTIMIZED deployment completed successfully",
@@ -1221,21 +1235,16 @@ async fn get_console_output_and_check_completion(
             "deployment completed successfully",
             "Deployment completed successfully",
         ];
-        
+
         for marker in &completion_markers {
             if output_text.contains(marker) {
                 return Ok(true);
             }
         }
-        
+
         // Check for error markers
-        let error_markers = [
-            "ERROR:",
-            "FAILED:",
-            "error:",
-            "failed:",
-        ];
-        
+        let error_markers = ["ERROR:", "FAILED:", "error:", "failed:"];
+
         for error in &error_markers {
             if output_text.contains(error) && !output_text.contains("non-fatal") {
                 log::warn!("Potential error detected in user data script: check console output");
@@ -1246,25 +1255,25 @@ async fn get_console_output_and_check_completion(
     Ok(false)
 }
 
-// Helper function to create AWS client (if not already defined)
-async fn make_aws_client() -> Result<Client, Error> {
-    let region = getenv("AWS_REGION")?;
-    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-    
-    let timeout_config = TimeoutConfig::builder()
-        .connect_timeout(Duration::from_secs(5))
-        .read_timeout(Duration::from_secs(60))
-        .build();
+// // Helper function to create AWS client (if not already defined)
+// async fn make_aws_client() -> Result<Client, Error> {
+//     let region = getenv("AWS_REGION")?;
+//     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
-    let config = aws_config::from_env()
-        .region(region_provider)
-        .retry_config(RetryConfig::standard().with_max_attempts(5))
-        .timeout_config(timeout_config)
-        .load()
-        .await;
-        
-    Ok(Client::new(&config))
-}
+//     let timeout_config = TimeoutConfig::builder()
+//         .connect_timeout(Duration::from_secs(5))
+//         .read_timeout(Duration::from_secs(60))
+//         .build();
+
+//     let config = aws_config::from_env()
+//         .region(region_provider)
+//         .retry_config(RetryConfig::standard().with_max_attempts(5))
+//         .timeout_config(timeout_config)
+//         .load()
+//         .await;
+
+//     Ok(Client::new(&config))
+// }
 
 pub async fn update_aws_instance_type(
     details: UpdateInstanceDetails,
@@ -1692,6 +1701,31 @@ async fn handle_get_swarm_details_by_default_id(
         message: "Swarm details".to_string(),
         data: Some(json_value),
     })
+}
+
+pub fn is_valid_domain(domain: String) -> String {
+    let valid_chars = |c: char| c.is_ascii_alphanumeric() || c == '-';
+
+    if domain.starts_with('-') || domain.ends_with('-') {
+        return "Hyphen cannot be the first or last character.".to_string();
+    }
+
+    let mut previous_char: Option<char> = None;
+    for c in domain.chars() {
+        if !valid_chars(c) {
+            return "Domain can only contain letters, numbers, and hyphens.".to_string();
+        }
+
+        if let Some(prev) = previous_char {
+            if prev == '-' && c == '-' {
+                return "Hyphens cannot appear consecutively.".to_string();
+            }
+        }
+
+        previous_char = Some(c);
+    }
+
+    "".to_string()
 }
 
 // async fn update_password_request(
