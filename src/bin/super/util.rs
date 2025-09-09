@@ -394,53 +394,44 @@ async fn create_ec2_instance(
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
     let stakwork_token = getenv("STAKWORK_ADD_NODE_TOKEN")?;
-
     let lnd_macaroon = getenv("EXTERNAL_LND_MACAROON")?;
-
     let lnd_address = getenv("EXTERNAL_LND_ADDRESS")?;
-
     let lnd_cert = getenv("EXTERNAL_LND_CERT")?;
-
     let youtube_token = getenv("YOUTUBE_API_TOKEN")?;
-
     let twitter_token = getenv("TWITTER_BEARER")?;
-
     let super_url = getenv("SUPER_URL")?;
-
     let super_token = getenv("SUPER_TOKEN")?;
+    let swarm_updater_password = getenv("SWARM_UPDATER_PASSWORD")?;
+    let aws_s3_bucket_name = getenv("AWS_S3_BUCKET_NAME")?;
+    let github_pat = getenv("GITHUB_PAT")?;
 
     let swarm_name = format!("{}", swarm_name);
-
     let swarm_number = rand::thread_rng().gen_range(100000..1000000);
 
     let device_name = getenv("AWS_DEVICE_NAME")?;
-
-    let image_id = getenv("AWS_IMAGE_ID")?;
-
     let security_group_id = getenv("AWS_SECURITY_GROUP_ID")?;
-
     let subnet_id = getenv("AWS_SUBNET_ID")?;
-
     let key_name = getenv("AWS_KEY_NAME")?;
-
     let aws_role = getenv("AWS_USER_ROLE")?;
-
-    let swarm_updater_password = getenv("SWARM_UPDATER_PASSWORD")?;
-
-    let aws_s3_bucket_name = getenv("AWS_S3_BUCKET_NAME")?;
-
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
-
     let key = getenv("SWARM_TAG_KEY")?;
-
     let value = getenv("SWARM_TAG_VALUE")?;
 
-    let github_pat = getenv("GITHUB_PAT")?;
+    // Check if we have a custom AMI ID, otherwise fall back to original
+    let use_custom_ami = getenv("AWS_CUSTOM_AMI_ID").is_ok();
+    let image_id = if use_custom_ami {
+        getenv("AWS_CUSTOM_AMI_ID")?
+    } else {
+        getenv("AWS_IMAGE_ID")?
+    };
+
+    log::info!("Using {} AMI: {}", 
+        if use_custom_ami { "custom optimized" } else { "standard" }, 
+        image_id
+    );
 
     let mut host = custom_domain.clone();
-
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
-
     let mut setup_tls_cert = format!(
         r#"cd /home/admin && \
           mkdir -p certs && \
@@ -463,7 +454,6 @@ async fn create_ec2_instance(
     }
 
     let mut env_lines = "".to_string();
-
     if let Some(env_map) = env {
         env_lines = env_map
             .iter()
@@ -477,8 +467,8 @@ async fn create_ec2_instance(
             .collect::<Vec<_>>()
             .join("");
     }
-    let mut password = "password".to_string();
 
+    let mut password = "password".to_string();
     if let Some(provided_swarm_password) = swarm_password {
         if provided_swarm_password.is_empty() {
             return Err(anyhow!("password cannot be an empty string"));
@@ -486,12 +476,59 @@ async fn create_ec2_instance(
         password = provided_swarm_password
     }
 
+    // Create different user data scripts based on AMI type
+    let user_data_script = if use_custom_ami {
+        create_optimized_user_data_script(
+            &setup_tls_cert,
+            &host,
+            &aws_s3_bucket_name,
+            &stakwork_token,
+            &lnd_macaroon,
+            &lnd_address,
+            &lnd_cert,
+            &youtube_token,
+            &swarm_updater_password,
+            &twitter_token,
+            &super_token,
+            &super_url,
+            &custom_domain,
+            swarm_number,
+            &password,
+            &github_pat,
+            &port_based_ssl,
+            &env_lines,
+            &docker_compose_start_script,
+        )
+    } else {
+        create_legacy_user_data_script(
+            &setup_tls_cert,
+            &host,
+            &aws_s3_bucket_name,
+            &stakwork_token,
+            &lnd_macaroon,
+            &lnd_address,
+            &lnd_cert,
+            &youtube_token,
+            &swarm_updater_password,
+            &twitter_token,
+            &super_token,
+            &super_url,
+            &custom_domain,
+            swarm_number,
+            &password,
+            &github_pat,
+            &port_based_ssl,
+            &env_lines,
+            &docker_compose_start_script,
+        )
+    };
+
+    // Rest of your EC2 creation code stays the same...
     let timeout_config = TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(5))
         .read_timeout(Duration::from_secs(60))
         .build();
 
-    // Load the AWS configuration
     let config = aws_config::from_env()
         .region(region_provider)
         .retry_config(RetryConfig::standard().with_max_attempts(10))
@@ -500,7 +537,237 @@ async fn create_ec2_instance(
         .await;
     let client = Client::new(&config);
 
-    let user_data_script = format!(
+    let tags = vec![
+        Tag::builder().key("Name").value(swarm_name).build(),
+        Tag::builder().key(key).value(value).build(),
+    ];
+
+    let tag_specification = TagSpecification::builder()
+        .resource_type("instance".into())
+        .set_tags(Some(tags))
+        .build();
+
+    let block_device = BlockDeviceMapping::builder()
+        .device_name(device_name)
+        .ebs(EbsBlockDevice::builder().volume_size(100).build())
+        .build();
+
+    let instance_type = InstanceType::from_str(&instance_type_name).map_err(|err| {
+        log::error!("Invalid instance type: {}", err);
+        anyhow!(err.to_string())
+    })?;
+
+    let instance_profile_spec = IamInstanceProfileSpecification::builder()
+        .name(aws_role)
+        .build();
+
+    let metadata_options = InstanceMetadataOptionsRequest::builder()
+        .http_tokens(HttpTokensState::Required)
+        .http_endpoint("enabled".into())
+        .http_put_response_hop_limit(2)
+        .build();
+
+    let result = client
+        .run_instances()
+        .image_id(image_id)
+        .instance_type(instance_type)
+        .security_group_ids(security_group_id)
+        .key_name(key_name)
+        .min_count(1)
+        .max_count(1)
+        .user_data(base64::encode(user_data_script))
+        .block_device_mappings(block_device)
+        .tag_specifications(tag_specification)
+        .subnet_id(subnet_id)
+        .disable_api_termination(true)
+        .iam_instance_profile(instance_profile_spec)
+        .metadata_options(metadata_options)
+        .send()
+        .await;
+
+    match result {
+        Ok(response) => {
+            if response.instances().is_empty() {
+                return Err(anyhow!("Failed to create instance"));
+            }
+            let instance_id: String = response.instances()[0].instance_id().unwrap().to_string();
+            log::info!("Created instance with ID: {}", instance_id);
+
+            client
+                .modify_instance_attribute()
+                .instance_id(instance_id.clone())
+                .disable_api_termination(
+                    AttributeBooleanValue::builder()
+                        .set_value(Some(true))
+                        .build(),
+                )
+                .send()
+                .await
+                .map_err(|err| {
+                    log::error!("Error enabling termination protection: {}", err);
+                    anyhow::anyhow!(err.to_string())
+                })?;
+
+            log::info!(
+                "Instance {} created and termination protection enabled.",
+                instance_id
+            );
+
+            return Ok((instance_id, swarm_number));
+        }
+        Err(SdkError::ServiceError(service_error)) => {
+            let err = service_error
+                .err()
+                .message()
+                .unwrap_or("Unknown error")
+                .to_string();
+            log::error!("Service error: {}", err);
+            return Err(anyhow!(err));
+        }
+        Err(SdkError::TimeoutError(_)) => {
+            let err_msg = "Request timed out.";
+            log::error!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(SdkError::DispatchFailure(err)) => {
+            log::error!("Network error: {:?}", err);
+            return Err(anyhow!("Network error"));
+        }
+        Err(e) => {
+            log::error!("Unexpected error: {:?}", e);
+            return Err(anyhow!("Unexpected error"));
+        }
+    }
+}
+
+fn create_optimized_user_data_script(
+    setup_tls_cert: &str,
+    host: &str,
+    aws_s3_bucket_name: &str,
+    stakwork_token: &str,
+    lnd_macaroon: &str,
+    lnd_address: &str,
+    lnd_cert: &str,
+    youtube_token: &str,
+    swarm_updater_password: &str,
+    twitter_token: &str,
+    super_token: &str,
+    super_url: &str,
+    custom_domain: &str,
+    swarm_number: i32,
+    password: &str,
+    github_pat: &str,
+    port_based_ssl: &str,
+    env_lines: &str,
+    docker_compose_start_script: &str,
+) -> String {
+    format!(
+        r#"#!/bin/bash
+exec > >(tee /var/log/sphinx-swarm/user-data.log) 2>&1
+set -e
+
+echo "Starting OPTIMIZED Sphinx Swarm deployment at $(date)"
+
+su - admin -c '
+    cd /home/admin
+
+    echo "Setting up TLS certificates..."
+    {setup_tls_cert}
+
+    echo "Cloning sphinx-swarm repository..."
+    git clone https://github.com/stakwork/sphinx-swarm.git
+    cd sphinx-swarm
+
+    echo "Creating environment configuration..."
+    cat > .env << "ENVEOF"
+HOST={host}
+NETWORK=bitcoin
+AWS_REGION=us-east-1
+AWS_S3_BUCKET_NAME={aws_s3_bucket_name}
+STAKWORK_ADD_NODE_TOKEN={stakwork_token}
+STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}
+NO_REMOTE_SIGNER=true
+EXTERNAL_LND_MACAROON={lnd_macaroon}
+EXTERNAL_LND_ADDRESS={lnd_address}
+EXTERNAL_LND_CERT={lnd_cert}
+YOUTUBE_API_TOKEN={youtube_token}
+SWARM_UPDATER_PASSWORD={swarm_updater_password}
+JARVIS_FEATURE_FLAG_SCHEMA=true
+BACKUP_KEY=
+FEATURE_FLAG_TEXT_EMBEDDINGS=true
+TWITTER_BEARER={twitter_token}
+SUPER_TOKEN={super_token}
+SUPER_URL={super_url}
+NAV_BOLTWALL_SHARED_HOST={custom_domain}
+SECOND_BRAIN_ONLY=true
+SWARM_NUMBER={swarm_number}
+PASSWORD={password}
+GITHUB_PAT={github_pat}
+{port_based_ssl}
+{env_lines}
+ENVEOF
+
+    echo "Creating PM2 configuration..."
+    cat > ecosystem.config.js << "PMEOF"
+module.exports = {{
+  apps: [
+    {{
+      name: "restarter",
+      script: "./restarter.js",
+      env: {{
+        SECOND_BRAIN: "true",
+        PASSWORD: "{swarm_updater_password}",
+      }},
+    }},
+  ],
+}};
+PMEOF
+
+    echo "Starting PM2 services..."
+    pm2 start ecosystem.config.js
+    pm2 save
+    
+    # Setup PM2 to start on boot
+    startup_command=$(pm2 startup | grep "sudo" | tail -n 1)
+    if [ -n "$startup_command" ]; then
+        eval $startup_command 2>/dev/null || true
+        pm2 save
+    fi
+
+    echo "Starting Sphinx Swarm application..."
+    {docker_compose_start_script}
+
+    echo "OPTIMIZED deployment completed successfully at $(date)"
+'
+
+echo "OPTIMIZED user data script completed at $(date)"
+"#
+    )
+}
+
+fn create_legacy_user_data_script(
+    setup_tls_cert: &str,
+    host: &str,
+    aws_s3_bucket_name: &str,
+    stakwork_token: &str,
+    lnd_macaroon: &str,
+    lnd_address: &str,
+    lnd_cert: &str,
+    youtube_token: &str,
+    swarm_updater_password: &str,
+    twitter_token: &str,
+    super_token: &str,
+    super_url: &str,
+    custom_domain: &str,
+    swarm_number: i32,
+    password: &str,
+    github_pat: &str,
+    port_based_ssl: &str,
+    env_lines: &str,
+    docker_compose_start_script: &str,
+) -> String {
+    // This is your original user data script
+    format!(
         r#"#!/bin/bash
       su - admin -c '
           cd /home/admin &&
@@ -591,116 +858,11 @@ async fn create_ec2_instance(
           eval $startup_command && \
           pm2 save && \
           {docker_compose_start_script}
+
+        echo "User data script completed successfully at $(date)"
       '
       "#
-    );
-
-    let tags = vec![
-        Tag::builder().key("Name").value(swarm_name).build(),
-        Tag::builder().key(key).value(value).build(),
-    ];
-
-    // Define the TagSpecification to apply the tags when the instance is created
-    let tag_specification = TagSpecification::builder()
-        .resource_type("instance".into())
-        .set_tags(Some(tags))
-        .build();
-
-    let block_device = BlockDeviceMapping::builder()
-        .device_name(device_name) // Valid for Debian
-        .ebs(EbsBlockDevice::builder().volume_size(100).build())
-        .build();
-
-    let instance_type = InstanceType::from_str(&instance_type_name).map_err(|err| {
-        log::error!("Invalid instance type: {}", err);
-        anyhow!(err.to_string())
-    })?;
-
-    let instance_profile_spec = IamInstanceProfileSpecification::builder()
-        .name(aws_role)
-        .build();
-
-    let metadata_options = InstanceMetadataOptionsRequest::builder()
-        .http_tokens(HttpTokensState::Required)
-        .http_endpoint("enabled".into())
-        .http_put_response_hop_limit(2)
-        .build();
-
-    let result = client
-        .run_instances()
-        .image_id(image_id)
-        .instance_type(instance_type)
-        .security_group_ids(security_group_id)
-        .key_name(key_name)
-        .min_count(1)
-        .max_count(1)
-        .user_data(base64::encode(user_data_script))
-        .block_device_mappings(block_device)
-        .tag_specifications(tag_specification)
-        .subnet_id(subnet_id)
-        .disable_api_termination(true)
-        .iam_instance_profile(instance_profile_spec)
-        .metadata_options(metadata_options)
-        .send()
-        // .map_err(|err| {
-        //     log::error!("Error Creating instance instance: {}", err);
-        //     anyhow!(err.to_string())
-        // })
-        .await;
-
-    match result {
-        Ok(response) => {
-            if response.instances().is_empty() {
-                return Err(anyhow!("Failed to create instance"));
-            }
-            let instance_id: String = response.instances()[0].instance_id().unwrap().to_string();
-            log::info!("Created instance with ID: {}", instance_id);
-
-            client
-                .modify_instance_attribute()
-                .instance_id(instance_id.clone())
-                .disable_api_termination(
-                    AttributeBooleanValue::builder()
-                        .set_value(Some(true))
-                        .build(),
-                )
-                .send()
-                .await
-                .map_err(|err| {
-                    log::error!("Error enabling termination protection: {}", err);
-                    anyhow::anyhow!(err.to_string())
-                })?;
-
-            log::info!(
-                "Instance {} created and termination protection enabled.",
-                instance_id
-            );
-
-            return Ok((instance_id, swarm_number));
-        }
-        Err(SdkError::ServiceError(service_error)) => {
-            let err = service_error
-                .err()
-                .message()
-                .unwrap_or("Unknown error")
-                .to_string();
-            log::error!("Service error: {}", err);
-            return Err(anyhow!(err));
-        }
-        Err(SdkError::TimeoutError(_)) => {
-            let err_msg = "Request timed out.";
-            log::error!("{}", err_msg);
-            return Err(anyhow!(err_msg));
-        }
-        Err(SdkError::DispatchFailure(err)) => {
-            log::error!("Network error: {:?}", err);
-            return Err(anyhow!("Network error"));
-        }
-        Err(e) => {
-            log::error!("Unexpected error: {:?}", e);
-            return Err(anyhow!("Unexpected error"));
-        }
-    }
+    )
 }
 
 async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
@@ -797,8 +959,8 @@ pub async fn create_swarm_ec2(
         state.ec2_limit.date = today_date;
         state.ec2_limit.count = 1;
     }
-    let mut actual_vanity_address: Option<String> = None;
 
+    let mut actual_vanity_address: Option<String> = None;
     let instance_type = get_instance(&info.instance_type);
 
     if instance_type.is_none() {
@@ -840,7 +1002,13 @@ pub async fn create_swarm_ec2(
         ));
     }
 
-    let ec2_intance = create_ec2_instance(
+    // Detect if we're using custom AMI
+    let use_custom_ami = getenv("AWS_CUSTOM_AMI_ID").is_ok();
+    log::info!("Creating instance with {} AMI", 
+        if use_custom_ami { "optimized" } else { "standard" }
+    );
+
+    let ec2_instance = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),
         info.instance_type.clone(),
@@ -850,35 +1018,104 @@ pub async fn create_swarm_ec2(
     )
     .await?;
 
-    sleep(Duration::from_secs(40)).await;
+    let instance_id = &ec2_instance.0;
+    let swarm_number = ec2_instance.1;
 
+    // Create AWS client for waiting operations
+    let client = make_aws_client().await?;
+
+    // Wait for instance to be running (replaces the sleep)
+    log::info!("Waiting for instance {} to be running...", instance_id);
+    client
+        .wait_until_instance_running()
+        .instance_ids(instance_id)
+        .wait(Duration::from_secs(180)) // 3 minutes max wait
+        .await
+        .map_err(|e| anyhow!("Instance failed to start: {}", e))?;
+
+    log::info!("Instance is running, getting IP address...");
+
+    // Get IP address in parallel with domain setup
+    let ip_future = get_instance_ip(instance_id);
+    let domain_setup_future = async {
+        prepare_domain_configuration(
+            swarm_number,
+            &actual_vanity_address,
+            info.subdomain_ssl
+        )
+    };
+
+    let (ec2_ip_address, domain_config) = tokio::try_join!(ip_future, domain_setup_future)?;
+
+    log::info!("Instance IP: {}, setting up domains...", ec2_ip_address);
+
+    // Setup Route53 records
+    let _ = add_domain_name_to_route53(domain_config.domain_names.clone(), &ec2_ip_address).await?;
+
+    // If using custom AMI, wait for user data to complete
+    if use_custom_ami {
+        log::info!("Waiting for optimized deployment to complete...");
+        wait_for_user_data_completion(instance_id, &client, Duration::from_secs(120)).await?;
+    } else {
+        log::info!("Waiting for standard deployment to complete...");
+        wait_for_user_data_completion(instance_id, &client, Duration::from_secs(300)).await?;
+    }
+
+    let swarm_id = format!("swarm{}", swarm_number);
+
+    // Add new ec2 to list of swarms
+    let new_swarm = RemoteStack {
+        host: domain_config.host,
+        ec2: Some(info.instance_type.clone()),
+        default_host: domain_config.default_host,
+        note: Some("".to_string()),
+        user: Some("".to_string()),
+        pass: Some("".to_string()),
+        ec2_instance_id: instance_id.clone(),
+        public_ip_address: Some(ec2_ip_address),
+        private_ip_address: Some("".to_string()),
+        id: Some(swarm_id.clone()),
+        deleted: Some(false),
+        route53_domain_names: Some(domain_config.domain_names),
+    };
+
+    state.add_remote_stack(new_swarm);
+
+    log::info!("Swarm {} deployment completed successfully!", swarm_id);
+    Ok(CreateEc2InstanceRes { swarm_id })
+}
+
+// Helper struct for domain configuration
+struct DomainConfig {
+    host: String,
+    default_host: String,
+    domain_names: Vec<String>,
+}
+
+// Extract domain preparation logic
+async fn prepare_domain_configuration(
+    swarm_number: i32,
+    actual_vanity_address: &Option<String>,
+    subdomain_ssl: Option<bool>,
+) -> Result<DomainConfig, Error> {
     let mut domain_names: Vec<String> = Vec::new();
+    let mut default_host = format!("swarm{}.sphinx.chat:8800", swarm_number);
+    let mut host = format!("swarm{}.sphinx.chat", swarm_number);
 
-    let mut default_host = format!("swarm{}.sphinx.chat:8800", &ec2_intance.1);
-    let mut host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
-
-    if let Some(custom_domain) = &actual_vanity_address {
-        log::info!("vanity address is being set");
+    if let Some(custom_domain) = actual_vanity_address {
         if !custom_domain.is_empty() {
             host = custom_domain.clone();
-            default_host = format!("{}:8800", custom_domain.clone());
+            default_host = format!("{}:8800", custom_domain);
         }
     }
 
-    let mut subdomain_ssl = false;
+    let subdomain_ssl = subdomain_ssl.unwrap_or(false);
 
-    if let Some(is_subdomain_ssl) = info.subdomain_ssl {
-        if is_subdomain_ssl == true {
-            subdomain_ssl = true
-        }
-    }
-
-    if subdomain_ssl == true {
-        default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+    if subdomain_ssl {
+        default_host = format!("swarm{}.sphinx.chat", swarm_number);
         let default_domain = format!("*.{}", default_host);
         domain_names.push(default_domain);
-        if let Some(custom_domain) = &actual_vanity_address {
-            log::info!("vanity address is being set");
+        if let Some(custom_domain) = actual_vanity_address {
             if !custom_domain.is_empty() {
                 host = custom_domain.clone();
                 domain_names.push(format!("*.{}", custom_domain));
@@ -888,59 +1125,145 @@ pub async fn create_swarm_ec2(
 
     domain_names.push(host.clone());
 
-    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
-
-    let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
-
-    log::info!("Public_IP: {}", ec2_ip_address);
-
-    let swarm_id = format!("swarm{}", ec2_intance.1);
-
-    // add new ec2 to list of swarms
-    let new_swarm = RemoteStack {
-        host: host,
-        ec2: Some(info.instance_type.clone()),
-        default_host: default_host.clone(),
-        note: Some("".to_string()),
-        user: Some("".to_string()),
-        pass: Some("".to_string()),
-        ec2_instance_id: ec2_intance.0,
-        public_ip_address: Some("".to_string()),
-        private_ip_address: Some("".to_string()),
-        id: Some(swarm_id.clone()),
-        deleted: Some(false),
-        route53_domain_names: Some(domain_names),
-    };
-
-    state.add_remote_stack(new_swarm);
-
-    log::info!("New Swarm added to stack");
-    Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
+    Ok(DomainConfig {
+        host,
+        default_host,
+        domain_names,
+    })
 }
 
-pub fn is_valid_domain(domain: String) -> String {
-    let valid_chars = |c: char| c.is_ascii_alphanumeric() || c == '-';
+// Smart waiting for user data completion
+async fn wait_for_user_data_completion(
+    instance_id: &str,
+    client: &Client,
+    timeout: Duration,
+) -> Result<(), Error> {
+    let start_time = std::time::Instant::now();
+    
+    // First wait for status checks to pass
+    log::info!("Waiting for instance status checks to pass...");
+    
+    // Wait for system status check (shorter timeout)
+    tokio::time::timeout(
+        Duration::from_secs(120),
+        client
+            .wait_until_instance_status_ok()
+            .instance_ids(instance_id)
+            .wait(Duration::from_secs(120))
+    )
+    .await
+    .map_err(|_| anyhow!("Timeout waiting for instance status checks"))?
+    .map_err(|e| anyhow!("Instance status check failed: {}", e))?;
 
-    if domain.starts_with('-') || domain.ends_with('-') {
-        return "Hyphen cannot be the first or last character.".to_string();
-    }
+    log::info!("Instance status checks passed, checking user data completion...");
 
-    let mut previous_char: Option<char> = None;
-    for c in domain.chars() {
-        if !valid_chars(c) {
-            return "Domain can only contain letters, numbers, and hyphens.".to_string();
+    // Check user data completion by looking for log markers
+    let mut attempts = 0;
+    let max_attempts = (timeout.as_secs() / 10) as u32; // Check every 10 seconds
+    
+    loop {
+        if start_time.elapsed() > timeout {
+            return Err(anyhow!("Timeout waiting for user data completion"));
         }
 
-        if let Some(prev) = previous_char {
-            if prev == '-' && c == '-' {
-                return "Hyphens cannot appear consecutively.".to_string();
+        attempts += 1;
+        
+        // Try to get console output to check for completion markers
+        match get_console_output_and_check_completion(client, instance_id).await {
+            Ok(true) => {
+                log::info!("User data script completed successfully");
+                return Ok(());
+            }
+            Ok(false) => {
+                if attempts >= max_attempts {
+                    log::warn!("Could not verify user data completion, but proceeding after timeout");
+                    return Ok(());
+                }
+                log::info!("User data still running, waiting... (attempt {}/{})", attempts, max_attempts);
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            }
+            Err(e) => {
+                log::warn!("Could not check console output: {}. Proceeding with time-based wait.", e);
+                // Fallback to a shorter time-based wait
+                let fallback_wait = if getenv("AWS_CUSTOM_AMI_ID").is_ok() { 
+                    Duration::from_secs(60) 
+                } else { 
+                    Duration::from_secs(120) 
+                };
+                tokio::time::sleep(fallback_wait).await;
+                return Ok(());
             }
         }
+    }
+}
 
-        previous_char = Some(c);
+// Check console output for completion markers
+async fn get_console_output_and_check_completion(
+    client: &Client,
+    instance_id: &str,
+) -> Result<bool, Error> {
+    let output = client
+        .get_console_output()
+        .instance_id(instance_id)
+        .send()
+        .await?;
+
+    if let Some(console_output) = output.output() {
+        // Decode base64 console output
+        let decoded = base64::decode(console_output)
+            .map_err(|e| anyhow!("Failed to decode console output: {}", e))?;
+        let output_text = String::from_utf8_lossy(&decoded);
+        
+        // Look for completion markers in the console output
+        let completion_markers = [
+            "OPTIMIZED deployment completed successfully",
+            "User data script completed",
+            "deployment completed successfully",
+            "Deployment completed successfully",
+        ];
+        
+        for marker in &completion_markers {
+            if output_text.contains(marker) {
+                return Ok(true);
+            }
+        }
+        
+        // Check for error markers
+        let error_markers = [
+            "ERROR:",
+            "FAILED:",
+            "error:",
+            "failed:",
+        ];
+        
+        for error in &error_markers {
+            if output_text.contains(error) && !output_text.contains("non-fatal") {
+                log::warn!("Potential error detected in user data script: check console output");
+            }
+        }
     }
 
-    "".to_string()
+    Ok(false)
+}
+
+// Helper function to create AWS client (if not already defined)
+async fn make_aws_client() -> Result<Client, Error> {
+    let region = getenv("AWS_REGION")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+    
+    let timeout_config = TimeoutConfig::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .read_timeout(Duration::from_secs(60))
+        .build();
+
+    let config = aws_config::from_env()
+        .region(region_provider)
+        .retry_config(RetryConfig::standard().with_max_attempts(5))
+        .timeout_config(timeout_config)
+        .load()
+        .await;
+        
+    Ok(Client::new(&config))
 }
 
 pub async fn update_aws_instance_type(
