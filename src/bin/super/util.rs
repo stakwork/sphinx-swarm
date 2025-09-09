@@ -679,8 +679,11 @@ su - admin -c '
     echo "Setting up TLS certificates..."
     {setup_tls_cert}
 
+    cd /home/admin
+
     echo "Cloning sphinx-swarm repository..."
     git clone https://github.com/stakwork/sphinx-swarm.git
+    git checkout faster-swarm-spinup
     cd sphinx-swarm
 
     echo "Current working directory: $(pwd)"
