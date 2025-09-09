@@ -15,6 +15,7 @@ pub struct Super {
     pub ec2_limit: Ec2Limit,
     pub lightning_bots: Vec<LightningBot>,
     pub reserved_domains: Option<Vec<String>>,
+    pub reserved_instances: Option<Vec<ReservedInstances>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -33,10 +34,27 @@ pub struct RemoteStack {
     pub route53_domain_names: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct Ec2Limit {
     pub count: i32,
     pub date: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
+pub struct ReservedInstances {
+    pub minimum_available: i32,
+    pub available_instances: Vec<AvailableInstances>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
+pub struct AvailableInstances {
+    pub instance_id: String,
+    pub instance_type: String,
+    pub swarm_number: String,
+    pub default_host: String,
+    pub user: Option<String>,
+    pub pass: Option<String>,
+    pub ip_address: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
@@ -89,6 +107,7 @@ impl Default for Super {
             ec2_limit: default_ec2_limit(),
             lightning_bots: Vec::new(),
             reserved_domains: Some(Vec::new()),
+            reserved_instances: Some(Vec::new()),
         }
     }
 }
@@ -164,6 +183,7 @@ impl Super {
             },
             lightning_bots: vec![],
             reserved_domains: Some(vec![]),
+            reserved_instances: self.reserved_instances.clone(),
         }
     }
 
