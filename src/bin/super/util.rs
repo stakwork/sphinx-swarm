@@ -683,8 +683,10 @@ su - admin -c '
 
     echo "Cloning sphinx-swarm repository..."
     git clone https://github.com/stakwork/sphinx-swarm.git
-    git checkout faster-swarm-spinup
+    
     cd sphinx-swarm
+
+    git checkout faster-swarm-spinup
 
     echo "Current working directory: $(pwd)"
     ls -la
