@@ -436,7 +436,7 @@ async fn create_ec2_instance(
     );
 
     let mut host = custom_domain.clone();
-    let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
+    let mut docker_compose_start_script = r#"./restart-swarm-with-ports.sh"#.to_string();
     let mut setup_tls_cert = format!(
         r#"cd /home/admin && \
           mkdir -p certs && \
@@ -452,7 +452,7 @@ async fn create_ec2_instance(
     if let Some(is_subdomain_ssl) = subdomain_ssl {
         if is_subdomain_ssl == true {
             host = format!("swarm{}.sphinx.chat", swarm_number);
-            docker_compose_start_script = format!(r#"./restart-second-brain.sh"#);
+            docker_compose_start_script = format!(r#"./restart-swarm-no-ports.sh"#);
             setup_tls_cert = "".to_string();
             port_based_ssl = "".to_string()
         }
