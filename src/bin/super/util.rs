@@ -683,58 +683,68 @@ su - admin -c '
     git clone https://github.com/stakwork/sphinx-swarm.git
     cd sphinx-swarm
 
-    echo "Creating environment configuration..."
-    cat > .env << "ENVEOF"
-HOST={host}
-NETWORK=bitcoin
-AWS_REGION=us-east-1
-AWS_S3_BUCKET_NAME={aws_s3_bucket_name}
-STAKWORK_ADD_NODE_TOKEN={stakwork_token}
-STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}
-NO_REMOTE_SIGNER=true
-EXTERNAL_LND_MACAROON={lnd_macaroon}
-EXTERNAL_LND_ADDRESS={lnd_address}
-EXTERNAL_LND_CERT={lnd_cert}
-YOUTUBE_API_TOKEN={youtube_token}
-SWARM_UPDATER_PASSWORD={swarm_updater_password}
-JARVIS_FEATURE_FLAG_SCHEMA=true
-BACKUP_KEY=
-FEATURE_FLAG_TEXT_EMBEDDINGS=true
-TWITTER_BEARER={twitter_token}
-SUPER_TOKEN={super_token}
-SUPER_URL={super_url}
-NAV_BOLTWALL_SHARED_HOST={custom_domain}
-SECOND_BRAIN_ONLY=true
-SWARM_NUMBER={swarm_number}
-PASSWORD={password}
-GITHUB_PAT={github_pat}
-{port_based_ssl}
-{env_lines}
-ENVEOF
+    echo "Current working directory: $(pwd)"
+    ls -la
+
+    echo "Creating environment configuration using echo commands..."
+    rm -f .env
+    echo "HOST={host}" >> .env
+    echo "NETWORK=bitcoin" >> .env
+    echo "AWS_REGION=us-east-1" >> .env
+    echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env
+    echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env
+    echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env
+    echo "NO_REMOTE_SIGNER=true" >> .env
+    echo "EXTERNAL_LND_MACAROON={lnd_macaroon}" >> .env
+    echo "EXTERNAL_LND_ADDRESS={lnd_address}" >> .env
+    echo "EXTERNAL_LND_CERT={lnd_cert}" >> .env
+    echo "YOUTUBE_API_TOKEN={youtube_token}" >> .env
+    echo "SWARM_UPDATER_PASSWORD={swarm_updater_password}" >> .env
+    echo "JARVIS_FEATURE_FLAG_SCHEMA=true" >> .env
+    echo "BACKUP_KEY=" >> .env
+    echo "FEATURE_FLAG_TEXT_EMBEDDINGS=true" >> .env
+    echo "TWITTER_BEARER={twitter_token}" >> .env
+    echo "SUPER_TOKEN={super_token}" >> .env
+    echo "SUPER_URL={super_url}" >> .env
+    echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env
+    echo "SECOND_BRAIN_ONLY=true" >> .env
+    echo "SWARM_NUMBER={swarm_number}" >> .env
+    echo "PASSWORD={password}" >> .env
+    echo "GITHUB_PAT={github_pat}" >> .env
+    {port_based_ssl}
+    {env_lines}
+
+    echo "Verifying .env file was created:"
+    ls -la .env
+    echo "File contains $(wc -l < .env) lines"
+    echo "First few lines:"
+    head -5 .env
 
     echo "Creating PM2 configuration..."
-    cat > ecosystem.config.js << "PMEOF"
-module.exports = {{
-  apps: [
-    {{
-      name: "restarter",
-      script: "./restarter.js",
-      env: {{
-        SECOND_BRAIN: "true",
-        PASSWORD: "{swarm_updater_password}",
-      }},
-    }},
-  ],
-}};
-PMEOF
+    rm -f ecosystem.config.js
+    echo "module.exports = {{" > ecosystem.config.js
+    echo "  apps: [" >> ecosystem.config.js
+    echo "    {{" >> ecosystem.config.js
+    echo "      name: \"restarter\"," >> ecosystem.config.js
+    echo "      script: \"./restarter.js\"," >> ecosystem.config.js
+    echo "      env: {{" >> ecosystem.config.js
+    echo "        SECOND_BRAIN: \"true\"," >> ecosystem.config.js
+    echo "        PASSWORD: \"{swarm_updater_password}\"," >> ecosystem.config.js
+    echo "      }}," >> ecosystem.config.js
+    echo "    }}," >> ecosystem.config.js
+    echo "  ]," >> ecosystem.config.js
+    echo "}};" >> ecosystem.config.js
+
+    echo "PM2 config created:"
+    cat ecosystem.config.js
 
     echo "Starting PM2 services..."
     pm2 start ecosystem.config.js
     pm2 save
     
-    # Setup PM2 to start on boot
     startup_command=$(pm2 startup | grep "sudo" | tail -n 1)
     if [ -n "$startup_command" ]; then
+        echo "Setting up PM2 startup"
         eval $startup_command 2>/dev/null || true
         pm2 save
     fi
@@ -749,6 +759,7 @@ echo "OPTIMIZED user data script completed at $(date)"
 "#
     )
 }
+
 
 fn create_legacy_user_data_script(
     setup_tls_cert: &str,
