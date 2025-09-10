@@ -682,7 +682,7 @@ su - admin -c '
     cd /home/admin
 
     echo "Cloning sphinx-swarm repository..."
-    git clone https://github.com/stakwork/sphinx-swarm.git
+    git clone --depth=1 https://github.com/stakwork/sphinx-swarm.git
     
     cd sphinx-swarm
 
