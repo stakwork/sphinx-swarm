@@ -5,7 +5,7 @@ env:
 on:
   push:
     branches:
-      - feat/setup-ready-to-go-swarm
+      - setup-ready-to-go-swarm
 
 jobs:
   build:
