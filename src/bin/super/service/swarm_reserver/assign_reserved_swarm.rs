@@ -47,6 +47,7 @@ pub async fn handle_assign_reserved_swarm(
         }],
     )
     .await?;
+
     // if password passed update child swarm password
     // if env passed update child swarm env
     // if vanity address passed update HOST in .env

@@ -138,6 +138,13 @@ pub struct UpdateEnvRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AssignSwarmNewDetails {
+    pub new_password: Option<String>,
+    pub old_password: Option<String>,
+    pub env: Option<HashMap<String, String>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
@@ -187,6 +194,7 @@ pub enum SwarmCmd {
     UpdateBoltwallMaxRequestLimit(MaxRequestLimitInfo),
     GetEnv(String),
     UpdateEvn(UpdateEnvRequest),
+    ChangeReservedSwarmToActive(AssignSwarmNewDetails),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
