@@ -3,9 +3,13 @@ use std::collections::HashMap;
 use crate::{
     cmd::{CreateEc2InstanceInfo, CreateEc2InstanceRes},
     ec2::{add_new_tags_to_instance, Ec2Tags},
-    service::swarm_reserver::{
-        call_child_swarm::call_child_swarm_to_activate_new_swarm,
-        utils::check_reserve_swarm_flag_set,
+    route53::{add_domain_name_to_route53, delete_multiple_route53_records},
+    service::{
+        swarm_reserver::{
+            call_child_swarm::call_child_swarm_to_activate_new_swarm,
+            utils::check_reserve_swarm_flag_set,
+        },
+        update_child_swarm::handle_update_child_swarm,
     },
     state::{RemoteStack, Super},
 };
@@ -79,21 +83,22 @@ pub async fn handle_assign_reserved_swarm(
     // if vanity address passed update HOST in .env
     // if vanity address passed update route53 record with vanity address and delete old record
     // stop all child services
+    let swarm_details = RemoteStack {
+        host: "".to_string(),
+        note: None,
+        ec2: None,
+        user: selected_reserved_instance.user.clone(),
+        pass: selected_reserved_instance.pass.clone(),
+        default_host: selected_reserved_instance.default_host.clone(),
+        ec2_instance_id: selected_reserved_instance.instance_id.clone(),
+        public_ip_address: selected_reserved_instance.ip_address.clone(),
+        private_ip_address: None,
+        id: Some(format!("swarm{}", selected_reserved_instance.swarm_number)),
+        deleted: None,
+        route53_domain_names: None,
+    };
     let set_value_res = match call_child_swarm_to_activate_new_swarm(
-        &RemoteStack {
-            host: "".to_string(),
-            note: None,
-            ec2: None,
-            user: selected_reserved_instance.user.clone(),
-            pass: selected_reserved_instance.pass.clone(),
-            default_host: selected_reserved_instance.default_host.clone(),
-            ec2_instance_id: selected_reserved_instance.instance_id.clone(),
-            public_ip_address: selected_reserved_instance.ip_address.clone(),
-            private_ip_address: None,
-            id: Some(format!("swarm{}", selected_reserved_instance.swarm_number)),
-            deleted: None,
-            route53_domain_names: None,
-        },
+        &swarm_details,
         AssignSwarmNewDetails {
             new_password,
             old_password,
@@ -114,10 +119,80 @@ pub async fn handle_assign_reserved_swarm(
 
     if !set_value_res.success {
         // TODO: send error message via a bot to a tribe
+        log::error!(
+            "Failed to set new password/env on child swarm: {}",
+            set_value_res.message
+        );
     }
+    let mut host = selected_reserved_instance.host.clone();
+    let mut default_host = selected_reserved_instance.default_host.clone();
+
     // restart main swarm service to pick up new .env vars
-    // update route53 and delete old record
+    let _ = match handle_update_child_swarm(&swarm_details).await {
+        Ok(_) => {}
+        Err(e) => {
+            log::error!(
+                "Failed to update child swarm after assigning reserved swarm: {}",
+                e.to_string()
+            );
+        }
+    };
+
+    if info.vanity_address.is_some() && selected_reserved_instance.ip_address.is_some() {
+        // update route53
+        let vanity_address = info.vanity_address.clone().unwrap();
+        let _ = match add_domain_name_to_route53(
+            vec![vanity_address.clone()],
+            &selected_reserved_instance.ip_address.clone().unwrap(),
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                return Err(anyhow!(
+                    "Failed to add domain name to route53: {}",
+                    err.to_string()
+                ));
+            }
+        };
+        host = vanity_address.clone();
+        default_host = format!("{}:8800", vanity_address);
+        // and delete old record
+        match delete_multiple_route53_records(vec![selected_reserved_instance.host.clone()]).await {
+            Ok(_) => {}
+            Err(err) => {
+                log::error!(
+                    "Failed to delete old route53 record for {}: {}",
+                    selected_reserved_instance.host.clone(),
+                    err.to_string()
+                );
+            }
+        };
+    }
+
     // move reserved swarm from reserved to normal swarm list
-    // return swarm details
-    Err(anyhow!("Not implemented yet"))
+    let swarm_id = format!("swarm{}", selected_reserved_instance.swarm_number);
+    state.stacks.push(RemoteStack {
+        host: host.clone(),
+        note: None,
+        ec2: Some(selected_reserved_instance.instance_type.clone()),
+        user: selected_reserved_instance.user.clone(),
+        pass: selected_reserved_instance.pass.clone(),
+        default_host,
+        ec2_instance_id: selected_reserved_instance.instance_id.clone(),
+        public_ip_address: selected_reserved_instance.ip_address.clone(),
+        private_ip_address: None,
+        id: Some(swarm_id.clone()),
+        deleted: Some(false),
+        route53_domain_names: Some(vec![host.clone()]),
+    });
+
+    state
+        .reserved_instances
+        .as_mut()
+        .unwrap()
+        .available_instances
+        .remove(0);
+
+    Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
 }

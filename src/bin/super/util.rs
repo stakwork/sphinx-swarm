@@ -885,6 +885,7 @@ pub async fn create_swarm_ec2(
             .available_instances
             .len()
             > 0
+        && (info.subdomain_ssl.is_none() || info.subdomain_ssl == Some(false))
     {
         let assigned_swarm = handle_assign_reserved_swarm(info, state).await?;
         return Ok(assigned_swarm);
