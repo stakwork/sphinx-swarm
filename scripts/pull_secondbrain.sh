@@ -1,4 +1,6 @@
-docker image prune -af
+docker builder prune -f
+docker image prune -f
+
 docker pull sphinxlightning/sphinx-swarm:latest
 docker pull sphinxlightning/sphinx-boltwall:latest
 # docker pull sphinxlightning/sphinx-jarvis-backend:latest
