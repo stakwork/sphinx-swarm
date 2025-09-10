@@ -18,18 +18,15 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         state.reserved_instances = Some(default_reserved_instances())
     }
 
-    for reserved_intances in state
-        .reserved_instances
-        .as_mut()
-        .unwrap()
-        .available_instances
-        .iter_mut()
-    {
-        if !aws_instances_hashmap.contains_key(&reserved_intances.instance_id) {
-            log::info!("Reserved instance with ID: {} no longer exists on AWS, removing from reserved instances", reserved_intances.instance_id);
-            domain_names_to_delete.push(reserved_intances.host.clone());
+    state.reserved_instances.as_mut().unwrap().available_instances.retain(|reserved_instance| {
+        if aws_instances_hashmap.contains_key(&reserved_instance.instance_id) {
+            true
+        } else {
+            log::info!("Reserved instance with ID: {} no longer exists on AWS, removing from reserved instances", reserved_instance.instance_id);
+            domain_names_to_delete.push(reserved_instance.host.clone());
+            false
         }
-    }
+    });
     let reserved_instances = state.reserved_instances.clone().unwrap();
 
     drop(state);
