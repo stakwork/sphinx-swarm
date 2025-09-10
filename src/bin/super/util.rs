@@ -29,13 +29,15 @@ use crate::cmd::{
     CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
-use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
+use crate::ec2::{
+    get_instances_from_aws_by_swarm_tag_and_return_hash_map, instance_with_swarm_name_exists,
+};
 use crate::route53::{
     add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
 };
 use crate::service::swarm_reserver::assign_reserved_swarm::handle_assign_reserved_swarm;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
-use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
+use crate::state::{self, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
@@ -1268,15 +1270,7 @@ fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
 }
 
 pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
-    let key = getenv("SWARM_TAG_KEY")?;
-    let value = getenv("SWARM_TAG_VALUE")?;
-    let aws_instances = get_swarms_by_tag(&key, &value).await?;
-
-    let mut aws_instances_hashmap: HashMap<String, InstanceFromAws> = HashMap::new();
-
-    for aws_instance in aws_instances {
-        aws_instances_hashmap.insert(aws_instance.instance_id.clone(), aws_instance.clone());
-    }
+    let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
 
     for stack in state.stacks.iter_mut() {
         if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {

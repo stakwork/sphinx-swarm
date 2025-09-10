@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{aws_util::make_aws_client, state::InstanceFromAws};
 use anyhow::{anyhow, Error};
 use aws_sdk_ec2::types::{Filter, Instance, Tag};
@@ -133,4 +135,19 @@ pub async fn add_new_tags_to_instance(
 
     log::info!("Tags added to instance {}", instance_id);
     Ok(())
+}
+
+pub async fn get_instances_from_aws_by_swarm_tag_and_return_hash_map(
+) -> Result<HashMap<String, InstanceFromAws>, Error> {
+    let key = getenv("SWARM_TAG_KEY")?;
+    let value = getenv("SWARM_TAG_VALUE")?;
+    let aws_instances = get_swarms_by_tag(&key, &value).await?;
+
+    let mut aws_instances_hashmap: HashMap<String, InstanceFromAws> = HashMap::new();
+
+    for aws_instance in aws_instances {
+        aws_instances_hashmap.insert(aws_instance.instance_id.clone(), aws_instance.clone());
+    }
+
+    Ok(aws_instances_hashmap)
 }

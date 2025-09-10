@@ -2,20 +2,43 @@ use anyhow::Result;
 use tokio::time::{sleep, Duration};
 
 use crate::{
-    route53::add_domain_name_to_route53,
+    ec2::get_instances_from_aws_by_swarm_tag_and_return_hash_map,
+    route53::{add_domain_name_to_route53, delete_multiple_route53_records},
     service::swarm_reserver::utils::generate_random_secret,
     state::{self, default_reserved_instances, AvailableInstances},
     util::{create_ec2_instance, get_instance_ip},
 };
 pub async fn handle_reserve_swarms() -> Result<()> {
+    let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
     let mut state = state::STATE.lock().await;
+
+    let mut domain_names_to_delete: Vec<String> = vec![];
 
     if state.reserved_instances.is_none() {
         state.reserved_instances = Some(default_reserved_instances())
     }
+
+    for reserved_intances in state
+        .reserved_instances
+        .as_mut()
+        .unwrap()
+        .available_instances
+        .iter_mut()
+    {
+        if !aws_instances_hashmap.contains_key(&reserved_intances.instance_id) {
+            log::info!("Reserved instance with ID: {} no longer exists on AWS, removing from reserved instances", reserved_intances.instance_id);
+            domain_names_to_delete.push(reserved_intances.host.clone());
+        }
+    }
     let reserved_instances = state.reserved_instances.clone().unwrap();
 
     drop(state);
+    match delete_multiple_route53_records(domain_names_to_delete).await {
+        Ok(_) => {}
+        Err(err) => {
+            log::error!("Error deleting route53 records: {}", err.to_string());
+        }
+    };
 
     let amount_to_reserve =
         reserved_instances.minimum_available - reserved_instances.available_instances.len() as i32;
