@@ -148,6 +148,42 @@ impl Image {
             Image::Stakgraph(n) => n.name.clone(),
         }
     }
+
+    pub fn host(&self) -> Option<String> {
+        match self {
+            Image::Btc(n) => n.host.clone(),
+            Image::Cln(n) => n.host.clone(),
+            Image::Lnd(n) => n.host.clone(),
+            Image::Relay(n) => n.host.clone(),
+            Image::Proxy(_) => None,
+            Image::Cache(_) => None,
+            Image::Neo4j(n) => n.host.clone(),
+            Image::Elastic(n) => n.host.clone(),
+            Image::NavFiber(n) => n.host.clone(),
+            Image::Jarvis(_) => None,
+            Image::BoltWall(n) => n.host.clone(),
+            Image::Lss(_) => None,
+            Image::Broker(n) => n.host.clone(),
+            Image::Mixer(n) => n.host.clone(),
+            Image::Tribes(n) => n.host.clone(),
+            Image::Config(n) => n.host.clone(),
+            Image::Bot(n) => n.host.clone(),
+            Image::Builtin(n) => n.host.clone(),
+            Image::Dufs(n) => n.host.clone(),
+            Image::Tome(n) => n.host.clone(),
+            Image::Rqbit(n) => n.host.clone(),
+            Image::Llama(n) => n.host.clone(),
+            Image::Whisper(n) => n.host.clone(),
+            Image::Whisker(_) => None,
+            Image::Runner(n) => n.host.clone(),
+            Image::Mongo(n) => n.host.clone(),
+            Image::Jamie(n) => n.host.clone(),
+            Image::Repo2Graph(n) => n.host.clone(),
+            Image::Redis(n) => n.host.clone(),
+            Image::Chrome(n) => n.host.clone(),
+            Image::Stakgraph(n) => n.host.clone(),
+        }
+    }
     pub fn typ(&self) -> String {
         match self {
             Image::Btc(_n) => "Btc",
@@ -217,6 +253,42 @@ impl Image {
             Image::Redis(n) => n.version = version.to_string(),
             Image::Chrome(n) => n.version = version.to_string(),
             Image::Stakgraph(n) => n.version = version.to_string(),
+        }
+    }
+
+    pub fn set_host(&mut self, host: &str) {
+        match self {
+            Image::Btc(n) => n.host(Some(host.to_string())),
+            Image::Cln(n) => n.host(Some(host.to_string())),
+            Image::Lnd(n) => n.host(Some(host.to_string())),
+            Image::Relay(n) => n.host(Some(host.to_string())),
+            Image::Proxy(_) => (),
+            Image::Cache(_) => (),
+            Image::Neo4j(n) => n.host(Some(host.to_string())),
+            Image::Elastic(n) => n.host(Some(host.to_string())),
+            Image::NavFiber(n) => n.host(Some(host.to_string())),
+            Image::Jarvis(_) => (),
+            Image::BoltWall(n) => n.host(Some(host.to_string())),
+            Image::Lss(_) => (),
+            Image::Broker(n) => n.host(Some(host.to_string())),
+            Image::Mixer(n) => n.host(Some(host.to_string())),
+            Image::Tribes(n) => n.host(Some(host.to_string())),
+            Image::Config(n) => n.host(Some(host.to_string())),
+            Image::Bot(n) => n.host(Some(host.to_string())),
+            Image::Builtin(n) => n.host(Some(host.to_string())),
+            Image::Dufs(n) => n.host(Some(host.to_string())),
+            Image::Tome(n) => n.host(Some(host.to_string())),
+            Image::Rqbit(n) => n.host(Some(host.to_string())),
+            Image::Llama(_n) => (),
+            Image::Whisper(_n) => (),
+            Image::Whisker(_n) => (),
+            Image::Runner(n) => n.host(Some(host.to_string())),
+            Image::Mongo(n) => n.host(Some(host.to_string())),
+            Image::Jamie(n) => n.host(Some(host.to_string())),
+            Image::Repo2Graph(n) => n.host(Some(host.to_string())),
+            Image::Redis(n) => n.host(Some(host.to_string())),
+            Image::Chrome(n) => n.host(Some(host.to_string())),
+            Image::Stakgraph(n) => n.host(Some(host.to_string())),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {

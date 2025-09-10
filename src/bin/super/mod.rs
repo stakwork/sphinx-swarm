@@ -27,6 +27,8 @@ use util::{
 
 use crate::checker::swarm_checker;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
+use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
+use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
 use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
@@ -61,6 +63,13 @@ async fn main() -> Result<()> {
     let cron_handler_res = swarm_checker().await;
     if let Err(e) = cron_handler_res {
         log::error!("CRON failed {:?}", e);
+    }
+
+    if check_reserve_swarm_flag_set() {
+        let cron_handle_reserver_swarm = swarm_reserver_cron().await;
+        if let Err(e) = cron_handle_reserver_swarm {
+            log::error!("SWARM RESERVER CRON failed {:?}", e);
+        }
     }
 
     // launch rocket

@@ -29,11 +29,15 @@ use crate::cmd::{
     CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
-use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
+use crate::ec2::{
+    get_instances_from_aws_by_swarm_tag_and_return_hash_map, instance_with_swarm_name_exists,
+};
 use crate::route53::{
     add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
 };
-use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
+use crate::service::swarm_reserver::assign_reserved_swarm::handle_assign_reserved_swarm;
+use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
+use crate::state::{self, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
@@ -67,6 +71,36 @@ pub fn add_new_swarm_from_child_swarm(
     swarm_details: RemoteStack,
     must_save_stack: &mut bool,
 ) -> AddSwarmResponse {
+    if state.reserved_instances.is_some() && swarm_details.id.is_some() {
+        if let Some(reserved_instances) = &mut state.reserved_instances {
+            if let Some(pos) = reserved_instances
+                .available_instances
+                .iter()
+                .position(|instance| {
+                    format!("swarm{}", instance.swarm_number) == swarm_details.id.clone().unwrap()
+                })
+            {
+                let mut selected_instance = reserved_instances.available_instances[pos].clone();
+                if selected_instance.pass.is_some() {
+                    return AddSwarmResponse {
+                        success: false,
+                        message: "swarm already exist".to_string(),
+                    };
+                }
+                selected_instance.pass = swarm_details.pass.clone();
+                selected_instance.user = swarm_details.user.clone();
+                selected_instance.host = swarm_details.host.clone();
+
+                reserved_instances.available_instances[pos] = selected_instance;
+
+                *must_save_stack = true;
+                return AddSwarmResponse {
+                    success: true,
+                    message: "Swarm added successfully".to_string(),
+                };
+            }
+        }
+    }
     match state
         .stacks
         .iter()
@@ -167,7 +201,7 @@ pub async fn get_child_swarm_config(
     })
 }
 
-async fn swarm_cmd(cmd: Cmd, host: String, token: &str) -> Result<Response, Error> {
+pub async fn swarm_cmd(cmd: Cmd, host: String, token: &str) -> Result<Response, Error> {
     let url = get_child_base_route(host)?;
     let cmd_res = send_cmd_request(cmd, "SWARM", &url, Some("x-jwt"), Some(&token)).await?;
     Ok(cmd_res)
@@ -382,7 +416,7 @@ pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
     }
 }
 
-async fn create_ec2_instance(
+pub async fn create_ec2_instance(
     swarm_name: String,
     vanity_address: Option<String>,
     instance_type_name: String,
@@ -437,7 +471,11 @@ async fn create_ec2_instance(
 
     let github_pat = getenv("GITHUB_PAT")?;
 
-    let mut host = custom_domain.clone();
+    let mut host = format!("swarm{}.sphinx.chat", swarm_number);
+
+    if !custom_domain.is_empty() {
+        host = custom_domain.clone();
+    }
 
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
 
@@ -703,7 +741,7 @@ async fn create_ec2_instance(
     }
 }
 
-async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
+pub async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
@@ -840,6 +878,41 @@ pub async fn create_swarm_ec2(
         ));
     }
 
+    let mut potential_swarm_to_be_used = None;
+    if state.reserved_instances.clone().is_some()
+        && state
+            .reserved_instances
+            .clone()
+            .unwrap()
+            .available_instances
+            .len()
+            > 0
+    {
+        potential_swarm_to_be_used = Some(
+            state
+                .reserved_instances
+                .clone()
+                .unwrap()
+                .available_instances[0]
+                .clone(),
+        )
+    }
+    if check_reserve_swarm_flag_set()
+        && state.reserved_instances.clone().is_some()
+        && potential_swarm_to_be_used.is_some()
+        && potential_swarm_to_be_used.clone().unwrap().pass.is_some()
+        && potential_swarm_to_be_used.unwrap().user.is_some()
+        && (info.subdomain_ssl.is_none() || info.subdomain_ssl == Some(false))
+    {
+        match handle_assign_reserved_swarm(info, state).await {
+            Ok(result) => {
+                return Ok(result);
+            }
+            Err(err) => {
+                log::info!("Error assigning reserved swarm, proceeding to create new ec2 instance, reason: {}", err.to_string());
+            }
+        };
+    }
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),
@@ -1197,15 +1270,7 @@ fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
 }
 
 pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
-    let key = getenv("SWARM_TAG_KEY")?;
-    let value = getenv("SWARM_TAG_VALUE")?;
-    let aws_instances = get_swarms_by_tag(&key, &value).await?;
-
-    let mut aws_instances_hashmap: HashMap<String, InstanceFromAws> = HashMap::new();
-
-    for aws_instance in aws_instances {
-        aws_instances_hashmap.insert(aws_instance.instance_id.clone(), aws_instance.clone());
-    }
+    let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
 
     for stack in state.stacks.iter_mut() {
         if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {

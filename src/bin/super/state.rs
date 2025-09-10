@@ -3,6 +3,7 @@ use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::config::{Role, User};
 use sphinx_swarm::secrets;
+use sphinx_swarm::utils::getenv;
 
 use crate::util::{get_descriptive_instance_type, get_today_dash_date};
 
@@ -15,6 +16,7 @@ pub struct Super {
     pub ec2_limit: Ec2Limit,
     pub lightning_bots: Vec<LightningBot>,
     pub reserved_domains: Option<Vec<String>>,
+    pub reserved_instances: Option<ReservedInstances>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -33,10 +35,29 @@ pub struct RemoteStack {
     pub route53_domain_names: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct Ec2Limit {
     pub count: i32,
     pub date: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
+pub struct ReservedInstances {
+    pub minimum_available: i32,
+    pub available_instances: Vec<AvailableInstances>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
+pub struct AvailableInstances {
+    pub instance_id: String,
+    pub instance_type: String,
+    pub swarm_number: String,
+    pub default_host: String,
+    pub host: String,
+    pub user: Option<String>,
+    pub pass: Option<String>,
+    pub ip_address: Option<String>,
+    pub admin_password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
@@ -89,6 +110,7 @@ impl Default for Super {
             ec2_limit: default_ec2_limit(),
             lightning_bots: Vec::new(),
             reserved_domains: Some(Vec::new()),
+            reserved_instances: Some(default_reserved_instances()),
         }
     }
 }
@@ -111,6 +133,17 @@ fn default_superuser() -> User {
         pass_hash,
         pubkey: None,
         role: Role::Super,
+    }
+}
+
+pub fn default_reserved_instances() -> ReservedInstances {
+    let minimum_reserver = getenv("MINIMUM_RESERVED_INSTANCES")
+        .unwrap_or("1".to_string())
+        .parse::<i32>()
+        .unwrap_or(1);
+    ReservedInstances {
+        minimum_available: minimum_reserver,
+        available_instances: Vec::new(),
     }
 }
 
@@ -164,6 +197,7 @@ impl Super {
             },
             lightning_bots: vec![],
             reserved_domains: Some(vec![]),
+            reserved_instances: self.reserved_instances.clone(),
         }
     }
 

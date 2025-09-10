@@ -6,7 +6,10 @@ use std::{collections::HashMap, time::Duration};
 
 use crate::{
     builder::find_img,
-    cmd::{ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails, UpdateEnvRequest},
+    cmd::{
+        AssignSwarmNewDetails, ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails,
+        UpdateEnvRequest,
+    },
     config::{LightningPeer, Node, State},
     dock::stop_and_remove,
     images::{
@@ -78,7 +81,7 @@ pub async fn get_image_tags(image_details: GetDockerImageTagsDetails) -> Result<
 
 pub async fn change_swarm_user_password_by_user_admin(
     state: &mut State,
-    current_user_id: u32,
+    user_id: Option<u32>,
     password_change_details: ChangeUserPasswordBySuperAdminInfo,
     must_save_stack: &mut bool,
 ) -> ChangePasswordBySuperAdminResponse {
@@ -89,6 +92,14 @@ pub async fn change_swarm_user_password_by_user_admin(
                 .to_string(),
         };
     }
+
+    if user_id.is_none() {
+        return ChangePasswordBySuperAdminResponse {
+            success: false,
+            message: "invalid user".to_string(),
+        };
+    }
+    let current_user_id = user_id.unwrap();
 
     // check if super admin is performing his operation
     let superadmin_details = state
@@ -284,6 +295,7 @@ pub async fn update_env_variables(
     state: &mut State,
     must_save_stack: &mut bool,
 ) -> SwarmResponse {
+    let mut error_messages: Vec<String> = Vec::new();
     // write to stack.yml file
     if update_value.id == "boltwall" {
         update_boltwall_env(state, &mut update_value.values);
@@ -306,8 +318,30 @@ pub async fn update_env_variables(
 
     *must_save_stack = true;
     // stop the expected service(Boltwall and Jarvis)
-    let _ = stop_and_remove(&docker, &domain("boltwall")).await;
-    let _ = stop_and_remove(&docker, &domain("jarvis")).await;
+
+    if let Some(host) = update_value.values.get("HOST") {
+        for node in state.stack.nodes.iter_mut() {
+            if let Node::Internal(img) = node {
+                img.set_host(host);
+            }
+        }
+    };
+    for node in state.stack.nodes.iter_mut() {
+        match stop_and_remove(docker, &domain(&node.name())).await {
+            Ok(_) => log::info!("{} stopped and removed", node.name()),
+            Err(e) => {
+                error_messages.push(format!("could not stop {}: {}", node.name(), e.to_string()));
+            }
+        }
+    }
+
+    if error_messages.len() > 0 {
+        return SwarmResponse {
+            success: false,
+            message: error_messages.join(", "),
+            data: None,
+        };
+    }
 
     SwarmResponse {
         success: true,
@@ -445,5 +479,66 @@ fn update_boltwall_env(state: &mut State, env_values: &mut HashMap<String, Strin
             env_values.insert(env.new_key, value.clone());
             env_values.remove(&env.old_key);
         }
+    }
+}
+
+pub async fn handle_assign_reserved_swarm_to_active(
+    docker: &Docker,
+    new_details: &AssignSwarmNewDetails,
+    user_id: Option<u32>,
+    state: &mut State,
+    must_save_stack: &mut bool,
+) -> SwarmResponse {
+    let mut error_messages: Vec<String> = Vec::new();
+
+    if new_details.new_password.is_some() && new_details.old_password.is_some() {
+        let change_password_response = change_swarm_user_password_by_user_admin(
+            state,
+            user_id,
+            ChangeUserPasswordBySuperAdminInfo {
+                new_password: new_details.new_password.clone().unwrap(),
+                current_password: new_details.old_password.clone().unwrap(),
+                username: "admin".to_string(),
+            },
+            must_save_stack,
+        )
+        .await;
+        log::info!("Change password response: {:?}", change_password_response);
+        if !change_password_response.success {
+            error_messages.push(change_password_response.message);
+        }
+    }
+
+    if new_details.env.is_some() {
+        let envs = new_details.env.clone().unwrap();
+        let update_env_response = update_env_variables(
+            docker,
+            &mut UpdateEnvRequest {
+                id: "boltwall".to_string(),
+                values: envs,
+            },
+            state,
+            must_save_stack,
+        )
+        .await;
+        log::info!("Update env response: {:?}", update_env_response);
+        if !update_env_response.success {
+            error_messages.push(update_env_response.message);
+        }
+    }
+    *must_save_stack = true;
+
+    if error_messages.len() > 0 {
+        return SwarmResponse {
+            success: false,
+            message: error_messages.join(", "),
+            data: None,
+        };
+    }
+
+    SwarmResponse {
+        success: true,
+        message: "New Swarm details assigned successfully".to_string(),
+        data: None,
     }
 }

@@ -15,6 +15,7 @@ use crate::conn::boltwall::{
 };
 use crate::conn::swarm::add_new_lightning_peer;
 use crate::conn::swarm::get_neo4j_password;
+use crate::conn::swarm::handle_assign_reserved_swarm_to_active;
 use crate::conn::swarm::update_lightning_peer;
 use crate::conn::swarm::{
     change_swarm_user_password_by_user_admin, get_image_tags, update_env_variables,
@@ -63,6 +64,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ChangePassword(_) => true,
                 SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 SwarmCmd::GetApiToken => true,
+                SwarmCmd::ChangeReservedSwarmToActive(_) => true,
                 _ => false,
             },
             _ => false,
@@ -445,13 +447,9 @@ pub async fn handle(
             }
             SwarmCmd::ChangeUserPasswordBySuperAdmin(info) => {
                 log::info!("Change user password from superadmin");
-                if user_id.is_none() {
-                    Some("invalid user".to_string());
-                }
-                let active_user_id = user_id.unwrap();
                 let res = change_swarm_user_password_by_user_admin(
                     &mut state,
-                    active_user_id,
+                    user_id.clone(),
                     info,
                     &mut must_save_stack,
                 )
@@ -531,6 +529,18 @@ pub async fn handle(
                 let res = update_env_variables(
                     &docker,
                     &mut update_env.clone(),
+                    &mut state,
+                    &mut must_save_stack,
+                )
+                .await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::ChangeReservedSwarmToActive(details) => {
+                log::info!("About to update reserved swarm to active");
+                let res = handle_assign_reserved_swarm_to_active(
+                    &docker,
+                    &details,
+                    user_id.clone(),
                     &mut state,
                     &mut must_save_stack,
                 )
