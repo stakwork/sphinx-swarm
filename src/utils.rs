@@ -347,7 +347,7 @@ pub async fn wait_for_file(path: &str, iterations: usize) -> Result<()> {
 
 pub fn make_reqwest_client() -> reqwest::Client {
     reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(300))
         .danger_accept_invalid_certs(true)
         .build()
         .expect("couldnt build reqwest client")

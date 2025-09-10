@@ -3,6 +3,7 @@ use sphinx_swarm::{
     cmd::{AssignSwarmNewDetails, Cmd, SwarmCmd},
     conn::swarm::SwarmResponse,
 };
+use std::time::Instant;
 
 use crate::{
     cmd::SuperSwarmResponse,
@@ -17,7 +18,13 @@ pub async fn call_child_swarm_to_activate_new_swarm(
     let token = login_to_child_swarm(swarm_details).await?;
 
     let cmd = Cmd::Swarm(SwarmCmd::ChangeReservedSwarmToActive(details));
+
+    let start = Instant::now();
+
     let res = swarm_cmd(cmd, swarm_details.default_host.clone(), &token).await?;
+
+    let duration = start.elapsed();
+    log::info!("Swarm Command took: {:?}", duration);
 
     let result: SwarmResponse = match res.json().await {
         Ok(res_body) => res_body,
