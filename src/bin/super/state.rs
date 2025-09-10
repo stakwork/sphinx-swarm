@@ -3,6 +3,7 @@ use rocket::tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::config::{Role, User};
 use sphinx_swarm::secrets;
+use sphinx_swarm::utils::getenv;
 
 use crate::util::{get_descriptive_instance_type, get_today_dash_date};
 
@@ -136,8 +137,12 @@ fn default_superuser() -> User {
 }
 
 pub fn default_reserved_instances() -> ReservedInstances {
+    let minimum_reserver = getenv("MINIMUM_RESERVED_INSTANCES")
+        .unwrap_or("1".to_string())
+        .parse::<i32>()
+        .unwrap_or(1);
     ReservedInstances {
-        minimum_available: 5,
+        minimum_available: minimum_reserver,
         available_instances: Vec::new(),
     }
 }

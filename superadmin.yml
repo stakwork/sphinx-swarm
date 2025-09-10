@@ -98,6 +98,7 @@ services:
       - GITHUB_PAT=$GITHUB_PAT
       - LOG_TAIL_LENGTH=$LOG_TAIL_LENGTH
       - RESERVE_SWARM_ENABLED=$RESERVE_SWARM_ENABLED
+      - MINIMUM_RESERVED_INSTANCES=$MINIMUM_RESERVED_INSTANCES
   prometheus:
     image: prom/prometheus
     container_name: prometheus
