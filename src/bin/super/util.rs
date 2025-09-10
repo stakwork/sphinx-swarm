@@ -876,8 +876,8 @@ pub async fn create_swarm_ec2(
         ));
     }
 
-    if check_reserve_swarm_flag_set()
-        && state.reserved_instances.clone().is_some()
+    let mut potential_swarm_to_be_used = None;
+    if state.reserved_instances.clone().is_some()
         && state
             .reserved_instances
             .clone()
@@ -885,10 +885,31 @@ pub async fn create_swarm_ec2(
             .available_instances
             .len()
             > 0
+    {
+        potential_swarm_to_be_used = Some(
+            state
+                .reserved_instances
+                .clone()
+                .unwrap()
+                .available_instances[0]
+                .clone(),
+        )
+    }
+    if check_reserve_swarm_flag_set()
+        && state.reserved_instances.clone().is_some()
+        && potential_swarm_to_be_used.is_some()
+        && potential_swarm_to_be_used.clone().unwrap().pass.is_some()
+        && potential_swarm_to_be_used.unwrap().user.is_some()
         && (info.subdomain_ssl.is_none() || info.subdomain_ssl == Some(false))
     {
-        let assigned_swarm = handle_assign_reserved_swarm(info, state).await?;
-        return Ok(assigned_swarm);
+        match handle_assign_reserved_swarm(info, state).await {
+            Ok(result) => {
+                return Ok(result);
+            }
+            Err(err) => {
+                log::info!("Error assigning reserved swarm, proceeding to create new ec2 instance, reason: {}", err.to_string());
+            }
+        };
     }
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
