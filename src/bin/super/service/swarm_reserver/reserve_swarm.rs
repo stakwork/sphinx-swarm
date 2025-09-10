@@ -3,6 +3,7 @@ use tokio::time::{sleep, Duration};
 
 use crate::{
     route53::add_domain_name_to_route53,
+    service::swarm_reserver::utils::generate_random_secret,
     state::{self, default_reserved_instances, AvailableInstances, ReservedInstances},
     util::{create_ec2_instance, get_instance_ip},
 };
@@ -33,6 +34,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
     for _ in 0..amount_to_reserve {
         // TODO: decide what we want to be the default instance type: ASK GONZALO
         let instance_type = "m6i.xlarge".to_string();
+        let admin_password = generate_random_secret(16);
 
         let ec2_instance = create_ec2_instance(
             "".to_string(),
@@ -40,7 +42,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             instance_type.to_string().clone(),
             None,
             None,
-            None,
+            Some(admin_password.clone()),
         )
         .await?;
 
@@ -63,6 +65,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             pass: None,
             ip_address: Some(ec2_ip_address),
             host,
+            admin_password,
         });
     }
 

@@ -1,3 +1,4 @@
+use rand::{distributions::Alphanumeric, Rng};
 use sphinx_swarm::utils::getenv;
 
 pub fn check_reserve_swarm_flag_set() -> bool {
@@ -11,4 +12,12 @@ pub fn check_reserve_swarm_flag_set() -> bool {
         }
         Err(_) => false,
     }
+}
+
+pub fn generate_random_secret(length: usize) -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric) // [A-Za-z0-9]
+        .take(length)
+        .map(char::from)
+        .collect()
 }

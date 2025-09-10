@@ -199,7 +199,7 @@ pub async fn get_child_swarm_config(
     })
 }
 
-async fn swarm_cmd(cmd: Cmd, host: String, token: &str) -> Result<Response, Error> {
+pub async fn swarm_cmd(cmd: Cmd, host: String, token: &str) -> Result<Response, Error> {
     let url = get_child_base_route(host)?;
     let cmd_res = send_cmd_request(cmd, "SWARM", &url, Some("x-jwt"), Some(&token)).await?;
     Ok(cmd_res)

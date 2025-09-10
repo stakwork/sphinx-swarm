@@ -56,6 +56,7 @@ pub struct AvailableInstances {
     pub user: Option<String>,
     pub pass: Option<String>,
     pub ip_address: Option<String>,
+    pub admin_password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
