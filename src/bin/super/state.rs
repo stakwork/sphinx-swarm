@@ -15,7 +15,7 @@ pub struct Super {
     pub ec2_limit: Ec2Limit,
     pub lightning_bots: Vec<LightningBot>,
     pub reserved_domains: Option<Vec<String>>,
-    pub reserved_instances: Option<Vec<ReservedInstances>>,
+    pub reserved_instances: Option<ReservedInstances>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -107,7 +107,7 @@ impl Default for Super {
             ec2_limit: default_ec2_limit(),
             lightning_bots: Vec::new(),
             reserved_domains: Some(Vec::new()),
-            reserved_instances: Some(Vec::new()),
+            reserved_instances: Some(default_reserved_instances()),
         }
     }
 }
@@ -130,6 +130,13 @@ fn default_superuser() -> User {
         pass_hash,
         pubkey: None,
         role: Role::Super,
+    }
+}
+
+pub fn default_reserved_instances() -> ReservedInstances {
+    ReservedInstances {
+        minimum_available: 5,
+        available_instances: Vec::new(),
     }
 }
 

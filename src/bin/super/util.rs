@@ -382,7 +382,7 @@ pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
     }
 }
 
-async fn create_ec2_instance(
+pub async fn create_ec2_instance(
     swarm_name: String,
     vanity_address: Option<String>,
     instance_type_name: String,
@@ -437,7 +437,11 @@ async fn create_ec2_instance(
 
     let github_pat = getenv("GITHUB_PAT")?;
 
-    let mut host = custom_domain.clone();
+    let mut host = format!("swarm{}.sphinx.chat", swarm_number);
+
+    if !custom_domain.is_empty() {
+        host = custom_domain.clone();
+    }
 
     let mut docker_compose_start_script = r#"./restart-second-brain-2.sh"#.to_string();
 
@@ -703,7 +707,7 @@ async fn create_ec2_instance(
     }
 }
 
-async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
+pub async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env()
