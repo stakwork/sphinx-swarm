@@ -67,6 +67,36 @@ pub fn add_new_swarm_from_child_swarm(
     swarm_details: RemoteStack,
     must_save_stack: &mut bool,
 ) -> AddSwarmResponse {
+    if state.reserved_instances.is_some() && swarm_details.id.is_some() {
+        if let Some(reserved_instances) = &mut state.reserved_instances {
+            if let Some(pos) = reserved_instances
+                .available_instances
+                .iter()
+                .position(|instance| {
+                    format!("swarm{}", instance.swarm_number) == swarm_details.id.clone().unwrap()
+                })
+            {
+                let mut selected_instance = reserved_instances.available_instances[pos].clone();
+                if selected_instance.pass.is_some() {
+                    return AddSwarmResponse {
+                        success: false,
+                        message: "swarm already exist".to_string(),
+                    };
+                }
+                selected_instance.pass = swarm_details.pass.clone();
+                selected_instance.user = swarm_details.user.clone();
+                selected_instance.host = swarm_details.host.clone();
+
+                reserved_instances.available_instances[pos] = selected_instance;
+
+                *must_save_stack = true;
+                return AddSwarmResponse {
+                    success: true,
+                    message: "Swarm added successfully".to_string(),
+                };
+            }
+        }
+    }
     match state
         .stacks
         .iter()

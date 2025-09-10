@@ -46,7 +46,9 @@ pub async fn handle_reserve_swarms() -> Result<()> {
 
         sleep(Duration::from_secs(40)).await;
 
-        let domain_names: Vec<String> = vec![format!("swarm{}.sphinx.chat", ec2_instance.1)];
+        let host = format!("swarm{}.sphinx.chat", ec2_instance.1);
+
+        let domain_names: Vec<String> = vec![host.clone()];
 
         let ec2_ip_address = get_instance_ip(&ec2_instance.0).await?;
 
@@ -60,6 +62,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             user: None,
             pass: None,
             ip_address: Some(ec2_ip_address),
+            host,
         });
     }
 

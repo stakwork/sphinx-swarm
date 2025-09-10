@@ -52,6 +52,7 @@ pub struct AvailableInstances {
     pub instance_type: String,
     pub swarm_number: String,
     pub default_host: String,
+    pub host: String,
     pub user: Option<String>,
     pub pass: Option<String>,
     pub ip_address: Option<String>,
