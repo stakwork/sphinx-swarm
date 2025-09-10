@@ -33,20 +33,9 @@ impl<'r> FromRequest<'r> for VerifySuperToken {
                         ));
                     }
                 }
-
-                // Header missing but env set -> unauthorized
                 Outcome::Error((Status::Unauthorized, SuperAuthError::MissingToken))
             }
-            Err(_) => {
-                // Env not defined: token may be empty. If header present, return it; otherwise return None.
-                if let Some(token) = request.headers().get_one("x-super-token") {
-                    Outcome::Success(VerifySuperToken {
-                        token: Some(token.to_string()),
-                    })
-                } else {
-                    Outcome::Success(VerifySuperToken { token: None })
-                }
-            }
+            Err(_) => Outcome::Error((Status::Unauthorized, SuperAuthError::MissingToken)),
         }
     }
 }
