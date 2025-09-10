@@ -51,7 +51,7 @@ services:
         max-size: 10m
 
   sphinx-swarm:
-    image: sphinxlightning/sphinx-swarm:setup-ready-to-go-swarm
+    image: sphinxlightning/sphinx-swarm
     container_name: sphinx-swarm
     networks:
       - sphinx-swarm
