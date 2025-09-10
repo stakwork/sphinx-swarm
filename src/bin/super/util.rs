@@ -33,6 +33,8 @@ use crate::ec2::{get_swarms_by_tag, instance_with_swarm_name_exists};
 use crate::route53::{
     add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
 };
+use crate::service::swarm_reserver::assign_reserved_swarm::handle_assign_reserved_swarm;
+use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
 use crate::state::{self, AwsInstanceType, InstanceFromAws, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
@@ -874,6 +876,19 @@ pub async fn create_swarm_ec2(
         ));
     }
 
+    if check_reserve_swarm_flag_set()
+        && state.reserved_instances.clone().is_some()
+        && state
+            .reserved_instances
+            .clone()
+            .unwrap()
+            .available_instances
+            .len()
+            > 0
+    {
+        let assigned_swarm = handle_assign_reserved_swarm(info, state).await?;
+        return Ok(assigned_swarm);
+    }
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),

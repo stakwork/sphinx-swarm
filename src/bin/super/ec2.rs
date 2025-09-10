@@ -1,7 +1,14 @@
 use crate::{aws_util::make_aws_client, state::InstanceFromAws};
 use anyhow::{anyhow, Error};
-use aws_sdk_ec2::types::{Filter, Instance};
+use aws_sdk_ec2::types::{Filter, Instance, Tag};
+use serde::{Deserialize, Serialize};
 use sphinx_swarm::utils::getenv;
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
+pub struct Ec2Tags {
+    pub key: String,
+    pub value: String,
+}
 
 pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFromAws>, Error> {
     let mut instances: Vec<InstanceFromAws> = vec![];
@@ -102,4 +109,28 @@ pub async fn get_ec2_instance_by_tag(key: &str, value: &str) -> Result<Vec<Insta
     }
 
     return Ok(instances);
+}
+
+pub async fn add_new_tags_to_instance(
+    instance_id: &str,
+    passed_tags: Vec<Ec2Tags>,
+) -> Result<(), Error> {
+    let client = make_aws_client().await?;
+
+    let mut tags: Vec<Tag> = Vec::new();
+
+    for tag in passed_tags {
+        tags.push(Tag::builder().key(tag.key).value(tag.value).build());
+    }
+
+    // Apply the tag
+    client
+        .create_tags()
+        .resources(instance_id)
+        .set_tags(Some(tags)) // here we pass the Vec<Tag>
+        .send()
+        .await?;
+
+    log::info!("Tags added to instance {}", instance_id);
+    Ok(())
 }
