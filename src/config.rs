@@ -127,6 +127,12 @@ impl Node {
             Node::External(n) => n.name().clone(),
         }
     }
+    pub fn host(&self) -> Option<String> {
+        match self {
+            Node::Internal(n) => n.host(),
+            Node::External(n) => Some(n.url.clone()),
+        }
+    }
     pub fn as_internal(&self) -> Result<Image> {
         match self {
             Node::Internal(n) => Ok(n.clone()),
@@ -151,6 +157,15 @@ impl Node {
         match self {
             Node::Internal(img) => {
                 img.set_version(version);
+                Ok(())
+            }
+            Node::External(_n) => Err(anyhow::anyhow!("not an internal node".to_string())),
+        }
+    }
+    pub fn set_host(&mut self, host: &str) -> Result<()> {
+        match self {
+            Node::Internal(img) => {
+                img.set_host(host);
                 Ok(())
             }
             Node::External(_n) => Err(anyhow::anyhow!("not an internal node".to_string())),

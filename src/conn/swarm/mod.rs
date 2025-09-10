@@ -318,7 +318,15 @@ pub async fn update_env_variables(
 
     *must_save_stack = true;
     // stop the expected service(Boltwall and Jarvis)
-    for node in &state.stack.nodes {
+
+    if let Some(host) = update_value.values.get("HOST") {
+        for node in state.stack.nodes.iter_mut() {
+            if let Node::Internal(img) = node {
+                img.set_host(host);
+            }
+        }
+    };
+    for node in state.stack.nodes.iter_mut() {
         match stop_and_remove(docker, &domain(&node.name())).await {
             Ok(_) => log::info!("{} stopped and removed", node.name()),
             Err(e) => {
