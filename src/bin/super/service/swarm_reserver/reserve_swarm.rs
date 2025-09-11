@@ -12,10 +12,12 @@ use crate::{
 pub async fn handle_reserve_swarms() -> Result<()> {
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
     let mut state = state::STATE.lock().await;
+    let mut save_state = false;
 
     let mut domain_names_to_delete: Vec<String> = vec![];
 
     if state.reserved_instances.is_none() {
+        save_state = true;
         state.reserved_instances = Some(default_reserved_instances())
     }
 
@@ -25,11 +27,15 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         } else {
             log::info!("Reserved instance with ID: {} no longer exists on AWS, removing from reserved instances", reserved_instance.instance_id);
             domain_names_to_delete.push(reserved_instance.host.clone());
+            save_state = true;
             false
         }
     });
     let reserved_instances = state.reserved_instances.clone().unwrap();
 
+    if save_state {
+        put_config_file("super", &state).await;
+    }
     drop(state);
     match delete_multiple_route53_records(domain_names_to_delete).await {
         Ok(_) => {}
