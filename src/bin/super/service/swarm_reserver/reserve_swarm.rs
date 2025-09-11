@@ -3,6 +3,7 @@ use tokio::time::{sleep, Duration};
 
 use crate::{
     ec2::get_instances_from_aws_by_swarm_tag_and_return_hash_map,
+    put_config_file,
     route53::{add_domain_name_to_route53, delete_multiple_route53_records},
     service::swarm_reserver::utils::generate_random_secret,
     state::{self, default_reserved_instances, AvailableInstances},
@@ -98,6 +99,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
                 admin_password,
             });
 
+        put_config_file("super", &state).await;
         drop(state)
     }
 
