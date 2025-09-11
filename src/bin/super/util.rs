@@ -568,7 +568,7 @@ pub async fn create_ec2_instance(
           #Setup TLS Cert
           {setup_tls_cert}
           cd /home/admin && \
-          git clone https://github.com/stakwork/sphinx-swarm.git && \
+          git clone https://github.com/stakwork/sphinx-swarm.git -b return-more-swarm-details && \
           cd sphinx-swarm && \
           pwd && \
           touch .env && \
