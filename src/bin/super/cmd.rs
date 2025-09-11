@@ -203,4 +203,14 @@ pub struct LightningBotCreateInvoiceReq {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateEc2InstanceRes {
     pub swarm_id: String,
+    pub x_api_key: String,
+    pub address: String,
+    pub ec2_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreateSwarmEc2Instance {
+    pub ec2_instance_id: String,
+    pub swarm_number: String,
+    pub x_api_key: String,
 }

@@ -67,11 +67,11 @@ pub async fn handle_reserve_swarms() -> Result<()> {
 
         sleep(Duration::from_secs(40)).await;
 
-        let host = format!("swarm{}.sphinx.chat", ec2_instance.1);
+        let host = format!("swarm{}.sphinx.chat", &ec2_instance.swarm_number);
 
         let domain_names: Vec<String> = vec![host.clone()];
 
-        let ec2_ip_address = get_instance_ip(&ec2_instance.0).await?;
+        let ec2_ip_address = get_instance_ip(&ec2_instance.ec2_instance_id).await?;
 
         let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
@@ -83,14 +83,18 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             .unwrap()
             .available_instances
             .push(AvailableInstances {
-                instance_id: ec2_instance.0,
+                instance_id: ec2_instance.ec2_instance_id.clone(),
                 instance_type: instance_type.to_string(),
-                swarm_number: ec2_instance.1.to_string(),
-                default_host: format!("swarm{}.sphinx.chat:8800", ec2_instance.1),
+                swarm_number: ec2_instance.swarm_number.to_string(),
+                default_host: format!(
+                    "swarm{}.sphinx.chat:8800",
+                    ec2_instance.swarm_number.clone()
+                ),
                 user: None,
                 pass: None,
                 ip_address: Some(ec2_ip_address),
                 host,
+                x_api_key: ec2_instance.x_api_key,
                 admin_password,
             });
 
