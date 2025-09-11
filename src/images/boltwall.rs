@@ -42,7 +42,7 @@ impl BoltwallImage {
             external_lnd: None,
             links: vec![],
             admin_token: Some(secrets::random_word(32)),
-            stakwork_secret: Some(secrets::random_word(32)),
+            stakwork_secret: Some(determine_boltwall_api_secret()),
             request_per_seconds: Some(50),
             max_request_limit: Some("1mb".to_string()),
         }
@@ -163,6 +163,20 @@ impl ExternalLnd {
 pub struct LndCreds {
     pub macaroon: String,
     pub cert: String,
+}
+
+fn determine_boltwall_api_secret() -> String {
+    let secret = secrets::random_word(32);
+    match getenv("BOLTWALL_API_SECRET") {
+        Ok(s) => {
+            if !s.is_empty() {
+                s
+            } else {
+                secret
+            }
+        }
+        Err(_) => secret,
+    }
 }
 
 fn boltwall(
