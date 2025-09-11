@@ -67,15 +67,16 @@ pub async fn handle_assign_reserved_swarm(
     if info.password.is_some() {
         new_password = info.password.clone();
         old_password = Some(selected_reserved_instance.admin_password.clone());
-        if let Some(envs_map) = envs.as_mut() {
-            envs_map.insert("PASSWORD".to_string(), info.password.clone().unwrap());
-        }
     }
 
     if info.vanity_address.is_some() {
         if let Some(envs_map) = envs.as_mut() {
             envs_map.insert("HOST".to_string(), info.vanity_address.clone().unwrap());
         }
+    }
+
+    if envs.is_some() && envs.clone().unwrap().is_empty() {
+        envs = None;
     }
 
     // if password passed update child swarm password
@@ -186,6 +187,8 @@ pub async fn handle_assign_reserved_swarm(
         deleted: Some(false),
         route53_domain_names: Some(vec![host.clone()]),
     });
+    let x_api_key = selected_reserved_instance.x_api_key.clone();
+    let ec2_id = selected_reserved_instance.instance_id.clone();
 
     state
         .reserved_instances
@@ -194,5 +197,10 @@ pub async fn handle_assign_reserved_swarm(
         .available_instances
         .remove(0);
 
-    Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
+    Ok(CreateEc2InstanceRes {
+        swarm_id: swarm_id,
+        x_api_key,
+        address: host,
+        ec2_id,
+    })
 }

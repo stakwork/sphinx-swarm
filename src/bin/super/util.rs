@@ -26,8 +26,9 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
-    CreateEc2InstanceInfo, CreateEc2InstanceRes, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
-    GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
+    CreateEc2InstanceInfo, CreateEc2InstanceRes, CreateSwarmEc2Instance,
+    GetInstanceTypeByInstanceId, GetInstanceTypeRes, GetSwarmDetailsByDefaultHost, LoginResponse,
+    SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::{
     get_instances_from_aws_by_swarm_tag_and_return_hash_map, instance_with_swarm_name_exists,
@@ -36,7 +37,7 @@ use crate::route53::{
     add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
 };
 use crate::service::swarm_reserver::assign_reserved_swarm::handle_assign_reserved_swarm;
-use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
+use crate::service::swarm_reserver::utils::{check_reserve_swarm_flag_set, generate_random_secret};
 use crate::state::{self, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
@@ -423,7 +424,7 @@ pub async fn create_ec2_instance(
     env: Option<HashMap<String, String>>,
     subdomain_ssl: Option<bool>,
     swarm_password: Option<String>,
-) -> Result<(String, i32), Error> {
+) -> Result<CreateSwarmEc2Instance, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
 
@@ -470,6 +471,8 @@ pub async fn create_ec2_instance(
     let value = getenv("SWARM_TAG_VALUE")?;
 
     let github_pat = getenv("GITHUB_PAT")?;
+
+    let boltwall_api_secret = generate_random_secret(32);
 
     let mut host = format!("swarm{}.sphinx.chat", swarm_number);
 
@@ -596,6 +599,9 @@ pub async fn create_ec2_instance(
           echo "SWARM_NUMBER={swarm_number}" >> .env && \
           echo "PASSWORD={password}" >> .env && \
           echo "GITHUB_PAT={github_pat}" >> .env && \
+          echo "BOLTWALL_API_SECRET={boltwall_api_secret}" >> .env && \
+          echo "JARVIS_FEATURE_FLAG_WFA_SCHEMAS=true" >> .env && \
+          echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env && \
           {port_based_ssl}
           
           sleep 60 && \
@@ -714,7 +720,11 @@ pub async fn create_ec2_instance(
                 instance_id
             );
 
-            return Ok((instance_id, swarm_number));
+            return Ok(CreateSwarmEc2Instance {
+                ec2_instance_id: instance_id,
+                swarm_number: swarm_number.to_string(),
+                x_api_key: boltwall_api_secret,
+            });
         }
         Err(SdkError::ServiceError(service_error)) => {
             let err = service_error
@@ -927,8 +937,8 @@ pub async fn create_swarm_ec2(
 
     let mut domain_names: Vec<String> = Vec::new();
 
-    let mut default_host = format!("swarm{}.sphinx.chat:8800", &ec2_intance.1);
-    let mut host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+    let mut default_host = format!("swarm{}.sphinx.chat:8800", &ec2_intance.swarm_number);
+    let mut host = format!("swarm{}.sphinx.chat", &ec2_intance.swarm_number);
 
     if let Some(custom_domain) = &actual_vanity_address {
         log::info!("vanity address is being set");
@@ -947,7 +957,7 @@ pub async fn create_swarm_ec2(
     }
 
     if subdomain_ssl == true {
-        default_host = format!("swarm{}.sphinx.chat", &ec2_intance.1);
+        default_host = format!("swarm{}.sphinx.chat", &ec2_intance.swarm_number);
         let default_domain = format!("*.{}", default_host);
         domain_names.push(default_domain);
         if let Some(custom_domain) = &actual_vanity_address {
@@ -961,23 +971,23 @@ pub async fn create_swarm_ec2(
 
     domain_names.push(host.clone());
 
-    let ec2_ip_address = get_instance_ip(&ec2_intance.0).await?;
+    let ec2_ip_address = get_instance_ip(&ec2_intance.ec2_instance_id).await?;
 
     let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
     log::info!("Public_IP: {}", ec2_ip_address);
 
-    let swarm_id = format!("swarm{}", ec2_intance.1);
+    let swarm_id = format!("swarm{}", ec2_intance.swarm_number);
 
     // add new ec2 to list of swarms
     let new_swarm = RemoteStack {
-        host: host,
+        host: host.clone(),
         ec2: Some(info.instance_type.clone()),
         default_host: default_host.clone(),
         note: Some("".to_string()),
         user: Some("".to_string()),
         pass: Some("".to_string()),
-        ec2_instance_id: ec2_intance.0,
+        ec2_instance_id: ec2_intance.ec2_instance_id.clone(),
         public_ip_address: Some("".to_string()),
         private_ip_address: Some("".to_string()),
         id: Some(swarm_id.clone()),
@@ -988,7 +998,12 @@ pub async fn create_swarm_ec2(
     state.add_remote_stack(new_swarm);
 
     log::info!("New Swarm added to stack");
-    Ok(CreateEc2InstanceRes { swarm_id: swarm_id })
+    Ok(CreateEc2InstanceRes {
+        swarm_id: swarm_id,
+        x_api_key: ec2_intance.x_api_key.clone(),
+        address: host,
+        ec2_id: ec2_intance.ec2_instance_id.clone(),
+    })
 }
 
 pub fn is_valid_domain(domain: String) -> String {

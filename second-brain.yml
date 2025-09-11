@@ -113,6 +113,7 @@ services:
       - GITHUB_PAT=$GITHUB_PAT
       - SWARM_NUMBER=$SWARM_NUMBER
       - PASSWORD=$PASSWORD
+      - BOLTWALL_API_SECRET=$BOLTWALL_API_SECRET
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter

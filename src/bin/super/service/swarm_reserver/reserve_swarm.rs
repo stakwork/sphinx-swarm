@@ -3,6 +3,7 @@ use tokio::time::{sleep, Duration};
 
 use crate::{
     ec2::get_instances_from_aws_by_swarm_tag_and_return_hash_map,
+    put_config_file,
     route53::{add_domain_name_to_route53, delete_multiple_route53_records},
     service::swarm_reserver::utils::generate_random_secret,
     state::{self, default_reserved_instances, AvailableInstances},
@@ -11,10 +12,12 @@ use crate::{
 pub async fn handle_reserve_swarms() -> Result<()> {
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
     let mut state = state::STATE.lock().await;
+    let mut save_state = false;
 
     let mut domain_names_to_delete: Vec<String> = vec![];
 
     if state.reserved_instances.is_none() {
+        save_state = true;
         state.reserved_instances = Some(default_reserved_instances())
     }
 
@@ -24,11 +27,15 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         } else {
             log::info!("Reserved instance with ID: {} no longer exists on AWS, removing from reserved instances", reserved_instance.instance_id);
             domain_names_to_delete.push(reserved_instance.host.clone());
+            save_state = true;
             false
         }
     });
     let reserved_instances = state.reserved_instances.clone().unwrap();
 
+    if save_state {
+        put_config_file("super", &state).await;
+    }
     drop(state);
     match delete_multiple_route53_records(domain_names_to_delete).await {
         Ok(_) => {}
@@ -67,11 +74,11 @@ pub async fn handle_reserve_swarms() -> Result<()> {
 
         sleep(Duration::from_secs(40)).await;
 
-        let host = format!("swarm{}.sphinx.chat", ec2_instance.1);
+        let host = format!("swarm{}.sphinx.chat", &ec2_instance.swarm_number);
 
         let domain_names: Vec<String> = vec![host.clone()];
 
-        let ec2_ip_address = get_instance_ip(&ec2_instance.0).await?;
+        let ec2_ip_address = get_instance_ip(&ec2_instance.ec2_instance_id).await?;
 
         let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
@@ -83,17 +90,22 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             .unwrap()
             .available_instances
             .push(AvailableInstances {
-                instance_id: ec2_instance.0,
+                instance_id: ec2_instance.ec2_instance_id.clone(),
                 instance_type: instance_type.to_string(),
-                swarm_number: ec2_instance.1.to_string(),
-                default_host: format!("swarm{}.sphinx.chat:8800", ec2_instance.1),
+                swarm_number: ec2_instance.swarm_number.to_string(),
+                default_host: format!(
+                    "swarm{}.sphinx.chat:8800",
+                    ec2_instance.swarm_number.clone()
+                ),
                 user: None,
                 pass: None,
                 ip_address: Some(ec2_ip_address),
                 host,
+                x_api_key: ec2_instance.x_api_key,
                 admin_password,
             });
 
+        put_config_file("super", &state).await;
         drop(state)
     }
 
