@@ -600,6 +600,8 @@ pub async fn create_ec2_instance(
           echo "PASSWORD={password}" >> .env && \
           echo "GITHUB_PAT={github_pat}" >> .env && \
           echo "BOLTWALL_API_SECRET={boltwall_api_secret}" >> .env && \
+          echo "JARVIS_FEATURE_FLAG_WFA_SCHEMAS=true" >> .env && \
+          echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env && \
           {port_based_ssl}
           
           sleep 60 && \
