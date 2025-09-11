@@ -42,7 +42,7 @@ services:
         max-size: 10m
 
   sphinx-swarm-superadmin:
-    image: sphinxlightning/sphinx-swarm-superadmin:return-more-swarm-details
+    image: sphinxlightning/sphinx-swarm-superadmin
     container_name: sphinx-swarm-superadmin
     networks:
       - sphinx-swarm
