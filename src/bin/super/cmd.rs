@@ -214,3 +214,15 @@ pub struct CreateSwarmEc2Instance {
     pub swarm_number: String,
     pub x_api_key: String,
 }
+
+impl Cmd {
+    pub fn can_run_before_ready(&self) -> bool {
+        match self {
+            Cmd::Swarm(c) => match c {
+                SwarmCmd::GetConfig => true,
+                SwarmCmd::Login(_) => true,
+                _ => false,
+            },
+        }
+    }
+}

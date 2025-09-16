@@ -112,7 +112,7 @@ pub async fn create_and_start(
 }
 
 fn m1_not_supported(from_image: &str) -> bool {
-    let vs = vec!["/sphinx-lss".to_string(), "/cln-sphinx".to_string()];
+    let vs = vec!["/sphinx-lss".to_string(), "/cln-sphinx".to_string(), "/sphinx-nav-fiber".to_string(), "/stakgraph-mcp".to_string()];
     let mut b = false;
     for v in vs {
         if from_image.contains(&v) {
