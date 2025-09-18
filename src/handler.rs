@@ -65,6 +65,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 SwarmCmd::GetApiToken => true,
                 SwarmCmd::ChangeReservedSwarmToActive(_) => true,
+                SwarmCmd::UpdateEvn(_) => true,
                 _ => false,
             },
             _ => false,
