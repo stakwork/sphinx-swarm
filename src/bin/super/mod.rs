@@ -26,6 +26,7 @@ use util::{
 };
 
 use crate::checker::swarm_checker;
+use crate::service::child_swarm::update_env::update_child_swarm_env;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
@@ -454,6 +455,10 @@ pub async fn super_handle(
             }
             SwarmCmd::GetSuperAdminLogs => {
                 let res = get_super_admin_docker_logs().await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateChildSwarmEnv(data) => {
+                let res = update_child_swarm_env(&state, data).await;
                 Some(serde_json::to_string(&res)?)
             }
         },

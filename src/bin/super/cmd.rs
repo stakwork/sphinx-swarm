@@ -107,6 +107,7 @@ pub enum SwarmCmd {
     ChangeLightningBotLabel(ChangeLightningBotLabel),
     CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq),
     GetSuperAdminLogs,
+    UpdateChildSwarmEnv(UpdateChildSwarmEnvReq),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -142,6 +143,13 @@ pub struct LoginResponse {
 pub struct AccessNodesInfo {
     pub host: String,
     pub nodes: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateChildSwarmEnvReq {
+    pub host: String,
+    pub node_name: Option<String>,
+    pub envs: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
