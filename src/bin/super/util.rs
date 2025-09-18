@@ -923,6 +923,7 @@ pub async fn create_swarm_ec2(
             }
         };
     }
+
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),

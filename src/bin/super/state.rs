@@ -17,6 +17,7 @@ pub struct Super {
     pub lightning_bots: Vec<LightningBot>,
     pub reserved_domains: Option<Vec<String>>,
     pub reserved_instances: Option<ReservedInstances>,
+    pub anthropic_keys: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -112,6 +113,7 @@ impl Default for Super {
             lightning_bots: Vec::new(),
             reserved_domains: Some(Vec::new()),
             reserved_instances: Some(default_reserved_instances()),
+            anthropic_keys: Some(Vec::new()),
         }
     }
 }
@@ -199,6 +201,7 @@ impl Super {
             lightning_bots: vec![],
             reserved_domains: Some(vec![]),
             reserved_instances: self.reserved_instances.clone(),
+            anthropic_keys: Some(vec![]),
         }
     }
 
