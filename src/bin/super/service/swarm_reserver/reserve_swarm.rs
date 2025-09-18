@@ -61,6 +61,16 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         // TODO: decide what we want to be the default instance type: ASK GONZALO
         let instance_type = "m6i.xlarge".to_string();
         let admin_password = generate_random_secret(16);
+        let state = state::STATE.lock().await;
+        let mut anthropic_api_key: Option<String> = None;
+
+        if let Some(anthropic_keys) = &state.anthropic_keys {
+            if anthropic_keys.len() > 0 {
+                anthropic_api_key = Some(anthropic_keys[0].clone());
+            }
+        }
+
+        drop(state);
 
         let ec2_instance = create_ec2_instance(
             "".to_string(),
@@ -69,6 +79,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             None,
             None,
             Some(admin_password.clone()),
+            anthropic_api_key.clone(),
         )
         .await?;
 
@@ -83,6 +94,14 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
         let mut state = state::STATE.lock().await;
+
+        if let Some(used_anthropic_key) = anthropic_api_key {
+            state
+                .anthropic_keys
+                .as_mut()
+                .unwrap()
+                .retain(|key| key != &used_anthropic_key);
+        }
 
         state
             .reserved_instances

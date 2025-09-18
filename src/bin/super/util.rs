@@ -424,6 +424,7 @@ pub async fn create_ec2_instance(
     env: Option<HashMap<String, String>>,
     subdomain_ssl: Option<bool>,
     swarm_password: Option<String>,
+    anthropic_api_key: Option<String>,
 ) -> Result<CreateSwarmEc2Instance, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -471,6 +472,12 @@ pub async fn create_ec2_instance(
     let value = getenv("SWARM_TAG_VALUE")?;
 
     let github_pat = getenv("GITHUB_PAT")?;
+
+    let mut anthropic_api_key_env: String = "".to_string();
+
+    if let Some(api_key) = anthropic_api_key {
+        anthropic_api_key_env = format!(r#"echo "ANTHROPIC_API_KEY={api_key}" >> .env && \"#)
+    }
 
     let boltwall_api_secret = generate_random_secret(32);
 
@@ -602,6 +609,7 @@ pub async fn create_ec2_instance(
           echo "BOLTWALL_API_SECRET={boltwall_api_secret}" >> .env && \
           echo "JARVIS_FEATURE_FLAG_WFA_SCHEMAS=true" >> .env && \
           echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env && \
+          {anthropic_api_key_env}
           {port_based_ssl}
           
           sleep 60 && \
@@ -924,6 +932,14 @@ pub async fn create_swarm_ec2(
         };
     }
 
+    let mut anthropic_api_key: Option<String> = None;
+
+    if let Some(anthropic_keys) = &state.anthropic_keys {
+        if anthropic_keys.len() > 0 {
+            anthropic_api_key = Some(anthropic_keys[0].clone());
+        }
+    }
+
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),
@@ -931,10 +947,19 @@ pub async fn create_swarm_ec2(
         info.env.clone(),
         info.subdomain_ssl.clone(),
         info.password.clone(),
+        anthropic_api_key.clone(),
     )
     .await?;
 
     sleep(Duration::from_secs(40)).await;
+
+    if let Some(used_anthropic_key) = anthropic_api_key {
+        state
+            .anthropic_keys
+            .as_mut()
+            .unwrap()
+            .retain(|key| key != &used_anthropic_key);
+    }
 
     let mut domain_names: Vec<String> = Vec::new();
 
