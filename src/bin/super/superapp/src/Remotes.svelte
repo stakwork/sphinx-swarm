@@ -14,6 +14,7 @@
     SelectItem,
     Checkbox,
     Link,
+    TextInput,
   } from "carbon-components-svelte";
   import { UpdateNow, Stop } from "carbon-icons-svelte";
 
@@ -37,6 +38,7 @@
     update_child_swarm_containers,
     get_aws_instance_types,
     restart_child_swarm_containers,
+    update_child_swarm_env,
   } from "../../../../../app/src/api/swarm";
 
   let open_create_ec2 = false;
@@ -62,6 +64,16 @@
     JARVIS_FEATURE_FLAG_WFA_SCHEMAS: "true",
     JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS: "true",
   };
+  let selected_host = "";
+
+  let open_update_env = false;
+
+  let env_key = "";
+  let env_value = "";
+
+  let child_nodes = [];
+
+  let selected_child_node = "";
 
   let selectedRowIds = [];
 
@@ -396,6 +408,76 @@
 
     return "";
   }
+
+  async function handleGetSwarmChildConfig(host: string) {
+    const result = await get_child_swarm_config({ host });
+    if (result.success && result.data && result.data.stack_error) {
+      return [];
+    } else if (!result.success) {
+      return [];
+    }
+    const nodes = [];
+
+    for (let i = 0; i < result.data.length; i++) {
+      const node = result.data[i];
+      nodes.push({ value: node.name, name: node.type });
+    }
+    return nodes;
+  }
+
+  async function setupUpdateChildSwarmEnv(host: string) {
+    loading = true;
+    // handle get swarm config
+    child_nodes = await handleGetSwarmChildConfig(host);
+    loading = false;
+
+    // set active host for update
+    selected_host = host;
+    // open modal
+    open_update_env = true;
+  }
+
+  function handleOnCloseUpdateEnv() {
+    selected_host = "";
+    open_update_env = false;
+    env_key = "";
+    env_value = "";
+    selected_child_node = "";
+    child_nodes = [];
+  }
+
+  async function handleSubmitUpdateEnv() {
+    loading = true;
+    isSubmitting = true;
+    try {
+      // try to update child .env
+      const result = await update_child_swarm_env({
+        host: selected_host,
+        node_name: selected_child_node,
+        envs: { [env_key]: env_value },
+      });
+      message = result.message;
+
+      if (!result.success) {
+        errorMessage = true;
+        error_notification = true;
+        loading = false;
+        isSubmitting = false;
+        return;
+      }
+
+      show_notification = true;
+      loading = false;
+      isSubmitting = false;
+      handleOnCloseUpdateEnv();
+    } catch (error) {
+      loading = false;
+      isSubmitting = false;
+      message = "Error occurred while trying to update child swarm";
+      show_notification = true;
+      errorMessage = true;
+    }
+  }
 </script>
 
 <main>
@@ -428,6 +510,7 @@
       { key: "ec2", value: "Instance" },
       { key: "public_ip_address", value: "Public IP" },
       { key: "private_ip_address", value: "Private IP" },
+      { key: "update_env", value: "Update Env" },
       { key: "health", value: "Health" },
     ]}
     rows={$remotes.map(remoterow)}
@@ -471,6 +554,10 @@
         </div>
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
+      {:else if cell.key === "update_env"}
+        <Button on:click={() => setupUpdateChildSwarmEnv(row.id)}
+          >Update Env</Button
+        >
       {:else}
         {cell.value}
       {/if}
@@ -557,6 +644,57 @@
     </div>
     <div class="checkbox_container">
       <Checkbox labelText="Repo2Graph" bind:checked={repo_2_graph_checked} />
+    </div>
+  </Modal>
+
+  <Modal
+    bind:open={open_update_env}
+    modalHeading="Add or Update Swarm Env"
+    primaryButtonDisabled={isSubmitting || !env_key || !env_value}
+    primaryButtonText={isSubmitting ? "Loading..." : "Submit"}
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (open_update_env = false)}
+    on:open
+    on:close={handleOnCloseUpdateEnv}
+    on:submit={handleSubmitUpdateEnv}
+  >
+    {#if error_notification}
+      <InlineNotification
+        kind="error"
+        title="Error:"
+        subtitle={message}
+        timeout={3000}
+        on:close={(e) => {
+          e.preventDefault();
+          error_notification = false;
+        }}
+      />
+    {/if}
+    <div class="select_instance_container">
+      <Select
+        on:change={(e) => (selected_child_node = e.target.value)}
+        labelText="Available Nodes"
+        selected={selected_instance}
+      >
+        <SelectItem value={""} text={"Select Node"} />
+        {#each child_nodes as option}
+          <SelectItem value={option.value} text={option.name} />
+        {/each}
+      </Select>
+    </div>
+    <div class="env_input_container">
+      <TextInput
+        bind:value={env_key}
+        labelText="Environment Key"
+        placeholder="e.g., API_KEY"
+        type="text"
+      />
+      <TextInput
+        bind:value={env_value}
+        labelText="Environment Value"
+        placeholder="e.g., sk_test_123..."
+        type="text"
+      />
     </div>
   </Modal>
 </main>
@@ -654,6 +792,12 @@
   .host_name_container {
     display: flex;
     align-items: center;
+    gap: 1.5rem;
+  }
+
+  .env_input_container {
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
   }
 </style>

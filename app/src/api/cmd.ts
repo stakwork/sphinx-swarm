@@ -109,7 +109,8 @@ export type Cmd =
   | "GetBoltwallMaxRequestLimit"
   | "UpdateBoltwallMaxRequestLimit"
   | "UpdateEvn"
-  | "GetSuperAdminLogs";
+  | "GetSuperAdminLogs"
+  | "UpdateChildSwarmEnv";
 
 interface CmdData {
   cmd: Cmd;

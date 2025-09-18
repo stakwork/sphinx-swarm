@@ -317,6 +317,18 @@ export async function get_child_swarm_config({ host }: { host: string }) {
   return await swarmCmd("GetChildSwarmConfig", { host });
 }
 
+export async function update_child_swarm_env({
+  host,
+  node_name,
+  envs,
+}: {
+  host: string;
+  node_name?: string;
+  envs: { [key: string]: string };
+}) {
+  return await swarmCmd("UpdateChildSwarmEnv", { host, node_name, envs });
+}
+
 export async function get_child_swarm_containers({ host }: { host: string }) {
   return await swarmCmd("GetChildSwarmContainers", { host });
 }
