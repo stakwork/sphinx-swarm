@@ -133,7 +133,7 @@ pub struct MaxRequestLimitInfo {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateEnvRequest {
-    pub id: String,
+    pub id: Option<String>,
     pub values: HashMap<String, String>,
 }
 

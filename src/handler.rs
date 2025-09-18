@@ -65,6 +65,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 SwarmCmd::GetApiToken => true,
                 SwarmCmd::ChangeReservedSwarmToActive(_) => true,
+                SwarmCmd::UpdateEvn(_) => true,
                 _ => false,
             },
             _ => false,
@@ -525,7 +526,7 @@ pub async fn handle(
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateEvn(update_env) => {
-                log::info!("Update env variables for {}", update_env.id);
+                log::info!("Update env variables for {:#?}", update_env.id);
                 let res = update_env_variables(
                     &docker,
                     &mut update_env.clone(),

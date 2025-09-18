@@ -297,12 +297,12 @@ pub async fn update_env_variables(
 ) -> SwarmResponse {
     let mut error_messages: Vec<String> = Vec::new();
     // write to stack.yml file
-    if update_value.id == "boltwall" {
+    if update_value.id.is_some() && update_value.clone().id.unwrap() == "boltwall" {
         update_boltwall_env(state, &mut update_value.values);
     }
 
     log::info!(
-        "Updating env variables for {}: {:?}",
+        "Updating env variables for {:?}: {:?}",
         update_value.id,
         update_value.values
     );
@@ -514,7 +514,7 @@ pub async fn handle_assign_reserved_swarm_to_active(
         let update_env_response = update_env_variables(
             docker,
             &mut UpdateEnvRequest {
-                id: "boltwall".to_string(),
+                id: Some("boltwall".to_string()),
                 values: envs,
             },
             state,
