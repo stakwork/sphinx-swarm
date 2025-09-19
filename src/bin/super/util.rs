@@ -418,7 +418,7 @@ pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
 }
 
 pub async fn create_ec2_instance(
-    swarm_name: String,
+    swarm_name: Option<String>,
     vanity_address: Option<String>,
     instance_type_name: String,
     env: Option<HashMap<String, String>>,
@@ -445,9 +445,9 @@ pub async fn create_ec2_instance(
 
     let super_token = getenv("SUPER_TOKEN")?;
 
-    let swarm_name = format!("{}", swarm_name);
-
     let swarm_number = rand::thread_rng().gen_range(100000..1000000);
+
+    let swarm_name = swarm_name.unwrap_or_else(|| format!("swarm{}", swarm_number));
 
     let device_name = getenv("AWS_DEVICE_NAME")?;
 
@@ -648,7 +648,8 @@ pub async fn create_ec2_instance(
     );
 
     let tags = vec![
-        Tag::builder().key("Name").value(swarm_name).build(),
+        Tag::builder().key("Name").value(format!("swarm{}", swarm_number)).build(),
+        Tag::builder().key("UserAssignedName").value(swarm_name).build(),
         Tag::builder().key(key).value(value).build(),
     ];
 
@@ -887,13 +888,15 @@ pub async fn create_swarm_ec2(
         }
     }
 
-    let swarm_exist = instance_with_swarm_name_exists(&info.name).await?;
+    if let Some(name) = &info.name {
+        let swarm_exist = instance_with_swarm_name_exists(name).await?;
 
-    if swarm_exist {
-        return Err(anyhow!(
-            "Another Swarm with name: {} already exist!",
-            info.name
-        ));
+        if swarm_exist {
+            return Err(anyhow!(
+                "Another Swarm with name: {} already exist!",
+                name
+            ));
+        }
     }
 
     let mut potential_swarm_to_be_used = None;

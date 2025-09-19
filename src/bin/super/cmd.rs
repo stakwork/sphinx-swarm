@@ -154,7 +154,7 @@ pub struct UpdateChildSwarmEnvReq {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateEc2InstanceInfo {
-    pub name: String,
+    pub name: Option<String>,
     pub vanity_address: Option<String>,
     pub instance_type: String,
     pub token: Option<String>,

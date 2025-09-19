@@ -360,10 +360,11 @@ pub async fn super_handle(
                 match create_swarm_ec2(&info, &mut state).await {
                     Ok(data) => {
                         must_save_stack = true;
+                        let display_name = info.name.as_ref().unwrap_or(&data.swarm_id).clone();
                         let parsed_data = serde_json::to_value(data)?;
                         res = SuperSwarmResponse {
                             success: true,
-                            message: format!("{} was created successfully", &info.name.clone()),
+                            message: format!("{} was created successfully", display_name),
                             data: Some(parsed_data),
                         }
                     }

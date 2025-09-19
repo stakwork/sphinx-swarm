@@ -53,7 +53,7 @@ pub async fn handle_assign_reserved_swarm(
         &selected_reserved_instance.instance_id,
         vec![Ec2Tags {
             key: "Name".to_string(),
-            value: info.name.clone(),
+            value: info.name.clone().unwrap_or_else(|| selected_reserved_instance.swarm_id()),
         }],
     )
     .await?;

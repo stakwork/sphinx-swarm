@@ -399,7 +399,7 @@ export async function create_new_swarm_ec2({
   env,
 }: {
   vanity_address?: string;
-  name: string;
+  name?: string;
   instance_type: string;
   env: { [key: string]: string };
 }) {

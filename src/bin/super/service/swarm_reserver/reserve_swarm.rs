@@ -73,7 +73,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         drop(state);
 
         let ec2_instance = create_ec2_instance(
-            "".to_string(),
+            None,
             None,
             instance_type.to_string().clone(),
             None,
