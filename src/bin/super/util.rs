@@ -640,7 +640,8 @@ pub async fn create_ec2_instance(
     );
 
     let tags = vec![
-        Tag::builder().key("Name").value(swarm_name).build(),
+        Tag::builder().key("Name").value(format("swarm{}", swarm_number)).build(),
+        Tag::builder().key("UserAssignedName").value(swarm_name).build(),
         Tag::builder().key(key).value(value).build(),
     ];
 
@@ -879,13 +880,15 @@ pub async fn create_swarm_ec2(
         }
     }
 
-    let swarm_exist = instance_with_swarm_name_exists(&info.name).await?;
+    if let Some(name) = &info.name {
+        let swarm_exist = instance_with_swarm_name_exists(name).await?;
 
-    if swarm_exist {
-        return Err(anyhow!(
-            "Another Swarm with name: {} already exist!",
-            info.name
-        ));
+        if swarm_exist {
+            return Err(anyhow!(
+                "Another Swarm with name: {} already exist!",
+                name
+            ));
+        }
     }
 
     let mut potential_swarm_to_be_used = None;
