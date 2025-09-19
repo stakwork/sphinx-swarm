@@ -85,6 +85,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
+      - name: Run Swarm Build
+        working-directory: ./app
+        run: |
+          yarn install
+          yarn run build
       - name: Run Build
         working-directory: ./src/bin/super/superapp
         run: |
