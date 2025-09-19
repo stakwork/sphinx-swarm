@@ -63,7 +63,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         let admin_password = generate_random_secret(16);
 
         let ec2_instance = create_ec2_instance(
-            "".to_string(),
+            None,
             None,
             instance_type.to_string().clone(),
             None,

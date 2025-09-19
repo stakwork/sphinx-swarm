@@ -61,6 +61,12 @@ pub struct AvailableInstances {
     pub x_api_key: String,
 }
 
+impl AvailableInstances {
+    pub fn swarm_id(&self) -> String {
+        format!("swarm{}", self.swarm_number)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct AwsInstanceType {
     pub name: String,
