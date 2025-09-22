@@ -84,12 +84,9 @@ fn jarvis(
         format!("NEO4J_USER=neo4j"),
         format!("NEO4J_PASS={}", neo4j.password),
         format!("STAKWORK_REQUEST_LOG_PATH=./"),
-        format!("STAKWORK_ADD_NODE_URL=https://api.stakwork.com/api/v1/knowledge_graph_projects"),
         format!("JARVIS_BACKEND_PORT={}", node.port),
         format!("PUBLIC_GRAPH_RESULT_LIMIT=10"),
         format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images"),
-        format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"),
-        format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"),
         format!("RADAR_SCHEDULER_JOB=1"),
         format!("FEATURE_FLAG_ADD_NODE_KEY=true"),
         format!("AWS_S3_PRESIGN_URL_EXPIRY=3600")
@@ -120,6 +117,21 @@ fn jarvis(
         ));
         env.push(format!("SECOND_BRAIN_BASE_URL=https://{}", h));
     }
+
+    if let Ok(stakwork_key) = getenv("LOCAL_STAKWORK") {
+        env.push(format!("LOCAL_STAKWORK={}", stakwork_key));
+
+        if let Ok(h) = getenv("BOLTWALL_URL_FOR_STAKWORK") {
+            env.push(format!("RADAR_TWEET_WEBHOOK={}/v1/tweet", h));
+            env.push(format!("RADAR_TOPIC_WEBHOOK={}/v1/tweet", h));
+            env.push(format!("RADAR_YOUTUBE_WEBHOOK={}/v2/addnode", h));
+            env.push(format!("RADAR_RSS_WEBHOOK={}/v2/addnode", h));
+            env.push(format!("TLDR_WEBHOOK={}/v1/tldr", h));
+            env.push(format!("SECOND_BRAIN_GRAPH_URL={}/get_elasticsearch_entities", h));
+            env.push(format!("SECOND_BRAIN_BASE_URL={}", h));
+        }
+    }
+
     //stakwork-secret from boltwall
     if let Some(ss) = &boltwall.stakwork_secret {
         env.push(format!("STAKWORK_SECRET={}", ss))
@@ -278,6 +290,17 @@ fn jarvis(
             "RADAR_TOPIC_SCHEDULER_TIME_IN_SEC={}",
             radar_topic_scheduler_time_in_sec
         ));
+    }
+
+    if let Ok(stakwork_env) = getenv("JARVIS_STAKWORK_URL") {
+        env.push(format!("JARVIS_STAKWORK_URL={}", stakwork_env));
+        env.push(format!("STAKWORK_ADD_NODE_URL={}/api/v1/knowledge_graph_projects", stakwork_env));
+        env.push(format!("STAKWORK_ADD_EPISODE_URL={}/api/v1/projects", stakwork_env));
+        env.push(format!("RADAR_REQUEST_URL={}/api/v1/projects", stakwork_env));
+    } else {
+        env.push(format!("STAKWORK_ADD_NODE_URL=https://api.stakwork.com/api/v1/knowledge_graph_projects"));
+        env.push(format!("STAKWORK_ADD_EPISODE_URL=https://jobs.stakwork.com/api/v1/projects"));
+        env.push(format!("RADAR_REQUEST_URL=https://jobs.stakwork.com/api/v1/projects"));
     }
 
     Config {
