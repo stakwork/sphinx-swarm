@@ -108,6 +108,8 @@ pub enum SwarmCmd {
     CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq),
     GetSuperAdminLogs,
     UpdateChildSwarmEnv(UpdateChildSwarmEnvReq),
+    AddAnthropicKey(AddAnthropicKeyReq),
+    GetAnthropicKey,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -150,6 +152,11 @@ pub struct UpdateChildSwarmEnvReq {
     pub host: String,
     pub node_name: Option<String>,
     pub envs: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AddAnthropicKeyReq {
+    pub key: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
