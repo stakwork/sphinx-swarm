@@ -267,6 +267,33 @@ fn boltwall(
         }
     }
 
+    match getenv("BOLTWALL_TESTING_FREE") {
+        Ok(env_value) => {
+            env.push(format!("BOLTWALL_TESTING_FREE={}", env_value));
+        }
+        Err(err) => {
+            log::error!("Error geting env host: {}", err.to_string())
+        }
+    }
+
+    match getenv("NO_LND") {
+        Ok(env_value) => {
+            env.push(format!("NO_LND={}", env_value));
+        }
+        Err(err) => {
+            log::error!("Error geting env host: {}", err.to_string())
+        }
+    }
+
+    match getenv("LOCAL_STAKWORK") {
+        Ok(env_value) => {
+            env.push(format!("LOCAL_STAKWORK={}", env_value));
+        }
+        Err(err) => {
+            log::error!("Error geting env host: {}", err.to_string())
+        }
+    }
+
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),

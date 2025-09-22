@@ -78,6 +78,7 @@ pub enum Image {
 pub enum Registry {
     DockerHub,
     Ghcr,
+    Local,
 }
 
 pub struct Repository {
@@ -97,6 +98,7 @@ pub trait DockerHubImage {
         match repo.registry {
             Registry::DockerHub => format!("{}/{}", repo.org, repo.repo),
             Registry::Ghcr => format!("ghcr.io/{}/{}", repo.org, repo.repo),
+            Registry::Local => format!("{}", repo.repo),
         }
     }
 }
