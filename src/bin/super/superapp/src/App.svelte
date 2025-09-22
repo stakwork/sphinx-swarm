@@ -14,6 +14,7 @@
   import ViewNodes from "./ViewNodes.svelte";
   import LightningBot from "./LightningBot.svelte";
   import Logs from "./logs.svelte";
+  import AnthropicKeys from "./AnthropicKeys.svelte";
   let page = "main";
 
   async function backToMain() {
@@ -56,6 +57,7 @@
           <Tab label="Swarms" />
           <Tab label="Lightning" />
           <Tab label="Logs" />
+          <Tab label="Anthropic Keys" />
           <svelte:fragment slot="content">
             <TabContent>
               <div>
@@ -68,6 +70,7 @@
             </TabContent>
             <TabContent><LightningBot /></TabContent>
             <TabContent><Logs /></TabContent>
+            <TabContent><AnthropicKeys /></TabContent>
           </svelte:fragment>
         </Tabs>
       {/if}
