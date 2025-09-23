@@ -14,6 +14,8 @@ export const tribes = writable<{ [k: string]: Tribe[] }>({});
 
 export const lightningBots = writable<ILightningBot[]>([]);
 
+export const anthropicKeys = writable<string[]>([]);
+
 export const saveUserToStore = async (user: string = "") => {
   if (user) {
     localStorage.setItem(userKey, user);

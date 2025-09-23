@@ -26,6 +26,8 @@ use util::{
 };
 
 use crate::checker::swarm_checker;
+use crate::service::anthropic_key::add::handle_add_anthropic_key;
+use crate::service::anthropic_key::get::handle_get_anthropic_keys;
 use crate::service::child_swarm::update_env::update_child_swarm_env;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
@@ -460,6 +462,14 @@ pub async fn super_handle(
             }
             SwarmCmd::UpdateChildSwarmEnv(data) => {
                 let res = update_child_swarm_env(&state, data).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::AddAnthropicKey(data) => {
+                let res = handle_add_anthropic_key(&mut state, &mut must_save_stack, data);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetAnthropicKey => {
+                let res = handle_get_anthropic_keys(&state);
                 Some(serde_json::to_string(&res)?)
             }
         },

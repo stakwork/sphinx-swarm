@@ -440,6 +440,14 @@ export async function get_lightning_bots_detail() {
   return await swarmCmd("GetLightningBotsDetails");
 }
 
+export async function get_anthropic_keys() {
+  return await swarmCmd("GetAnthropicKey");
+}
+
+export async function add_anthropic_key({ key }: { key: string }) {
+  return await swarmCmd("AddAnthropicKey", { key });
+}
+
 export async function get_super_admin_logs() {
   return await swarmCmd("GetSuperAdminLogs");
 }

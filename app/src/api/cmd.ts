@@ -110,8 +110,9 @@ export type Cmd =
   | "UpdateBoltwallMaxRequestLimit"
   | "UpdateEvn"
   | "GetSuperAdminLogs"
-  | "UpdateChildSwarmEnv";
-
+  | "UpdateChildSwarmEnv"
+  | "AddAnthropicKey"
+  | "GetAnthropicKey";
 interface CmdData {
   cmd: Cmd;
   content?: any;
