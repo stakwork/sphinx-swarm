@@ -24,7 +24,7 @@
   let message;
 
   onMount(async () => {
-    // get all lightning bots
+    // get all anthropic keys
     await handleGetAnthropicKeys();
   });
 
