@@ -8,6 +8,13 @@ pub fn handle_add_anthropic_key(
     must_save_stack: &mut bool,
     data: AddAnthropicKeyReq,
 ) -> SuperSwarmResponse {
+    if (data.key.is_empty()) {
+        return SuperSwarmResponse {
+            success: false,
+            message: "Anthropic key cannot be an empty string".to_string(),
+            data: None,
+        };
+    }
     if let Some(_anthropic_keys) = &state.anthropic_keys {
         state.anthropic_keys.as_mut().unwrap().push(data.key);
     } else {
