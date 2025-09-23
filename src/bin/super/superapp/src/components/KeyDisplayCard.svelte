@@ -19,12 +19,12 @@
 
   .key-text {
     font-family: monospace;
-    font-size: 0.875rem;
+    font-size: 1rem;
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
     padding: 0.5rem;
-    background: #f6f6f6;
     border-radius: 0.25rem;
+    color: black;
   }
 </style>
