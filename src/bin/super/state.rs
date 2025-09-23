@@ -207,7 +207,7 @@ impl Super {
             lightning_bots: vec![],
             reserved_domains: Some(vec![]),
             reserved_instances: self.reserved_instances.clone(),
-            anthropic_keys: Some(vec![]),
+            anthropic_keys: self.anthropic_keys.clone(),
         }
     }
 
