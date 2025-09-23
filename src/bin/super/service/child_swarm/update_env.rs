@@ -15,7 +15,7 @@ pub async fn update_child_swarm_env(
     state: &Super,
     data: UpdateChildSwarmEnvReq,
 ) -> SuperSwarmResponse {
-    let child_swarm = match state.find_swarm_by_host(&data.host) {
+    let child_swarm = match state.find_swarm_by_host(&data.host, data.is_reserved) {
         Some(res) => res,
         None => {
             return SuperSwarmResponse {
@@ -27,7 +27,7 @@ pub async fn update_child_swarm_env(
     };
 
     match handle_update_child_swarm_env(
-        child_swarm,
+        &child_swarm,
         UpdateEnvRequest {
             id: data.node_name,
             values: data.envs,

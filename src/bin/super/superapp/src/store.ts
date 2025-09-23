@@ -2,9 +2,16 @@ import { writable } from "svelte/store";
 import { userKey, type TokenData } from "../../../../../app/src/api/cmd";
 import * as api from "../../../../../app/src/api";
 import { decode } from "js-base64";
-import type { Tribe, Remote, ILightningBot } from "./types/types";
+import type {
+  Tribe,
+  Remote,
+  ILightningBot,
+  ReservedRemote,
+} from "./types/types";
 
 export const remotes = writable<Remote[]>([]);
+
+export const reservedRemotes = writable<ReservedRemote[]>([]);
 
 export const activeUser = writable<string>();
 

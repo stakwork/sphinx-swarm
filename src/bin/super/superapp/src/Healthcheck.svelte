@@ -6,12 +6,13 @@
   import { getRemoteByHost } from "./utils";
 
   export let host = "";
+  export let isReserved = false;
 
   type Status = "checking" | "ok" | "warn";
   let status: Status = "checking";
 
   async function checkStatus() {
-    const swarm = getRemoteByHost(host);
+    const swarm = getRemoteByHost(host, isReserved);
     try {
       let url = `https://boltwall.${host}/stats`;
       // custom URLs

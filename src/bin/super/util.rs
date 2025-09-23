@@ -49,7 +49,7 @@ pub fn add_new_swarm_details(
     swarm_details: RemoteStack,
     must_save_stack: &mut bool,
 ) -> AddSwarmResponse {
-    match state.find_swarm_by_host(&swarm_details.host) {
+    match state.find_swarm_by_host(&swarm_details.host, None) {
         Some(_swarm) => {
             return AddSwarmResponse {
                 success: false,
@@ -341,7 +341,7 @@ pub async fn accessing_child_container_controller(
     cmd: &str,
 ) -> SuperSwarmResponse {
     let res: SuperSwarmResponse;
-    match state.find_swarm_by_host(&info.host) {
+    match state.find_swarm_by_host(&info.host, info.is_reserved) {
         Some(swarm) => match access_child_swarm_containers(&swarm, info.nodes, cmd).await {
             Ok(result) => res = result,
             Err(err) => {
@@ -1375,7 +1375,7 @@ pub async fn update_swarm_child_password(
     state: &Super,
 ) -> SuperSwarmResponse {
     let res: SuperSwarmResponse;
-    match state.find_swarm_by_host(&info.host) {
+    match state.find_swarm_by_host(&info.host, info.is_reserved) {
         Some(swarm) => match handle_update_swarm_child_password(&swarm, info).await {
             Ok(result) => res = result,
             Err(err) => {

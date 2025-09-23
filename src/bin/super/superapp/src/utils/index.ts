@@ -2,7 +2,7 @@ import type { ILightningBot } from "../types/types";
 import type { Writable } from "svelte/store";
 import { get } from "svelte/store";
 import { get_lightning_bots_detail } from "../../../../../../app/src/api/swarm";
-import { remotes } from "../store";
+import { remotes, reservedRemotes } from "../store";
 
 export function splitHost(hostFullPath: string) {
   if (hostFullPath) {
@@ -74,7 +74,16 @@ export async function fectAndRefreshLightningBotDetails(
   }
 }
 
-export function getRemoteByHost(host: string) {
+export function getRemoteByHost(host: string, isReserved: boolean) {
+  if (isReserved) {
+    const reservedSwarms = get(reservedRemotes);
+    for (let i = 0; i < reservedSwarms.length; i++) {
+      const reservedRemote = reservedSwarms[i];
+      if (reservedRemote.host === host) {
+        return reservedRemote;
+      }
+    }
+  }
   const swarms = get(remotes);
   for (let i = 0; i < swarms.length; i++) {
     const remote = swarms[i];
