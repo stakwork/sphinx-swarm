@@ -648,8 +648,14 @@ pub async fn create_ec2_instance(
     );
 
     let tags = vec![
-        Tag::builder().key("Name").value(format!("swarm{}", swarm_number)).build(),
-        Tag::builder().key("UserAssignedName").value(swarm_name).build(),
+        Tag::builder()
+            .key("Name")
+            .value(format!("swarm{}", swarm_number))
+            .build(),
+        Tag::builder()
+            .key("UserAssignedName")
+            .value(swarm_name)
+            .build(),
         Tag::builder().key(key).value(value).build(),
     ];
 
@@ -892,10 +898,7 @@ pub async fn create_swarm_ec2(
         let swarm_exist = instance_with_swarm_name_exists(name).await?;
 
         if swarm_exist {
-            return Err(anyhow!(
-                "Another Swarm with name: {} already exist!",
-                name
-            ));
+            return Err(anyhow!("Another Swarm with name: {} already exist!", name));
         }
     }
 
@@ -957,11 +960,13 @@ pub async fn create_swarm_ec2(
     sleep(Duration::from_secs(40)).await;
 
     if let Some(used_anthropic_key) = anthropic_api_key {
-        state
-            .anthropic_keys
-            .as_mut()
-            .unwrap()
-            .retain(|key| key != &used_anthropic_key);
+        if state.anthropic_keys.clone().unwrap().len() > 1 {
+            state
+                .anthropic_keys
+                .as_mut()
+                .unwrap()
+                .retain(|key| key != &used_anthropic_key);
+        }
     }
 
     let mut domain_names: Vec<String> = Vec::new();

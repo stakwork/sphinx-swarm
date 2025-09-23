@@ -96,11 +96,13 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         let mut state = state::STATE.lock().await;
 
         if let Some(used_anthropic_key) = anthropic_api_key {
-            state
-                .anthropic_keys
-                .as_mut()
-                .unwrap()
-                .retain(|key| key != &used_anthropic_key);
+            if state.anthropic_keys.clone().unwrap().len() > 1 {
+                state
+                    .anthropic_keys
+                    .as_mut()
+                    .unwrap()
+                    .retain(|key| key != &used_anthropic_key);
+            }
         }
 
         state
