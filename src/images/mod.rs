@@ -98,7 +98,8 @@ pub trait DockerHubImage {
         match repo.registry {
             Registry::DockerHub => format!("{}/{}", repo.org, repo.repo),
             Registry::Ghcr => format!("ghcr.io/{}/{}", repo.org, repo.repo),
-            Registry::Local => format!("{}", repo.repo),
+            // To use the Local Registry, tag your image with the name of the repo + '-local'
+            Registry::Local => format!("{}-local", repo.repo),
         }
     }
 }
