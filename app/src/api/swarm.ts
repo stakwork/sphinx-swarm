@@ -313,20 +313,33 @@ export async function update_user({
   return await swarmCmd("UpdateUser", { pubkey, name, role, id });
 }
 
-export async function get_child_swarm_config({ host }: { host: string }) {
-  return await swarmCmd("GetChildSwarmConfig", { host });
+export async function get_child_swarm_config({
+  host,
+  is_reserved,
+}: {
+  host: string;
+  is_reserved?: boolean;
+}) {
+  return await swarmCmd("GetChildSwarmConfig", { host, is_reserved });
 }
 
 export async function update_child_swarm_env({
   host,
   node_name,
   envs,
+  is_reserved,
 }: {
   host: string;
   node_name?: string;
   envs: { [key: string]: string };
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("UpdateChildSwarmEnv", { host, node_name, envs });
+  return await swarmCmd("UpdateChildSwarmEnv", {
+    host,
+    node_name,
+    envs,
+    is_reserved,
+  });
 }
 
 export async function get_child_swarm_containers({ host }: { host: string }) {

@@ -59,6 +59,7 @@ pub struct ChangeUserPasswordBySuperAdminRequest {
     pub old_password: String,
     pub new_password: String,
     pub username: String,
+    pub is_reserved: Option<bool>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChangeSwarmChildPasswordData {
@@ -115,6 +116,7 @@ pub enum SwarmCmd {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChildSwarmIdentifier {
     pub host: String,
+    pub is_reserved: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -145,6 +147,7 @@ pub struct LoginResponse {
 pub struct AccessNodesInfo {
     pub host: String,
     pub nodes: Vec<String>,
+    pub is_reserved: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -152,6 +155,7 @@ pub struct UpdateChildSwarmEnvReq {
     pub host: String,
     pub node_name: Option<String>,
     pub envs: HashMap<String, String>,
+    pub is_reserved: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -287,7 +287,7 @@ pub async fn super_handle(
             SwarmCmd::GetChildSwarmConfig(info) => {
                 let res: SuperSwarmResponse;
                 //find node
-                match state.find_swarm_by_host(&info.host) {
+                match state.find_swarm_by_host(&info.host, info.is_reserved) {
                     Some(swarm) => match get_child_swarm_config(&swarm).await {
                         Ok(result) => res = result,
                         Err(err) => {
@@ -310,7 +310,7 @@ pub async fn super_handle(
             }
             SwarmCmd::GetChildSwarmContainers(info) => {
                 let res: SuperSwarmResponse;
-                match state.find_swarm_by_host(&info.host) {
+                match state.find_swarm_by_host(&info.host, info.is_reserved) {
                     Some(swarm) => match get_child_swarm_containers(&swarm).await {
                         Ok(result) => res = result,
                         Err(err) => {
@@ -418,7 +418,7 @@ pub async fn super_handle(
             }
             SwarmCmd::GetSwarmChildImageVersions(info) => {
                 let res: SuperSwarmResponse;
-                match state.find_swarm_by_host(&info.host) {
+                match state.find_swarm_by_host(&info.host, info.is_reserved) {
                     Some(swarm) => match get_child_swarm_image_versions(&swarm).await {
                         Ok(result) => res = result,
                         Err(err) => {

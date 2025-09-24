@@ -40,6 +40,19 @@ export interface Remote {
   id?: string;
 }
 
+export interface ReservedRemote {
+  instance_id: string;
+  instance_type: string;
+  swarm_number: string;
+  default_host: string;
+  host: string;
+  user?: string;
+  pass?: string;
+  ip_address?: string;
+  admin_password: string;
+  x_api_key: string;
+}
+
 export interface ILightningBot {
   balance_in_msat: number;
   label: string;

@@ -22,9 +22,9 @@
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import Tribes from "./Tribes.svelte";
   import * as api from "../../../../../app/src/api";
-  import { remotes, selectedNode } from "./store";
+  import { remotes, reservedRemotes, selectedNode } from "./store";
   import { onMount } from "svelte";
-  import type { Remote } from "./types/types";
+  import type { Remote, ReservedRemote } from "./types/types";
   import {
     getRemoteByHost,
     getSwarmNumber,
@@ -65,6 +65,7 @@
     JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS: "true",
   };
   let selected_host = "";
+  let selected_is_reserved;
 
   let open_update_env = false;
 
@@ -83,6 +84,14 @@
     const conf = await api.swarm.get_config();
     if (conf && conf.stacks && conf.stacks.length) {
       remotes.set(conf.stacks);
+    }
+    if (
+      conf &&
+      conf.reserved_instances &&
+      conf.reserved_instances?.available_instances &&
+      conf.reserved_instances?.available_instances.length
+    ) {
+      reservedRemotes.set(conf.reserved_instances?.available_instances);
     }
   }
 
@@ -146,6 +155,18 @@
       swarmNumber = getSwarmNumber(r.default_host);
     }
     return { ...r, id: r.host, number: swarmNumber };
+  }
+
+  function reserveRemoteRow(r: ReservedRemote) {
+    return {
+      ...r,
+      id: r.host,
+      number: r.swarm_number,
+      note: "",
+      ec2: r.instance_type,
+      public_ip_address: r.ip_address,
+      private_ip_address: "",
+    };
   }
 
   function handleViewNodes(id: string) {
@@ -409,8 +430,11 @@
     return "";
   }
 
-  async function handleGetSwarmChildConfig(host: string) {
-    const result = await get_child_swarm_config({ host });
+  async function handleGetSwarmChildConfig(
+    host: string,
+    is_reserved?: boolean
+  ) {
+    const result = await get_child_swarm_config({ host, is_reserved });
     if (result.success && result.data && result.data.stack_error) {
       return [];
     } else if (!result.success) {
@@ -425,14 +449,15 @@
     return nodes;
   }
 
-  async function setupUpdateChildSwarmEnv(host: string) {
+  async function setupUpdateChildSwarmEnv(host: string, is_reserved?: boolean) {
     loading = true;
     // handle get swarm config
-    child_nodes = await handleGetSwarmChildConfig(host);
+    child_nodes = await handleGetSwarmChildConfig(host, is_reserved);
     loading = false;
 
     // set active host for update
     selected_host = host;
+    selected_is_reserved = is_reserved;
     // open modal
     open_update_env = true;
   }
@@ -455,6 +480,7 @@
         host: selected_host,
         node_name: selected_child_node,
         envs: { [env_key]: env_value },
+        ...(selected_is_reserved && { is_reserved: selected_is_reserved }),
       });
       message = result.message;
 
@@ -563,6 +589,45 @@
       {/if}
     </svelte:fragment>
   </DataTable>
+  <div class="reserved_swarm_cocntainer">
+    <h2>Warm Swarms</h2>
+    <DataTable
+      headers={[
+        { key: "host", value: "Host" },
+        { key: "number", value: "Number" },
+        { key: "ec2", value: "Instance" },
+        { key: "public_ip_address", value: "Public IP" },
+        { key: "update_env", value: "Update Env" },
+        { key: "health", value: "Health" },
+      ]}
+      rows={$reservedRemotes.map(reserveRemoteRow)}
+      selectable
+      bind:selectedRowIds
+      batchSelection
+    >
+      <svelte:fragment slot="cell" let:row let:cell>
+        {#if cell.key === "health"}
+          <Healthcheck isReserved={true} host={row.id} />
+        {:else if cell.key === "tribes"}
+          <Tribes host={row.id} />
+        {:else if cell.key === "host"}
+          <div class="host_name_container">
+            <Link target={"_blank"} href={getSwarmAdminUrl(row.id)}
+              >{cell.value}</Link
+            >
+          </div>
+        {:else if cell.key === "tribes"}
+          <Tribes host={row.id} />
+        {:else if cell.key === "update_env"}
+          <Button on:click={() => setupUpdateChildSwarmEnv(row.id, true)}
+            >Update Env</Button
+          >
+        {:else}
+          {cell.value}
+        {/if}
+      </svelte:fragment>
+    </DataTable>
+  </div>
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
@@ -784,6 +849,14 @@
     text-decoration: underline;
     cursor: pointer;
   } */
+
+  .reserved_swarm_cocntainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding: 1rem;
+  }
 
   .checkbox_container {
     margin-top: 1rem;

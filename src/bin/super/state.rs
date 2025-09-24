@@ -20,7 +20,7 @@ pub struct Super {
     pub anthropic_keys: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct RemoteStack {
     pub host: String,
     pub note: Option<String>,
@@ -207,7 +207,7 @@ impl Super {
             lightning_bots: vec![],
             reserved_domains: Some(vec![]),
             reserved_instances: self.reserved_instances.clone(),
-            anthropic_keys: Some(vec![]),
+            anthropic_keys: self.anthropic_keys.clone(),
         }
     }
 
@@ -215,7 +215,44 @@ impl Super {
         self.stacks.push(new_stack);
     }
 
-    pub fn find_swarm_by_host(&self, host: &str) -> Option<&RemoteStack> {
+    pub fn find_swarm_by_host(&self, host: &str, is_reserved: Option<bool>) -> Option<RemoteStack> {
+        if is_reserved.is_some() && is_reserved.unwrap() == true {
+            if self.reserved_instances.is_none() {
+                return None;
+            }
+
+            let pos = self
+                .reserved_instances
+                .as_ref()
+                .unwrap()
+                .available_instances
+                .iter()
+                .position(|r| r.host == host);
+            if let None = pos {
+                return None;
+            }
+            let selected_reserved_instance = self
+                .reserved_instances
+                .as_ref()
+                .unwrap()
+                .available_instances[pos.unwrap()]
+            .clone();
+
+            return Some(RemoteStack {
+                host: selected_reserved_instance.host.clone(),
+                note: None,
+                ec2: None,
+                user: selected_reserved_instance.user.clone(),
+                pass: selected_reserved_instance.pass.clone(),
+                default_host: selected_reserved_instance.default_host.clone(),
+                ec2_instance_id: selected_reserved_instance.instance_id.clone(),
+                public_ip_address: selected_reserved_instance.ip_address.clone(),
+                private_ip_address: None,
+                id: Some(format!("swarm{}", selected_reserved_instance.swarm_number)),
+                deleted: None,
+                route53_domain_names: None,
+            });
+        }
         let pos = self.stacks.iter().position(|s| s.host == host);
         if let None = pos {
             return None;
@@ -224,7 +261,7 @@ impl Super {
 
         let swarm = &self.stacks[pos];
 
-        Some(swarm)
+        Some(swarm.clone())
     }
 
     pub fn find_swarm_by_default_host(&self, default_host: &str) -> Option<&RemoteStack> {
