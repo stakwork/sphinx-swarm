@@ -42,6 +42,7 @@ use crate::state::{self, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::Rng;
+use rand::distributions::Alphanumeric;
 use tokio::time::{sleep, Duration};
 
 pub fn add_new_swarm_details(
@@ -445,7 +446,11 @@ pub async fn create_ec2_instance(
 
     let super_token = getenv("SUPER_TOKEN")?;
 
-    let swarm_number = rand::thread_rng().gen_range(100000..1000000);
+    let swarm_number: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(6)
+        .map(char::from)
+        .collect();
 
     let swarm_name = swarm_name.unwrap_or_else(|| format!("swarm{}", swarm_number));
 

@@ -431,7 +431,11 @@ pub fn getenv(envname: &str) -> Result<String> {
 }
 
 pub fn extract_swarm_number(host: String) -> String {
-    host.chars().filter(|c| c.is_numeric()).collect()
+    if let Some(pos) = host.find("swarm") {
+        host[pos + 5..].to_string()
+    } else {
+        String::new()
+    }
 }
 
 pub fn update_or_write_to_env_file(updates: &HashMap<String, String>) -> Result<()> {
