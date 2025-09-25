@@ -100,6 +100,7 @@ services:
       - RESERVE_SWARM_ENABLED=$RESERVE_SWARM_ENABLED
       - MINIMUM_RESERVED_INSTANCES=$MINIMUM_RESERVED_INSTANCES
       - SWARM_RESERVER_CRON_TIME=$SWARM_RESERVER_CRON_TIME
+      - CERT_BUCKET=$CERT_BUCKET
   prometheus:
     image: prom/prometheus
     container_name: prometheus

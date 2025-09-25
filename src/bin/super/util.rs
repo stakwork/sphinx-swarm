@@ -41,8 +41,8 @@ use crate::service::swarm_reserver::utils::{check_reserve_swarm_flag_set, genera
 use crate::state::{self, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
-use rand::Rng;
 use rand::distributions::Alphanumeric;
+use rand::Rng;
 use tokio::time::{sleep, Duration};
 
 pub fn add_new_swarm_details(
@@ -470,6 +470,8 @@ pub async fn create_ec2_instance(
 
     let aws_s3_bucket_name = getenv("AWS_S3_BUCKET_NAME")?;
 
+    let aws_s3_cert_bucket_name = getenv("CERT_BUCKET")?;
+
     let custom_domain = vanity_address.unwrap_or_else(|| String::from(""));
 
     let key = getenv("SWARM_TAG_KEY")?;
@@ -498,7 +500,7 @@ pub async fn create_ec2_instance(
         r#"cd /home/admin && \
           mkdir -p certs && \
           cd /home/admin/certs && \
-          aws s3 cp s3://{aws_s3_bucket_name}/data.zip . && \
+          aws s3 cp s3://{aws_s3_cert_bucket_name}/data.zip . && \
           unzip -j data.zip "home/admin/certs/*" && \
           sudo chown admin:admin /home/admin/certs/* && \
           sudo chmod 644 /home/admin/certs/sphinx.chat.crt && \
