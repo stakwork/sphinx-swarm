@@ -5,6 +5,7 @@ use crate::images::{
     relay::RelayImage, Image,
 };
 use crate::secondbrain::*;
+use crate::graphmindset::*;
 use crate::secrets;
 use crate::sphinxv2::*;
 use crate::utils::{getenv, make_reqwest_client};
@@ -51,6 +52,10 @@ impl Default for Stack {
 
         if env_is_true("IS_CONFIG") {
             return config_only(host);
+        }
+
+        if env_is_true("GRAPH_MINDSET_ONLY") {
+            return only_graph_mindset(&network, host.clone());
         }
 
         let use_lnd = env_is_true("USE_LND");

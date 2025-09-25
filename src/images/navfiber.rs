@@ -75,6 +75,15 @@ fn navfiber(node: &NavFiberImage) -> Config<String> {
         }
     }
 
+    match getenv("STAKWORK_WEBSOCKET_URL") {
+        Ok(env_var) => {
+            env.push(format!("STAKWORK_WEBSOCKET_URL={}", env_var));
+        }
+        Err(_) => {
+            log::debug!("STAKWORK_WEBSOCKET_URL not set");
+        }
+    }
+
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
