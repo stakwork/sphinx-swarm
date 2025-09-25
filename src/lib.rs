@@ -18,6 +18,7 @@ pub mod rocket_utils;
 pub mod routes;
 pub mod rsa;
 pub mod secondbrain;
+pub mod graphmindset;
 pub mod secrets;
 pub mod setup;
 pub mod sphinxv2;
