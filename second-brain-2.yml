@@ -122,6 +122,7 @@ services:
       - PASSWORD=$PASSWORD
       - SWARM_NUMBER=$SWARM_NUMBER
       - BOLTWALL_API_SECRET=$BOLTWALL_API_SECRET
+      - CERT_BUCKET=$CERT_BUCKET
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
