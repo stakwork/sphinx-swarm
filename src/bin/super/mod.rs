@@ -120,6 +120,13 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
                     return true;
                 }
             }
+            SwarmCmd::StopEc2Instance(info) => {
+                let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+                if info.token.is_some() && !token.is_empty() && token == info.token.clone().unwrap()
+                {
+                    return true;
+                }
+            }
             _ => {}
         },
     }
@@ -368,6 +375,27 @@ pub async fn super_handle(
                             success: true,
                             message: format!("{} was created successfully", display_name),
                             data: Some(parsed_data),
+                        }
+                    }
+                    Err(err) => {
+                        res = SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        }
+                    }
+                }
+
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::StopEc2Instance(info) => {
+                let res: SuperSwarmResponse;
+                match crate::ec2::stop_ec2_instance_and_tag(&info.instance_id).await {
+                    Ok(()) => {
+                        res = SuperSwarmResponse {
+                            success: true,
+                            message: format!("Instance {} stopped successfully and tagged with DeletedOn", info.instance_id),
+                            data: None,
                         }
                     }
                     Err(err) => {

@@ -1,7 +1,7 @@
 use crate::auth;
 use crate::auth_token::VerifySuperToken;
 use crate::cmd::{
-    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, SuperSwarmResponse, SwarmCmd,
+    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, StopEc2InstanceInfo, SuperSwarmResponse, SwarmCmd,
 };
 use crate::events::EventChan;
 use crate::logs::LogChans;
@@ -41,6 +41,7 @@ pub async fn launch_rocket(
                 events,
                 add_new_swarm,
                 create_new_swarm,
+                stop_swarm,
                 get_swarm_details,
                 check_duplicate_domain
             ],
@@ -159,6 +160,49 @@ async fn create_new_swarm(
 
     if response.success == true {
         status = Status::Created
+    }
+
+    return Ok(Custom(status, Json(response)));
+}
+
+#[rocket::post("/super/stop_swarm", data = "<body>")]
+async fn stop_swarm(
+    sender: &State<mpsc::Sender<CmdRequest>>,
+    body: Json<StopEc2InstanceInfo>,
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<SuperSwarmResponse>>> {
+    if let None = verify_super_token.token {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: "unauthorized, invalid token".to_string(),
+                data: None,
+            }),
+        ));
+    }
+
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::StopEc2Instance(StopEc2InstanceInfo {
+        instance_id: body.instance_id.clone(),
+        token: verify_super_token.token.clone(),
+    }));
+
+    let txt = serde_json::to_string(&cmd)?;
+    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
+    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
+    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+
+    // empty string means unauthorized
+    if reply.len() == 0 {
+        return Err(Error::Unauthorized);
+    }
+
+    let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
+
+    let mut status = Status::BadRequest;
+
+    if response.success == true {
+        status = Status::Ok
     }
 
     return Ok(Custom(status, Json(response)));

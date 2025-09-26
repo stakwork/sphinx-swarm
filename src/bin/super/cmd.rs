@@ -99,6 +99,7 @@ pub enum SwarmCmd {
     UpdateChildSwarmContainers(AccessNodesInfo),
     RestartChildSwarmContainers(AccessNodesInfo),
     CreateNewEc2Instance(CreateEc2InstanceInfo),
+    StopEc2Instance(StopEc2InstanceInfo),
     GetAwsInstanceTypes,
     UpdateAwsInstanceType(UpdateInstanceDetails),
     GetInstanceType(GetInstanceTypeByInstanceId),
@@ -172,6 +173,12 @@ pub struct CreateEc2InstanceInfo {
     pub env: Option<HashMap<String, String>>,
     pub subdomain_ssl: Option<bool>,
     pub password: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct StopEc2InstanceInfo {
+    pub instance_id: String,
+    pub token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

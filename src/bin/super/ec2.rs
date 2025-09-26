@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{aws_util::make_aws_client, state::InstanceFromAws};
 use anyhow::{anyhow, Error};
 use aws_sdk_ec2::types::{Filter, Instance, Tag};
+use chrono;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::utils::getenv;
 
@@ -150,4 +151,27 @@ pub async fn get_instances_from_aws_by_swarm_tag_and_return_hash_map(
     }
 
     Ok(aws_instances_hashmap)
+}
+
+pub async fn stop_ec2_instance_and_tag(instance_id: &str) -> Result<(), Error> {
+    let client = make_aws_client().await?;
+
+    // Stop the instance
+    client
+        .stop_instances()
+        .instance_ids(instance_id)
+        .send()
+        .await?;
+
+    // Add the DeletedOn tag with current date
+    let current_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let tags = vec![Ec2Tags {
+        key: "DeletedOn".to_string(),
+        value: current_date,
+    }];
+
+    add_new_tags_to_instance(instance_id, tags).await?;
+
+    log::info!("Instance {} stopped and tagged with DeletedOn", instance_id);
+    Ok(())
 }
