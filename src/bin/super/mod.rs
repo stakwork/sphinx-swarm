@@ -25,9 +25,6 @@ use util::{
     update_swarm_child_password,
 };
 
-use crate::utils::Environment;
-use crate::utils::{get_environment};
-
 use crate::checker::swarm_checker;
 use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
@@ -48,20 +45,13 @@ use tokio::sync::{mpsc, Mutex};
 
 #[rocket::main]
 async fn main() -> Result<()> {
-    match get_environment() {
-        Environment::Local => {
-            dotenv::from_filename(".env.super").ok();
-        },
-        Environment::Cloud => {
-            dotenv::dotenv().ok();
-        }
-    }
-
+    dotenv::dotenv().ok();
+    
     sphinx_swarm::utils::setup_logs();
 
     let project = "super";
     let s: state::Super = load_config_file(project).await.expect("YAML CONFIG FAIL");
-    println!("SUPER!!! {:?}", s);
+    log::info!("SUPER!!! {:?}", s);
 
     sphinx_swarm::auth::set_jwt_key(&s.jwt_key);
 
