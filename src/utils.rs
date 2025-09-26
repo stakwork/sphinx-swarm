@@ -94,12 +94,12 @@ fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
 }
 
 #[derive(Debug, PartialEq)]
-enum Environment {
+pub enum Environment {
     Local,
     Cloud,
 }
 
-fn get_environment() -> Environment {
+pub fn get_environment() -> Environment {
     // Priority 1: Explicit environment variable
     if let Ok(env) = env::var("RUST_ENV") {
         match env.to_lowercase().as_str() {

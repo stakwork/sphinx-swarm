@@ -25,6 +25,9 @@ use util::{
     update_swarm_child_password,
 };
 
+use crate::utils::Environment;
+use crate::utils::{get_environment};
+
 use crate::checker::swarm_checker;
 use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
@@ -45,7 +48,14 @@ use tokio::sync::{mpsc, Mutex};
 
 #[rocket::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    match get_environment() {
+        Environment::Local => {
+            dotenv::from_filename(".env.super").ok();
+        },
+        Environment::Cloud => {
+            dotenv::dotenv().ok();
+        }
+    }
 
     sphinx_swarm::utils::setup_logs();
 
