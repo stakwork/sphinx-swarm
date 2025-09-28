@@ -333,6 +333,21 @@ impl Stack {
                 Image::Redis(r) => Node::Internal(Image::Redis(r)),
                 Image::Chrome(c) => Node::Internal(Image::Chrome(c)),
                 Image::Stakgraph(p) => Node::Internal(Image::Stakgraph(p)),
+                Image::Livekit(mut l) => {
+                    l.api_key = "".to_string();
+                    l.api_secret = "".to_string();
+                    Node::Internal(Image::Livekit(l))
+                }
+                Image::Egress(mut e) => {
+                    e.livekit_api_key = "".to_string();
+                    e.livekit_api_secret = "".to_string();
+                    Node::Internal(Image::Egress(e))
+                }
+                Image::Meet(mut m) => {
+                    m.livekit_api_key = "".to_string();
+                    m.livekit_api_secret = "".to_string();
+                    Node::Internal(Image::Meet(m))
+                }
             },
         });
         Stack {

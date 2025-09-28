@@ -79,9 +79,21 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
         "--entrypoints.websecure.address=:443",
         "--certificatesresolvers.myresolver.acme.email=evanfeenstra@gmail.com",
         "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json",
-        "--certificatesresolvers.myresolver.acme.dnschallenge=true",
-        "--certificatesresolvers.myresolver.acme.dnschallenge.provider=route53",
     ];
+    
+    // Check if we should use HTTP challenge (for No-IP domains)
+    if std::env::var("USE_HTTP_CHALLENGE").unwrap_or_else(|_| "false".to_string()) == "true" {
+        cmd.extend_from_slice(&[
+            "--certificatesresolvers.myresolver.acme.httpchallenge=true",
+            "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web",
+        ]);
+    } else {
+        // Use DNS challenge (original Route53 setup)
+        cmd.extend_from_slice(&[
+            "--certificatesresolvers.myresolver.acme.dnschallenge=true",
+            "--certificatesresolvers.myresolver.acme.dnschallenge.provider=route53",
+        ]);
+    }
     if let Ok(_) = std::env::var("TRAEFIK_STAGING") {
         // when u turn off testing, delete the certs in /home/admin/letsencrypt
         // cmd.push("--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory");

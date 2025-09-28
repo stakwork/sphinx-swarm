@@ -1,7 +1,10 @@
 use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage};
+use crate::images::egress::EgressImage;
 use crate::images::jarvis::JarvisImage;
+use crate::images::livekit::LivekitImage;
+use crate::images::meet::MeetImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
@@ -24,6 +27,9 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
             "jarvis".to_string(),
             "boltwall".to_string(),
             "navfiber".to_string(),
+            "livekit".to_string(),
+            "egress".to_string(),
+            "meet".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -43,10 +49,28 @@ pub fn graph_mindset_imgs(host: Option<String>) -> Vec<Image> {
     v = "latest";
     let redis = RedisImage::new("redis", v);
 
+    // livekit
+    v = "v1.5.0";
+    let mut livekit = LivekitImage::new("livekit", v);
+    livekit.host(host.clone());
+    livekit.links(vec!["redis"]);
+
+    // egress
+    v = "v1.8.0";
+    let mut egress = EgressImage::new("egress", v, &livekit.api_key, &livekit.api_secret);
+    egress.host(host.clone());
+    egress.links(vec!["livekit", "redis"]);
+
+    // meet
+    v = "latest";
+    let mut meet = MeetImage::new("meet", v, &livekit.api_key, &livekit.api_secret);
+    meet.host(host.clone());
+    meet.links(vec!["livekit"]);
+
     // jarvis
     v = "latest";
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
-    jarvis.links(vec!["neo4j", "boltwall", "redis"]);
+    jarvis.links(vec!["neo4j", "boltwall", "redis", "livekit", "egress", "meet"]);
 
     // boltwall
     v = "latest";
@@ -66,6 +90,9 @@ pub fn graph_mindset_imgs(host: Option<String>) -> Vec<Image> {
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),
         Image::Redis(redis),
+        Image::Livekit(livekit),
+        Image::Egress(egress),
+        Image::Meet(meet),
     ];
 
     imgs

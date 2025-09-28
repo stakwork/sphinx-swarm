@@ -6,12 +6,15 @@ pub mod builtin;
 pub mod cache;
 pub mod chrome;
 pub mod cln;
+pub mod egress;
 pub mod config_server;
 pub mod dufs;
 pub mod elastic;
 pub mod jamie;
 pub mod jarvis;
+pub mod livekit;
 pub mod llama;
+pub mod meet;
 pub mod lnd;
 pub mod lss;
 pub mod mixer;
@@ -73,6 +76,9 @@ pub enum Image {
     Redis(redis::RedisImage),
     Chrome(chrome::ChromeImage),
     Stakgraph(stakgraph::StakgraphImage),
+    Livekit(livekit::LivekitImage),
+    Egress(egress::EgressImage),
+    Meet(meet::MeetImage),
 }
 
 pub enum Registry {
@@ -149,6 +155,9 @@ impl Image {
             Image::Redis(n) => n.name.clone(),
             Image::Chrome(n) => n.name.clone(),
             Image::Stakgraph(n) => n.name.clone(),
+            Image::Livekit(n) => n.name.clone(),
+            Image::Egress(n) => n.name.clone(),
+            Image::Meet(n) => n.name.clone(),
         }
     }
 
@@ -185,6 +194,9 @@ impl Image {
             Image::Redis(n) => n.host.clone(),
             Image::Chrome(n) => n.host.clone(),
             Image::Stakgraph(n) => n.host.clone(),
+            Image::Livekit(n) => n.host.clone(),
+            Image::Egress(n) => n.host.clone(),
+            Image::Meet(n) => n.host.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -220,6 +232,9 @@ impl Image {
             Image::Redis(_n) => "Redis",
             Image::Chrome(_n) => "Chrome",
             Image::Stakgraph(_n) => "Stakgraph",
+            Image::Livekit(_n) => "Livekit",
+            Image::Egress(_n) => "Egress",
+            Image::Meet(_n) => "Meet",
         }
         .to_string()
     }
@@ -256,6 +271,9 @@ impl Image {
             Image::Redis(n) => n.version = version.to_string(),
             Image::Chrome(n) => n.version = version.to_string(),
             Image::Stakgraph(n) => n.version = version.to_string(),
+            Image::Livekit(n) => n.version = version.to_string(),
+            Image::Egress(n) => n.version = version.to_string(),
+            Image::Meet(n) => n.version = version.to_string(),
         }
     }
 
@@ -292,6 +310,9 @@ impl Image {
             Image::Redis(n) => n.host(Some(host.to_string())),
             Image::Chrome(n) => n.host(Some(host.to_string())),
             Image::Stakgraph(n) => n.host(Some(host.to_string())),
+            Image::Livekit(n) => n.host(Some(host.to_string())),
+            Image::Egress(n) => n.host(Some(host.to_string())),
+            Image::Meet(n) => n.host(Some(host.to_string())),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -387,6 +408,9 @@ impl DockerConfig for Image {
             Image::Redis(n) => n.make_config(nodes, docker).await,
             Image::Chrome(n) => n.make_config(nodes, docker).await,
             Image::Stakgraph(n) => n.make_config(nodes, docker).await,
+            Image::Livekit(n) => n.make_config(nodes, docker).await,
+            Image::Egress(n) => n.make_config(nodes, docker).await,
+            Image::Meet(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -425,6 +449,9 @@ impl DockerHubImage for Image {
             Image::Redis(n) => n.repo(),
             Image::Chrome(n) => n.repo(),
             Image::Stakgraph(n) => n.repo(),
+            Image::Livekit(n) => n.repo(),
+            Image::Egress(n) => n.repo(),
+            Image::Meet(n) => n.repo(),
         }
     }
 }
@@ -588,6 +615,30 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_livekit(&self) -> Option<livekit::LivekitImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_livekit() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_egress(&self) -> Option<egress::EgressImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_egress() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_meet(&self) -> Option<meet::MeetImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_meet() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -715,6 +766,24 @@ impl Image {
         match self {
             Image::Redis(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Redis".to_string())),
+        }
+    }
+    pub fn as_livekit(&self) -> anyhow::Result<livekit::LivekitImage> {
+        match self {
+            Image::Livekit(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Livekit".to_string())),
+        }
+    }
+    pub fn as_egress(&self) -> anyhow::Result<egress::EgressImage> {
+        match self {
+            Image::Egress(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Egress".to_string())),
+        }
+    }
+    pub fn as_meet(&self) -> anyhow::Result<meet::MeetImage> {
+        match self {
+            Image::Meet(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Meet".to_string())),
         }
     }
 }
