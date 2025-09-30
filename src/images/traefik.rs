@@ -17,7 +17,7 @@ impl TraefikImage {
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
-        self.links = strarr(links)
+        self.links = links.iter().map(|s| s.to_string()).collect()
     }
 }
 impl DockerHubImage for TraefikImage {
@@ -60,7 +60,8 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
     let name = img.name.clone();
     let image = "traefik:v2.9";
     let mut ports = vec!["80", "443"];
-    let insecure = match std::env::var("TRAEFIK_INSECURE") {
+    let is_development = std::env::var("RUST_ENV").unwrap_or_else(|_| "production".to_string()) == "development";
+    let insecure = is_development || match std::env::var("TRAEFIK_INSECURE") {
         Ok(_) => true,
         Err(_) => false,
     };
@@ -68,10 +69,18 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
     if insecure {
         ports.push("8080");
     }
-    let extra_vols = vec![
-        "/var/run/docker.sock:/var/run/docker.sock",
-        "/home/admin/letsencrypt:/letsencrypt",
-    ];
+    log::info!("traefik: configured ports: {:?}", ports);
+    let extra_vols = if is_development {
+        vec![
+            "/var/run/docker.sock:/var/run/docker.sock",
+            "/tmp/letsencrypt:/letsencrypt", // Use /tmp for development on macOS
+        ]
+    } else {
+        vec![
+            "/var/run/docker.sock:/var/run/docker.sock",
+            "/home/admin/letsencrypt:/letsencrypt",
+        ]
+    };
     let mut cmd = vec![
         "--providers.docker=true",
         "--providers.docker.exposedbydefault=false",
@@ -81,26 +90,28 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
         "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json",
     ];
     
-    // Check if we should use HTTP challenge (for No-IP domains)
-    if std::env::var("USE_HTTP_CHALLENGE").unwrap_or_else(|_| "false".to_string()) == "true" {
+    // In development mode with No-IP domain, always use HTTP challenge
+    if is_development || std::env::var("USE_HTTP_CHALLENGE").unwrap_or_else(|_| "false".to_string()) == "true" {
         cmd.extend_from_slice(&[
             "--certificatesresolvers.myresolver.acme.httpchallenge=true",
             "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web",
         ]);
+        log::info!("traefik: using HTTP challenge for certificate generation");
     } else {
         // Use DNS challenge (original Route53 setup)
         cmd.extend_from_slice(&[
             "--certificatesresolvers.myresolver.acme.dnschallenge=true",
             "--certificatesresolvers.myresolver.acme.dnschallenge.provider=route53",
         ]);
+        log::info!("traefik: using DNS challenge with Route53");
     }
     if let Ok(_) = std::env::var("TRAEFIK_STAGING") {
         // when u turn off testing, delete the certs in /home/admin/letsencrypt
         // cmd.push("--certificatesresolvers.myresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory");
         cmd.push("--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory");
-        log::info!("traefik: testing ca server");
+        log::info!("traefik: using staging ca server");
     } else {
-        log::info!("traefik: prod ca server");
+        log::info!("traefik: using production ca server");
     }
     if insecure {
         cmd.push("--log.level=DEBUG");
@@ -108,26 +119,50 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
     }
     let add_ulimits = true;
     let add_log_limit = true;
-    let awsenv = _aws_env();
-    if let Some(ae) = &awsenv {
-        log::info!("traefik: using AWS REGION env {:?}", ae.get(0));
+    
+    // Only require AWS env in production mode when using DNS challenge
+    let awsenv = if is_development {
+        log::info!("traefik: development mode - skipping AWS configuration");
+        None
     } else {
-        log::error!("traefik: MISSING AWS REGION ENV!");
-    }
+        let awsenv = _aws_env();
+        if let Some(ae) = &awsenv {
+            log::info!("traefik: using AWS REGION env {:?}", ae.get(0));
+        } else {
+            log::error!("traefik: MISSING AWS REGION ENV!");
+        }
+        awsenv
+    };
 
-    log::error!("traefik: MISSING AWS ENV!");
+    // Configure hostname - always use internal domain for container name
+    let hostname = domain(&name);
+    
+    let ports_for_config: Vec<String> = ports.iter().map(|s| s.to_string()).collect();
+    log::info!("traefik: creating docker config with ports: {:?}", ports_for_config);
+    
+    let host_config = manual_host_config(
+        ports.iter().map(|s| s.to_string()).collect(),
+        Some(extra_vols.iter().map(|s| s.to_string()).collect()),
+        add_ulimits,
+        add_log_limit,
+    );
+    
+    if let Some(ref hc) = host_config {
+        if let Some(ref port_bindings) = hc.port_bindings {
+            log::info!("traefik: host_config port_bindings: {:?}", port_bindings);
+        } else {
+            log::error!("traefik: host_config has NO port_bindings!");
+        }
+    } else {
+        log::error!("traefik: manual_host_config returned None!");
+    }
 
     Config {
         image: Some(image.to_string()),
-        hostname: Some(domain(&name)),
-        host_config: manual_host_config(
-            strarr(ports),
-            Some(strarr(extra_vols)),
-            add_ulimits,
-            add_log_limit,
-        ),
+        hostname: Some(hostname),
+        host_config,
         env: awsenv,
-        cmd: Some(strarr(cmd)),
+        cmd: Some(cmd.iter().map(|s| s.to_string()).collect()),
         ..Default::default()
     }
 }
@@ -148,10 +183,30 @@ pub fn traefik_labels(
     let mut def = vec![
         "traefik.enable=true".to_string(),
         format!("{}={}", lb, port),
+        // HTTPS router configuration
         format!("traefik.http.routers.{}.tls=true", name),
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
+    
+    // Add HTTP-to-HTTPS redirect only in development mode, but exclude ACME challenge path
+    let is_development = std::env::var("RUST_ENV").unwrap_or_else(|_| "production".to_string()) == "development";
+    if is_development {
+        def.extend_from_slice(&[
+            // HTTP router for redirect (excludes ACME challenge)
+            format!("traefik.http.routers.{}-http.entrypoints=web", name),
+            format!("traefik.http.routers.{}-http.middlewares=redirect-to-https", name),
+            format!("traefik.http.routers.{}-http.rule=Host(`{}`) && !PathPrefix(`/.well-known/acme-challenge/`)", name, host),
+            format!("traefik.http.routers.{}-http.priority=1", name),
+            // HTTP router for ACME challenge (no redirect)
+            format!("traefik.http.routers.{}-acme.entrypoints=web", name),
+            format!("traefik.http.routers.{}-acme.rule=Host(`{}`) && PathPrefix(`/.well-known/acme-challenge/`)", name, host),
+            format!("traefik.http.routers.{}-acme.priority=2", name),
+            // Redirect middleware
+            "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https".to_string(),
+            "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true".to_string(),
+        ]);
+    }
     if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
         let shared_host = navfiber_boltwall_shared_host().unwrap();
         if name == "navfiber" {
@@ -174,6 +229,13 @@ pub fn traefik_labels(
             "traefik.http.routers.{}.rule=Host(`{}`)",
             name, host
         ));
+        // Add HTTP router rule for development redirect (already added above)
+        // if is_development {
+        //     def.push(format!(
+        //         "traefik.http.routers.{}-http.rule=Host(`{}`)",
+        //         name, host
+        //     ));
+        // }
     }
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string())
@@ -430,4 +492,15 @@ fn to_labels(def: Vec<String>) -> HashMap<String, String> {
         };
     });
     labels
+}
+
+#[async_trait]
+impl DockerConfig for TraefikImage {
+    async fn make_config(
+        &self,
+        _nodes: &Vec<config::Node>,
+        _docker: &Docker,
+    ) -> anyhow::Result<Config<String>> {
+        Ok(_traefik(self))
+    }
 }

@@ -32,9 +32,9 @@ impl NavFiberImage {
         self.links = strarr(links)
     }
     pub fn host(&mut self, eh: Option<String>) {
-        if let Some(h) = eh {
-            self.host = Some(format!("nav.{}", h));
-        }
+        // if let Some(h) = eh {
+        //     self.host = Some(format!("nav.{}", h));
+        // }
     }
 }
 

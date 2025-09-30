@@ -79,6 +79,7 @@ pub enum Image {
     Livekit(livekit::LivekitImage),
     Egress(egress::EgressImage),
     Meet(meet::MeetImage),
+    Traefik(traefik::TraefikImage),
 }
 
 pub enum Registry {
@@ -158,6 +159,7 @@ impl Image {
             Image::Livekit(n) => n.name.clone(),
             Image::Egress(n) => n.name.clone(),
             Image::Meet(n) => n.name.clone(),
+            Image::Traefik(n) => n.name.clone(),
         }
     }
 
@@ -197,6 +199,7 @@ impl Image {
             Image::Livekit(n) => n.host.clone(),
             Image::Egress(n) => n.host.clone(),
             Image::Meet(n) => n.host.clone(),
+            Image::Traefik(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -235,6 +238,7 @@ impl Image {
             Image::Livekit(_n) => "Livekit",
             Image::Egress(_n) => "Egress",
             Image::Meet(_n) => "Meet",
+            Image::Traefik(_n) => "Traefik",
         }
         .to_string()
     }
@@ -274,6 +278,7 @@ impl Image {
             Image::Livekit(n) => n.version = version.to_string(),
             Image::Egress(n) => n.version = version.to_string(),
             Image::Meet(n) => n.version = version.to_string(),
+            Image::Traefik(_) => (),
         }
     }
 
@@ -313,6 +318,7 @@ impl Image {
             Image::Livekit(n) => n.host(Some(host.to_string())),
             Image::Egress(n) => n.host(Some(host.to_string())),
             Image::Meet(n) => n.host(Some(host.to_string())),
+            Image::Traefik(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
@@ -411,6 +417,7 @@ impl DockerConfig for Image {
             Image::Livekit(n) => n.make_config(nodes, docker).await,
             Image::Egress(n) => n.make_config(nodes, docker).await,
             Image::Meet(n) => n.make_config(nodes, docker).await,
+            Image::Traefik(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -452,6 +459,7 @@ impl DockerHubImage for Image {
             Image::Livekit(n) => n.repo(),
             Image::Egress(n) => n.repo(),
             Image::Meet(n) => n.repo(),
+            Image::Traefik(n) => n.repo(),
         }
     }
 }
@@ -784,6 +792,12 @@ impl Image {
         match self {
             Image::Meet(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Meet".to_string())),
+        }
+    }
+    pub fn as_traefik(&self) -> anyhow::Result<traefik::TraefikImage> {
+        match self {
+            Image::Traefik(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Traefik".to_string())),
         }
     }
 }

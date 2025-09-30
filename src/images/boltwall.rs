@@ -66,9 +66,9 @@ impl BoltwallImage {
         self.max_request_limit = Some(mrl.to_string());
     }
     pub fn host(&mut self, eh: Option<String>) {
-        if let Some(h) = eh {
-            self.host = Some(format!("boltwall.{}", h));
-        }
+        // if let Some(h) = eh {
+        //     self.host = Some(format!("boltwall.{}", h));
+        // }
     }
     // boltwall host is on the vanity address /api
     pub fn get_host(&self) -> Option<String> {

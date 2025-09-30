@@ -37,9 +37,9 @@ impl Neo4jImage {
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
-        if let Some(h) = eh {
-            self.host = Some(format!("neo4j.{}", h));
-        }
+        // if let Some(h) = eh {
+        //     self.host = Some(format!("neo4j.{}", h));
+        // }
     }
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)

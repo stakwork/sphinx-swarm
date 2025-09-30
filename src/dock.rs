@@ -141,7 +141,20 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
 
 pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<String> {
     let name: String = c.hostname.clone().context("expected hostname")?.into();
-    let create_opts = CreateContainerOptions { name };
+    let create_opts = CreateContainerOptions { name: name.clone() };
+    
+    // Debug: log the full config being sent to Docker
+    log::info!("create_container: creating container '{}' with image: {:?}", name, c.image);
+    if let Some(ref hc) = c.host_config {
+        if let Some(ref pb) = hc.port_bindings {
+            log::info!("create_container: port_bindings in final config: {:?}", pb);
+        } else {
+            log::error!("create_container: NO port_bindings in final config!");
+        }
+    } else {
+        log::error!("create_container: NO host_config in final config!");
+    }
+    
     let id = docker
         .create_container::<String, String>(Some(create_opts), c)
         .await?

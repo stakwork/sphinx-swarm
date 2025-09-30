@@ -348,6 +348,7 @@ impl Stack {
                     m.livekit_api_secret = "".to_string();
                     Node::Internal(Image::Meet(m))
                 }
+                Image::Traefik(t) => Node::Internal(Image::Traefik(t)),
             },
         });
         Stack {

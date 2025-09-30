@@ -1,0 +1,80 @@
+networks:
+  sphinx-swarm:
+    driver: bridge
+
+services:
+  load_balancer:
+    image: traefik:v2.9
+    container_name: load_balancer
+    restart: unless-stopped
+    networks:
+      - sphinx-swarm
+    command:
+      # - "--log.level=DEBUG"
+      # - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/certs"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mqttsecure.address=:8883"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # - "--entrypoints.port7799.address=:7799"
+      # - "--entrypoints.port3355.address=:3355"
+      - "--entrypoints.port6000.address=:6000"
+      - "--entrypoints.port8000.address=:8000"
+      - "--entrypoints.port8444.address=:8444"
+      - "--entrypoints.port8880.address=:8880"
+      # Certificate resolver configuration
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=gonzaloaune@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      # The HTTP port
+      - 80:80
+      # The Web UI (enabled by --api.insecure=true)
+      # - 8080:8080
+      # entrypoints
+      - 443:443
+      - 8883:8883
+      # individual services
+      # - 7799:7799 # stakgraph
+      # - 3355:3355 # repo2graph
+      # - 6000:6000 # jarvis
+      # - 8000:8000 # navfiber
+      # - 8444:8444 # boltwall
+      - 8880:8880 # swarm
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./certs:/certs
+      - ./letsencrypt:/letsencrypt
+    logging:
+      options:
+        max-size: 10m
+
+  sphinx-swarm:
+    build:
+      context: .
+    # image: sphinxlightning/sphinx-swarm
+    container_name: sphinx-swarm
+    networks:
+      - sphinx-swarm
+    depends_on:
+      - load_balancer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./vol:/vol
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elements.rule=Host(`${HOST}`)"
+      - "traefik.http.services.elements.loadbalancer.server.port=8880"
+      - "traefik.http.routers.elements.tls=true"
+      - "traefik.http.routers.elements.tls.certresolver=myresolver"
+      - "traefik.http.routers.elements.entrypoints=port8880"
+    restart: unless-stopped
+    env_file:
+      - .env

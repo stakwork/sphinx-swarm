@@ -209,13 +209,21 @@ pub fn is_using_port_based_ssl() -> bool {
 }
 
 fn filter_out_reserved_ports_if_using_port_based_ssl(ports: Vec<String>) -> Vec<String> {
-    if !is_using_port_based_ssl() {
+    let using_port_based_ssl = is_using_port_based_ssl();
+    log::info!("filter_out_reserved_ports: using_port_based_ssl={}, input ports={:?}", using_port_based_ssl, ports);
+    
+    if !using_port_based_ssl {
+        log::info!("filter_out_reserved_ports: not using port-based SSL, returning all ports");
         return ports;
     }
-    ports
+    
+    let filtered = ports
         .into_iter()
         .filter(|p| p != "7799" && p != "3355" && p != "8000" && p != "6000" && p != "8444")
-        .collect()
+        .collect();
+    
+    log::info!("filter_out_reserved_ports: filtered result: {:?}", filtered);
+    filtered
 }
 
 pub fn exposed_ports(ports: Vec<String>) -> Option<HashMap<String, HashMap<(), ()>>> {
@@ -257,18 +265,30 @@ pub fn files_volume() -> String {
 }
 
 pub fn host_port(mut ports_in: Vec<String>) -> Option<PortMap> {
+    log::info!("host_port: input ports: {:?}", ports_in);
+    
+    let original_len = ports_in.len();
     ports_in = filter_out_reserved_ports_if_using_port_based_ssl(ports_in);
+    
+    if ports_in.len() != original_len {
+        log::warn!("host_port: filtered out {} ports, remaining: {:?}", 
+                   original_len - ports_in.len(), ports_in);
+    }
+    
     let mut ports = PortMap::new();
     for port in ports_in {
+        log::info!("host_port: adding port binding: {}:{}", port, port);
         ports.insert(
             tcp_port(&port),
             Some(vec![PortBinding {
                 host_port: Some(port.to_string()),
-                // host_ip: Some("0.0.0.0".to_string()),
-                host_ip: None,
+                host_ip: Some("0.0.0.0".to_string()),  // Try explicit host binding for Docker Desktop macOS
+                // host_ip: None,
             }]),
         );
     }
+    
+    log::info!("host_port: final PortMap has {} entries: {:?}", ports.len(), ports.keys().collect::<Vec<_>>());
     Some(ports)
 }
 
@@ -279,8 +299,8 @@ pub fn single_host_port_from(port: &str, from_port: &str) -> Option<PortMap> {
         tcp_port(from_port),
         Some(vec![PortBinding {
             host_port: Some(port.to_string()),
-            // host_ip: Some("0.0.0.0".to_string()),
-            host_ip: None,
+            host_ip: Some("0.0.0.0".to_string()),  // Try explicit host binding for Docker Desktop macOS
+            // host_ip: None,
         }]),
     );
     Some(ports)
