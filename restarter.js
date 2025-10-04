@@ -68,6 +68,29 @@ http
           failure(res, e.message);
         }
       }
+      if (url === "/restart-super-admin") {
+        const body = await readBody(req);
+        if (body.password !== process.env.PASSWORD) {
+          return failure(res, "wrong password");
+        }
+        const scripts = [
+          `docker pull sphinxlightning/sphinx-swarm-superadmin`,
+          `docker stop sphinx-swarm-superadmin`,
+          `docker rm sphinx-swarm-superadmin`,
+          `docker-compose -f superadmin.yml up sphinx-swarm-superadmin -d`,
+        ];
+        try {
+          for (const sc of scripts) {
+            const { stdout, stderr } = await exec(sc);
+            console.log(stdout);
+            console.log("error:", stderr);
+          }
+          respond(res, { ok: true });
+        } catch (e) {
+          console.log("error:", e);
+          failure(res, e.message);
+        }
+      }
     }
   })
   .listen(port, hostname, () => {
