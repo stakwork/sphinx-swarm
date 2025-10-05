@@ -3,19 +3,30 @@
   import Login from "../../../../../app/src/auth/Login.svelte";
   import { activeUser, saveUserToStore, logoutUser } from "./store";
   import User from "carbon-icons-svelte/lib/User.svelte";
+  import Restart from "carbon-icons-svelte/lib/Restart.svelte";
   import {
     OverflowMenu,
     OverflowMenuItem,
     Tabs,
     Tab,
     TabContent,
+    Button,
+    Modal,
+    ToastNotification,
   } from "carbon-components-svelte";
   import ChangePassword from "./ChangePassword.svelte";
   import ViewNodes from "./ViewNodes.svelte";
   import LightningBot from "./LightningBot.svelte";
   import Logs from "./logs.svelte";
   import AnthropicKeys from "./AnthropicKeys.svelte";
+  import { update_super_admin } from "../../../../../app/src/api/swarm";
+
   let page = "main";
+  let showRestartModal = false;
+  let isRestarting = false;
+  let showNotification = false;
+  let notificationMessage = "";
+  let notificationKind: "success" | "error" = "success";
 
   async function backToMain() {
     page = "main";
@@ -27,6 +38,32 @@
 
   function handleChangePassword() {
     page = "change_password";
+  }
+
+  function openRestartModal() {
+    showRestartModal = true;
+  }
+
+  async function handleRestart() {
+    isRestarting = true;
+    try {
+      const res = await update_super_admin();
+      notificationMessage = res.message;
+      if (res.success) {
+        notificationKind = "success";
+      } else {
+        notificationKind = "error";
+      }
+      showNotification = true;
+      showRestartModal = false;
+    } catch (error) {
+      console.error("Restart failed:", error);
+      notificationMessage = "Failed to restart server. Please try again.";
+      notificationKind = "error";
+      showNotification = true;
+    } finally {
+      isRestarting = false;
+    }
   }
 </script>
 
@@ -40,6 +77,15 @@
         <span class="stack-title">Sphinx Superadmin</span>
       </div>
       <section class="menu-btn">
+        <Button
+          kind="danger-ghost"
+          size="small"
+          icon={Restart}
+          on:click={openRestartModal}
+          style="margin-right: 1rem;"
+        >
+          Restart Server
+        </Button>
         <OverflowMenu icon={User} flipped>
           <OverflowMenuItem on:click={logoutUser} text="Logout" />
           <OverflowMenuItem
@@ -75,6 +121,32 @@
         </Tabs>
       {/if}
     </div>
+
+    <Modal
+      bind:open={showRestartModal}
+      modalHeading="Restart SuperAdmin Server"
+      primaryButtonText="Restart"
+      secondaryButtonText="Cancel"
+      primaryButtonDisabled={isRestarting}
+      on:click:button--secondary={() => (showRestartModal = false)}
+      on:click:button--primary={handleRestart}
+      danger
+    >
+      <p>
+        Are you sure you want to restart the SuperAdmin server? This will
+        temporarily interrupt service.
+      </p>
+    </Modal>
+
+    {#if showNotification}
+      <ToastNotification
+        kind={notificationKind}
+        title={notificationKind === "success" ? "Success" : "Error"}
+        subtitle={notificationMessage}
+        timeout={5000}
+        on:close={() => (showNotification = false)}
+      />
+    {/if}
   {/if}
 </main>
 
@@ -118,5 +190,8 @@
   }
   .menu-btn {
     margin-right: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 </style>

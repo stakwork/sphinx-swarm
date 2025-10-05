@@ -112,7 +112,8 @@ export type Cmd =
   | "GetSuperAdminLogs"
   | "UpdateChildSwarmEnv"
   | "AddAnthropicKey"
-  | "GetAnthropicKey";
+  | "GetAnthropicKey"
+  | "RestartSuperAdmin";
 interface CmdData {
   cmd: Cmd;
   content?: any;
