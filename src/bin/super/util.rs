@@ -1345,6 +1345,9 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
             }
         } else {
             // If we don't find the isnatnce in the AWS response, we can mark as deleted
+            if stack.deleted.is_some() && stack.deleted.unwrap() == true {
+                continue;
+            }
             stack.deleted = Some(true);
 
             // try deleting the records from route53
