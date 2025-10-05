@@ -93,6 +93,10 @@ export async function update_swarm() {
   return await swarmCmd("UpdateSwarm");
 }
 
+export async function update_super_admin() {
+  return await swarmCmd("RestartSuperAdmin");
+}
+
 export async function update_graph_accessibility(status: boolean) {
   return await swarmCmd("UpdateBoltwallAccessibility", status);
 }

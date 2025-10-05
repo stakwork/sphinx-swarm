@@ -19,7 +19,7 @@
   import LightningBot from "./LightningBot.svelte";
   import Logs from "./logs.svelte";
   import AnthropicKeys from "./AnthropicKeys.svelte";
-  import { update_swarm } from "../../../../../app/src/api/swarm";
+  import { update_super_admin } from "../../../../../app/src/api/swarm";
 
   let page = "main";
   let showRestartModal = false;
@@ -47,9 +47,13 @@
   async function handleRestart() {
     isRestarting = true;
     try {
-      await update_swarm();
-      notificationMessage = "SuperAdmin server is restarting...";
-      notificationKind = "success";
+      const res = await update_super_admin();
+      notificationMessage = res.message;
+      if (res.success) {
+        notificationKind = "success";
+      } else {
+        notificationKind = "error";
+      }
       showNotification = true;
       showRestartModal = false;
     } catch (error) {
