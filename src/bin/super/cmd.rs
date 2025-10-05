@@ -112,6 +112,7 @@ pub enum SwarmCmd {
     UpdateChildSwarmEnv(UpdateChildSwarmEnvReq),
     AddAnthropicKey(AddAnthropicKeyReq),
     GetAnthropicKey,
+    RestartSuperAdmin,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

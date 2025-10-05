@@ -26,3 +26,4 @@ models/*
 !models/.gitkeep
 .*
 .qodo
+instructions.md

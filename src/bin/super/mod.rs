@@ -32,6 +32,7 @@ use crate::service::child_swarm::update_env::update_child_swarm_env;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
+use crate::service::update_super_admin::update_super_admin;
 use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
@@ -46,7 +47,7 @@ use tokio::sync::{mpsc, Mutex};
 #[rocket::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    
+
     sphinx_swarm::utils::setup_logs();
 
     let project = "super";
@@ -394,7 +395,10 @@ pub async fn super_handle(
                     Ok(()) => {
                         res = SuperSwarmResponse {
                             success: true,
-                            message: format!("Instance {} stopped successfully and tagged with DeletedOn", info.instance_id),
+                            message: format!(
+                                "Instance {} stopped successfully and tagged with DeletedOn",
+                                info.instance_id
+                            ),
                             data: None,
                         }
                     }
@@ -498,6 +502,10 @@ pub async fn super_handle(
             }
             SwarmCmd::GetAnthropicKey => {
                 let res = handle_get_anthropic_keys(&state);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::RestartSuperAdmin => {
+                let res = update_super_admin().await;
                 Some(serde_json::to_string(&res)?)
             }
         },
