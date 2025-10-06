@@ -537,6 +537,7 @@
       { key: "public_ip_address", value: "Public IP" },
       { key: "private_ip_address", value: "Private IP" },
       { key: "update_env", value: "Update Env" },
+      { key: "view", value: "View" },
       { key: "health", value: "Health" },
     ]}
     rows={$remotes.map(remoterow)}
@@ -571,9 +572,6 @@
         <Tribes host={row.id} />
       {:else if cell.key === "host"}
         <div class="host_name_container">
-          <!-- <p class="host_name" on:click={() => handleViewNodes(row.id)}>
-            {cell.value}
-          </p> -->
           <Link target={"_blank"} href={getSwarmAdminUrl(row.id)}
             >{cell.value}</Link
           >
@@ -584,6 +582,10 @@
         <Button on:click={() => setupUpdateChildSwarmEnv(row.id)}
           >Update Env</Button
         >
+      {:else if cell.key === "view"}
+        <Button class="host_name" on:click={() => handleViewNodes(row.id)}>
+          {cell.value}
+        </Button>
       {:else}
         {cell.value}
       {/if}
