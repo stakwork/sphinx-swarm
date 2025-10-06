@@ -1328,6 +1328,8 @@ fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
 pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
 
+    let mut domains_to_delete: Vec<Vec<String>> = Vec::new();
+
     for stack in state.stacks.iter_mut() {
         if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
             if stack.deleted.is_none() || stack.deleted.unwrap() == true {
@@ -1344,34 +1346,42 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
                 }
             }
         } else {
-            // If we don't find the isnatnce in the AWS response, we can mark as deleted
+            // If we don't find the instance in the AWS response, we can mark as deleted
             if stack.deleted.is_some() && stack.deleted.unwrap() == true {
                 continue;
             }
             stack.deleted = Some(true);
 
-            // try deleting the records from route53
             if let Some(route53_domain_names) = &stack.route53_domain_names {
-                if route53_domain_names.len() > 0 {
-                    match delete_multiple_route53_records(route53_domain_names.clone()).await {
-                        Ok(_) => {
-                            log::info!(
-                                "Deleted route53 records for swarm with domain names: {:#?}",
-                                route53_domain_names
-                            );
-                        }
-                        Err(err) => {
-                            log::error!(
-                                "Error deleting route53 records for swarm: {:#?}. Error: {}",
-                                route53_domain_names,
-                                err.to_string()
-                            );
-                        }
-                    };
+                if !route53_domain_names.is_empty() {
+                    domains_to_delete.push(route53_domain_names.clone());
                 }
             }
         }
     }
+
+    if !domains_to_delete.is_empty() {
+        tokio::spawn(async move {
+            for domain_set in domains_to_delete {
+                match delete_multiple_route53_records(domain_set.clone()).await {
+                    Ok(_) => {
+                        log::info!(
+                            "Deleted route53 records for swarm with domain names: {:#?}",
+                            domain_set
+                        );
+                    }
+                    Err(err) => {
+                        log::error!(
+                            "Error deleting route53 records for swarm: {:#?}. Error: {}",
+                            domain_set,
+                            err.to_string()
+                        );
+                    }
+                };
+            }
+        });
+    }
+
     let res = state.remove_tokens();
     Ok(res)
 }
