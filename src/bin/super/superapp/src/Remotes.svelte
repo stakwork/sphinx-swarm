@@ -584,7 +584,7 @@
         >
       {:else if cell.key === "view"}
         <Button class="host_name" on:click={() => handleViewNodes(row.id)}>
-          {cell.value}
+          View
         </Button>
       {:else}
         {cell.value}
