@@ -17,6 +17,8 @@ export const activeUser = writable<string>();
 
 export const selectedNode = writable<string>();
 
+export const isWarmNode = writable<boolean>(false);
+
 export const tribes = writable<{ [k: string]: Tribe[] }>({});
 
 export const lightningBots = writable<ILightningBot[]>([]);
