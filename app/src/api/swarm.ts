@@ -155,10 +155,12 @@ export async function get_all_image_actual_version() {
 }
 export async function get_child_swarm_image_versions({
   host,
+  is_reserved,
 }: {
   host: string;
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("GetSwarmChildImageVersions", { host });
+  return await swarmCmd("GetSwarmChildImageVersions", { host, is_reserved });
 }
 
 export async function update_boltwall_request_per_seconds({
@@ -346,28 +348,46 @@ export async function update_child_swarm_env({
   });
 }
 
-export async function get_child_swarm_containers({ host }: { host: string }) {
-  return await swarmCmd("GetChildSwarmContainers", { host });
+export async function get_child_swarm_containers({
+  host,
+  is_reserved,
+}: {
+  host: string;
+  is_reserved?: boolean;
+}) {
+  return await swarmCmd("GetChildSwarmContainers", { host, is_reserved });
 }
 
 export async function stop_child_swarm_containers({
   nodes,
   host,
+  is_reserved,
 }: {
   nodes: string[];
   host: string;
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("StopChildSwarmContainers", { nodes, host });
+  return await swarmCmd("StopChildSwarmContainers", {
+    nodes,
+    host,
+    is_reserved,
+  });
 }
 
 export async function restart_child_swarm_containers({
   nodes,
   host,
+  is_reserved,
 }: {
   nodes: string[];
   host: string;
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("RestartChildSwarmContainers", { nodes, host });
+  return await swarmCmd("RestartChildSwarmContainers", {
+    nodes,
+    host,
+    is_reserved,
+  });
 }
 
 export async function change_child_swarm_password({
@@ -375,38 +395,53 @@ export async function change_child_swarm_password({
   new_password,
   host,
   username,
+  is_reserved,
 }: {
   old_password: string;
   new_password: string;
   host: string;
   username?: string;
+  is_reserved?: boolean;
 }) {
   return await swarmCmd("ChangeChildSwarmPassword", {
     old_password,
     new_password,
     host,
     username: username || "admin",
+    is_reserved,
   });
 }
 
 export async function start_child_swarm_containers({
   nodes,
   host,
+  is_reserved,
 }: {
   nodes: string[];
   host: string;
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("StartChildSwarmContainers", { nodes, host });
+  return await swarmCmd("StartChildSwarmContainers", {
+    nodes,
+    host,
+    is_reserved,
+  });
 }
 
 export async function update_child_swarm_containers({
   nodes,
   host,
+  is_reserved,
 }: {
   nodes: string[];
   host: string;
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("UpdateChildSwarmContainers", { nodes, host });
+  return await swarmCmd("UpdateChildSwarmContainers", {
+    nodes,
+    host,
+    is_reserved,
+  });
 }
 
 export async function create_new_swarm_ec2({

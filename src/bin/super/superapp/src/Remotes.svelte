@@ -22,7 +22,7 @@
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import Tribes from "./Tribes.svelte";
   import * as api from "../../../../../app/src/api";
-  import { remotes, reservedRemotes, selectedNode } from "./store";
+  import { isWarmNode, remotes, reservedRemotes, selectedNode } from "./store";
   import { onMount } from "svelte";
   import type { Remote, ReservedRemote } from "./types/types";
   import {
@@ -169,8 +169,9 @@
     };
   }
 
-  function handleViewNodes(id: string) {
+  function handleViewNodes(id: string, warmNode: boolean = false) {
     selectedNode.set(id);
+    isWarmNode.set(warmNode);
     viewNode();
   }
 
@@ -583,7 +584,10 @@
           >Update Env</Button
         >
       {:else if cell.key === "view"}
-        <Button class="host_name" on:click={() => handleViewNodes(row.id)}>
+        <Button
+          class="host_name"
+          on:click={() => handleViewNodes(row.id, false)}
+        >
           View
         </Button>
       {:else}
@@ -600,6 +604,7 @@
         { key: "ec2", value: "Instance" },
         { key: "public_ip_address", value: "Public IP" },
         { key: "update_env", value: "Update Env" },
+        { key: "view", value: "View" },
         { key: "health", value: "Health" },
       ]}
       rows={$reservedRemotes.map(reserveRemoteRow)}
@@ -624,6 +629,13 @@
           <Button on:click={() => setupUpdateChildSwarmEnv(row.id, true)}
             >Update Env</Button
           >
+        {:else if cell.key === "view"}
+          <Button
+            class="host_name"
+            on:click={() => handleViewNodes(row.id, true)}
+          >
+            View
+          </Button>
         {:else}
           {cell.value}
         {/if}

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowLeft, UpdateNow, Stop } from "carbon-icons-svelte";
-  import { selectedNode, remotes } from "./store";
+  import { selectedNode, remotes, isWarmNode } from "./store";
   import { onMount } from "svelte";
   import {
     get_child_swarm_config,
@@ -59,7 +59,10 @@
   let swarm_version = "";
 
   async function setupNodes() {
-    const result = await get_child_swarm_config({ host: $selectedNode });
+    const result = await get_child_swarm_config({
+      host: $selectedNode,
+      is_reserved: $isWarmNode,
+    });
     if (result.success && result.data && result.data.stack_error) {
       message = result.data.stack_error;
       errorMessage = true;
@@ -75,6 +78,7 @@
 
     const swarm_containers = await get_child_swarm_containers({
       host: $selectedNode,
+      is_reserved: $isWarmNode,
     });
 
     if (
@@ -224,6 +228,7 @@
     try {
       const response = await get_child_swarm_image_versions({
         host: $selectedNode,
+        is_reserved: $isWarmNode,
       });
       if (response.success === true) {
         const version_object = {};
@@ -283,6 +288,7 @@
     const result = await stop_child_swarm_containers({
       nodes,
       host: $selectedNode,
+      is_reserved: $isWarmNode,
     });
     await handle_after_request(result);
   }
@@ -292,6 +298,7 @@
     const result = await start_child_swarm_containers({
       nodes,
       host: $selectedNode,
+      is_reserved: $isWarmNode,
     });
     await handle_after_request(result);
   }
@@ -301,6 +308,7 @@
     const result = await update_child_swarm_containers({
       nodes,
       host: $selectedNode,
+      is_reserved: $isWarmNode,
     });
     await handle_after_request(result);
   }
@@ -394,6 +402,7 @@
     const restart_result = await restart_child_swarm_containers({
       nodes,
       host: $selectedNode,
+      is_reserved: $isWarmNode,
     });
 
     await setupNodes();
@@ -441,6 +450,7 @@
         old_password: current_password,
         new_password,
         host: $selectedNode,
+        is_reserved: $isWarmNode,
       });
       message = response.message;
       if (response.success === true) {
