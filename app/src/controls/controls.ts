@@ -84,6 +84,10 @@ const jarvisControls: Control[] = [];
 
 const neo4jControls: Control[] = [];
 
+const stakgraphControls: Control[] = [];
+
+const repo2graphControls: Control[] = [];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
@@ -95,4 +99,6 @@ export const controls = {
   BoltWall: boltwallControls,
   Jarvis: jarvisControls,
   Neo4j: neo4jControls,
+  Stakgraph: stakgraphControls,
+  Repo2Graph: repo2graphControls,
 };

@@ -45,7 +45,9 @@ export type NodeType =
   | "Elastic"
   | "NavFiber"
   | "Cln"
-  | "Llama";
+  | "Llama"
+  | "Repo2Graph"
+  | "Stakgraph";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",
