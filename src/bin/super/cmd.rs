@@ -125,6 +125,7 @@ pub struct ChildSwarmIdentifier {
 pub struct UpdateInstanceDetails {
     pub instance_id: String,
     pub instance_type: String,
+    pub is_reserved: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

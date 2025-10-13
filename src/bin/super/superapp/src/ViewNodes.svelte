@@ -151,16 +151,20 @@
   async function handleEditSwarm() {
     isSubmitting = true;
     try {
+      const instance_id = $isWarmNode
+        ? (node as ReservedRemote).instance_id
+        : (node as Remote).ec2_instance_id;
       if (selected_instance !== current_instance_type) {
-        if (!node || !node.ec2_instance_id) {
+        if (!node || !instance_id) {
           error_notification = true;
           message = "Can't edit this instance type currently";
           isSubmitting = false;
           return;
         }
         const result = await update_aws_instance_type({
-          instance_id: node.ec2_instance_id,
+          instance_id: instance_id,
           instance_type: selected_instance,
+          is_reserved: $isWarmNode,
         });
         message = result.message;
         if (result.success) {
@@ -172,6 +176,14 @@
           error_notification = true;
           return;
         }
+      }
+
+      if ($isWarmNode) {
+        // cannot update description for reserved node
+        isSubmitting = false;
+        message = "Cannot update reserved instance";
+        error_notification = true;
+        return;
       }
 
       // update basic swarm details

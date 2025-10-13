@@ -1084,6 +1084,10 @@ pub async fn update_aws_instance_type(
         return Err(anyhow!("Please provide a instance type"));
     }
 
+    if details.is_reserved.is_some() && details.is_reserved.unwrap() == true {
+        return Err(anyhow!("Cannot update reserved instance type"));
+    }
+
     // find instance type
     let instance_types = instance_types();
     if let None = instance_types
