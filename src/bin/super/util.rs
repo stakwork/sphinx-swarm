@@ -1084,6 +1084,10 @@ pub async fn update_aws_instance_type(
         return Err(anyhow!("Please provide a instance type"));
     }
 
+    if details.is_reserved.is_some() && details.is_reserved.unwrap() == true {
+        return Err(anyhow!("Cannot update reserved instance type"));
+    }
+
     // find instance type
     let instance_types = instance_types();
     if let None = instance_types
@@ -1288,6 +1292,42 @@ pub fn get_swarm_instance_type(
 ) -> Result<SuperSwarmResponse, Error> {
     if info.instance_id.is_empty() {
         return Err(anyhow!("Please provide a valid instance id"));
+    }
+
+    if info.is_reserved.is_some() && info.is_reserved.unwrap() == true {
+        if state.reserved_instances.is_none() {
+            return Err(anyhow!("No reserved instances available"));
+        }
+
+        let pos = state
+            .reserved_instances
+            .as_ref()
+            .unwrap()
+            .available_instances
+            .iter()
+            .position(|r| r.instance_id == info.instance_id);
+
+        if let None = pos {
+            return Err(anyhow!("Reserved instance does not exist"));
+        }
+
+        let value = serde_json::to_value(GetInstanceTypeRes {
+            instance_type: Some(
+                state
+                    .reserved_instances
+                    .clone()
+                    .unwrap()
+                    .available_instances[pos.unwrap()]
+                .instance_type
+                .clone(),
+            ),
+        })?;
+
+        return Ok(SuperSwarmResponse {
+            success: true,
+            message: "instance type".to_string(),
+            data: Some(value),
+        });
     }
 
     let swarm_pos = state

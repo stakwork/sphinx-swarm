@@ -470,22 +470,27 @@ export async function get_aws_instance_types() {
 export async function update_aws_instance_type({
   instance_id,
   instance_type,
+  is_reserved,
 }: {
   instance_id: string;
   instance_type: string;
+  is_reserved?: boolean;
 }) {
   return await swarmCmd("UpdateAwsInstanceType", {
     instance_id,
     instance_type,
+    is_reserved,
   });
 }
 
 export async function get_swarm_instance_type({
   instance_id,
+  is_reserved,
 }: {
   instance_id: string;
+  is_reserved?: boolean;
 }) {
-  return await swarmCmd("GetInstanceType", { instance_id });
+  return await swarmCmd("GetInstanceType", { instance_id, is_reserved });
 }
 
 export async function get_lightning_bots_detail() {
