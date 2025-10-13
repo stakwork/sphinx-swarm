@@ -1290,6 +1290,42 @@ pub fn get_swarm_instance_type(
         return Err(anyhow!("Please provide a valid instance id"));
     }
 
+    if info.is_reserved.is_some() && info.is_reserved.unwrap() == true {
+        if state.reserved_instances.is_none() {
+            return Err(anyhow!("No reserved instances available"));
+        }
+
+        let pos = state
+            .reserved_instances
+            .as_ref()
+            .unwrap()
+            .available_instances
+            .iter()
+            .position(|r| r.instance_id == info.instance_id);
+
+        if let None = pos {
+            return Err(anyhow!("Reserved instance does not exist"));
+        }
+
+        let value = serde_json::to_value(GetInstanceTypeRes {
+            instance_type: Some(
+                state
+                    .reserved_instances
+                    .clone()
+                    .unwrap()
+                    .available_instances[pos.unwrap()]
+                .instance_type
+                .clone(),
+            ),
+        })?;
+
+        return Ok(SuperSwarmResponse {
+            success: true,
+            message: "instance type".to_string(),
+            data: Some(value),
+        });
+    }
+
     let swarm_pos = state
         .stacks
         .iter()

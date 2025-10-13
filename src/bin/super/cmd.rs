@@ -185,6 +185,7 @@ pub struct StopEc2InstanceInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetInstanceTypeByInstanceId {
     pub instance_id: String,
+    pub is_reserved: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -33,7 +33,8 @@
     SelectItem,
     TextInput,
   } from "carbon-components-svelte";
-  import type { Remote } from "./types/types";
+  import type { Remote, ReservedRemote } from "./types/types";
+  import { getRemoteByHost } from "./utils";
 
   let loading = true;
   let selectedRowIds = [];
@@ -46,7 +47,7 @@
   let show_notification = false;
   let aws_instance_types = [];
   let current_instance_type = "";
-  let node: Remote | null = null;
+  let node: Remote | ReservedRemote | null = null;
   let open_edit_swarm = false;
   let isSubmitting = false;
   let error_notification = false;
@@ -113,24 +114,31 @@
   }
 
   async function get_current_service_details() {
-    for (let i = 0; i < $remotes.length; i++) {
-      const remote = $remotes[i];
-      if (remote.host === $selectedNode) {
-        node = { ...remote };
-        swarm_description = remote.note;
-        current_description = remote.note;
-        try {
-          const response = await get_swarm_instance_type({
-            instance_id: remote.ec2_instance_id,
-          });
-          if (response.success) {
-            current_instance_type = response.data.instance_type;
-          }
-        } catch (error) {
-          console.log("ERORR GETTING SWARM INSTANCE TYPE: ", error);
-        }
-        return;
+    swarm_description = "";
+    current_description = "";
+    let instance_id = "";
+    const selectedNodeDetails = getRemoteByHost($selectedNode, $isWarmNode);
+    node = { ...selectedNodeDetails };
+
+    if ($isWarmNode) {
+      instance_id = (selectedNodeDetails as ReservedRemote).instance_id;
+    } else {
+      instance_id = (selectedNodeDetails as Remote).ec2_instance_id;
+      swarm_description = (selectedNodeDetails as Remote).note;
+      current_description = (selectedNodeDetails as Remote).note;
+    }
+
+    try {
+      const response = await get_swarm_instance_type({
+        instance_id: instance_id,
+        is_reserved: $isWarmNode,
+      });
+
+      if (response.success) {
+        current_instance_type = response.data.instance_type;
       }
+    } catch (error) {
+      console.log("ERORR GETTING SWARM INSTANCE TYPE: ", error);
     }
   }
 
