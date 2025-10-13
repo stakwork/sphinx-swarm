@@ -15,6 +15,8 @@
   import FirstConnect from "./FirstConnect.svelte";
   import Jarvis from "../Jarvis.svelte";
   import Neo4j from "../Neo4j.svelte";
+  import Stakgraph from "../Stakgraph.svelte";
+  import Repo2Graph from "../Repo2Graph.svelte";
 
   export let updateBody = () => {};
 
@@ -103,6 +105,10 @@
         <Jarvis {updateBody} />
       {:else if type === "Neo4j"}
         <Neo4j />
+      {:else if type === "Stakgraph"}
+        <Stakgraph {updateBody} />
+      {:else if type === "Repo2Graph"}
+        <Repo2Graph {updateBody} />
       {:else}
         <Controls {ctrls} {tag} />
       {/if}

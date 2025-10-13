@@ -98,6 +98,7 @@ pub struct GetDockerImageTagsDetails {
     pub page: String,
     pub page_size: String,
     pub org_image_name: String,
+    pub host: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

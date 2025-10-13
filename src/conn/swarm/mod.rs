@@ -16,7 +16,7 @@ use crate::{
         boltwall::{ExternalLnd, LndCreds},
         Image,
     },
-    utils::{domain, is_using_port_based_ssl, update_or_write_to_env_file},
+    utils::{domain, getenv, is_using_port_based_ssl, update_or_write_to_env_file},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -62,15 +62,45 @@ pub async fn update_swarm() -> Result<String> {
 
 pub async fn get_image_tags(image_details: GetDockerImageTagsDetails) -> Result<String> {
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
+        .user_agent("sphinx-swarm/1.0")
+        .timeout(Duration::from_secs(40))
         .danger_accept_invalid_certs(true)
         .build()
-        .expect("couldnt build swarm updater reqwest client");
+        .expect("couldnt build get image tags reqwest client");
 
-    let url = format!(
+    let mut url = format!(
         "https://hub.docker.com/v2/repositories/{}/tags?page={}&page_size={}",
         image_details.org_image_name, image_details.page, image_details.page_size
     );
+
+    if image_details.host.is_some() && image_details.host.unwrap() == "Github" {
+        let image_name_parts: Vec<&str> = image_details.org_image_name.split("/").collect();
+        if image_name_parts.len() != 2 {
+            log::error!(
+                "Invalid image name format: {}",
+                image_details.org_image_name
+            );
+            return Ok("Invalid image name format".to_string());
+        }
+        let github_container_name = image_name_parts[1];
+        let org_name = image_name_parts[0];
+        url = format!(
+            "https://api.github.com/orgs/{}/packages/container/{}/versions",
+            org_name, github_container_name,
+        );
+
+        let token = getenv("GITHUB_PAT").unwrap_or("".to_string());
+
+        let response = client
+            .get(url.clone())
+            .header("Authorization", format!("Bearer {}", token))
+            .send()
+            .await?;
+
+        let response_text = response.text().await?;
+
+        return Ok(response_text);
+    }
 
     let response = client.get(url.as_str()).send().await?;
 

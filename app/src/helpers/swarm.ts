@@ -48,6 +48,7 @@ export async function getImageVersion(
 
 export async function handleGetImageTags(node_name: string): Promise<string[]> {
   let image_name = `sphinx-${node_name}`;
+  let host;
   if (node_name === "relay") {
     image_name = `sphinx-relay-swarm`;
   } else if (node_name === "cln") {
@@ -59,17 +60,39 @@ export async function handleGetImageTags(node_name: string): Promise<string[]> {
   } else if (node_name === "jarvis") {
     image_name = `sphinx-jarvis-backend`;
   }
+  let fullName = `sphinxlightning/${image_name}`;
 
-  const response = await get_image_tags(
-    `sphinxlightning/${image_name}`,
-    "1",
-    "100"
-  );
+  if (node_name === "stakgraph") {
+    fullName = `stakwork/stakgraph-standalone`;
+    host = "Github";
+  }
+
+  if (node_name === "repo2graph") {
+    fullName = `stakwork/stakgraph-mcp`;
+    host = "Github";
+  }
+
+  const response = await get_image_tags(fullName, "1", "100", host);
 
   const tags = [];
 
   try {
     const parsedRes = JSON.parse(response);
+    if (host === "Github") {
+      for (let i = 0; i < parsedRes.length; i++) {
+        const image = parsedRes[i];
+        if (
+          image.metadata.container.tags.length &&
+          image.metadata.container.tags[0] !== "buildcache"
+        ) {
+          tags.push(...image.metadata.container.tags);
+        }
+        if (tags.length === 10) {
+          return tags;
+        }
+      }
+      return tags;
+    }
     for (let i = 0; i < parsedRes.results.length; i++) {
       const image = parsedRes.results[i];
       tags.push(image.name);
