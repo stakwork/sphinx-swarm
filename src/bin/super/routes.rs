@@ -1,7 +1,8 @@
 use crate::auth;
 use crate::auth_token::VerifySuperToken;
 use crate::cmd::{
-    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, StopEc2InstanceInfo, SuperSwarmResponse, SwarmCmd,
+    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, StopEc2InstanceInfo,
+    SuperSwarmResponse, SwarmCmd,
 };
 use crate::events::EventChan;
 use crate::logs::LogChans;
@@ -142,6 +143,7 @@ async fn create_new_swarm(
         env: body.env.clone(),
         subdomain_ssl: body.subdomain_ssl.clone(),
         password: body.password.clone(),
+        testing: body.testing.clone(),
     }));
 
     let txt = serde_json::to_string(&cmd)?;

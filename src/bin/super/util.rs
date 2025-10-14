@@ -426,6 +426,7 @@ pub async fn create_ec2_instance(
     subdomain_ssl: Option<bool>,
     swarm_password: Option<String>,
     anthropic_api_key: Option<String>,
+    testing: Option<bool>,
 ) -> Result<CreateSwarmEc2Instance, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -654,7 +655,7 @@ pub async fn create_ec2_instance(
       "#
     );
 
-    let tags = vec![
+    let mut tags = vec![
         Tag::builder()
             .key("Name")
             .value(format!("swarm{}", swarm_number))
@@ -665,6 +666,10 @@ pub async fn create_ec2_instance(
             .build(),
         Tag::builder().key(key).value(value).build(),
     ];
+
+    if testing == Some(true) {
+        tags.push(Tag::builder().key("testing").value("true").build());
+    }
 
     // Define the TagSpecification to apply the tags when the instance is created
     let tag_specification = TagSpecification::builder()
@@ -961,6 +966,7 @@ pub async fn create_swarm_ec2(
         info.subdomain_ssl.clone(),
         info.password.clone(),
         anthropic_api_key.clone(),
+        info.testing.clone(),
     )
     .await?;
 
