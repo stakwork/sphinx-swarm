@@ -80,6 +80,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             None,
             Some(admin_password.clone()),
             anthropic_api_key.clone(),
+            None,
         )
         .await?;
 

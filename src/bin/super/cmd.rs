@@ -175,6 +175,7 @@ pub struct CreateEc2InstanceInfo {
     pub env: Option<HashMap<String, String>>,
     pub subdomain_ssl: Option<bool>,
     pub password: Option<String>,
+    pub testing: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

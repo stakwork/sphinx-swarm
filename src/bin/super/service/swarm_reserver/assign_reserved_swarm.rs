@@ -48,15 +48,23 @@ pub async fn handle_assign_reserved_swarm(
         .available_instances[0]
         .clone();
 
+    let mut tags = vec![Ec2Tags {
+        key: "Name".to_string(),
+        value: info
+            .name
+            .clone()
+            .unwrap_or_else(|| selected_reserved_instance.swarm_id()),
+    }];
+
+    if info.testing == Some(true) {
+        tags.push(Ec2Tags {
+            key: "testing".to_string(),
+            value: "true".to_string(),
+        });
+    }
+
     // update tag name on AWS
-    add_new_tags_to_instance(
-        &selected_reserved_instance.instance_id,
-        vec![Ec2Tags {
-            key: "Name".to_string(),
-            value: info.name.clone().unwrap_or_else(|| selected_reserved_instance.swarm_id()),
-        }],
-    )
-    .await?;
+    add_new_tags_to_instance(&selected_reserved_instance.instance_id, tags).await?;
     let mut envs: Option<HashMap<String, String>> = info.env.clone();
     if envs.is_none() {
         envs = Some(HashMap::new());
