@@ -37,6 +37,7 @@ use crate::route53::{
     add_domain_name_to_route53, delete_multiple_route53_records, domain_exists_in_route53,
 };
 use crate::service::swarm_reserver::assign_reserved_swarm::handle_assign_reserved_swarm;
+use crate::service::swarm_reserver::reserve_swarm::handle_reserve_swarms;
 use crate::service::swarm_reserver::utils::{check_reserve_swarm_flag_set, generate_random_secret};
 use crate::state::{self, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
@@ -944,7 +945,14 @@ pub async fn create_swarm_ec2(
             Ok(result) => {
                 return Ok(result);
             }
+
             Err(err) => {
+                tokio::spawn(async move {
+                    if let Err(e) = handle_reserve_swarms().await {
+                        log::error!("Error reserving swarm {}", e);
+                    }
+                });
+
                 log::info!("Error assigning reserved swarm, proceeding to create new ec2 instance, reason: {}", err.to_string());
             }
         };

@@ -88,6 +88,7 @@ pub struct InstanceFromAws {
     pub instance_type: String,
     pub public_ip_address: String,
     pub private_ip_address: String,
+    pub state: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]

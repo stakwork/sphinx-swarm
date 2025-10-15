@@ -22,10 +22,24 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
     };
 
     for instance in instances_by_tag {
-        let instance_id = instance.instance_id.unwrap_or_default();
+        let instance_id = instance.instance_id.clone().unwrap_or_default();
         let mut instance_type = "".to_string();
-        let public_ip_address = instance.public_ip_address.unwrap_or_default();
-        let private_ip_address = instance.private_ip_address.unwrap_or_default();
+        let public_ip_address = instance.public_ip_address.clone().unwrap_or_default();
+        let private_ip_address = instance.private_ip_address.clone().unwrap_or_default();
+        let mut state: Option<String> = None;
+
+        if instance.state.is_some() {
+            state = Some(
+                instance
+                    .clone()
+                    .state()
+                    .unwrap()
+                    .name
+                    .as_ref()
+                    .map(|s| s.as_str().to_string())
+                    .unwrap_or_default(),
+            )
+        }
 
         if instance.instance_type.is_some() {
             instance_type = instance.instance_type.unwrap().to_string()
@@ -36,6 +50,7 @@ pub async fn get_swarms_by_tag(key: &str, value: &str) -> Result<Vec<InstanceFro
             instance_type,
             public_ip_address,
             private_ip_address,
+            state,
         });
     }
 
