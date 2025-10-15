@@ -23,6 +23,12 @@ pub async fn handle_reserve_swarms() -> Result<()> {
 
     state.reserved_instances.as_mut().unwrap().available_instances.retain(|reserved_instance| {
         if aws_instances_hashmap.contains_key(&reserved_instance.instance_id) {
+            let aws_instance = aws_instances_hashmap
+                .get(&reserved_instance.instance_id)
+                .unwrap();
+            if aws_instance.state.is_some() && aws_instance.state.clone().unwrap().to_lowercase() != "running" {
+                return false;
+            }
             true
         } else {
             log::info!("Reserved instance with ID: {} no longer exists on AWS, removing from reserved instances", reserved_instance.instance_id);
