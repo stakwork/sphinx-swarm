@@ -1,9 +1,13 @@
+use std::time::Duration;
+
 use anyhow::{anyhow, Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_s3::Client;
 use chrono::{DateTime, Utc};
 use sphinx_swarm::utils::getenv;
+
+use crate::{cmd::SuperRestarterResponse, service::update_super_admin::UpdateSuperAdminBody};
 
 pub async fn handle_renew_ssl_cert() -> Result<()> {
     // check that how many days remaining for cert to expire
@@ -14,7 +18,9 @@ pub async fn handle_renew_ssl_cert() -> Result<()> {
         return Ok(());
     }
     // if less then 15 renew cert and upload a new one
-    // if greater than 15 we just log how much days remain and proceed
+    let renew_cert_res = renew_cert().await?;
+
+    log::info!("Renew cert response: {:#?}", renew_cert_res);
     Ok(())
 }
 
@@ -47,4 +53,27 @@ pub async fn get_cert_days_left() -> Result<i64, Error> {
     let days_diff = diff.num_days();
 
     Ok(90 - days_diff)
+}
+
+pub async fn renew_cert() -> Result<SuperRestarterResponse, Error> {
+    // call restart script to renew cert
+    let password = std::env::var("SUPER_ADMIN_UPDATER_PASSWORD").unwrap_or(String::new());
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build renew cert reqwest client");
+
+    let route = format!("http://172.17.0.1:3003/renew-cert");
+
+    let body = UpdateSuperAdminBody {
+        password: password.to_string(),
+    };
+
+    let response = client.post(route.as_str()).json(&body).send().await?;
+
+    let data: SuperRestarterResponse = response.json().await?;
+
+    Ok(data)
 }

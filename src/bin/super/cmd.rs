@@ -142,6 +142,13 @@ pub struct SuperSwarmResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SuperRestarterResponse {
+    pub ok: bool,
+    pub message: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoginResponse {
     pub token: String,
 }

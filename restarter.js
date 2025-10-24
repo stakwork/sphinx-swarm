@@ -91,6 +91,40 @@ http
           failure(res, e.message);
         }
       }
+      if (url === "/renew-cert") {
+        if (body.password !== process.env.PASSWORD) {
+          return failure(res, "wrong password");
+        }
+
+        if (process.env.IS_SUPER_ADMIN !== "true") {
+          return failure(res, "unauthorized!");
+        }
+
+        const CERT_EMAIL = process.env.CERT_EMAIL;
+
+        if (!CERT_EMAIL) {
+          return failure(res, "invalid cert email");
+        }
+
+        try {
+          const script = `
+            sudo certbot certonly \
+              --manual \
+              --preferred-challenges dns \
+              --email ${CERT_EMAIL} \
+              --agree-tos \
+              -d "*.sphinx.chat" \
+              -d "sphinx.chat"
+            `;
+          const { stdout, stderr } = await exec(script);
+          console.log(stdout);
+          console.log("error:", stderr);
+          respond(res, { ok: true, message: stdout, error: stderr });
+        } catch (error) {
+          console.log("error:", e);
+          failure(res, e.message);
+        }
+      }
     }
   })
   .listen(port, hostname, () => {
