@@ -109,13 +109,15 @@ http
         try {
           const script = `
             sudo certbot certonly \
-              --manual \
-              --preferred-challenges dns \
-              --email ${CERT_EMAIL} \
-              --agree-tos \
-              -d "*.sphinx.chat" \
-              -d "sphinx.chat"
-            `;
+            --dns-route53 \
+            --email ${CERT_EMAIL} \
+            --agree-tos \
+            --expand \
+            --non-interactive \
+            --force-renewal \
+            -d "*.sphinx.chat" \
+            -d "sphinx.chat"
+          `;
           const { stdout, stderr } = await exec(script);
           console.log(stdout);
           console.log("error:", stderr);
