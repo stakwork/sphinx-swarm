@@ -7,7 +7,10 @@ use aws_sdk_s3::Client;
 use chrono::{DateTime, Utc};
 use sphinx_swarm::utils::getenv;
 
-use crate::{cmd::SuperRestarterResponse, service::update_super_admin::UpdateSuperAdminBody};
+use crate::{
+    cmd::{SllCertExpiryDaysResponse, SuperRestarterResponse, SuperSwarmResponse},
+    service::update_super_admin::UpdateSuperAdminBody,
+};
 
 pub async fn handle_renew_ssl_cert() -> Result<()> {
     // check that how many days remaining for cert to expire
@@ -103,4 +106,30 @@ pub async fn upload_cert_to_s3() -> Result<SuperRestarterResponse, Error> {
     let data: SuperRestarterResponse = response.json().await?;
 
     Ok(data)
+}
+
+pub async fn handle_get_ssl_cert_expiry() -> SuperSwarmResponse {
+    let res = match get_cert_days_left().await {
+        Ok(day) => SllCertExpiryDaysResponse { day },
+        Err(err) => {
+            return SuperSwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            }
+        }
+    };
+
+    match serde_json::to_value(res) {
+        Ok(res) => SuperSwarmResponse {
+            success: true,
+            message: "expiry days gotten successfully".to_string(),
+            data: Some(res),
+        },
+        Err(err) => SuperSwarmResponse {
+            success: false,
+            message: err.to_string(),
+            data: None,
+        },
+    }
 }
