@@ -1,16 +1,16 @@
 name: Generate Build Files and Update version #
 on:
- push:
+  push:
     branches:
-      - master
+      - "*"
 
 jobs:
   npm-build-and-update-version:
     name: build
-    runs-on: 
+    runs-on:
       - ubuntu-latest
     env:
-      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }} 
+      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -27,16 +27,15 @@ jobs:
           yarn run build
           git add ./dist -f
           git commit -m "ci: automatic build" || echo -n
-          git push --set-upstream origin master
+          git push --set-upstream origin feat/renew-cert
       - name: Pull Latest Changes
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
-          
+
       - name: Create New Release
         uses: rymndhng/release-on-push-action@master
         with:
           bump_version_scheme: patch
           use_github_release_notes: true
-
