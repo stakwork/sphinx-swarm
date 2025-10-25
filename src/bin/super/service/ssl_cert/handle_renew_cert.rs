@@ -21,6 +21,10 @@ pub async fn handle_renew_ssl_cert() -> Result<()> {
     let renew_cert_res = renew_cert().await?;
 
     log::info!("Renew cert response: {:#?}", renew_cert_res);
+
+    let upload_cert_res = upload_cert_to_s3().await?;
+
+    log::info!("Upload cert response: {:#?}", upload_cert_res);
     Ok(())
 }
 
@@ -66,6 +70,29 @@ pub async fn renew_cert() -> Result<SuperRestarterResponse, Error> {
         .expect("couldnt build renew cert reqwest client");
 
     let route = format!("http://172.17.0.1:3003/renew-cert");
+
+    let body = UpdateSuperAdminBody {
+        password: password.to_string(),
+    };
+
+    let response = client.post(route.as_str()).json(&body).send().await?;
+
+    let data: SuperRestarterResponse = response.json().await?;
+
+    Ok(data)
+}
+
+pub async fn upload_cert_to_s3() -> Result<SuperRestarterResponse, Error> {
+    // call restart script to renew cert
+    let password = std::env::var("SUPER_ADMIN_UPDATER_PASSWORD").unwrap_or(String::new());
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("couldnt build upload cert reqwest client");
+
+    let route = format!("http://172.17.0.1:3003/upload-cert");
 
     let body = UpdateSuperAdminBody {
         password: password.to_string(),

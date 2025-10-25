@@ -127,6 +127,48 @@ http
           failure(res, e.message);
         }
       }
+      if (url === "/upload-cert") {
+        if (body.password !== process.env.PASSWORD) {
+          return failure(res, "wrong password");
+        }
+
+        if (process.env.IS_SUPER_ADMIN !== "true") {
+          return failure(res, "unauthorized!");
+        }
+        const CERT_BUCKET = process.env.CERT_BUCKET;
+        if (!CERT_BUCKET) {
+          return failure(res, "cert bucket not provided!");
+        }
+        try {
+          const message = [];
+          const errMsg = [];
+          const scripts = [
+            `sudo rm -rf /home/admin/certs`,
+            `sudo rm -f /home/admin/data.zip`,
+            `sudo mkdir -p /home/admin/certs`,
+            `sudo cp /etc/letsencrypt/live/sphinx.chat/fullchain.pem /home/admin/certs/sphinx.chat.crt`,
+            `sudo cp /etc/letsencrypt/live/sphinx.chat/privkey.pem /home/admin/certs/sphinx.chat.key`,
+            `sudo zip -r /home/admin/data.zip /home/admin/certs/`,
+            `aws s3 cp /home/admin/data.zip s3://${CERT_BUCKET}/data.zip`,
+          ];
+
+          for (const sc of scripts) {
+            const { stdout, stderr } = await exec(sc);
+            console.log(stdout);
+            message.push(stdout);
+            console.log("error:", stderr);
+            errMsg.push(stderr);
+          }
+          respond(res, {
+            ok: true,
+            message: message.join(","),
+            error: errMsg.join(","),
+          });
+        } catch (error) {
+          console.log("error:", e);
+          failure(res, e.message);
+        }
+      }
     }
   })
   .listen(port, hostname, () => {
