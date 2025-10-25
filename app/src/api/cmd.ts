@@ -113,7 +113,10 @@ export type Cmd =
   | "UpdateChildSwarmEnv"
   | "AddAnthropicKey"
   | "GetAnthropicKey"
-  | "RestartSuperAdmin";
+  | "RestartSuperAdmin"
+  | "GetSslCertExpiry"
+  | "RenewSslCert"
+  | "UploadSSlCert";
 interface CmdData {
   cmd: Cmd;
   content?: any;
