@@ -2,7 +2,7 @@ name: Generate Build Files and Update version #
 on:
   push:
     branches:
-      - "*"
+      - master
 
 jobs:
   npm-build-and-update-version:
@@ -27,7 +27,7 @@ jobs:
           yarn run build
           git add ./dist -f
           git commit -m "ci: automatic build" || echo -n
-          git push --set-upstream origin feat/renew-cert
+          git push --set-upstream origin master
       - name: Pull Latest Changes
         uses: actions/checkout@v2
         with:

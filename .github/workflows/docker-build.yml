@@ -3,8 +3,9 @@ env:
   DOCKER_CLI_EXPERIMENTAL: enabled
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - feat/renew-cert
 
 jobs:
   build:
