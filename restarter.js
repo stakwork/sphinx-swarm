@@ -92,6 +92,7 @@ http
         }
       }
       if (url === "/renew-cert") {
+        const body = await readBody(req);
         if (body.password !== process.env.PASSWORD) {
           return failure(res, "wrong password");
         }
@@ -128,6 +129,7 @@ http
         }
       }
       if (url === "/upload-cert") {
+        const body = await readBody(req);
         if (body.password !== process.env.PASSWORD) {
           return failure(res, "wrong password");
         }
