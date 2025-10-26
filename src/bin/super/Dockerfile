@@ -1,5 +1,5 @@
 # --- Stage 1: Install cargo-chef using nightly (required for edition2024)
-FROM rust:nightly-slim-bullseye AS chef
+FROM rust:nightly-slim AS chef
 RUN cargo +nightly install cargo-chef --locked
 WORKDIR /sphinx-swarm
 
