@@ -1,14 +1,11 @@
-# --- Stage 1: Install cargo-chef using nightly (required for edition2024)
-FROM rust:nightly-slim AS chef
-RUN cargo +nightly install cargo-chef --locked
+FROM rust:1.79-slim-bullseye AS chef
+RUN cargo install cargo-chef
 WORKDIR /sphinx-swarm
 
-# --- Stage 2: Prepare the build plan
 FROM chef AS planner
 COPY . .
-RUN cargo +nightly chef prepare --recipe-path recipe.json
+RUN cargo chef prepare --recipe-path recipe.json
 
-# --- Stage 3: Build the app
 FROM chef AS builder
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -16,13 +13,13 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=planner /sphinx-swarm/recipe.json recipe.json
-RUN cargo +nightly chef cook --release --recipe-path recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY . .
-RUN cargo +nightly build --release --bin super
+RUN cargo build --release --bin super
 
-# --- Stage 4: Runtime
 FROM debian:11-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
