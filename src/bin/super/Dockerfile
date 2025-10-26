@@ -1,5 +1,5 @@
-FROM rust:1.82-slim-bullseye AS chef
-RUN cargo install cargo-chef --version 0.1.67
+FROM rust:1.80-slim-bullseye AS chef
+RUN cargo install cargo-chef
 WORKDIR /sphinx-swarm
 
 FROM chef AS planner
