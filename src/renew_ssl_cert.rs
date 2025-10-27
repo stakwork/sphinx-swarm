@@ -1,5 +1,5 @@
 use crate::{
-    config::{self, STATE},
+    config::{self},
     conn::swarm::{SwarmRestarterRes, UpdateSslCertSwarmBody},
     utils::{getenv, is_using_port_based_ssl},
 };
@@ -73,8 +73,12 @@ pub async fn handle_update_ssl_cert() -> Result<(), Error> {
     if let None = resp.last_modified() {
         return Err(anyhow!("Unable to get last date modified from s3 bucket"));
     }
+
+    log::info!("We got response from s3 bucket: {:#?}", resp);
     let last_modified = resp.last_modified.unwrap().secs();
-    let state = STATE.lock().await;
+    let state = config::STATE.lock().await;
+
+    log::info!("Got state past here man:");
 
     if let Some(cert_last_modified) = state.stack.ssl_cert_last_modified {
         if cert_last_modified == last_modified {
@@ -84,6 +88,8 @@ pub async fn handle_update_ssl_cert() -> Result<(), Error> {
     drop(state);
 
     let res = update_ssl_cert(bucket.clone()).await?;
+
+    log::info!("We are calling restarter service");
 
     if let Some(err) = res.error {
         return Err(anyhow!(err));
@@ -98,7 +104,7 @@ pub async fn handle_update_ssl_cert() -> Result<(), Error> {
     }
     // modify state to the new moidified date and we are all happy
 
-    let mut state = STATE.lock().await;
+    let mut state = config::STATE.lock().await;
 
     state.stack.ssl_cert_last_modified = Some(last_modified);
 
