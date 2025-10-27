@@ -1,15 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { anthropicKeys } from "./store";
-  import {
-    Button,
-    InlineNotification,
-    Loading,
-    Modal,
-    TextInput,
-    ToastNotification,
-  } from "carbon-components-svelte";
-  import KeyDisplayCard from "./components/KeyDisplayCard.svelte";
+  import { Button, Loading, ToastNotification } from "carbon-components-svelte";
   import {
     get_ssl_cert_expiry,
     renew_ssl_cert,
@@ -19,13 +10,13 @@
   let error_message = "";
   let loading = false;
   let expiryDays = 0;
-  let openAddAnthropicModal = false;
+  let showNotification = false;
+  let notificationKind: "success" | "error" = "success";
+  let notificationMessage = "";
   let isSubmitting = false;
-  let error_notification = false;
-  let message;
 
   onMount(async () => {
-    // get all anthropic keys
+    // get ssl cert expiry days
     await handleGetSslCertExpiryDays();
   });
 
@@ -52,11 +43,24 @@
     loading = true;
     try {
       const response = await renew_ssl_cert();
-      console.log("Renew Ssl Cert response", response);
+      if (response.ok) {
+        notificationMessage = "Cert renewed successfully";
+        notificationKind = "success";
+      } else {
+        console.log("Renew Ssl Cert response", response);
+        notificationMessage = response?.message
+          ? response.message
+          : "Error renewing ssl cert, check console for more details";
+        notificationKind = "error";
+      }
     } catch (error) {
       console.log("Error renewing certs: ", error);
+      notificationMessage =
+        "Error renewing certs, check console for more details";
+      notificationKind = "error";
     } finally {
       loading = false;
+      showNotification = true;
     }
   }
 
@@ -64,11 +68,24 @@
     loading = true;
     try {
       const response = await upload_ssl_cert();
-      console.log("Upload Cert to s3 bucker response:", response);
+      if (response.ok) {
+        notificationMessage = "Cert uploaded to s3 successfully";
+        notificationKind = "success";
+      } else {
+        notificationMessage = response?.message
+          ? response.message
+          : "Error uploading cert to s3 bucket, check console for more details";
+        notificationKind = "error";
+        console.log("Upload Cert to s3 bucker response:", response);
+      }
     } catch (error) {
       console.log("Error uploading certs to s3 bucket: ", error);
+      notificationMessage =
+        "Error uploading cert to s3 bucket, check console for more details";
+      notificationKind = "error";
     } finally {
       loading = false;
+      showNotification = true;
     }
   }
 </script>
@@ -92,6 +109,16 @@
           : `${expiryDays} day${expiryDays > 1 ? "s" : ""}`}
       </p>
     </div>
+
+    {#if showNotification}
+      <ToastNotification
+        kind={notificationKind}
+        title={notificationKind === "success" ? "Success" : "Error"}
+        subtitle={notificationMessage}
+        timeout={5000}
+        on:close={() => (showNotification = false)}
+      />
+    {/if}
   </div>
 </main>
 
