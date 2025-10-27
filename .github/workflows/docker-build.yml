@@ -3,9 +3,8 @@ env:
   DOCKER_CLI_EXPERIMENTAL: enabled
 
 on:
-  push:
-    branches:
-      - feat/renew-cert
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -61,7 +60,8 @@ jobs:
           -f src/bin/stack/Dockerfile \
           --cache-to "type=local,dest=/tmp/.buildx-cache" \
           --platform linux/amd64 \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:renew-cert" \
+          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:${{ env.RELEASE_TAG }}" \
+          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:latest" \
           --output "type=registry" ./
   build_superadmin:
     runs-on: ubuntu-latest
@@ -121,5 +121,6 @@ jobs:
           -f src/bin/super/Dockerfile \
           --cache-to "type=local,dest=/tmp/.buildx-cache" \
           --platform linux/amd64 \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:renew-cert" \
+          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:${{ env.RELEASE_TAG }}" \
+          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:latest" \
           --output "type=registry" ./
