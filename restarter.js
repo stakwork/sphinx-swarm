@@ -171,6 +171,43 @@ http
           failure(res, e.message);
         }
       }
+      if (url === "/update-ssl-cert") {
+        const body = await readBody(req);
+        if (body.password !== process.env.PASSWORD) {
+          return failure(res, "wrong password");
+        }
+
+        const aws_s3_cert_bucket_name = body.cert_bucket_name;
+
+        if (!aws_s3_cert_bucket_name) {
+          return failure(res, "Please provide valid bucket name");
+        }
+        const scripts = [
+          `sudo rm -f /home/admin/data.zip`,
+          `aws s3 cp s3://${aws_s3_cert_bucket_name}/data.zip /home/admin/`,
+          `docker stop load_balancer`,
+          `docker rm load_balancer`,
+          `sudo rm -rf /home/admin/certs`,
+          `sudo mkdir -p /home/admins/certs`,
+          `sudo unzip -o -j /home/admin/data.zip -d /home/admin/certs/`,
+          `sudo chown admin:admin /home/admin/certs/*`,
+          `sudo chmod 644 /home/admin/certs/sphinx.chat.crt`,
+          `sudo chmod 600 /home/admin/certs/sphinx.chat.key`,
+          `docker-compose -f second-brain-2.yml up load_balancer -d`,
+        ];
+        console.log("exec!");
+        try {
+          for (const sc of scripts) {
+            const { stdout, stderr } = await exec(sc);
+            console.log(stdout);
+            console.log("error:", stderr);
+          }
+          respond(res, { ok: true });
+        } catch (e) {
+          console.log("error:", e);
+          failure(res, e.message);
+        }
+      }
     }
   })
   .listen(port, hostname, () => {

@@ -74,6 +74,8 @@ pub struct Stack {
     pub backup_services: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lightning_peers: Option<Vec<LightningPeer>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ssl_cert_last_modified: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -349,6 +351,7 @@ impl Stack {
             global_mem_limit: self.global_mem_limit,
             backup_services: self.backup_services.clone(),
             lightning_peers: self.lightning_peers.clone(),
+            ssl_cert_last_modified: self.ssl_cert_last_modified.clone(),
         }
     }
 }

@@ -1,11 +1,11 @@
 use crate::config::*;
+use crate::graphmindset::*;
 use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::{
     btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
     relay::RelayImage, Image,
 };
 use crate::secondbrain::*;
-use crate::graphmindset::*;
 use crate::secrets;
 use crate::sphinxv2::*;
 use crate::utils::{getenv, make_reqwest_client};
@@ -187,6 +187,7 @@ impl Default for Stack {
             global_mem_limit: None,
             backup_services: None,
             lightning_peers: None,
+            ssl_cert_last_modified: None,
         }
     }
 }
@@ -359,6 +360,7 @@ pub fn llama_only(network: &str, host: Option<String>) -> Stack {
         global_mem_limit: None,
         backup_services: None,
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }
 

@@ -6,7 +6,9 @@ use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
 use sphinx_swarm::handler;
 use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
+use sphinx_swarm::renew_ssl_cert::upload_new_ssl_cert_cron;
 use sphinx_swarm::routes;
+use sphinx_swarm::utils::is_using_port_based_ssl;
 use sphinx_swarm::{dock::*, events, logs, rocket_utils::CmdRequest};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
@@ -76,6 +78,15 @@ async fn main() -> Result<()> {
         auto_restart_cron(proj.to_string(), docker, auto_restart_services).await?;
     } else {
         log::info!("Auto Restart not set")
+    }
+
+    if is_using_port_based_ssl() {
+        let ssl_cert_check = upload_new_ssl_cert_cron().await;
+        if let Err(e) = ssl_cert_check {
+            log::error!("CHECK NEW SSL CERT CRON failed {:?}", e);
+        }
+    } else {
+        log::info!("is not port based ssl")
     }
 
     tokio::signal::ctrl_c().await?;
