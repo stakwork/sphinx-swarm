@@ -161,6 +161,7 @@
     } catch (error) {
       notificationMessage = "Error updating ssl cert";
       console.log("Error updating ssl cert:", error);
+      notificationKind = "error";
       updating_ssl = false;
       showNotification = true;
     }
