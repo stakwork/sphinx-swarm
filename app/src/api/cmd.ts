@@ -116,7 +116,8 @@ export type Cmd =
   | "RestartSuperAdmin"
   | "GetSslCertExpiry"
   | "RenewSslCert"
-  | "UploadSSlCert";
+  | "UploadSSlCert"
+  | "UpdateSslCert";
 interface CmdData {
   cmd: Cmd;
   content?: any;

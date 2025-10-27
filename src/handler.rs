@@ -17,11 +17,13 @@ use crate::conn::swarm::add_new_lightning_peer;
 use crate::conn::swarm::get_neo4j_password;
 use crate::conn::swarm::handle_assign_reserved_swarm_to_active;
 use crate::conn::swarm::update_lightning_peer;
+use crate::conn::swarm::SwarmResponse;
 use crate::conn::swarm::{
     change_swarm_user_password_by_user_admin, get_image_tags, update_env_variables,
 };
 use crate::dock::*;
 use crate::images::DockerHubImage;
+use crate::renew_ssl_cert::handle_update_ssl_cert;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
 use anyhow::{anyhow, Context, Result};
@@ -546,6 +548,21 @@ pub async fn handle(
                     &mut must_save_stack,
                 )
                 .await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateSslCert => {
+                let res = match handle_update_ssl_cert().await {
+                    Ok(_) => SwarmResponse {
+                        success: true,
+                        message: "ssl certificate updated successfully".to_string(),
+                        data: None,
+                    },
+                    Err(err) => SwarmResponse {
+                        success: false,
+                        message: err.to_string(),
+                        data: None,
+                    },
+                };
                 Some(serde_json::to_string(&res)?)
             }
         },

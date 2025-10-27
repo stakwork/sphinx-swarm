@@ -34,7 +34,7 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
         loop {
             let go = CHECK_SSL_CERT.load(Ordering::Relaxed);
             if go {
-                if let Err(e) = handle_check_new_ssl_cert().await {
+                if let Err(e) = handle_update_ssl_cert().await {
                     log::error!("Checking for SSL CERT: {:?}", e);
                 }
 
@@ -47,7 +47,7 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
     Ok(sched)
 }
 
-pub async fn handle_check_new_ssl_cert() -> Result<(), Error> {
+pub async fn handle_update_ssl_cert() -> Result<(), Error> {
     // check if it's port based ssl
     if !is_using_port_based_ssl() {
         return Err(anyhow!("Current swarm does not support port based ssl"));
