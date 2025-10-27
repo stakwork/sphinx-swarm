@@ -1,5 +1,5 @@
 use crate::{
-    config::{self},
+    config::{self, State},
     conn::swarm::{SwarmRestarterRes, UpdateSslCertSwarmBody},
     utils::{getenv, is_using_port_based_ssl},
 };
@@ -34,7 +34,7 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
         loop {
             let go = CHECK_SSL_CERT.load(Ordering::Relaxed);
             if go {
-                if let Err(e) = handle_update_ssl_cert().await {
+                if let Err(e) = cron_update_ssl_cert_handler().await {
                     log::error!("Checking for SSL CERT: {:?}", e);
                 }
 
@@ -47,7 +47,21 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
     Ok(sched)
 }
 
-pub async fn handle_update_ssl_cert() -> Result<(), Error> {
+async fn cron_update_ssl_cert_handler() -> Result<(), Error> {
+    let mut state = config::STATE.lock().await;
+    let mut save = false;
+
+    handle_update_ssl_cert(&mut state, &mut save).await?;
+    if save == true {
+        config::put_config_file("stack", &state.stack).await;
+    }
+    Ok(())
+}
+
+pub async fn handle_update_ssl_cert(
+    state: &mut State,
+    must_save_stack: &mut bool,
+) -> Result<(), Error> {
     // check if it's port based ssl
     if !is_using_port_based_ssl() {
         return Err(anyhow!("Current swarm does not support port based ssl"));
@@ -74,9 +88,7 @@ pub async fn handle_update_ssl_cert() -> Result<(), Error> {
         return Err(anyhow!("Unable to get last date modified from s3 bucket"));
     }
 
-    log::info!("We got response from s3 bucket: {:#?}", resp);
     let last_modified = resp.last_modified.unwrap().secs();
-    let state = config::STATE.lock().await;
 
     log::info!("Got state past here man:");
 
@@ -85,7 +97,6 @@ pub async fn handle_update_ssl_cert() -> Result<(), Error> {
             return Err(anyhow!("cert is upto date!"));
         }
     }
-    drop(state);
 
     let res = update_ssl_cert(bucket.clone()).await?;
 
@@ -104,11 +115,10 @@ pub async fn handle_update_ssl_cert() -> Result<(), Error> {
     }
     // modify state to the new moidified date and we are all happy
 
-    let mut state = config::STATE.lock().await;
-
     state.stack.ssl_cert_last_modified = Some(last_modified);
 
-    config::put_config_file("stack", &state.stack).await;
+    *must_save_stack = true;
+
     Ok(())
 }
 

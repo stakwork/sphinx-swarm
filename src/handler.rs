@@ -551,7 +551,7 @@ pub async fn handle(
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateSslCert => {
-                let res = match handle_update_ssl_cert().await {
+                let res = match handle_update_ssl_cert(&mut state, &mut must_save_stack).await {
                     Ok(_) => SwarmResponse {
                         success: true,
                         message: "ssl certificate updated successfully".to_string(),
