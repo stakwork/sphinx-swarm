@@ -14,6 +14,8 @@
     OverflowMenu,
     OverflowMenuItem,
     InlineLoading,
+    Button,
+    ToastNotification,
   } from "carbon-components-svelte";
   import Flow from "./Flow.svelte";
   import Controller from "./controls/Controller.svelte";
@@ -26,11 +28,19 @@
   import type { Stack } from "./nodes";
   import User from "carbon-icons-svelte/lib/User.svelte";
   import ChangePassword from "./auth/ChangePassword.svelte";
-  import { get_signedin_user_details, type Container } from "./api/swarm";
+  import {
+    get_signedin_user_details,
+    update_ssl_cert,
+    type Container,
+  } from "./api/swarm";
   import { getImageVersion } from "./helpers/swarm";
   import RestartNode from "./nodes/RestartNode.svelte";
   import { determineIfShouldUpdate } from "./helpers/nodeBox";
   let selectedName = "";
+  let updating_ssl = false;
+  let showNotification = false;
+  let notificationMessage = "";
+  let notificationKind: "success" | "error" = "success";
 
   $: nodes = [...$stack.nodes];
 
@@ -134,6 +144,28 @@
       body?.classList.remove(`${event.detail.text}-stopped`);
     }
   }
+
+  async function handle_update_ssl_cert() {
+    updating_ssl = true;
+    try {
+      const res = await update_ssl_cert();
+      if (res.success) {
+        notificationKind = "success";
+        notificationMessage = "Successfully updated ssl cert";
+      } else {
+        notificationMessage = res.message;
+        notificationKind = "error";
+      }
+      updating_ssl = false;
+      showNotification = true;
+    } catch (error) {
+      notificationMessage = "Error updating ssl cert";
+      console.log("Error updating ssl cert:", error);
+      notificationKind = "error";
+      updating_ssl = false;
+      showNotification = true;
+    }
+  }
 </script>
 
 <main>
@@ -174,6 +206,11 @@
         {/if}
       </section>
     </div>
+    <div>
+      <Button disabled={updating_ssl} on:click={handle_update_ssl_cert}
+        >{updating_ssl ? "Updating Cert" : "Update Ssl Cert"}</Button
+      >
+    </div>
     <div class="head_section">
       {#if $stack.ready}
         <!-- <Onboarding /> -->
@@ -193,6 +230,15 @@
     </div>
   </header>
   <div class="body" bind:this={body}>
+    {#if showNotification}
+      <ToastNotification
+        kind={notificationKind}
+        title={notificationKind === "success" ? "Success" : "Error"}
+        subtitle={notificationMessage}
+        timeout={5000}
+        on:close={() => (showNotification = false)}
+      />
+    {/if}
     {#if page === "change_password"}
       <ChangePassword back={backToMain} />
     {:else if page === "main"}
@@ -202,7 +248,6 @@
         {/key}
       {:else}
         <div class="loader">
-          letting
           <Loading />
         </div>
       {/if}

@@ -196,6 +196,7 @@ pub enum SwarmCmd {
     GetEnv(String),
     UpdateEvn(UpdateEnvRequest),
     ChangeReservedSwarmToActive(AssignSwarmNewDetails),
+    UpdateSslCert,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

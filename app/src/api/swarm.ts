@@ -85,6 +85,22 @@ export async function list_all_paid_endpoint() {
   return await swarmCmd("ListPaidEndpoint");
 }
 
+export async function get_ssl_cert_expiry() {
+  return await swarmCmd("GetSslCertExpiry");
+}
+
+export async function update_ssl_cert() {
+  return await swarmCmd("UpdateSslCert");
+}
+
+export async function renew_ssl_cert() {
+  return await swarmCmd("RenewSslCert");
+}
+
+export async function upload_ssl_cert() {
+  return await swarmCmd("UploadSSlCert");
+}
+
 export async function update_paid_endpoint(id: number, status: boolean) {
   return await swarmCmd("UpdatePaidEndpoint", { id, status });
 }

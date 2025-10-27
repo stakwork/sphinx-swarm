@@ -35,6 +35,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
         global_mem_limit: None,
         backup_services: Some(vec!["boltwall".to_string(), "neo4j".to_string()]),
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }
 
@@ -154,5 +155,6 @@ pub fn default_local_stack(host: Option<String>, network: &str, nodes: Vec<Node>
         global_mem_limit: None,
         backup_services: None,
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }

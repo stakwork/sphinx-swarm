@@ -102,6 +102,7 @@ services:
       - SWARM_RESERVER_CRON_TIME=$SWARM_RESERVER_CRON_TIME
       - CERT_BUCKET=$CERT_BUCKET
       - SUPER_ADMIN_UPDATER_PASSWORD=$SUPER_ADMIN_UPDATER_PASSWORD
+      - SSL_CERT_RENEWAL_CRON_TIME=$SSL_CERT_RENEWAL_CRON_TIME
   prometheus:
     image: prom/prometheus
     container_name: prometheus

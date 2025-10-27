@@ -113,6 +113,9 @@ pub enum SwarmCmd {
     AddAnthropicKey(AddAnthropicKeyReq),
     GetAnthropicKey,
     RestartSuperAdmin,
+    GetSslCertExpiry,
+    RenewSslCert,
+    UploadSSlCert,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -139,6 +142,18 @@ pub struct SuperSwarmResponse {
     pub success: bool,
     pub message: String,
     pub data: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SllCertExpiryDaysResponse {
+    pub day: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SuperRestarterResponse {
+    pub ok: bool,
+    pub message: Option<String>,
+    pub error: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

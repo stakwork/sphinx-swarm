@@ -1,11 +1,15 @@
-FROM rust:1.78-slim-bullseye AS chef
-RUN cargo install cargo-chef
+# --- Stage 1: Install cargo-chef using nightly (required for edition2024)
+# Use a nightly tag to support the unstable edition2024 feature
+FROM rustlang/rust:nightly-bullseye AS chef
+RUN cargo +nightly install cargo-chef --locked
 WORKDIR /sphinx-swarm
 
+# --- Stage 2: Prepare the build plan
 FROM chef AS planner
 COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+RUN cargo +nightly chef prepare --recipe-path recipe.json
 
+# --- Stage 3: Build the app
 FROM chef AS builder
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -14,12 +18,13 @@ RUN apt-get update && \
 
 COPY --from=planner /sphinx-swarm/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo +nightly chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY . .
-RUN cargo build --release --bin super
+RUN cargo +nightly build --release --bin super
 
+# --- Stage 4: Runtime (No change needed here)
 FROM debian:11-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \

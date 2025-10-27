@@ -26,6 +26,18 @@ pub struct UpdateSwarmBody {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSslCertSwarmBody {
+    pub password: String,
+    pub cert_bucket_name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwarmRestarterRes {
+    pub ok: Option<bool>,
+    pub error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChangePasswordBySuperAdminResponse {
     pub success: bool,
     pub message: String,

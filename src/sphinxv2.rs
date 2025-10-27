@@ -79,6 +79,7 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
         global_mem_limit: None,
         backup_services: None,
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }
 
@@ -117,6 +118,7 @@ pub fn sphinxv1_only(network: &str, host: Option<String>) -> Stack {
         global_mem_limit: None,
         backup_services: Some(vec!["mixer".to_string(), "tribes".to_string()]),
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }
 
@@ -137,5 +139,6 @@ pub fn config_only(host: Option<String>) -> Stack {
         global_mem_limit: None,
         backup_services: None,
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }

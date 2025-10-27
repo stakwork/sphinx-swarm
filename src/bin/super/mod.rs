@@ -26,9 +26,14 @@ use util::{
 };
 
 use crate::checker::swarm_checker;
+use crate::cmd::SuperRestarterResponse;
 use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
 use crate::service::child_swarm::update_env::update_child_swarm_env;
+use crate::service::ssl_cert::handle_renew_cert::{
+    handle_get_ssl_cert_expiry, renew_cert, upload_cert_to_s3,
+};
+use crate::service::ssl_cert::renew_cert_cron::ssl_cert_renewal_cron;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
@@ -74,6 +79,11 @@ async fn main() -> Result<()> {
         if let Err(e) = cron_handle_reserver_swarm {
             log::error!("SWARM RESERVER CRON failed {:?}", e);
         }
+    }
+
+    let ssl_cert_res = ssl_cert_renewal_cron().await;
+    if let Err(e) = ssl_cert_res {
+        log::error!("CRON failed {:?}", e);
     }
 
     // launch rocket
@@ -506,6 +516,32 @@ pub async fn super_handle(
             }
             SwarmCmd::RestartSuperAdmin => {
                 let res = update_super_admin().await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetSslCertExpiry => {
+                let res = handle_get_ssl_cert_expiry().await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::RenewSslCert => {
+                let res = match renew_cert().await {
+                    Ok(data) => data,
+                    Err(err) => SuperRestarterResponse {
+                        ok: false,
+                        message: Some(err.to_string()),
+                        error: Some(err.to_string()),
+                    },
+                };
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UploadSSlCert => {
+                let res = match upload_cert_to_s3().await {
+                    Ok(data) => data,
+                    Err(err) => SuperRestarterResponse {
+                        ok: false,
+                        message: Some(err.to_string()),
+                        error: Some(err.to_string()),
+                    },
+                };
                 Some(serde_json::to_string(&res)?)
             }
         },

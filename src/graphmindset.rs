@@ -1,6 +1,6 @@
 use crate::config::*;
 use crate::defaults::*;
-use crate::images::boltwall::{BoltwallImage};
+use crate::images::boltwall::BoltwallImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
@@ -30,6 +30,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
         global_mem_limit: None,
         backup_services: Some(vec!["boltwall".to_string(), "neo4j".to_string()]),
         lightning_peers: None,
+        ssl_cert_last_modified: None,
     }
 }
 

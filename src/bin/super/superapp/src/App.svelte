@@ -20,6 +20,7 @@
   import Logs from "./logs.svelte";
   import AnthropicKeys from "./AnthropicKeys.svelte";
   import { update_super_admin } from "../../../../../app/src/api/swarm";
+  import SslCert from "./SslCert.svelte";
 
   let page = "main";
   let showRestartModal = false;
@@ -104,6 +105,7 @@
           <Tab label="Lightning" />
           <Tab label="Logs" />
           <Tab label="Anthropic Keys" />
+          <Tab label="SSL Cert" />
           <svelte:fragment slot="content">
             <TabContent>
               <div>
@@ -117,6 +119,7 @@
             <TabContent><LightningBot /></TabContent>
             <TabContent><Logs /></TabContent>
             <TabContent><AnthropicKeys /></TabContent>
+            <TabContent><SslCert /></TabContent>
           </svelte:fragment>
         </Tabs>
       {/if}
