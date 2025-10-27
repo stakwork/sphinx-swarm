@@ -150,6 +150,7 @@ http
             `sudo mkdir -p /home/admin/certs`,
             `sudo cp /etc/letsencrypt/live/sphinx.chat/fullchain.pem /home/admin/certs/sphinx.chat.crt`,
             `sudo cp /etc/letsencrypt/live/sphinx.chat/privkey.pem /home/admin/certs/sphinx.chat.key`,
+            `sudo cp /home/admin/tls.yml /home/admin/certs/tls.yml`,
             `sudo zip -r /home/admin/data.zip /home/admin/certs/`,
             `aws s3 cp /home/admin/data.zip s3://${CERT_BUCKET}/data.zip`,
           ];
