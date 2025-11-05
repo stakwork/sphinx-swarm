@@ -195,12 +195,25 @@ export function parseClnPayments(transactions) {
           amount: `${convertMillisatsToSats(
             transaction.amount_sent_msat.msat
           ).toLocaleString()} sats`,
+          status: determineClnStatus(transaction.status),
         });
       }
     }
     return trans;
   } else {
     return [];
+  }
+}
+
+function determineClnStatus(status: number) {
+  if (status === 0) {
+    return "PENDING";
+  } else if (status === 1) {
+    return "COMPLETE";
+  } else if (status === 2) {
+    return "FAILED";
+  } else {
+    return "UNKNOWN";
   }
 }
 
@@ -219,6 +232,7 @@ export function parseClnInvoices(transactions) {
           amount: `${convertMillisatsToSats(
             transaction.amount_received_msat?.msat
           ).toLocaleString()} sats`,
+          status: determineClnStatus(transaction.status),
         });
       }
     }

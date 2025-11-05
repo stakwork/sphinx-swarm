@@ -1,5 +1,11 @@
 <script>
   import { DataTable, Loading, Pagination } from "carbon-components-svelte";
+  import {
+    CloseOutline,
+    CheckmarkOutline,
+    PendingFilled,
+    UnknownFilled,
+  } from "carbon-icons-svelte";
   import { onMount } from "svelte";
   export let tag = "";
   export let type = "";
@@ -82,6 +88,7 @@
         headers={[
           { key: "index", value: "Index" },
           { key: "invoice", value: "Invoice" },
+          { key: "status", value: "Status" },
           { key: "date", value: "Date" },
           { key: "amount", value: "Amount" },
         ]}
@@ -99,6 +106,18 @@
               >
                 Copy
               </button>
+            </div>
+          {:else if cell.key === "status"}
+            <div class="status_cell">
+              {#if cell.value === "FAILED"}
+                <CloseOutline size={20} style="color:#DA1E28" />
+              {:else if cell.value === "COMPLETE"}
+                <CheckmarkOutline size={20} style="color:#198038" />
+              {:else if cell.value === "PENDING"}
+                <PendingFilled size={20} style="color:#F1C21B" />
+              {:else}
+                <UnknownFilled size={20} style="color:#8D8D8D" />
+              {/if}
             </div>
           {:else}
             {cell.value}
@@ -157,7 +176,7 @@
   }
 
   .button:hover {
-    background-color: #222222; 
+    background-color: #222222;
   }
 
   .button:active {
@@ -172,5 +191,11 @@
   .button:disabled {
     background-color: #6c757d;
     cursor: not-allowed;
+  }
+
+  .status_cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>
