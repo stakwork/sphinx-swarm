@@ -4,8 +4,7 @@ version: "2"
 
 services:
   load_balancer:
-    #image: traefik:v2.9
-    image: felixbuenemann/traefik:v3.6.1
+    image: traefik:v2.11.31
     container_name: load_balancer
     restart: unless-stopped
     networks:
