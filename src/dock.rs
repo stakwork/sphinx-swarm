@@ -83,11 +83,30 @@ pub async fn pull_image(docker: &Docker, c: Config<String>) -> Result<bool> {
     let img_tag = c.image.clone().context("expected image")?;
     // if it contains a "/" its from the registry
     let local_sphinx_image = is_local_sphinx_image(&img_tag);
-    if !local_sphinx_image {
-        create_image(&docker, &c).await?;
+    if local_sphinx_image {
+        return Ok(false);
     }
 
-    Ok(true)
+    // Get digest before pull
+    let before_digest = get_local_image_digest(docker, &img_tag).await;
+
+    // Pull image
+    create_image(&docker, &c).await?;
+
+    // Get digest after pull
+    let after_digest = get_local_image_digest(docker, &img_tag).await;
+
+    // Return true only if image actually changed
+    Ok(before_digest != after_digest)
+}
+
+async fn get_local_image_digest(docker: &Docker, img_tag: &str) -> Option<String> {
+    docker
+        .inspect_image(img_tag)
+        .await
+        .ok()
+        .and_then(|info| info.repo_digests)
+        .and_then(|digests| digests.first().cloned())
 }
 
 // returns container id
