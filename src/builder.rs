@@ -7,11 +7,15 @@ use crate::images::{DockerConfig, Image};
 use crate::utils::domain;
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
+use serde::Deserialize;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);
 
 pub static AUTO_UPDATE: AtomicBool = AtomicBool::new(false);
+
+pub static FAST_UPDATE: AtomicBool = AtomicBool::new(false);
 
 pub fn is_shutdown() -> bool {
     SHUTDOWN.load(Ordering::Relaxed)
@@ -77,6 +81,18 @@ pub async fn auto_updater(
         })?)
         .await?;
 
+    // Add fast update cron for stakgraph/repo2graph (default: every 15 minutes)
+    let fast_update_cron =
+        std::env::var("FAST_UPDATE_CRON").unwrap_or_else(|_| "0 */15 * * * *".to_string());
+    sched
+        .add(Job::new_async(fast_update_cron.as_str(), |_uuid, _l| {
+            Box::pin(async move {
+                log::info!("FAST_UPDATE TRIGGERED");
+                FAST_UPDATE.store(true, Ordering::Relaxed);
+            })
+        })?)
+        .await?;
+
     sched.start().await?;
 
     let proj = proj.to_string();
@@ -84,6 +100,7 @@ pub async fn auto_updater(
     tokio::spawn(async move {
         let node_names_ = node_names.clone();
         loop {
+            // Check for daily auto-updates
             let go = AUTO_UPDATE.load(Ordering::Relaxed);
             if go {
                 for nn in &node_names_ {
@@ -93,6 +110,44 @@ pub async fn auto_updater(
                 }
                 AUTO_UPDATE.store(false, Ordering::Relaxed);
             }
+
+            // Check for fast updates (stakgraph/repo2graph every 15 min)
+            if FAST_UPDATE.load(Ordering::Relaxed) {
+                let mut state = STATE.lock().await;
+                let nodes = state.stack.nodes.clone();
+
+                for node in &nodes {
+                    if let Ok(img) = node.as_internal() {
+                        if let Some(port) = get_fast_update_port(&img) {
+                            let node_name = node.name();
+                            match fast_update_node(
+                                &proj,
+                                &docker,
+                                &node_name,
+                                &nodes,
+                                &img,
+                                &port,
+                                &mut state.clients,
+                            )
+                            .await
+                            {
+                                Ok(true) => {
+                                    // Update happened, reconnect client
+                                    if let Err(e) = make_client(&proj, &docker, &img, &mut state).await {
+                                        log::error!("Fast update client reconnect failed for {}: {:?}", node_name, e);
+                                    }
+                                }
+                                Ok(false) => {} // No update needed
+                                Err(e) => {
+                                    log::error!("Fast update failed for {}: {:?}", node_name, e);
+                                }
+                            }
+                        }
+                    }
+                }
+                FAST_UPDATE.store(false, Ordering::Relaxed);
+            }
+
             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
         }
     });
@@ -283,4 +338,102 @@ pub async fn make_client(
     // post-client connection steps (BTC load wallet)
     theimg.post_client(&mut state.clients).await?;
     Ok(())
+}
+
+// Fast update support for stakgraph/repo2graph
+
+#[derive(Deserialize)]
+struct BusyResponse {
+    busy: bool,
+}
+
+async fn check_is_busy(node_name: &str, port: &str) -> bool {
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .danger_accept_invalid_certs(true)
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return true,
+    };
+
+    let host = crate::utils::docker_domain(node_name);
+    let url = format!("http://{}:{}/busy", host, port);
+
+    match client.get(&url).send().await {
+        Ok(res) => match res.json::<BusyResponse>().await {
+            Ok(body) => body.busy,
+            Err(_) => true,
+        },
+        Err(_) => true,
+    }
+}
+
+fn get_fast_update_port(img: &Image) -> Option<String> {
+    match img {
+        Image::Stakgraph(s) => Some(s.port.clone()),
+        Image::Repo2Graph(r) => Some(r.port.clone()),
+        _ => None,
+    }
+}
+
+/// Returns Ok(true) if update was performed, Ok(false) if skipped
+async fn fast_update_node(
+    proj: &str,
+    docker: &Docker,
+    node_name: &str,
+    nodes: &Vec<Node>,
+    img: &Image,
+    port: &str,
+    clients: &mut Clients,
+) -> Result<bool> {
+    let hostname = domain(node_name);
+    let config = img.make_config(nodes, docker).await?;
+
+    // Pull and check if new image available
+    let has_new_image = pull_image(docker, config.clone()).await?;
+
+    if !has_new_image {
+        log::info!("fast_update: no new image for {}", node_name);
+        return Ok(false);
+    }
+
+    log::info!(
+        "fast_update: new image for {}, checking busy status",
+        node_name
+    );
+
+    // Check if service is busy before updating
+    if check_is_busy(node_name, port).await {
+        log::info!("fast_update: {} is busy, skipping", node_name);
+        return Ok(false);
+    }
+
+    log::info!("fast_update: {} is not busy, updating", node_name);
+
+    // Prune unused images
+    prune_images(docker).await;
+
+    // Remove client
+    img.remove_client(clients);
+
+    // Stop and remove container
+    stop_and_remove(docker, &hostname).await?;
+
+    // Create new container
+    let id = create_container(docker, config).await?;
+    log::info!("fast_update: created {}", &hostname);
+
+    // Pre-startup hooks
+    if let Err(e) = img.pre_startup(docker).await {
+        log::warn!("fast_update: pre_startup failed {} {:?}", &id, e);
+    }
+
+    // Start container
+    start_container(docker, &id).await?;
+
+    // Post-startup hooks
+    img.post_startup(proj, docker).await?;
+
+    Ok(true)
 }
