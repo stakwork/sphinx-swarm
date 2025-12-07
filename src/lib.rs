@@ -10,6 +10,7 @@ pub mod defaults;
 pub mod dock;
 pub mod env;
 pub mod events;
+pub mod fast_service_update;
 pub mod graphmindset;
 pub mod handler;
 pub mod images;

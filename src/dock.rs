@@ -112,7 +112,12 @@ pub async fn create_and_start(
 }
 
 fn m1_not_supported(from_image: &str) -> bool {
-    let vs = vec!["/sphinx-lss".to_string(), "/cln-sphinx".to_string(), "/sphinx-nav-fiber".to_string(), "/stakgraph-mcp".to_string()];
+    let vs = vec![
+        "/sphinx-lss".to_string(),
+        "/cln-sphinx".to_string(),
+        "/sphinx-nav-fiber".to_string(),
+        "/stakgraph-mcp".to_string(),
+    ];
     let mut b = false;
     for v in vs {
         if from_image.contains(&v) {
@@ -635,70 +640,18 @@ pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse
 pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActualVersionResponse> {
     let docker = Docker::connect_with_local_defaults()?;
 
-    let mut parsed_node: Vec<ParsedNode> = vec![ParsedNode {
-        name: "swarm".to_string(),
-        host: "sphinx-swarm".to_string(),
-        org: "".to_string(),
-    }];
+    let mut images_version: Vec<ImageVersion> = Vec::new();
+
+    let swarm_version_response = get_image_version("swarm", &nodes, &docker).await;
+
+    images_version.push(swarm_version_response);
 
     for node in nodes.iter() {
         let node_name = node.name();
-        let host = domain(&node_name);
 
-        let node_image = find_img(&node_name, nodes)?;
-        let org = node_image.repo().org;
+        let image_version_response = get_image_version(&node_name, &nodes, &docker).await;
 
-        parsed_node.push(ParsedNode {
-            name: node_name,
-            org: org,
-            host: host,
-        })
-    }
-
-    let mut images_version: Vec<ImageVersion> = Vec::new();
-
-    for node in parsed_node.iter() {
-        let node_name = node.name.clone();
-        let image_id = get_image_id(&docker, &node.host).await;
-        if image_id.is_empty() {
-            images_version.push(ImageVersion {
-                name: node_name,
-                version: "unavailable".to_string(),
-                is_latest: false,
-                latest_version: "unavailable".to_string(),
-            });
-            continue;
-        }
-
-        let digest = get_image_digest_from_image_id(&docker, &image_id).await;
-        if digest.is_empty() {
-            log::error!("Error getting {} image digest", node_name);
-            images_version.push(ImageVersion {
-                name: node_name,
-                version: "unavailable".to_string(),
-                is_latest: false,
-                latest_version: "unavailable".to_string(),
-            });
-            continue;
-        }
-
-        let digest_parts: Vec<&str> = digest.split("@").collect();
-
-        let mut image_name = digest_parts[0].to_string();
-        let checksome = digest_parts[1];
-
-        if node.org == "library" {
-            image_name = format!("{}/{}", node.org, image_name);
-        }
-
-        let res = get_image_version_from_digest(&image_name, checksome).await;
-
-        images_version.push(ImageVersion {
-            name: node_name,
-            version: res.current_version,
-            is_latest: res.is_latest,
-            latest_version: res.latest_version,
-        });
+        images_version.push(image_version_response)
     }
 
     Ok(GetImageActualVersionResponse {
@@ -706,6 +659,69 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
         message: "image actual versions".to_string(),
         data: Some(images_version),
     })
+}
+
+pub async fn get_image_version(
+    node_name: &str,
+    nodes: &Vec<Node>,
+    docker: &Docker,
+) -> ImageVersion {
+    let host = domain(&node_name);
+    let mut org = "".to_string();
+    if node_name != "swarm" {
+        match find_img(&node_name, nodes) {
+            Ok(node_image) => {
+                org = node_image.repo().org;
+            }
+            Err(err) => {
+                log::error!("Error finding {} image: {}", node_name, err.to_string());
+                return ImageVersion {
+                    name: node_name.to_string(),
+                    version: "unavailable".to_string(),
+                    is_latest: false,
+                    latest_version: "unavailable".to_string(),
+                };
+            }
+        }
+    }
+    let image_id = get_image_id(&docker, &host).await;
+    if image_id.is_empty() {
+        return ImageVersion {
+            name: node_name.to_string(),
+            version: "unavailable".to_string(),
+            is_latest: false,
+            latest_version: "unavailable".to_string(),
+        };
+    }
+
+    let digest = get_image_digest_from_image_id(&docker, &image_id).await;
+    if digest.is_empty() {
+        log::error!("Error getting {} image digest", node_name);
+        return ImageVersion {
+            name: node_name.to_string(),
+            version: "unavailable".to_string(),
+            is_latest: false,
+            latest_version: "unavailable".to_string(),
+        };
+    }
+
+    let digest_parts: Vec<&str> = digest.split("@").collect();
+
+    let mut image_name = digest_parts[0].to_string();
+    let checksome = digest_parts[1];
+
+    if org == "library" {
+        image_name = format!("{}/{}", org, image_name);
+    }
+
+    let res = get_image_version_from_digest(&image_name, checksome).await;
+
+    return ImageVersion {
+        name: node_name.to_string(),
+        version: res.current_version,
+        is_latest: res.is_latest,
+        latest_version: res.latest_version,
+    };
 }
 
 async fn get_image_id(docker: &Docker, container_name: &str) -> String {

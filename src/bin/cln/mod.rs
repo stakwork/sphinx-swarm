@@ -154,6 +154,7 @@ fn make_stack() -> Stack {
         backup_services: None,
         lightning_peers: None,
         auto_restart: None,
+        ssl_cert_last_modified: None,
     }
 }
 

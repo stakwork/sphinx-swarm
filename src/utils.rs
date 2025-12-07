@@ -9,12 +9,12 @@ use bollard_stubs::models::{
 };
 use rocket::tokio;
 use serde::{de::DeserializeOwned, Serialize};
+use std::env;
 use std::fs::{read_to_string, write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::{collections::HashMap, time::Duration};
 use tokio::{fs, io::AsyncWriteExt};
-use std::env;
 
 pub fn host_config(
     name: &str,
@@ -64,18 +64,18 @@ pub fn add_gpus_to_host_config(hc: &mut HostConfig, count: i64) {
 
 fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
     let mut h = HashMap::new();
-    
+
     match get_environment() {
         Environment::Local => {
             // Local logging - logs to local files
             h.insert("max-size".to_string(), "10m".to_string());
             h.insert("max-file".to_string(), "3".to_string());
-            
+
             Some(HostConfigLogConfig {
                 typ: Some("json-file".to_string()),
                 config: Some(h),
             })
-        },
+        }
         Environment::Cloud => {
             // AWS CloudWatch logging
             h.insert("awslogs-region".to_string(), "us-east-1".to_string());
@@ -84,7 +84,7 @@ fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
             h.insert("tag".to_string(), "{{.Name}}".to_string());
             h.insert("cache-max-size".to_string(), "10m".to_string());
             h.insert("cache-max-file".to_string(), "3".to_string());
-            
+
             Some(HostConfigLogConfig {
                 typ: Some("awslogs".to_string()),
                 config: Some(h),
@@ -108,7 +108,7 @@ fn get_environment() -> Environment {
             _ => {}
         }
     }
-    
+
     Environment::Cloud
 }
 
@@ -172,6 +172,9 @@ pub fn user() -> Option<String> {
 }
 
 pub fn domain(name: &str) -> String {
+    if name == "swarm" {
+        return format!("sphinx-swarm");
+    }
     format!("{}.sphinx", name)
 }
 
