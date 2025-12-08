@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
     }
 
     if let Some(auto_restart_services) = stack.auto_restart {
-        auto_restart_cron(proj.to_string(), docker, auto_restart_services).await?;
+        auto_restart_cron(proj.to_string(), docker.clone(), auto_restart_services).await?;
     } else {
         log::info!("Auto Restart not set")
     }
@@ -87,6 +87,12 @@ async fn main() -> Result<()> {
         }
     } else {
         log::info!("is not port based ssl")
+    }
+
+    let cron_handler_res =
+        builder::fast_service_update(proj, docker.clone(), stack.nodes.clone()).await;
+    if let Err(e) = cron_handler_res {
+        log::error!("FAST SERVICE UPDATE CRON failed {:?}", e);
     }
 
     tokio::signal::ctrl_c().await?;

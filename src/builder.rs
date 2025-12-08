@@ -3,8 +3,9 @@ use crate::dock::*;
 use crate::dock::{
     prune_images, pull_image, restart_container, restore_backup_if_exist, stop_and_remove,
 };
+use crate::fast_service_update::handle_fast_node_update;
 use crate::images::{DockerConfig, Image};
-use crate::utils::domain;
+use crate::utils::{domain, getenv};
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -12,6 +13,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);
 
 pub static AUTO_UPDATE: AtomicBool = AtomicBool::new(false);
+
+pub static FAST_UPDATE: AtomicBool = AtomicBool::new(false);
 
 pub fn is_shutdown() -> bool {
     SHUTDOWN.load(Ordering::Relaxed)
@@ -283,4 +286,48 @@ pub async fn make_client(
     // post-client connection steps (BTC load wallet)
     theimg.post_client(&mut state.clients).await?;
     Ok(())
+}
+
+pub async fn fast_service_update(
+    proj: &str,
+    docker: Docker,
+    nodes: Vec<Node>,
+) -> Result<JobScheduler> {
+    log::info!(":Fast Auto Update!!");
+    let sched = JobScheduler::new().await?;
+
+    let cron_time = match getenv("FAST_UPDATE_CRON") {
+        Ok(env) => env,
+        Err(_) => "0 */15 * * * *".to_string(),
+    };
+
+    sched
+        .add(Job::new_async(cron_time.as_str(), |_uuid, _l| {
+            Box::pin(async move {
+                if !FAST_UPDATE.load(Ordering::Relaxed) {
+                    FAST_UPDATE.store(true, Ordering::Relaxed);
+                }
+            })
+        })?)
+        .await?;
+
+    sched.start().await?;
+
+    let proj = proj.to_string();
+    // let node_names = node_names.clone();
+    tokio::spawn(async move {
+        loop {
+            let go = FAST_UPDATE.load(Ordering::Relaxed);
+            if go {
+                if let Err(e) = handle_fast_node_update(&proj, &docker, nodes.clone()).await {
+                    log::error!("{:?}", e);
+                }
+
+                FAST_UPDATE.store(false, Ordering::Relaxed);
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        }
+    });
+
+    Ok(sched)
 }
