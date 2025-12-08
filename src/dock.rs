@@ -642,14 +642,14 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
 
     let mut images_version: Vec<ImageVersion> = Vec::new();
 
-    let swarm_version_response = get_image_version("swarm", &nodes, &docker).await;
+    let swarm_version_response = get_image_version("swarm", &docker, "").await;
 
     images_version.push(swarm_version_response);
 
     for node in nodes.iter() {
         let node_name = node.name();
-
-        let image_version_response = get_image_version(&node_name, &nodes, &docker).await;
+        let img = find_img(&node_name, &nodes)?;
+        let image_version_response = get_image_version(&node_name, &docker, &img.repo().org).await;
 
         images_version.push(image_version_response)
     }
@@ -661,29 +661,9 @@ pub async fn get_image_actual_version(nodes: &Vec<Node>) -> Result<GetImageActua
     })
 }
 
-pub async fn get_image_version(
-    node_name: &str,
-    nodes: &Vec<Node>,
-    docker: &Docker,
-) -> ImageVersion {
+pub async fn get_image_version(node_name: &str, docker: &Docker, org: &str) -> ImageVersion {
     let host = domain(&node_name);
-    let mut org = "".to_string();
-    if node_name != "swarm" {
-        match find_img(&node_name, nodes) {
-            Ok(node_image) => {
-                org = node_image.repo().org;
-            }
-            Err(err) => {
-                log::error!("Error finding {} image: {}", node_name, err.to_string());
-                return ImageVersion {
-                    name: node_name.to_string(),
-                    version: "unavailable".to_string(),
-                    is_latest: false,
-                    latest_version: "unavailable".to_string(),
-                };
-            }
-        }
-    }
+
     let image_id = get_image_id(&docker, &host).await;
     if image_id.is_empty() {
         return ImageVersion {
