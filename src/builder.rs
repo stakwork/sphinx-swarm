@@ -1,4 +1,5 @@
 use crate::config::{self, Clients, Node, Stack, State, STATE};
+use crate::conn::swarm::update_swarm;
 use crate::dock::*;
 use crate::dock::{
     prune_images, pull_image, restart_container, restore_backup_if_exist, stop_and_remove,
@@ -93,6 +94,14 @@ pub async fn auto_updater(
                     if let Err(e) = update_node_from_state(&proj, &docker, nn).await {
                         log::error!("{:?}", e);
                     }
+                }
+                // check if swarm is up to date if not update
+                let swarm_version_response = get_image_version("swarm", &docker, "").await;
+                if swarm_version_response.is_latest == false {
+                    log::info!("swarm is updating itself");
+                    if let Err(e) = update_swarm().await {
+                        log::error!("swarm auto update failed {:?}", e);
+                    };
                 }
                 AUTO_UPDATE.store(false, Ordering::Relaxed);
             }
