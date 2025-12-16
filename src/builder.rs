@@ -5,7 +5,7 @@ use crate::dock::{
     prune_images, pull_image, restart_container, restore_backup_if_exist, stop_and_remove,
 };
 use crate::fast_service_update::handle_fast_node_update;
-use crate::images::{DockerConfig, Image};
+use crate::images::{DockerConfig, DockerHubImage, Image};
 use crate::utils::{domain, getenv};
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
@@ -116,6 +116,12 @@ pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str
     let mut state = STATE.lock().await;
     let nodes = state.stack.nodes.clone();
     let img = find_img(node_name, &nodes)?;
+
+    let node_version_response = get_image_version(node_name, &docker, &img.repo().org).await;
+    if node_version_response.is_latest {
+        log::info!("{} is up to date, no need to auto update", node_name);
+        return Ok(());
+    }
 
     // drop(state);
     match update_node(proj, docker, node_name, &nodes, &img, &mut state.clients).await {
