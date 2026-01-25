@@ -106,11 +106,15 @@ fn repo2graph(
         env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
 
+    let sessions_dir = "/usr/src/app/sessions";
+    env.push(format!("SESSIONS_DIR={}", sessions_dir));
+
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
         "/usr/src/app/tests/generated_tests",
     );
-    let extra_vols = vec![tests_vol];
+    let sessions_vol = volume_string(&format!("{}-sessions", img.name), sessions_dir);
+    let extra_vols = vec![tests_vol, sessions_vol];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
