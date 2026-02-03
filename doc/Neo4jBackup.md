@@ -38,5 +38,11 @@ Now move the backed up data
 5). start up neo4j
 `docker start neo4j.sphinx`
 
+Note: if you're having trouble connecting to neo4j you might have an outdated username and pass.
+        1). stop neo4j `docker stop neo4j.sphinx`
+        2). Delete auth.ini `sudo rm /var/lib/docker/volumes/neo4j.sphinx/_data/dbms/auth.ini`
+        3). Start neo4j `docker start neo4j.sphinx`
+        4). Use the password in NEO4J_AUTH `docker inspect neo4j.sphinx`
+
 6). View the logs
 `docker logs neo4j.sphinx -f`
