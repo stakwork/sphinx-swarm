@@ -233,7 +233,7 @@ pub async fn restart_node_container(
     let new_id = create_container(&docker, theconfig).await?;
     log::info!("=> created {}", &hostname);
 
-    if let Err(e) = img.pre_startup(docker).await {
+    if let Err(e) = img.pre_startup(docker, &state.stack.nodes).await {
         log::warn!("pre_startup failed {} {:?}", &new_id, e);
     }
 

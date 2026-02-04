@@ -20,6 +20,7 @@ pub mod navfiber;
 pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
+pub mod quickwit;
 pub mod redis;
 pub mod relay;
 pub mod repo2graph;
@@ -29,6 +30,7 @@ pub mod stakgraph;
 pub mod tome;
 pub mod traefik;
 pub mod tribes;
+pub mod vector;
 pub mod whisker;
 pub mod whisper;
 
@@ -73,6 +75,8 @@ pub enum Image {
     Redis(redis::RedisImage),
     Chrome(chrome::ChromeImage),
     Stakgraph(stakgraph::StakgraphImage),
+    Quickwit(quickwit::QuickwitImage),
+    Vector(vector::VectorImage),
 }
 
 pub enum Registry {
@@ -149,6 +153,8 @@ impl Image {
             Image::Redis(n) => n.name.clone(),
             Image::Chrome(n) => n.name.clone(),
             Image::Stakgraph(n) => n.name.clone(),
+            Image::Quickwit(n) => n.name.clone(),
+            Image::Vector(n) => n.name.clone(),
         }
     }
 
@@ -185,6 +191,8 @@ impl Image {
             Image::Redis(n) => n.host.clone(),
             Image::Chrome(n) => n.host.clone(),
             Image::Stakgraph(n) => n.host.clone(),
+            Image::Quickwit(n) => n.host.clone(),
+            Image::Vector(n) => n.host.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -220,6 +228,8 @@ impl Image {
             Image::Redis(_n) => "Redis",
             Image::Chrome(_n) => "Chrome",
             Image::Stakgraph(_n) => "Stakgraph",
+            Image::Quickwit(_n) => "Quickwit",
+            Image::Vector(_n) => "Vector",
         }
         .to_string()
     }
@@ -256,6 +266,8 @@ impl Image {
             Image::Redis(n) => n.version = version.to_string(),
             Image::Chrome(n) => n.version = version.to_string(),
             Image::Stakgraph(n) => n.version = version.to_string(),
+            Image::Quickwit(n) => n.version = version.to_string(),
+            Image::Vector(n) => n.version = version.to_string(),
         }
     }
 
@@ -292,12 +304,15 @@ impl Image {
             Image::Redis(n) => n.host(Some(host.to_string())),
             Image::Chrome(n) => n.host(Some(host.to_string())),
             Image::Stakgraph(n) => n.host(Some(host.to_string())),
+            Image::Quickwit(n) => n.host(Some(host.to_string())),
+            Image::Vector(n) => n.host(Some(host.to_string())),
         }
     }
-    pub async fn pre_startup(&self, docker: &Docker) -> Result<()> {
+    pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
         Ok(match self {
             Image::Cln(n) => n.pre_startup(docker).await?,
             Image::Neo4j(n) => n.pre_startup(docker).await?,
+            Image::Vector(n) => n.pre_startup(docker, nodes).await?,
             _ => (),
         })
     }
@@ -306,6 +321,7 @@ impl Image {
             // unlock LND
             Image::Lnd(n) => n.post_startup(proj, docker).await?,
             Image::Elastic(n) => n.post_startup(proj, docker).await?,
+            Image::Quickwit(n) => n.post_startup().await?,
             _ => (),
         })
     }
@@ -387,6 +403,8 @@ impl DockerConfig for Image {
             Image::Redis(n) => n.make_config(nodes, docker).await,
             Image::Chrome(n) => n.make_config(nodes, docker).await,
             Image::Stakgraph(n) => n.make_config(nodes, docker).await,
+            Image::Quickwit(n) => n.make_config(nodes, docker).await,
+            Image::Vector(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -425,6 +443,8 @@ impl DockerHubImage for Image {
             Image::Redis(n) => n.repo(),
             Image::Chrome(n) => n.repo(),
             Image::Stakgraph(n) => n.repo(),
+            Image::Quickwit(n) => n.repo(),
+            Image::Vector(n) => n.repo(),
         }
     }
 }
@@ -588,6 +608,22 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_quickwit(&self) -> Option<quickwit::QuickwitImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_quickwit() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_vector(&self) -> Option<vector::VectorImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_vector() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -715,6 +751,18 @@ impl Image {
         match self {
             Image::Redis(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Redis".to_string())),
+        }
+    }
+    pub fn as_quickwit(&self) -> anyhow::Result<quickwit::QuickwitImage> {
+        match self {
+            Image::Quickwit(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Quickwit".to_string())),
+        }
+    }
+    pub fn as_vector(&self) -> anyhow::Result<vector::VectorImage> {
+        match self {
+            Image::Vector(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Vector".to_string())),
         }
     }
 }
