@@ -106,16 +106,67 @@ fn vector_toml(http_port: &str, quickwit_host: &str) -> String {
         r#"# Vector configuration for log ingestion
 # Receives logs via HTTP and forwards to Quickwit
 
-[sources.http_logs]
+# =============================================================================
+# SOURCES - Multiple endpoints for different log formats
+# =============================================================================
+
+# Vercel log drain endpoint: POST /vercel
+# Expects NDJSON format from Vercel
+[sources.vercel_logs]
 type = "http_server"
 address = "0.0.0.0:{http_port}"
-encoding = "json"
+path = "/vercel"
+decoding.codec = "json"
+framing.method = "newline_delimited"
+
+# Generic JSON logs endpoint: POST /logs
+# Expects JSON objects (single or newline-delimited)
+[sources.generic_logs]
+type = "http_server"
+address = "0.0.0.0:{http_port}"
+path = "/logs"
+decoding.codec = "json"
+framing.method = "newline_delimited"
+
+# =============================================================================
+# TRANSFORMS - Normalize logs to common format
+# =============================================================================
+
+# Transform Vercel logs - already has timestamp, level, message, source
+[transforms.vercel_normalized]
+type = "remap"
+inputs = ["vercel_logs"]
+source = '''
+# Vercel timestamp is unix milliseconds, keep as-is for Quickwit
+.log_source = "vercel"
+'''
+
+# Transform generic logs - ensure required fields exist
+[transforms.generic_normalized]
+type = "remap"
+inputs = ["generic_logs"]
+source = '''
+.log_source = "generic"
+# Add timestamp if missing (unix ms)
+if !exists(.timestamp) {{
+  .timestamp = to_unix_timestamp(now(), unit: "milliseconds")
+}}
+# Default level if missing
+if !exists(.level) {{
+  .level = "info"
+}}
+'''
+
+# =============================================================================
+# SINKS - Send to Quickwit
+# =============================================================================
 
 [sinks.quickwit]
 type = "http"
-inputs = ["http_logs"]
+inputs = ["vercel_normalized", "generic_normalized"]
 uri = "http://{quickwit_host}:7280/api/v1/logs/ingest"
 encoding.codec = "json"
+framing.method = "newline_delimited"
 "#
     )
 }

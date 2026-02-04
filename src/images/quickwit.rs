@@ -59,21 +59,43 @@ impl QuickwitImage {
 
         log::info!("=> creating quickwit logs index...");
 
+        // Index config matching Vercel log drain format
+        // Vercel sends: id, deploymentId, source, host, timestamp (unix ms), projectId, level, message, etc.
         let index_config = serde_json::json!({
             "version": "0.7",
             "index_id": "logs",
             "doc_mapping": {
+                "mode": "dynamic",
                 "field_mappings": [
-                    {"name": "timestamp", "type": "datetime", "fast": true},
+                    {
+                        "name": "timestamp",
+                        "type": "datetime",
+                        "input_formats": ["unix_timestamp"],
+                        "output_format": "unix_timestamp_millis",
+                        "fast_precision": "milliseconds",
+                        "fast": true
+                    },
+                    {"name": "id", "type": "text", "tokenizer": "raw"},
+                    {"name": "deploymentId", "type": "text", "tokenizer": "raw"},
+                    {"name": "projectId", "type": "text", "tokenizer": "raw"},
+                    {"name": "projectName", "type": "text"},
+                    {"name": "source", "type": "text", "tokenizer": "raw"},
+                    {"name": "level", "type": "text", "tokenizer": "raw"},
                     {"name": "message", "type": "text"},
-                    {"name": "level", "type": "text"},
-                    {"name": "source", "type": "text"},
-                    {"name": "service", "type": "text"}
+                    {"name": "host", "type": "text", "tokenizer": "raw"},
+                    {"name": "path", "type": "text"},
+                    {"name": "statusCode", "type": "i64"},
+                    {"name": "requestId", "type": "text", "tokenizer": "raw"},
+                    {"name": "environment", "type": "text", "tokenizer": "raw"}
                 ],
                 "timestamp_field": "timestamp"
             },
             "indexing_settings": {
                 "commit_timeout_secs": 10
+            },
+            "retention": {
+                "period": "7 days",
+                "schedule": "daily"
             }
         });
 
