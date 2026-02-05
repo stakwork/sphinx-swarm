@@ -138,6 +138,7 @@ decoding.codec = "json"
 framing.method = "newline_delimited"
 headers = ["Authorization"]
 strict_path = false
+path_key = "_request_path"
 
 # =============================================================================
 # TRANSFORMS - Auth, routing, and normalization
@@ -153,10 +154,9 @@ auth_header = .Authorization
 if is_null(auth_header) || auth_header != expected {{
   abort
 }}
-del(.Authorization)
 
-# Get the path from metadata
-request_path = string!(%http_server.path)
+# Get the request path (stored by http_server source via path_key)
+request_path = string!(._request_path)
 
 # Route and tag based on path
 if starts_with(request_path, "/vercel") {{
@@ -175,6 +175,11 @@ if starts_with(request_path, "/vercel") {{
   # Unknown path, drop it
   abort
 }}
+
+# Clean up internal fields before sending to Quickwit
+del(.Authorization)
+del(._request_path)
+del(.source_type)
 '''
 
 # =============================================================================

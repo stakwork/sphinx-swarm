@@ -34,7 +34,7 @@ curl -X POST http://localhost:9000/logs \
 ```bash
 curl -X POST http://localhost:9000/vercel \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sZIiUCqnVmi5kyz1H48ESbVSeKFxHOR2" \
+  -H "Authorization: Bearer Sne9AExs6lOxngJgzrNJDEwSz8cxjKXc" \
   --data-binary @test_logs/vercel.ndjson
 ```
 
