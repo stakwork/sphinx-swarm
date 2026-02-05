@@ -5,9 +5,11 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::quickwit::QuickwitImage;
 use crate::images::redis::RedisImage;
 use crate::images::repo2graph::Repo2GraphImage;
 use crate::images::stakgraph::StakgraphImage;
+use crate::images::vector::VectorImage;
 use crate::images::Image;
 use crate::secrets;
 
@@ -149,6 +151,41 @@ pub fn default_local_stack(host: Option<String>, network: &str, nodes: Vec<Node>
         jwt_key: secrets::random_word(16),
         ready: false,
         ip: None,
+        auto_update: None,
+        auto_restart: None,
+        custom_2b_domain: None,
+        global_mem_limit: None,
+        backup_services: None,
+        lightning_peers: None,
+        ssl_cert_last_modified: None,
+    }
+}
+
+/// Spin up only Quickwit and Vector for log ingestion testing
+/// Usage: set ONLY_LOGS=true and run the stack
+pub fn only_logs(host: Option<String>) -> Stack {
+    // quickwit - log storage and search (internal only, no external access)
+    let quickwit = QuickwitImage::new("quickwit", "latest");
+    // NOTE: no quickwit.host() - keeps it internal, not exposed via Traefik
+
+    // vector - log ingestion (exposed for external log drains)
+    let mut vector = VectorImage::new("vector", "latest-distroless-libc");
+    vector.host(host.clone());
+    vector.links(vec!["quickwit"]);
+
+    let nodes = vec![
+        Node::Internal(Image::Quickwit(quickwit)),
+        Node::Internal(Image::Vector(vector)),
+    ];
+
+    Stack {
+        network: "regtest".to_string(),
+        nodes,
+        host,
+        users: vec![Default::default()],
+        jwt_key: secrets::random_word(16),
+        ready: false,
+        ip: env_no_empty("IP"),
         auto_update: None,
         auto_restart: None,
         custom_2b_domain: None,

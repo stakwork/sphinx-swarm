@@ -188,7 +188,7 @@ pub async fn add_node(
         create_and_init(docker, node_config, skip).await?;
     if need_to_start {
         let id = new_id.context("new container should have an id")?;
-        if let Err(e) = img.pre_startup(docker).await {
+        if let Err(e) = img.pre_startup(docker, nodes).await {
             log::warn!("pre_startup failed {} {:?}", id, e);
         }
         start_container(docker, &id).await?;
@@ -266,7 +266,7 @@ pub async fn update_node(
         let id = create_container(&docker, theconfig).await?;
         log::info!("=> created {}", &hostname);
 
-        if let Err(e) = theimg.pre_startup(docker).await {
+        if let Err(e) = theimg.pre_startup(docker, nodes).await {
             log::warn!("pre_startup failed {} {:?}", &id, e);
         }
 

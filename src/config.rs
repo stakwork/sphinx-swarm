@@ -335,6 +335,8 @@ impl Stack {
                 Image::Redis(r) => Node::Internal(Image::Redis(r)),
                 Image::Chrome(c) => Node::Internal(Image::Chrome(c)),
                 Image::Stakgraph(p) => Node::Internal(Image::Stakgraph(p)),
+                Image::Quickwit(q) => Node::Internal(Image::Quickwit(q)),
+                Image::Vector(v) => Node::Internal(Image::Vector(v)),
             },
         });
         Stack {

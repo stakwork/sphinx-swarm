@@ -2,7 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::utils::{
-    domain, exposed_ports, host_config, is_using_port_based_ssl, single_host_port_from, getenv,
+    domain, exposed_ports, getenv, host_config, is_using_port_based_ssl, single_host_port_from,
 };
 use anyhow::Result;
 use async_trait::async_trait;
@@ -104,6 +104,6 @@ fn navfiber(node: &NavFiberImage) -> Config<String> {
         // production tls extra domain
         c.labels = Some(traefik_labels(&node.name, &host, inner_port, false));
     }
-    
+
     c
 }
