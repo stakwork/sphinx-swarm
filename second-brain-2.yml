@@ -27,6 +27,7 @@ services:
       - "--entrypoints.port8000.address=:8000"
       - "--entrypoints.port8444.address=:8444"
       - "--entrypoints.port8800.address=:8800"
+      - "--entrypoints.port9000.address=:9000"
     ports:
       # The HTTP port
       - 80:80
@@ -42,6 +43,7 @@ services:
       - 8000:8000 # navfiber
       - 8444:8444 # boltwall
       - 8800:8800 # swarm
+      - 9000:9000 # vector
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
