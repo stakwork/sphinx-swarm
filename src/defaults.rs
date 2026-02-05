@@ -58,6 +58,10 @@ impl Default for Stack {
             return only_graph_mindset(&network, host.clone());
         }
 
+        if env_is_true("ONLY_LOGS") {
+            return only_logs(host.clone());
+        }
+
         let use_lnd = env_is_true("USE_LND");
         // choose cln or lnd
         let is_cln = !use_lnd;

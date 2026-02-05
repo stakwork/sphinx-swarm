@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::dock::upload_to_container;
+use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -15,6 +16,7 @@ pub struct VectorImage {
     pub http_port: String,
     pub links: Links,
     pub host: Option<String>,
+    pub auth_token: String,
 }
 
 impl VectorImage {
@@ -25,6 +27,7 @@ impl VectorImage {
             http_port: "9000".to_string(),
             links: vec![],
             host: None,
+            auth_token: secrets::random_word(32),
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -46,7 +49,14 @@ impl VectorImage {
             "quickwit.sphinx".to_string()
         };
 
-        let config = vector_toml(&self.http_port, &quickwit_host);
+        // Use boltwall's stakwork_secret if linked, otherwise use our own token
+        let auth_token = if let Some(boltwall) = li.find_boltwall() {
+            boltwall.stakwork_secret.unwrap_or(self.auth_token.clone())
+        } else {
+            self.auth_token.clone()
+        };
+
+        let config = vector_toml(&self.http_port, &quickwit_host, &auth_token);
 
         log::info!("=> uploading vector.toml config...");
         upload_to_container(
@@ -101,7 +111,7 @@ fn vector(node: &VectorImage) -> Config<String> {
     c
 }
 
-fn vector_toml(http_port: &str, quickwit_host: &str) -> String {
+fn vector_toml(http_port: &str, quickwit_host: &str, auth_token: &str) -> String {
     format!(
         r#"# Vector configuration for log ingestion
 # Receives logs via HTTP and forwards to Quickwit
@@ -112,30 +122,60 @@ fn vector_toml(http_port: &str, quickwit_host: &str) -> String {
 
 # Vercel log drain endpoint: POST /vercel
 # Expects NDJSON format from Vercel
+# Requires Authorization: Bearer <token> header
 [sources.vercel_logs]
 type = "http_server"
 address = "0.0.0.0:{http_port}"
 path = "/vercel"
 decoding.codec = "json"
 framing.method = "newline_delimited"
+headers = ["Authorization"]
 
 # Generic JSON logs endpoint: POST /logs
 # Expects JSON objects (single or newline-delimited)
+# Requires Authorization: Bearer <token> header
 [sources.generic_logs]
 type = "http_server"
 address = "0.0.0.0:{http_port}"
 path = "/logs"
 decoding.codec = "json"
 framing.method = "newline_delimited"
+headers = ["Authorization"]
 
 # =============================================================================
-# TRANSFORMS - Normalize logs to common format
+# TRANSFORMS - Auth check and normalize logs
 # =============================================================================
+
+# Check auth for Vercel logs
+[transforms.vercel_auth]
+type = "remap"
+inputs = ["vercel_logs"]
+source = '''
+expected = "Bearer {auth_token}"
+auth_header = get!(."Authorization")
+if auth_header != expected {{
+  abort
+}}
+del(."Authorization")
+'''
+
+# Check auth for generic logs
+[transforms.generic_auth]
+type = "remap"
+inputs = ["generic_logs"]
+source = '''
+expected = "Bearer {auth_token}"
+auth_header = get!(."Authorization")
+if auth_header != expected {{
+  abort
+}}
+del(."Authorization")
+'''
 
 # Transform Vercel logs - already has timestamp, level, message, source
 [transforms.vercel_normalized]
 type = "remap"
-inputs = ["vercel_logs"]
+inputs = ["vercel_auth"]
 source = '''
 # Vercel timestamp is unix milliseconds, keep as-is for Quickwit
 .log_source = "vercel"
@@ -144,7 +184,7 @@ source = '''
 # Transform generic logs - ensure required fields exist
 [transforms.generic_normalized]
 type = "remap"
-inputs = ["generic_logs"]
+inputs = ["generic_auth"]
 source = '''
 .log_source = "generic"
 # Add timestamp if missing (unix ms)
