@@ -6,6 +6,17 @@ use anyhow::Result;
 use async_trait::async_trait;
 use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+// Maximum storage in MB before cleanup triggers (default 32GB)
+const MAX_STORAGE_MB: u64 = 32_000;
+
+fn get_max_storage_mb() -> u64 {
+    std::env::var("QUICKWIT_MAX_STORAGE_MB")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(MAX_STORAGE_MB)
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct QuickwitImage {
@@ -49,12 +60,18 @@ impl QuickwitImage {
             "http://{}:{}/api/v1/indexes/logs",
             quickwit_host, self.http_port
         );
-        match client.get(&check_url).send().await {
+let index_exists = match client.get(&check_url).send().await {
             Ok(resp) if resp.status().is_success() => {
                 log::info!("=> quickwit logs index already exists");
-                return Ok(());
+                true
             }
-            _ => {}
+            _ => false,
+        };
+
+        if index_exists {
+            // Spawn cleanup task and return
+            self.spawn_cleanup_task();
+            return Ok(());
         }
 
         log::info!("=> creating quickwit logs index...");
@@ -124,7 +141,39 @@ impl QuickwitImage {
             }
         }
 
+        // Spawn background cleanup task
+        self.spawn_cleanup_task();
+
         Ok(())
+    }
+
+    fn spawn_cleanup_task(&self) {
+        let quickwit_host = docker_domain(&self.name);
+        let http_port = self.http_port.clone();
+
+        tokio::spawn(async move {
+            // Check every hour
+            let check_interval = Duration::from_secs(3600);
+
+            // Initial delay to let Quickwit fully start, then check immediately
+            tokio::time::sleep(Duration::from_secs(10)).await;
+
+            log::info!("=> quickwit cleanup: starting first check against {}:{}", quickwit_host, http_port);
+
+            loop {
+                if let Err(e) = cleanup_if_over_limit(&quickwit_host, &http_port).await {
+                    log::warn!("=> quickwit cleanup error: {:?}", e);
+                }
+
+                tokio::time::sleep(check_interval).await;
+            }
+        });
+
+        let max_mb = get_max_storage_mb();
+        log::info!(
+            "=> quickwit storage cleanup task started (max {}MB)",
+            max_mb
+        );
     }
 }
 
@@ -166,4 +215,125 @@ fn quickwit(node: &QuickwitImage) -> Config<String> {
         c.labels = Some(traefik_labels(&node.name, &host, &node.http_port, false))
     }
     c
+}
+
+async fn cleanup_if_over_limit(quickwit_host: &str, http_port: &str) -> Result<()> {
+    let client = make_reqwest_client();
+    let max_mb = get_max_storage_mb();
+    let max_bytes = max_mb * 1024 * 1024;
+
+    // Get all splits (contains size info)
+    let splits_url = format!(
+        "http://{}:{}/api/v1/indexes/logs/splits",
+        quickwit_host, http_port
+    );
+    let resp = match client.get(&splits_url).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!("=> quickwit cleanup: failed to fetch splits: {:?}", e);
+            return Ok(());
+        }
+    };
+
+    if !resp.status().is_success() {
+        log::warn!("=> quickwit cleanup: splits API returned {}", resp.status());
+        return Ok(()); // Index might not exist yet
+    }
+
+    let splits_info: serde_json::Value = resp.json().await?;
+    let splits = splits_info
+        .get("splits")
+        .and_then(|s| s.as_array())
+        .cloned()
+        .unwrap_or_default();
+
+    // Calculate total size from splits
+    let current_bytes: u64 = splits
+        .iter()
+        .filter_map(|s| s.get("uncompressed_docs_size_in_bytes")?.as_u64())
+        .sum();
+
+    let current_mb = current_bytes / (1024 * 1024);
+    log::info!(
+        "=> quickwit storage check: {}MB / {}MB ({} splits)",
+        current_mb,
+        max_mb,
+        splits.len()
+    );
+
+    if current_bytes <= max_bytes {
+        return Ok(());
+    }
+
+    log::info!(
+        "=> quickwit storage over limit ({}MB > {}MB), cleaning up oldest splits...",
+        current_mb,
+        max_mb
+    );
+
+    if splits.is_empty() {
+        return Ok(());
+    }
+
+    // Sort splits by time_range start (oldest first)
+    let mut splits_with_time: Vec<(String, i64, u64)> = splits
+        .iter()
+        .filter_map(|s| {
+            let split_id = s.get("split_id")?.as_str()?.to_string();
+            let time_range = s.get("time_range")?;
+            let start = time_range.get("start")?.as_i64()?;
+            let size = s.get("uncompressed_docs_size_in_bytes")?.as_u64()?;
+            Some((split_id, start, size))
+        })
+        .collect();
+
+    splits_with_time.sort_by_key(|(_, start, _)| *start);
+
+    // Calculate how much to delete
+    let bytes_to_delete = current_bytes - max_bytes;
+    let mut deleted_bytes: u64 = 0;
+    let mut splits_to_delete: Vec<String> = vec![];
+
+    // Never delete all splits - keep at least one
+    let max_to_delete = splits_with_time.len().saturating_sub(1);
+
+    for (split_id, _, size) in splits_with_time.into_iter().take(max_to_delete) {
+        if deleted_bytes >= bytes_to_delete {
+            break;
+        }
+        splits_to_delete.push(split_id);
+        deleted_bytes += size;
+    }
+
+    if splits_to_delete.is_empty() {
+        return Ok(());
+    }
+
+    log::info!(
+        "=> deleting {} oldest splits ({}MB)",
+        splits_to_delete.len(),
+        deleted_bytes / (1024 * 1024)
+    );
+
+    // Mark splits for deletion
+    let mark_url = format!(
+        "http://{}:{}/api/v1/indexes/logs/splits/mark-for-deletion",
+        quickwit_host, http_port
+    );
+    let resp = client
+        .put(&mark_url)
+        .json(&serde_json::json!({ "split_ids": splits_to_delete }))
+        .send()
+        .await?;
+
+    if !resp.status().is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        log::warn!("=> failed to mark splits for deletion: {}", body);
+        return Ok(());
+    }
+
+    // Quickwit will garbage collect marked splits automatically
+    log::info!("=> quickwit cleanup: marked splits for deletion, GC will run automatically");
+
+    Ok(())
 }

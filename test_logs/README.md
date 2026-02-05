@@ -6,6 +6,7 @@
 ```bash
 export ONLY_LOGS=true
 export RUST_ENV=local
+export QUICKWIT_MAX_STORAGE_MB=1
 cargo run --bin stack
 ```
 
