@@ -60,7 +60,7 @@ impl QuickwitImage {
             "http://{}:{}/api/v1/indexes/logs",
             quickwit_host, self.http_port
         );
-let index_exists = match client.get(&check_url).send().await {
+        let index_exists = match client.get(&check_url).send().await {
             Ok(resp) if resp.status().is_success() => {
                 log::info!("=> quickwit logs index already exists");
                 true
@@ -158,7 +158,11 @@ let index_exists = match client.get(&check_url).send().await {
             // Initial delay to let Quickwit fully start, then check immediately
             tokio::time::sleep(Duration::from_secs(10)).await;
 
-            log::info!("=> quickwit cleanup: starting first check against {}:{}", quickwit_host, http_port);
+            log::info!(
+                "=> quickwit cleanup: starting first check against {}:{}",
+                quickwit_host,
+                http_port
+            );
 
             loop {
                 if let Err(e) = cleanup_if_over_limit(&quickwit_host, &http_port).await {
