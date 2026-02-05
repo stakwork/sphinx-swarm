@@ -1,0 +1,6 @@
+{"message":"Application started","level":"info","service":"backend","timestamp":1700000000000}
+{"message":"Connected to database","level":"info","service":"backend","timestamp":1700000001000}
+{"message":"User login successful","level":"info","service":"auth","user_id":"user_123","timestamp":1700000002000}
+{"message":"Failed to process payment","level":"error","service":"payments","error":"insufficient_funds","user_id":"user_456","timestamp":1700000003000}
+{"message":"Cache miss for key: user_profile_789","level":"warning","service":"cache","timestamp":1700000004000}
+{"message":"Request completed in 245ms","level":"info","service":"api","path":"/api/v1/users","method":"GET","duration_ms":245,"timestamp":1700000005000}

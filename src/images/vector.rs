@@ -58,6 +58,7 @@ impl VectorImage {
 
         let config = vector_toml(&self.http_port, &quickwit_host, &auth_token);
 
+        log::info!("=> vector auth token: {}", auth_token);
         log::info!("=> uploading vector.toml config...");
         upload_to_container(
             docker,
@@ -103,6 +104,11 @@ fn vector(node: &VectorImage) -> Config<String> {
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
         host_config: host_config(&name, ports, root_vol, None, None),
+        // Explicitly use only our config file, no default/demo sources
+        cmd: Some(vec![
+            "--config".to_string(),
+            "/etc/vector/vector.toml".to_string(),
+        ]),
         ..Default::default()
     };
     if let Some(host) = &node.host {
@@ -117,83 +123,57 @@ fn vector_toml(http_port: &str, quickwit_host: &str, auth_token: &str) -> String
 # Receives logs via HTTP and forwards to Quickwit
 
 # =============================================================================
-# SOURCES - Multiple endpoints for different log formats
+# SOURCE - Single HTTP server, routes by path
 # =============================================================================
 
-# Vercel log drain endpoint: POST /vercel
-# Expects NDJSON format from Vercel
+# HTTP server for all log ingestion
+# Endpoints:
+#   POST /vercel - Vercel log drain (NDJSON)
+#   POST /logs   - Generic JSON logs
 # Requires Authorization: Bearer <token> header
-[sources.vercel_logs]
+[sources.http_logs]
 type = "http_server"
 address = "0.0.0.0:{http_port}"
-path = "/vercel"
 decoding.codec = "json"
 framing.method = "newline_delimited"
 headers = ["Authorization"]
-
-# Generic JSON logs endpoint: POST /logs
-# Expects JSON objects (single or newline-delimited)
-# Requires Authorization: Bearer <token> header
-[sources.generic_logs]
-type = "http_server"
-address = "0.0.0.0:{http_port}"
-path = "/logs"
-decoding.codec = "json"
-framing.method = "newline_delimited"
-headers = ["Authorization"]
+strict_path = false
 
 # =============================================================================
-# TRANSFORMS - Auth check and normalize logs
+# TRANSFORMS - Auth, routing, and normalization
 # =============================================================================
 
-# Check auth for Vercel logs
-[transforms.vercel_auth]
+# Check auth and route by path
+[transforms.auth_and_route]
 type = "remap"
-inputs = ["vercel_logs"]
+inputs = ["http_logs"]
 source = '''
 expected = "Bearer {auth_token}"
-auth_header = get!(."Authorization")
-if auth_header != expected {{
+auth_header = .Authorization
+if is_null(auth_header) || auth_header != expected {{
   abort
 }}
-del(."Authorization")
-'''
+del(.Authorization)
 
-# Check auth for generic logs
-[transforms.generic_auth]
-type = "remap"
-inputs = ["generic_logs"]
-source = '''
-expected = "Bearer {auth_token}"
-auth_header = get!(."Authorization")
-if auth_header != expected {{
+# Get the path from metadata
+request_path = string!(%http_server.path)
+
+# Route and tag based on path
+if starts_with(request_path, "/vercel") {{
+  .log_source = "vercel"
+}} else if starts_with(request_path, "/logs") {{
+  .log_source = "generic"
+  # Add timestamp if missing (unix ms)
+  if !exists(.timestamp) {{
+    .timestamp = to_unix_timestamp(now(), unit: "milliseconds")
+  }}
+  # Default level if missing
+  if !exists(.level) {{
+    .level = "info"
+  }}
+}} else {{
+  # Unknown path, drop it
   abort
-}}
-del(."Authorization")
-'''
-
-# Transform Vercel logs - already has timestamp, level, message, source
-[transforms.vercel_normalized]
-type = "remap"
-inputs = ["vercel_auth"]
-source = '''
-# Vercel timestamp is unix milliseconds, keep as-is for Quickwit
-.log_source = "vercel"
-'''
-
-# Transform generic logs - ensure required fields exist
-[transforms.generic_normalized]
-type = "remap"
-inputs = ["generic_auth"]
-source = '''
-.log_source = "generic"
-# Add timestamp if missing (unix ms)
-if !exists(.timestamp) {{
-  .timestamp = to_unix_timestamp(now(), unit: "milliseconds")
-}}
-# Default level if missing
-if !exists(.level) {{
-  .level = "info"
 }}
 '''
 
@@ -203,7 +183,7 @@ if !exists(.level) {{
 
 [sinks.quickwit]
 type = "http"
-inputs = ["vercel_normalized", "generic_normalized"]
+inputs = ["auth_and_route"]
 uri = "http://{quickwit_host}:7280/api/v1/logs/ingest"
 encoding.codec = "json"
 framing.method = "newline_delimited"
