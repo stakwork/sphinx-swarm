@@ -183,12 +183,42 @@ del(.source_type)
 '''
 
 # =============================================================================
+# TRANSFORMS - Aggregate logs by requestId
+# =============================================================================
+
+# Aggregate all logs from the same request into a single event
+# Waits up to 30 seconds for all logs from a request to arrive
+[transforms.aggregate_by_request]
+type = "reduce"
+inputs = ["auth_and_route"]
+group_by = ["requestId"]
+expire_after_ms = 30000
+starts_when = 'exists(.requestId)'
+merge_strategies.message = "concat_newline"
+merge_strategies.timestamp = "retain"
+merge_strategies.level = "retain"
+merge_strategies.path = "retain"
+merge_strategies.host = "retain"
+merge_strategies.source = "retain"
+merge_strategies.environment = "retain"
+merge_strategies.projectId = "retain"
+merge_strategies.projectName = "retain"
+merge_strategies.deploymentId = "retain"
+merge_strategies.requestId = "retain"
+merge_strategies.log_source = "retain"
+merge_strategies.proxy = "retain"
+merge_strategies.invocationId = "retain"
+merge_strategies.executionRegion = "retain"
+merge_strategies.id = "discard"
+merge_strategies.type = "discard"
+
+# =============================================================================
 # SINKS - Send to Quickwit
 # =============================================================================
 
 [sinks.quickwit]
 type = "http"
-inputs = ["auth_and_route"]
+inputs = ["aggregate_by_request"]
 uri = "http://{quickwit_host}:7280/api/v1/logs/ingest"
 encoding.codec = "json"
 framing.method = "newline_delimited"
