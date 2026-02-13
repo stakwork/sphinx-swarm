@@ -76,6 +76,8 @@ pub struct Stack {
     pub lightning_peers: Option<Vec<LightningPeer>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ssl_cert_last_modified: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -354,6 +356,7 @@ impl Stack {
             backup_services: self.backup_services.clone(),
             lightning_peers: self.lightning_peers.clone(),
             ssl_cert_last_modified: self.ssl_cert_last_modified.clone(),
+            instance_id: self.instance_id.clone(),
         }
     }
 }

@@ -155,6 +155,7 @@ fn make_stack() -> Stack {
         lightning_peers: None,
         auto_restart: None,
         ssl_cert_last_modified: None,
+        instance_id: None,
     }
 }
 

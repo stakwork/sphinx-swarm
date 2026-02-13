@@ -4,6 +4,7 @@ use sphinx_swarm::auto_restart_cron::auto_restart_cron;
 use sphinx_swarm::backup::backup_and_delete_volumes_cron;
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
+use sphinx_swarm::cron_jobs::public_ip::check_public_ip;
 use sphinx_swarm::handler;
 use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
 use sphinx_swarm::renew_ssl_cert::upload_new_ssl_cert_cron;
@@ -93,6 +94,11 @@ async fn main() -> Result<()> {
         builder::fast_service_update(proj, docker.clone(), stack.nodes.clone()).await;
     if let Err(e) = cron_handler_res {
         log::error!("FAST SERVICE UPDATE CRON failed {:?}", e);
+    }
+
+    let public_ip_check_cron_res = check_public_ip().await;
+    if let Err(e) = public_ip_check_cron_res {
+        log::error!("CHECK PUBLIC IP CRON failed {:?}", e);
     }
 
     tokio::signal::ctrl_c().await?;

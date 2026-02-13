@@ -126,6 +126,7 @@ services:
       - BOLTWALL_API_SECRET=$BOLTWALL_API_SECRET
       - CERT_BUCKET=$CERT_BUCKET
       - CONTENT_WORKFLOW_ID=$CONTENT_WORKFLOW_ID
+      - CHECK_PUBLIC_IP_CRON=$CHECK_PUBLIC_IP_CRON
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter

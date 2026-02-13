@@ -114,6 +114,7 @@ services:
       - SWARM_NUMBER=$SWARM_NUMBER
       - PASSWORD=$PASSWORD
       - BOLTWALL_API_SECRET=$BOLTWALL_API_SECRET
+      - CHECK_PUBLIC_IP_CRON=$CHECK_PUBLIC_IP_CRON
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
