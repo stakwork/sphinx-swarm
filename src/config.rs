@@ -112,8 +112,21 @@ pub struct SendSwarmDetailsBody {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct UpdateChildSwarmPublicIpBody {
+    pub public_ip: String,
+    pub id: Option<String>,
+    pub token: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct SendSwarmDetailsResponse {
     pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct ApiResponse {
+    pub message: String,
+    pub success: bool,
 }
 
 // optional node, could be external

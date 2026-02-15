@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sphinx_swarm::config::UpdateChildSwarmPublicIpBody;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -116,6 +117,7 @@ pub enum SwarmCmd {
     GetSslCertExpiry,
     RenewSslCert,
     UploadSSlCert,
+    UpdateChildSwarmPublicIp(UpdateChildSwarmPublicIpBody),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
