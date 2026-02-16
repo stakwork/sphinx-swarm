@@ -298,7 +298,7 @@ async fn update_child_swarm_public_ip(
         return Err(Error::Unauthorized);
     }
 
-    let response: AddSwarmResponse = serde::json::from_str(reply.as_str())?;
+    let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
 
     let mut status = Status::BadRequest;
 

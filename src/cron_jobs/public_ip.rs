@@ -6,7 +6,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 
 pub static CHECK_PUBLIC_IP: AtomicBool = AtomicBool::new(false);
 
-pub async fn check_public_ip() -> Result<JobScheduler> {
+pub async fn check_public_ip(proj: &str) -> Result<JobScheduler> {
     log::info!(":Check Public IP!!");
     let sched = JobScheduler::new().await?;
 
@@ -26,12 +26,12 @@ pub async fn check_public_ip() -> Result<JobScheduler> {
         .await?;
 
     sched.start().await?;
-
+    let proj = proj.to_string();
     tokio::spawn(async move {
         loop {
             let go = CHECK_PUBLIC_IP.load(Ordering::Relaxed);
             if go {
-                if let Err(e) = handle_check_public_ip_via_cron().await {
+                if let Err(e) = handle_check_public_ip_via_cron(&proj).await {
                     log::error!("{:?}", e);
                 }
 

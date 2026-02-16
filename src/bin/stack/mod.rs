@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
         log::error!("FAST SERVICE UPDATE CRON failed {:?}", e);
     }
 
-    let public_ip_check_cron_res = check_public_ip().await;
+    let public_ip_check_cron_res = check_public_ip(proj).await;
     if let Err(e) = public_ip_check_cron_res {
         log::error!("CHECK PUBLIC IP CRON failed {:?}", e);
     }
