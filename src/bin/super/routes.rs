@@ -274,8 +274,8 @@ async fn update_child_swarm_public_ip(
         return Ok(Custom(
             Status::Unauthorized,
             Json(ApiResponse {
-                message: "unauthorized, invalid token".to_string(),
                 success: false,
+                message: "unauthorized, invalid token".to_string(),
             }),
         ));
     }
@@ -309,8 +309,8 @@ async fn update_child_swarm_public_ip(
     return Ok(Custom(
         status,
         Json(ApiResponse {
-            message: response.message,
             success: response.success,
+            message: response.message,
         }),
     ));
 }
