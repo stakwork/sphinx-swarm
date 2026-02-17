@@ -60,6 +60,13 @@ pub async fn create_and_init(
         }
     }
 
+    // first create volume with the same name, if needed
+
+    if let Some(id) = current_id {
+        log::info!("=> {} already exists", &hostname);
+        return Ok((Some(id), false, false));
+    }
+
     let created_new_volume = create_volume(&docker, &hostname).await?;
 
     let img_tag = c.image.clone().context("expected image")?;
