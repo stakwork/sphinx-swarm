@@ -19,6 +19,7 @@ use futures_util::{Stream, StreamExt, TryStreamExt};
 use rocket::tokio;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json;
 use std::default::Default;
 use std::error::Error;
 use std::time::Duration;
@@ -559,26 +560,13 @@ pub struct DockerHubImageResult {
     pub digest: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GitHubContainerResult {
-    pub id: i64,
-    pub name: String,
-    pub url: String,
-    pub package_html_url: String,
-    pub created_at: String,
-    pub updated_at: String,
-    pub html_url: String,
-    pub metadata: GitHubContainerMetadata,
+#[derive(Deserialize, Debug)]
+pub struct GhcrTokenResponse {
+    pub token: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GitHubContainerMetadata {
-    pub package_type: String,
-    pub container: GitHubContainerTags,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GitHubContainerTags {
+#[derive(Deserialize, Debug)]
+pub struct GhcrTagsResponse {
     pub tags: Vec<String>,
 }
 
@@ -740,6 +728,15 @@ async fn get_image_digest_from_image_id(docker: &Docker, image_id: &str) -> Stri
     image_digest.unwrap()
 }
 
+/*
+
+TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:stakwork/stakgraph-mcp:pull" | jq -r .token)
+curl -s -H "Authorization: Bearer $TOKEN" "https://ghcr.io/v2/stakwork/stakgraph-mcp/tags/list"
+curl -s -I -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.oci.image.index.v1+json" "https://ghcr.io/v2/stakwork/stakgraph-mcp/manifests/latest" | grep docker-content-digest
+
+curl "https://hub.docker.com/v2/repositories/sphinxlightning/sphinx-relay/tags?page=1&page_size=100"
+
+*/
 pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> VersionInfo {
     if image_name.contains("ghcr.io") {
         let image_name_parts: Vec<&str> = image_name.split("/").collect();
@@ -747,17 +744,14 @@ pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> Ve
             log::error!("Invalid image name format: {}", image_name);
             return VersionInfo {
                 current_version: "".to_string(),
-                is_latest: false,
+                is_latest: true,
                 latest_version: "".to_string(),
             };
         }
-        let github_container_name = image_name_parts[2];
         let org_name = image_name_parts[1];
-        let url = format!(
-            "https://api.github.com/orgs/{}/packages/container/{}/versions",
-            org_name, github_container_name,
-        );
-        return get_version_from_github_container_registry(&url, digest).await;
+        let package_name = image_name_parts[2];
+        let repo = format!("{}/{}", org_name, package_name);
+        return get_version_from_github_container_registry(&repo, digest).await;
     }
     let docker_url = format!(
         "https://hub.docker.com/v2/repositories/{}/tags?page=1&page_size=100",
@@ -767,13 +761,16 @@ pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> Ve
     version
 }
 
-pub async fn get_version_from_github_container_registry(url: &str, digest: &str) -> VersionInfo {
-    let mut current_tag = "".to_string();
-    let mut is_latest = false;
-    let mut latest_tag = "".to_string();
-    let mut latest_tag_digest = "".to_string();
-    let mut digest_to_tag_map: HashMap<String, String> = HashMap::new();
-    let token = getenv("GITHUB_PAT").unwrap_or("".to_string());
+// repo is "{org}/{package}" e.g. "stakwork/stakgraph-mcp"
+pub async fn get_version_from_github_container_registry(
+    repo: &str,
+    digest: &str,
+) -> VersionInfo {
+    let latest_default = VersionInfo {
+        current_version: "".to_string(),
+        is_latest: true,
+        latest_version: "".to_string(),
+    };
     let client = reqwest::Client::builder()
         .user_agent("sphinx-swarm/1.0")
         .timeout(Duration::from_secs(40))
@@ -781,63 +778,127 @@ pub async fn get_version_from_github_container_registry(url: &str, digest: &str)
         .build()
         .expect("couldnt build swarm updater reqwest client");
 
-    let response = match client
-        .get(url)
+    // 1. Get anonymous token from GHCR
+    let token_url = format!(
+        "https://ghcr.io/token?scope=repository:{}:pull",
+        repo
+    );
+    let token_res = match client.get(&token_url).send().await {
+        Ok(res) => res,
+        Err(err) => {
+            log::error!("Error fetching GHCR token from {}: {:?}", token_url, err);
+            return latest_default;
+        }
+    };
+    let token_body: GhcrTokenResponse = match token_res.json().await {
+        Ok(t) => t,
+        Err(err) => {
+            log::error!("Error parsing GHCR token response: {:?}", err);
+            return latest_default;
+        }
+    };
+    let token = &token_body.token;
+
+    // 2. Get the digest for the "latest" tag
+    let manifest_url = format!(
+        "https://ghcr.io/v2/{}/manifests/latest",
+        repo
+    );
+    let latest_res = match client
+        .head(&manifest_url)
         .header("Authorization", format!("Bearer {}", token))
+        .header(
+            "Accept",
+            "application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json",
+        )
         .send()
         .await
     {
         Ok(res) => res,
         Err(err) => {
-            log::error!("Error making request to {}: {:?}", url, err);
-            return VersionInfo {
-                current_version: "".to_string(),
-                is_latest: false,
-                latest_version: "".to_string(),
-            };
+            log::error!("Error fetching GHCR latest manifest from {}: {:?}", manifest_url, err);
+            return latest_default;
         }
     };
-    let response_json: Vec<GitHubContainerResult> = match response.json().await {
-        Ok(json) => json,
-        Err(err) => {
-            log::error!("Error parsing JSON response: {:?}", err);
-            return VersionInfo {
-                current_version: "".to_string(),
-                is_latest: false,
-                latest_version: "".to_string(),
-            };
+    let latest_digest = match latest_res.headers().get("docker-content-digest") {
+        Some(val) => match val.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => {
+                log::error!("GHCR docker-content-digest header is not valid UTF-8");
+                return latest_default;
+            }
+        },
+        None => {
+            log::error!("GHCR latest manifest response missing docker-content-digest header");
+            return latest_default;
         }
     };
 
-    for image in response_json {
-        for tag in image.metadata.container.tags {
-            if tag == "latest" {
-                latest_tag_digest = image.name.clone();
-            } else {
-                digest_to_tag_map
-                    .entry(image.name.clone())
-                    .or_insert(tag.clone());
+    let is_latest = digest == latest_digest;
+
+    // 3. Paginate through all tags (OCI spec: max 1000 per page)
+    let mut all_tags: Vec<String> = Vec::new();
+    let mut next_url = Some(format!("https://ghcr.io/v2/{}/tags/list?n=1000", repo));
+    while let Some(url) = next_url.take() {
+        let tags_res = match client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .send()
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                log::error!("Error fetching GHCR tags from {}: {:?}", url, err);
+                break;
+            }
+        };
+        // Check for Link header with next page: <url>; rel="next"
+        if let Some(link) = tags_res.headers().get("link") {
+            if let Ok(link_str) = link.to_str() {
+                next_url = parse_link_next(link_str);
+            }
+        }
+        match tags_res.json::<GhcrTagsResponse>().await {
+            Ok(body) => all_tags.extend(body.tags),
+            Err(err) => {
+                log::error!("Error parsing GHCR tags response: {:?}", err);
+                break;
             }
         }
     }
 
-    if digest_to_tag_map.contains_key(digest) {
-        current_tag = digest_to_tag_map.get(digest).unwrap().clone();
-    }
+    // Use the last non-"latest" tag as the latest version label
+    let latest_version = all_tags
+        .iter()
+        .rev()
+        .find(|t| t.as_str() != "latest")
+        .cloned()
+        .unwrap_or_default();
 
-    if digest_to_tag_map.contains_key(&latest_tag_digest) {
-        latest_tag = digest_to_tag_map.get(&latest_tag_digest).unwrap().clone()
+    VersionInfo {
+        current_version: if is_latest {
+            latest_version.clone()
+        } else {
+            "".to_string()
+        },
+        is_latest,
+        latest_version,
     }
+}
 
-    if latest_tag_digest == digest {
-        is_latest = true;
+// Parse OCI Link header: `<https://ghcr.io/v2/.../tags/list?last=...&n=1000>; rel="next"`
+fn parse_link_next(link: &str) -> Option<String> {
+    for part in link.split(',') {
+        let part = part.trim();
+        if part.contains("rel=\"next\"") {
+            if let Some(start) = part.find('<') {
+                if let Some(end) = part.find('>') {
+                    return Some(part[start + 1..end].to_string());
+                }
+            }
+        }
     }
-
-    return VersionInfo {
-        current_version: current_tag,
-        is_latest: is_latest,
-        latest_version: latest_tag,
-    };
+    None
 }
 
 pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> VersionInfo {
@@ -858,19 +919,35 @@ pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> Vers
             log::error!("Error making request to {}: {:?}", docker_url, err);
             return VersionInfo {
                 current_version: "".to_string(),
-                is_latest: false,
+                is_latest: true,
                 latest_version: "".to_string(),
             };
         }
     };
 
-    let response_json: DockerHubResponse = match response.json().await {
-        Ok(parsed) => parsed,
+    let response_text = match response.text().await {
+        Ok(text) => text,
         Err(err) => {
-            log::error!("Error parsing response from {}: {:?}", docker_url, err);
+            log::error!("Error reading Docker Hub response body from {}: {:?}", docker_url, err);
             return VersionInfo {
                 current_version: "".to_string(),
-                is_latest: false,
+                is_latest: true,
+                latest_version: "".to_string(),
+            };
+        }
+    };
+    let response_json: DockerHubResponse = match serde_json::from_str(&response_text) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            log::error!(
+                "Error parsing Docker Hub response from {}: {:?}\nResponse body: {}",
+                docker_url,
+                err,
+                response_text
+            );
+            return VersionInfo {
+                current_version: "".to_string(),
+                is_latest: true,
                 latest_version: "".to_string(),
             };
         }
@@ -1222,5 +1299,70 @@ pub async fn get_env_variables_by_container_name(docker: &Docker, id: &str) -> S
                 data: None,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_ghcr_version_check() {
+        let repo = "stakwork/stakgraph-mcp";
+
+        // 1. Get anonymous token
+        let client = reqwest::Client::builder()
+            .user_agent("sphinx-swarm/1.0")
+            .build()
+            .unwrap();
+        let token_url = format!("https://ghcr.io/token?scope=repository:{}:pull", repo);
+        let token_body: GhcrTokenResponse = client
+            .get(&token_url)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        println!("got anonymous token");
+
+        // 2. Get the latest digest
+        let manifest_url = format!("https://ghcr.io/v2/{}/manifests/latest", repo);
+        let latest_res = client
+            .head(&manifest_url)
+            .header("Authorization", format!("Bearer {}", token_body.token))
+            .header(
+                "Accept",
+                "application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json",
+            )
+            .send()
+            .await
+            .unwrap();
+        let latest_digest = latest_res
+            .headers()
+            .get("docker-content-digest")
+            .expect("missing docker-content-digest header")
+            .to_str()
+            .unwrap()
+            .to_string();
+        println!("latest digest: {}", latest_digest);
+
+        // 3. Test with the latest digest — should be is_latest=true
+        let result = get_version_from_github_container_registry(repo, &latest_digest).await;
+        println!(
+            "is_latest: {}, current: {}, latest: {}",
+            result.is_latest, result.current_version, result.latest_version
+        );
+        assert!(result.is_latest);
+        assert!(!result.latest_version.is_empty());
+
+        // 4. Test with a fake digest — should be is_latest=false
+        let fake = get_version_from_github_container_registry(repo, "sha256:deadbeef").await;
+        println!(
+            "fake: is_latest: {}, current: {}, latest: {}",
+            fake.is_latest, fake.current_version, fake.latest_version
+        );
+        assert!(!fake.is_latest);
+        assert!(!fake.latest_version.is_empty());
     }
 }
