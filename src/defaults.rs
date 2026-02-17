@@ -192,6 +192,7 @@ impl Default for Stack {
             backup_services: None,
             lightning_peers: None,
             ssl_cert_last_modified: None,
+            instance_id: None,
         }
     }
 }
@@ -365,6 +366,7 @@ pub fn llama_only(network: &str, host: Option<String>) -> Stack {
         backup_services: None,
         lightning_peers: None,
         ssl_cert_last_modified: None,
+        instance_id: None,
     }
 }
 

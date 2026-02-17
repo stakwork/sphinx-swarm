@@ -31,6 +31,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
         backup_services: Some(vec!["boltwall".to_string(), "neo4j".to_string()]),
         lightning_peers: None,
         ssl_cert_last_modified: None,
+        instance_id: None,
     }
 }
 

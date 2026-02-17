@@ -30,6 +30,7 @@ use crate::cmd::SuperRestarterResponse;
 use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
 use crate::service::child_swarm::update_env::update_child_swarm_env;
+use crate::service::child_swarm::update_public_ip::handle_update_child_swarm_public_ip;
 use crate::service::ssl_cert::handle_renew_cert::{
     handle_get_ssl_cert_expiry, renew_cert, upload_cert_to_s3,
 };
@@ -125,6 +126,13 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
                 return true;
             }
             SwarmCmd::CreateNewEc2Instance(info) => {
+                let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+                if info.token.is_some() && !token.is_empty() && token == info.token.clone().unwrap()
+                {
+                    return true;
+                }
+            }
+            SwarmCmd::UpdateChildSwarmPublicIp(info) => {
                 let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
                 if info.token.is_some() && !token.is_empty() && token == info.token.clone().unwrap()
                 {
@@ -542,6 +550,12 @@ pub async fn super_handle(
                         error: Some(err.to_string()),
                     },
                 };
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateChildSwarmPublicIp(info) => {
+                let res =
+                    handle_update_child_swarm_public_ip(&mut state, &mut must_save_stack, info)
+                        .await;
                 Some(serde_json::to_string(&res)?)
             }
         },
