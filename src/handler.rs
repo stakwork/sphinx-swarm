@@ -23,6 +23,7 @@ use crate::conn::swarm::{
 };
 use crate::dock::*;
 use crate::images::DockerHubImage;
+use crate::images::Image;
 use crate::renew_ssl_cert::handle_update_ssl_cert;
 use crate::rocket_utils::CmdRequest;
 use crate::secrets;
