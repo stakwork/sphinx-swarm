@@ -133,6 +133,16 @@ pub struct MaxRequestLimitInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateNeo4jConfigRequest {
+    pub heap_initial_gb: Option<u64>,
+    pub heap_max_gb: Option<u64>,
+    pub pagecache_gb: Option<u64>,
+    pub tx_total_gb: Option<u64>,
+    pub tx_max_gb: Option<u64>,
+    pub checkpoint_iops: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateEnvRequest {
     pub id: Option<String>,
     pub values: HashMap<String, String>,
@@ -197,6 +207,7 @@ pub enum SwarmCmd {
     UpdateEvn(UpdateEnvRequest),
     ChangeReservedSwarmToActive(AssignSwarmNewDetails),
     UpdateSslCert,
+    UpdateNeo4jConfig(UpdateNeo4jConfigRequest),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

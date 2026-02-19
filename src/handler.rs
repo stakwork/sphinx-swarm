@@ -68,6 +68,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
                 SwarmCmd::GetApiToken => true,
                 SwarmCmd::ChangeReservedSwarmToActive(_) => true,
                 SwarmCmd::UpdateEvn(_) => true,
+                SwarmCmd::UpdateNeo4jConfig(_) => true,
                 _ => false,
             },
             _ => false,
@@ -562,6 +563,49 @@ pub async fn handle(
                         message: err.to_string(),
                         data: None,
                     },
+                };
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::UpdateNeo4jConfig(body) => {
+                log::info!("Update Neo4j config ===> {:?}", body);
+                let mut updated = false;
+                for node in state.stack.nodes.iter_mut() {
+                    if let Node::Internal(Image::Neo4j(ref mut neo)) = node {
+                        if let Some(v) = body.heap_initial_gb {
+                            neo.heap_initial_gb = Some(v);
+                        }
+                        if let Some(v) = body.heap_max_gb {
+                            neo.heap_max_gb = Some(v);
+                        }
+                        if let Some(v) = body.pagecache_gb {
+                            neo.pagecache_gb = Some(v);
+                        }
+                        if let Some(v) = body.tx_total_gb {
+                            neo.tx_total_gb = Some(v);
+                        }
+                        if let Some(v) = body.tx_max_gb {
+                            neo.tx_max_gb = Some(v);
+                        }
+                        if let Some(v) = body.checkpoint_iops {
+                            neo.checkpoint_iops = Some(v);
+                        }
+                        updated = true;
+                    }
+                }
+                let res = if updated {
+                    must_save_stack = true;
+                    SwarmResponse {
+                        success: true,
+                        message: "neo4j config updated; restart neo4j container to apply changes"
+                            .to_string(),
+                        data: None,
+                    }
+                } else {
+                    SwarmResponse {
+                        success: false,
+                        message: "neo4j image not found in stack".to_string(),
+                        data: None,
+                    }
                 };
                 Some(serde_json::to_string(&res)?)
             }

@@ -19,6 +19,18 @@ pub struct Neo4jImage {
     pub host: Option<String>,
     pub mem_limit: Option<i64>,
     pub password: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub heap_initial_gb: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub heap_max_gb: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pagecache_gb: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tx_total_gb: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tx_max_gb: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checkpoint_iops: Option<u64>,
 }
 
 impl Neo4jImage {
@@ -34,6 +46,12 @@ impl Neo4jImage {
             host: None,
             mem_limit: None,
             password: secrets::random_word(32),
+            heap_initial_gb: None,
+            heap_max_gb: None,
+            pagecache_gb: None,
+            tx_total_gb: None,
+            tx_max_gb: None,
+            checkpoint_iops: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -158,6 +176,14 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
         dbms_memory_pagecache_size = "NEO4J_server_memory_pagecache_size"
     }
 
+    // configurable memory / IO settings with sensible defaults
+    let heap_initial_gb = node.heap_initial_gb.unwrap_or(6);
+    let heap_max_gb = node.heap_max_gb.unwrap_or(6);
+    let pagecache_gb = node.pagecache_gb.unwrap_or(8);
+    let tx_total_gb = node.tx_total_gb.unwrap_or(4);
+    let tx_max_gb = node.tx_max_gb.unwrap_or(1);
+    let checkpoint_iops = node.checkpoint_iops.unwrap_or(500);
+
     let c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
@@ -168,12 +194,12 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!("NEO4J_AUTH=neo4j/{}", node.password),
             format!("NEO4J_apoc_export_file_enabled=true"),
             format!("NEO4J_apoc_import_file_enabled=true"),
-            format!("{}=6g", server_memory_heap_initial_size),
-            format!("{}=6g", dbms_memory_heap_max_size),
-            format!("{}=8g", dbms_memory_pagecache_size),
-            format!("NEO4J_db_memory_transaction_total_max=4g"),
-            format!("NEO4J_db_memory_transaction_max=1g"),
-            format!("NEO4J_db_checkpoint_iops_limit=500"),
+            format!("{}={}g", server_memory_heap_initial_size, heap_initial_gb),
+            format!("{}={}g", dbms_memory_heap_max_size, heap_max_gb),
+            format!("{}={}g", dbms_memory_pagecache_size, pagecache_gb),
+            format!("NEO4J_db_memory_transaction_total_max={}g", tx_total_gb),
+            format!("NEO4J_db_memory_transaction_max={}g", tx_max_gb),
+            format!("NEO4J_db_checkpoint_iops_limit={}", checkpoint_iops),
             format!("NEO4J_apoc_uuid_enabled=true"),
             format!("{}=0.0.0.0", dbms_default_listen_address),
             format!(
