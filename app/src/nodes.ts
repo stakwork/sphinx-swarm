@@ -23,8 +23,15 @@ export interface Node {
   network?: Network;
   url?: string;
   host?: string;
+  // Neo4j memory & IO settings (optional, from stack config)
+  heap_initial_gb?: number;
+  heap_max_gb?: number;
+  pagecache_gb?: number;
+  tx_total_gb?: number;
+  tx_max_gb?: number;
+  checkpoint_iops?: number;
   // any other optional field
-  [key: string]: string | string[] | boolean;
+  [key: string]: string | string[] | boolean | number | undefined;
 }
 
 export type NodeType =
