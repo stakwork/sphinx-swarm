@@ -574,3 +574,28 @@ export async function update_lightning_peer({
 export async function get_neo4j_password() {
   return await swarmCmd("GetNeo4jPassword");
 }
+
+export async function update_neo4j_config({
+  heap_initial_gb,
+  heap_max_gb,
+  pagecache_gb,
+  tx_total_gb,
+  tx_max_gb,
+  checkpoint_iops,
+}: {
+  heap_initial_gb?: number;
+  heap_max_gb?: number;
+  pagecache_gb?: number;
+  tx_total_gb?: number;
+  tx_max_gb?: number;
+  checkpoint_iops?: number;
+}) {
+  return await swarmCmd("UpdateNeo4jConfig", {
+    heap_initial_gb,
+    heap_max_gb,
+    pagecache_gb,
+    tx_total_gb,
+    tx_max_gb,
+    checkpoint_iops,
+  });
+}

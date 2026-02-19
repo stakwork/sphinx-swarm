@@ -117,7 +117,8 @@ export type Cmd =
   | "GetSslCertExpiry"
   | "RenewSslCert"
   | "UploadSSlCert"
-  | "UpdateSslCert";
+  | "UpdateSslCert"
+  | "UpdateNeo4jConfig";
 interface CmdData {
   cmd: Cmd;
   content?: any;
