@@ -36,6 +36,7 @@ use crate::service::ssl_cert::handle_renew_cert::{
 };
 use crate::service::ssl_cert::renew_cert_cron::ssl_cert_renewal_cron;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
+use crate::service::log_group_migration::migrate_log_group_tags;
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
 use crate::service::update_super_admin::update_super_admin;
@@ -63,6 +64,11 @@ async fn main() -> Result<()> {
     sphinx_swarm::auth::set_jwt_key(&s.jwt_key);
 
     state::hydrate(s).await;
+
+    // Tag all existing EC2 instances with their log_group
+    tokio::spawn(async move {
+        migrate_log_group_tags().await;
+    });
 
     let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
