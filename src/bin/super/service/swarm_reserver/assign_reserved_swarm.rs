@@ -48,13 +48,19 @@ pub async fn handle_assign_reserved_swarm(
         .available_instances[0]
         .clone();
 
-    let mut tags = vec![Ec2Tags {
-        key: "Name".to_string(),
-        value: info
-            .name
-            .clone()
-            .unwrap_or_else(|| selected_reserved_instance.swarm_id()),
-    }];
+    let mut tags = vec![
+        Ec2Tags {
+            key: "Name".to_string(),
+            value: info
+                .name
+                .clone()
+                .unwrap_or_else(|| selected_reserved_instance.swarm_id()),
+        },
+        Ec2Tags {
+            key: "log_group".to_string(),
+            value: format!("/swarms/{}", selected_reserved_instance.swarm_number),
+        },
+    ];
 
     if info.testing == Some(true) {
         tags.push(Ec2Tags {

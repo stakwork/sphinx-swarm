@@ -665,6 +665,10 @@ pub async fn create_ec2_instance(
             .value(swarm_name)
             .build(),
         Tag::builder().key(key).value(value).build(),
+        Tag::builder()
+            .key("log_group")
+            .value(format!("/swarms/{}", swarm_number))
+            .build(),
     ];
 
     if testing == Some(true) {
