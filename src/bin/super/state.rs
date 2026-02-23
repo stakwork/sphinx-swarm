@@ -10,6 +10,8 @@ use crate::util::{get_descriptive_instance_type, get_today_dash_date};
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Super {
     pub stacks: Vec<RemoteStack>,
+    /// Swarms whose EC2 instance is stopped (not terminated); shown in "Stopped Swarms" section.
+    pub stopped_stacks: Option<Vec<RemoteStack>>,
     pub users: Vec<User>,
     pub jwt_key: String,
     pub bots: Vec<BotCred>,
@@ -88,6 +90,8 @@ pub struct InstanceFromAws {
     pub instance_type: String,
     pub public_ip_address: String,
     pub private_ip_address: String,
+    /// EC2 instance state: "running", "stopped", "pending", "stopping", "shutting-down", "terminated"
+    pub state: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -112,6 +116,7 @@ impl Default for Super {
     fn default() -> Self {
         Self {
             stacks: Vec::new(),
+            stopped_stacks: Some(Vec::new()),
             users: vec![default_superuser()],
             jwt_key: secrets::random_word(16),
             bots: Vec::new(),
@@ -197,6 +202,7 @@ impl Super {
             .collect();
         Super {
             stacks: stacks,
+            stopped_stacks: self.stopped_stacks.clone(),
             users: vec![],
             jwt_key: "".to_string(),
             bots: bots,

@@ -1375,40 +1375,52 @@ fn get_instance(instance_type: &str) -> Option<AwsInstanceType> {
     return Some(instance_types[postion.unwrap()].clone());
 }
 
+/// EC2 states considered "live" (instance is up or starting).
+fn is_live_ec2_state(state: Option<&str>) -> bool {
+    matches!(state, Some("running") | Some("pending"))
+}
+
 pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
 
     let mut domains_to_delete: Vec<Vec<String>> = Vec::new();
+    let mut running_stacks: Vec<RemoteStack> = Vec::new();
+    let mut stopped_stacks: Vec<RemoteStack> = Vec::new();
 
-    for stack in state.stacks.iter_mut() {
-        if aws_instances_hashmap.contains_key(&stack.ec2_instance_id) {
-            if stack.deleted.is_none() || stack.deleted.unwrap() == true {
-                stack.deleted = Some(false);
-            }
-            let aws_instance_hashmap = aws_instances_hashmap.get(&stack.ec2_instance_id).unwrap();
-            stack.public_ip_address = Some(aws_instance_hashmap.public_ip_address.clone());
-            stack.private_ip_address = Some(aws_instance_hashmap.private_ip_address.clone());
+    for mut stack in state.stacks.drain(..) {
+        if let Some(aws_instance) = aws_instances_hashmap.get(&stack.ec2_instance_id) {
+            stack.public_ip_address = Some(aws_instance.public_ip_address.clone());
+            stack.private_ip_address = Some(aws_instance.private_ip_address.clone());
             if stack.ec2.is_none() {
-                stack.ec2 = Some(aws_instance_hashmap.instance_type.clone());
+                stack.ec2 = Some(aws_instance.instance_type.clone());
+            } else if aws_instance.instance_type != stack.ec2.clone().unwrap_or_default() {
+                stack.ec2 = Some(aws_instance.instance_type.clone());
+            }
+
+            if is_live_ec2_state(aws_instance.state.as_deref()) {
+                stack.deleted = Some(false);
+                running_stacks.push(stack);
             } else {
-                if aws_instance_hashmap.instance_type != stack.ec2.clone().unwrap() {
-                    stack.ec2 = Some(aws_instance_hashmap.instance_type.clone())
-                }
+                // stopped, stopping, shutting-down, terminated
+                stopped_stacks.push(stack);
             }
         } else {
-            // If we don't find the instance in the AWS response, we can mark as deleted
+            // Instance not in AWS (terminated or never existed)
             if stack.deleted.is_some() && stack.deleted.unwrap() == true {
                 continue;
             }
             stack.deleted = Some(true);
-
             if let Some(route53_domain_names) = &stack.route53_domain_names {
                 if !route53_domain_names.is_empty() {
                     domains_to_delete.push(route53_domain_names.clone());
                 }
             }
+            running_stacks.push(stack);
         }
     }
+
+    state.stacks = running_stacks;
+    state.stopped_stacks = Some(stopped_stacks);
 
     if !domains_to_delete.is_empty() {
         tokio::spawn(async move {
