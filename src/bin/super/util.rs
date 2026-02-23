@@ -1387,7 +1387,15 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
     let mut running_stacks: Vec<RemoteStack> = Vec::new();
     let mut stopped_stacks: Vec<RemoteStack> = Vec::new();
 
-    for mut stack in state.stacks.drain(..) {
+    // Re-evaluate all known stacks (both live and previously stopped) so we don't lose
+    // stopped_stacks on subsequent get_config calls (we only drain stacks otherwise).
+    let all_stacks: Vec<RemoteStack> = state
+        .stacks
+        .drain(..)
+        .chain(state.stopped_stacks.take().unwrap_or_default())
+        .collect();
+
+    for mut stack in all_stacks {
         if let Some(aws_instance) = aws_instances_hashmap.get(&stack.ec2_instance_id) {
             stack.public_ip_address = Some(aws_instance.public_ip_address.clone());
             stack.private_ip_address = Some(aws_instance.private_ip_address.clone());
