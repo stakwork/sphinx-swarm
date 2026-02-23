@@ -285,6 +285,44 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
     }
 }
 
+/// Migrate an existing Stack config to include new required nodes.
+/// Currently adds Quickwit and Vector to second-brain stacks that lack them.
+/// This is safe to call on every startup — it's a no-op if the nodes already exist.
+pub fn migrate_stack(stack: &mut Stack) {
+    use crate::defaults::env_is_true;
+    use crate::images::quickwit::QuickwitImage;
+    use crate::images::vector::VectorImage;
+
+    let has_quickwit = stack.nodes.iter().any(|n| n.name() == "quickwit");
+    let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
+
+    if has_quickwit && has_vector {
+        return;
+    }
+
+    // Only migrate second-brain stacks
+    let has_boltwall = stack.nodes.iter().any(|n| n.name() == "boltwall");
+    if !env_is_true("SECOND_BRAIN_ONLY") && !has_boltwall {
+        return;
+    }
+
+    log::info!("=> migrating stack: adding quickwit and vector nodes");
+
+    if !has_quickwit {
+        let quickwit = QuickwitImage::new("quickwit", "latest");
+        stack.nodes.push(Node::Internal(Image::Quickwit(quickwit)));
+        log::info!("=> added quickwit node");
+    }
+
+    if !has_vector {
+        let mut vector = VectorImage::new("vector", "latest-distroless-libc");
+        vector.host(stack.host.clone());
+        vector.links(vec!["quickwit", "boltwall"]);
+        stack.nodes.push(Node::Internal(Image::Vector(vector)));
+        log::info!("=> added vector node");
+    }
+}
+
 impl Stack {
     // remove sensitive data from Stack when sending over wire
     pub fn remove_tokens(&self) -> Stack {

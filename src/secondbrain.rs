@@ -31,6 +31,8 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "navfiber".to_string(),
             "repo2graph".to_string(),
             "stakgraph".to_string(),
+            "quickwit".to_string(),
+            "vector".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -91,6 +93,14 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
 
+    // quickwit - log storage and search (internal only)
+    let quickwit = QuickwitImage::new("quickwit", "latest");
+
+    // vector - log ingestion (exposed for external log drains)
+    let mut vector = VectorImage::new("vector", "latest-distroless-libc");
+    vector.host(host.clone());
+    vector.links(vec!["quickwit", "boltwall"]);
+
     let mut imgs = vec![
         Image::NavFiber(nav),
         Image::Neo4j(neo4j),
@@ -99,6 +109,8 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
         Image::Stakgraph(stakgraph),
+        Image::Quickwit(quickwit),
+        Image::Vector(vector),
     ];
 
     if env_is_true("LOCAL_LLAMA") {

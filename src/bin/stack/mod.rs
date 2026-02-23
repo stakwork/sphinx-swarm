@@ -3,7 +3,7 @@ use rocket::tokio;
 use sphinx_swarm::auto_restart_cron::auto_restart_cron;
 use sphinx_swarm::backup::backup_and_delete_volumes_cron;
 use sphinx_swarm::builder;
-use sphinx_swarm::config::{load_config_file, put_config_file, Stack};
+use sphinx_swarm::config::{load_config_file, migrate_stack, put_config_file, Stack};
 use sphinx_swarm::cron_jobs::public_ip::check_public_ip;
 use sphinx_swarm::handler;
 use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
@@ -22,7 +22,11 @@ async fn main() -> Result<()> {
     sphinx_swarm::utils::setup_logs();
 
     let proj = "stack";
-    let stack: Stack = load_config_file(proj).await.expect("YAML CONFIG FAIL");
+    let mut stack: Stack = load_config_file(proj).await.expect("YAML CONFIG FAIL");
+
+    // auto-add new required nodes (e.g. quickwit, vector) to existing configs
+    migrate_stack(&mut stack);
+
     if std::env::var("ONLY_CONFIG_FILE") == Ok("true".to_string()) {
         put_config_file(proj, &stack).await;
         return Ok(());
