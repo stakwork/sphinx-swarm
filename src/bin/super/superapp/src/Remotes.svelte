@@ -22,7 +22,7 @@
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
   import Tribes from "./Tribes.svelte";
   import * as api from "../../../../../app/src/api";
-  import { isWarmNode, remotes, reservedRemotes, selectedNode } from "./store";
+  import { isWarmNode, remotes, reservedRemotes, selectedNode, stoppedRemotes } from "./store";
   import { onMount } from "svelte";
   import type { Remote, ReservedRemote } from "./types/types";
   import {
@@ -84,6 +84,13 @@
     const conf = await api.swarm.get_config();
     if (conf && conf.stacks && conf.stacks.length) {
       remotes.set(conf.stacks);
+    } else if (conf) {
+      remotes.set([]);
+    }
+    if (conf && conf.stopped_stacks && conf.stopped_stacks.length) {
+      stoppedRemotes.set(conf.stopped_stacks);
+    } else if (conf) {
+      stoppedRemotes.set([]);
     }
     if (
       conf &&
@@ -528,6 +535,8 @@
   {#if loading}
     <Loading />
   {/if}
+  <div class="reserved_swarm_cocntainer">
+    <h2>Live Swarms</h2>
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <DataTable
     headers={[
@@ -595,6 +604,41 @@
       {/if}
     </svelte:fragment>
   </DataTable>
+  </div>
+  <div class="reserved_swarm_cocntainer">
+    <h2>Stopped Swarms</h2>
+    <DataTable
+      headers={[
+        { key: "host", value: "Host" },
+        { key: "number", value: "Number" },
+        { key: "note", value: "Description" },
+        { key: "ec2", value: "Instance" },
+        { key: "public_ip_address", value: "Public IP" },
+        { key: "private_ip_address", value: "Private IP" },
+        { key: "view", value: "View" },
+      ]}
+      rows={$stoppedRemotes.map(remoterow)}
+    >
+      <svelte:fragment slot="cell" let:row let:cell>
+        {#if cell.key === "host"}
+          <div class="host_name_container">
+            <Link target={"_blank"} href={getSwarmAdminUrl(row.id)}
+              >{cell.value}</Link
+            >
+          </div>
+        {:else if cell.key === "view"}
+          <Button
+            class="host_name"
+            on:click={() => handleViewNodes(row.id, false)}
+          >
+            View
+          </Button>
+        {:else}
+          {cell.value}
+        {/if}
+      </svelte:fragment>
+    </DataTable>
+  </div>
   <div class="reserved_swarm_cocntainer">
     <h2>Warm Swarms</h2>
     <DataTable

@@ -11,6 +11,9 @@ import type {
 
 export const remotes = writable<Remote[]>([]);
 
+/** EC2 instances that are stopped (not terminated); shown in "Stopped Swarms" section. */
+export const stoppedRemotes = writable<Remote[]>([]);
+
 export const reservedRemotes = writable<ReservedRemote[]>([]);
 
 export const activeUser = writable<string>();
