@@ -289,6 +289,7 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
 /// Currently adds Quickwit and Vector to second-brain stacks that lack them.
 /// This is safe to call on every startup — it's a no-op if the nodes already exist.
 pub fn migrate_stack(stack: &mut Stack) {
+    use crate::defaults::env_is_true;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
 
@@ -299,9 +300,9 @@ pub fn migrate_stack(stack: &mut Stack) {
         return;
     }
 
-    // Only migrate second-brain stacks (they have a "boltwall" node)
-    let is_second_brain = stack.nodes.iter().any(|n| n.name() == "boltwall");
-    if !is_second_brain {
+    // Only migrate second-brain stacks
+    let has_boltwall = stack.nodes.iter().any(|n| n.name() == "boltwall");
+    if !env_is_true("SECOND_BRAIN_ONLY") && !has_boltwall {
         return;
     }
 
