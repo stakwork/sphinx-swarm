@@ -87,7 +87,6 @@ fn jarvis(
         format!("JARVIS_BACKEND_PORT={}", node.port),
         format!("PUBLIC_GRAPH_RESULT_LIMIT=10"),
         format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images"),
-        format!("RADAR_SCHEDULER_JOB=1"),
         format!("FEATURE_FLAG_ADD_NODE_KEY=true"),
         format!("AWS_S3_PRESIGN_URL_EXPIRY=3600")
     ];
@@ -222,6 +221,12 @@ fn jarvis(
         env.push(format!(
             "RADAR_TWITTER_SCHEDULER_JOB={}",
             radar_twitter_scheduler_job
+        ));
+    }
+    if let Ok(radar_scheduler_job) = getenv("RADAR_SCHEDULER_JOB") {
+        env.push(format!(
+            "RADAR_SCHEDULER_JOB={}",
+            radar_scheduler_job
         ));
     }
     if let Ok(radar_topic_scheduler_job) = getenv("RADAR_TOPIC_SCHEDULER_JOB") {
