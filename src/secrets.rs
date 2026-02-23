@@ -1,5 +1,6 @@
 use crate::utils;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 pub type Secrets = HashMap<String, String>;
@@ -22,6 +23,13 @@ pub fn random_word(n: usize) -> String {
         .take(n)
         .map(char::from)
         .collect()
+}
+
+/// SHA-256 hash, hex-encoded, truncated to 24 characters.
+/// Used to derive a public-safe token from a secret.
+pub fn sha256_hex_24(input: &str) -> String {
+    let hash = Sha256::digest(input.as_bytes());
+    hex::encode(hash)[..24].to_string()
 }
 
 pub async fn load_secrets(project: &str) -> Secrets {

@@ -50,15 +50,19 @@ impl VectorImage {
         };
 
         // Use boltwall's stakwork_secret if linked, otherwise use our own token
-        let auth_token = if let Some(boltwall) = li.find_boltwall() {
+        let base_token = if let Some(boltwall) = li.find_boltwall() {
             boltwall.stakwork_secret.unwrap_or(self.auth_token.clone())
         } else {
             self.auth_token.clone()
         };
 
+        // Hash the token so the raw secret is never exposed to 3rd parties
+        let auth_token = secrets::sha256_hex_24(&base_token);
+        log::info!("=> vector auth token (hashed): {}", auth_token);
+
         let config = vector_toml(&self.http_port, &quickwit_host, &auth_token);
 
-        log::info!("=> vector auth token: {}", auth_token);
+        log::info!("=> vector auth token (hashed): {}", auth_token);
         log::info!("=> uploading vector.toml config...");
         upload_to_container(
             docker,
