@@ -58,7 +58,6 @@ impl VectorImage {
 
         // Hash the token so the raw secret is never exposed to 3rd parties
         let auth_token = secrets::sha256_hex_24(&base_token);
-        log::info!("=> vector auth token (hashed): {}", auth_token);
 
         let config = vector_toml(&self.http_port, &quickwit_host, &auth_token);
 
