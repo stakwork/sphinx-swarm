@@ -30,8 +30,36 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        protobuf-compiler \
+        curl \
+        gnupg \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Node to builder stage
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy entire frontend into path that matches WORKDIR below
+COPY src/bin/super/superapp/ /sphinx-swarm/src/bin/super/superapp/
+# Copy main app so superapp's relative imports (../../../../../app/src/...) resolve at build time
+COPY app/ /sphinx-swarm/app/
+
+# Install dependencies and build frontend (dist is generated here, not from host)
+WORKDIR /sphinx-swarm/src/bin/super/superapp
+RUN npm install -g yarn
+RUN yarn install
+RUN yarn run build
+
+# Use the container-built dist (do not copy from host)
+WORKDIR /sphinx-swarm
+RUN mkdir -p /sphinx-swarm/app && cp -r /sphinx-swarm/src/bin/super/superapp/dist /sphinx-swarm/app/dist
 COPY --from=builder /sphinx-swarm/target/release/super /usr/local/bin/super
-COPY src/bin/super/superapp/dist /sphinx-swarm/app/dist
+
+
 
 ENV ROCKET_ADDRESS=0.0.0.0 \
     ROCKET_PORT=8000
