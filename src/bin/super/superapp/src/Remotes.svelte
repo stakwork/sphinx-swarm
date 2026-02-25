@@ -540,12 +540,12 @@
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <DataTable
     headers={[
-      { key: "host", value: "Host" },
-      { key: "number", value: "Number" },
-      { key: "note", value: "Description" },
-      { key: "ec2", value: "Instance" },
-      { key: "public_ip_address", value: "Public IP" },
-      { key: "private_ip_address", value: "Private IP" },
+      { key: "host", value: "Host", sort: (a, b) => a.localeCompare(b) },
+      { key: "number", value: "Number", sort: (a, b) => a.localeCompare(b) },
+      { key: "note", value: "Description", sort: (a, b) => (a || "").localeCompare(b || "") },
+      { key: "ec2", value: "Instance", sort: (a, b) => (a || "").localeCompare(b || "") },
+      { key: "public_ip_address", value: "Public IP", sort: (a, b) => (a || "").localeCompare(b || "") },
+      { key: "private_ip_address", value: "Private IP", sort: (a, b) => (a || "").localeCompare(b || "") },
       { key: "update_env", value: "Update Env" },
       { key: "view", value: "View" },
       { key: "health", value: "Health" },
@@ -554,6 +554,7 @@
     selectable
     bind:selectedRowIds
     batchSelection
+    sortable
   >
     <Toolbar>
       <ToolbarBatchActions>
