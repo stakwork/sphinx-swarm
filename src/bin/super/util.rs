@@ -558,99 +558,155 @@ pub async fn create_ec2_instance(
 
     let user_data_script = format!(
         r#"#!/bin/bash
+      set -e  # Exit on any error
+      exec > >(tee -a /var/log/swarm-setup.log) 2>&1  # Log all output
+
+      echo "============================================"
+      echo "Starting swarm setup at $(date)"
+      echo "============================================"
+
       su - admin -c '
-          cd /home/admin &&
-          pwd &&
-          echo "INSTALLING DEPENDENCIES..." && \
-          curl -fsSL https://get.docker.com/ -o get-docker.sh && \
-          sh get-docker.sh && \
-          sudo usermod -aG docker $USER && \
-          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose && \
-          sudo chmod +x /usr/local/bin/docker-compose && \
-          docker-compose version && \
-          sudo apt update && \
-          sudo apt install -y git unzip awscli && \
-          
+          set -e  # Exit on any error
+          cd /home/admin
+          pwd
+
+          echo "[$(date)] INSTALLING DEPENDENCIES..."
+          if ! curl -fsSL https://get.docker.com/ -o get-docker.sh; then
+            echo "[$(date)] ERROR: Failed to download Docker install script"
+            exit 1
+          fi
+
+          if ! sh get-docker.sh; then
+            echo "[$(date)] ERROR: Failed to install Docker"
+            exit 1
+          fi
+
+          sudo usermod -aG docker $USER
+
+          echo "[$(date)] Installing docker-compose..."
+          if ! sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose; then
+            echo "[$(date)] ERROR: Failed to download docker-compose"
+            exit 1
+          fi
+
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose version
+
+          echo "[$(date)] Installing git, unzip, awscli..."
+          sudo apt update
+          sudo apt install -y git unzip awscli
+
           # Create Docker network
-          echo "Creating Docker network..." && \
+          echo "[$(date)] Creating Docker network..."
           newgrp docker <<EOF
-  docker network create sphinx-swarm
+  docker network create sphinx-swarm || echo "Network already exists"
   EOF
-          
-          sleep 10 && \
-          pwd && \
+
+          sleep 10
+          pwd
 
           #Setup TLS Cert
           {setup_tls_cert}
-          cd /home/admin && \
-          git clone https://github.com/stakwork/sphinx-swarm.git && \
-          cd sphinx-swarm && \
-          pwd && \
-          touch .env && \
-          chmod 644 .env && \
-          
+
+          cd /home/admin
+          echo "[$(date)] Cloning sphinx-swarm repository..."
+          if ! git clone https://github.com/stakwork/sphinx-swarm.git; then
+            echo "[$(date)] ERROR: Failed to clone repository"
+            echo "[$(date)] Checking git and network..."
+            git --version
+            curl -I https://github.com
+            exit 1
+          fi
+
+          cd sphinx-swarm
+          pwd
+          echo "[$(date)] Successfully cloned repository"
+
+          echo "[$(date)] Creating .env file..."
+          touch .env
+          chmod 644 .env
+
           # Populate the .env file
           {env_lines}
-          echo "HOST={host}" >> .env && \
-          echo "NETWORK=bitcoin" >> .env && \
-          echo "AWS_REGION=us-east-1" >> .env && \
-          echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env && \
-          echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env && \
-          echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env && \
-          echo "NO_REMOTE_SIGNER=true" >> .env && \
-          echo "EXTERNAL_LND_MACAROON={lnd_macaroon}" >> .env && \
-          echo "EXTERNAL_LND_ADDRESS={lnd_address}" >> .env && \
-          echo "EXTERNAL_LND_CERT={lnd_cert}" >> .env && \
-          echo "YOUTUBE_API_TOKEN={youtube_token}" >> .env && \
-          echo "SWARM_UPDATER_PASSWORD={swarm_updater_password}" >> .env && \
-          echo "JARVIS_FEATURE_FLAG_SCHEMA=true" >> .env && \
-          echo "BACKUP_KEY=" >> .env && \
-          echo "FEATURE_FLAG_TEXT_EMBEDDINGS=true" >> .env && \
-          echo "TWITTER_BEARER={twitter_token}" >> .env && \
-          echo "SUPER_TOKEN={super_token}" >> .env && \
-          echo "SUPER_URL={super_url}" >> .env && \
-          echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
-          echo "SECOND_BRAIN_ONLY=true" >> .env && \
-          echo "SWARM_NUMBER={swarm_number}" >> .env && \
-          echo "PASSWORD={password}" >> .env && \
-          echo "GITHUB_PAT={github_pat}" >> .env && \
-          echo "BOLTWALL_API_SECRET={boltwall_api_secret}" >> .env && \
-          echo "JARVIS_FEATURE_FLAG_WFA_SCHEMAS=true" >> .env && \
-          echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env && \
+          echo "HOST={host}" >> .env
+          echo "NETWORK=bitcoin" >> .env
+          echo "AWS_REGION=us-east-1" >> .env
+          echo "AWS_S3_BUCKET_NAME={aws_s3_bucket_name}" >> .env
+          echo "STAKWORK_ADD_NODE_TOKEN={stakwork_token}" >> .env
+          echo "STAKWORK_RADAR_REQUEST_TOKEN={stakwork_token}" >> .env
+          echo "NO_REMOTE_SIGNER=true" >> .env
+          echo "EXTERNAL_LND_MACAROON={lnd_macaroon}" >> .env
+          echo "EXTERNAL_LND_ADDRESS={lnd_address}" >> .env
+          echo "EXTERNAL_LND_CERT={lnd_cert}" >> .env
+          echo "YOUTUBE_API_TOKEN={youtube_token}" >> .env
+          echo "SWARM_UPDATER_PASSWORD={swarm_updater_password}" >> .env
+          echo "JARVIS_FEATURE_FLAG_SCHEMA=true" >> .env
+          echo "BACKUP_KEY=" >> .env
+          echo "FEATURE_FLAG_TEXT_EMBEDDINGS=true" >> .env
+          echo "TWITTER_BEARER={twitter_token}" >> .env
+          echo "SUPER_TOKEN={super_token}" >> .env
+          echo "SUPER_URL={super_url}" >> .env
+          echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env
+          echo "SECOND_BRAIN_ONLY=true" >> .env
+          echo "SWARM_NUMBER={swarm_number}" >> .env
+          echo "PASSWORD={password}" >> .env
+          echo "GITHUB_PAT={github_pat}" >> .env
+          echo "BOLTWALL_API_SECRET={boltwall_api_secret}" >> .env
+          echo "JARVIS_FEATURE_FLAG_WFA_SCHEMAS=true" >> .env
+          echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env
           {anthropic_api_key_env}
           {port_based_ssl}
-          
-          sleep 60 && \
-          
-          echo "Setting up Restarter server..." && \
-          sudo apt install -y nodejs npm && \
+
+          echo "[$(date)] .env file created successfully"
+
+          sleep 60
+
+          echo "[$(date)] Setting up Restarter server..."
+          sudo apt install -y nodejs npm
           sudo npm install pm2 -g
+
+          echo "[$(date)] Creating PM2 ecosystem.config.js..."
+          cat > /home/admin/sphinx-swarm/ecosystem.config.js << "EOFCONFIG"
+module.exports = {{
+  apps: [
+    {{
+      name: "restarter",
+      script: "./restarter.js",
+      env: {{
+        SECOND_BRAIN: "true",
+        PASSWORD: "{swarm_updater_password}",
+      }},
+    }},
+  ],
+}};
+EOFCONFIG
         '
-          
-          echo 'module.exports = {{
-            apps: [
-              {{
-                name: "restarter",
-                script: "./restarter.js",
-                env: {{
-                  SECOND_BRAIN: "true",
-                  PASSWORD: "{swarm_updater_password}",
-                }},
-              }},
-            ],
-          }};' > /home/admin/sphinx-swarm/ecosystem.config.js
-          
+
         su - admin -c '
-        cd /home/admin && \
-        wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb && \
-        sudo dpkg -i amazon-ssm-agent.deb
-          cd /home/admin/sphinx-swarm && \
-          pm2 start ecosystem.config.js && \
-          pm2 save && \
-          startup_command=$(pm2 startup | grep "sudo" | tail -n 1) && \
-          eval $startup_command && \
-          pm2 save && \
+          set -e  # Exit on any error
+          cd /home/admin
+
+          echo "[$(date)] Installing SSM Agent..."
+          wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+          sudo dpkg -i amazon-ssm-agent.deb
+
+          if [ ! -d "/home/admin/sphinx-swarm" ]; then
+            echo "[$(date)] ERROR: sphinx-swarm directory does not exist!"
+            exit 1
+          fi
+
+          cd /home/admin/sphinx-swarm
+          echo "[$(date)] Starting PM2..."
+          pm2 start ecosystem.config.js
+          pm2 save
+          startup_command=$(pm2 startup | grep "sudo" | tail -n 1)
+          eval $startup_command
+          pm2 save
+
+          echo "[$(date)] Starting docker-compose..."
           {docker_compose_start_script}
+
+          echo "[$(date)] Setup completed successfully!"
       '
       "#
     );
