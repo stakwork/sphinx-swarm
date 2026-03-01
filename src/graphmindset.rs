@@ -29,6 +29,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         global_mem_limit: None,
         backup_services: Some(vec!["boltwall".to_string(), "neo4j".to_string()]),
+        backup_files: None,
         lightning_peers: None,
         ssl_cert_last_modified: None,
         instance_id: None,

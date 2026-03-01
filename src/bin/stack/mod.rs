@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rocket::tokio;
 use sphinx_swarm::auto_restart_cron::auto_restart_cron;
-use sphinx_swarm::backup::backup_and_delete_volumes_cron;
+use sphinx_swarm::backup::{backup_and_delete_volumes_cron, backup_files_cron};
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, migrate_stack, put_config_file, Stack};
 use sphinx_swarm::cron_jobs::public_ip::check_public_ip;
@@ -77,6 +77,12 @@ async fn main() -> Result<()> {
         backup_and_delete_volumes_cron(backup_services).await?;
     } else {
         log::info!("BACKUP is not set!!")
+    }
+
+    if let Some(backup_files) = stack.backup_files {
+        backup_files_cron(backup_files).await?;
+    } else {
+        log::info!("BACKUP FILES is not set!!")
     }
 
     if let Some(auto_restart_services) = stack.auto_restart {

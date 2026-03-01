@@ -63,6 +63,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/vol:/vol
       - /home/admin/sphinx-swarm/.env:/.env
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.elements.rule=Host(`${HOST}`)"

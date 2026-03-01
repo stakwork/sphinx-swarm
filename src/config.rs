@@ -73,6 +73,8 @@ pub struct Stack {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backup_services: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub backup_files: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub lightning_peers: Option<Vec<LightningPeer>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ssl_cert_last_modified: Option<i64>,
@@ -405,6 +407,7 @@ impl Stack {
             custom_2b_domain: self.custom_2b_domain.clone(),
             global_mem_limit: self.global_mem_limit,
             backup_services: self.backup_services.clone(),
+            backup_files: self.backup_files.clone(),
             lightning_peers: self.lightning_peers.clone(),
             ssl_cert_last_modified: self.ssl_cert_last_modified.clone(),
             instance_id: self.instance_id.clone(),

@@ -30,6 +30,12 @@ pub fn bucket_name() -> String {
     getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
 }
 
+fn swarm_prefix_from_host() -> Result<String> {
+    let host = getenv("HOST")?;
+    let host_slug = host.replace('.', "-");
+    Ok(format!("swarm-{}", host_slug))
+}
+
 fn backup_retention_days() -> i64 {
     match getenv("BACKUP_RETENTION_DAYS")
         .unwrap_or("10".to_string())
@@ -258,7 +264,13 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
         return Ok(false);
     }
 
-    log::info!("Total number of chunks: {}", chunk_count);
+    let file_size_mb = file_size / (1024 * 1024);
+    log::info!(
+        "S3 upload: {} ({}MB, {} chunks)",
+        key,
+        file_size_mb,
+        chunk_count
+    );
 
     let mut upload_parts: Vec<CompletedPart> = Vec::new();
 
@@ -294,6 +306,13 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
                 return Ok(false);
             }
         };
+        let progress = ((chunk_index + 1) as f64 / chunk_count as f64) * 100.0;
+        log::info!(
+            "S3 upload: {}/{} chunks ({:.0}%)",
+            chunk_index + 1,
+            chunk_count,
+            progress
+        );
         upload_parts.push(
             CompletedPart::builder()
                 .e_tag(upload_part_res.e_tag.unwrap_or_default())
@@ -327,6 +346,16 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
 
 // Deletes old backups from the S3 bucket
 pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()> {
+    let swarm_number = getenv("SWARM_NUMBER")?;
+    let prefix = format!("swarm{}", swarm_number);
+    delete_old_backups_with_prefix(bucket, retention_days, &prefix).await
+}
+
+async fn delete_old_backups_with_prefix(
+    bucket: &str,
+    retention_days: i64,
+    prefix: &str,
+) -> Result<()> {
     // Read the custom region environment variable
     let region = getenv("AWS_REGION")?;
 
@@ -337,9 +366,7 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
-    let swarm_number = getenv("SWARM_NUMBER")?;
-
-    let object_prefix = format!("swarm{}/", swarm_number);
+    let object_prefix = format!("{}/", prefix);
 
     // List objects in the bucket
     let resp = client
@@ -440,4 +467,153 @@ pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Res
     });
 
     Ok(sched)
+}
+
+// backup_files: "mixer mixer.redb" or "tribes tribes.redb 0 */6 * * *"
+// (name, file_path - relative to root volume, cron)
+struct BackupFileEntry {
+    name: String,
+    file_path: String,
+    cron: String,
+}
+
+fn parse_backup_file_entry(entry: &str) -> Option<BackupFileEntry> {
+    let parts: Vec<&str> = entry.splitn(3, ' ').collect();
+    if parts.len() < 2 {
+        log::error!("Invalid backup_files entry: {}", entry);
+        return None;
+    }
+    let name = parts[0].to_string();
+    let file_path = parts[1].to_string();
+    let cron = if parts.len() >= 3 {
+        parts[2].to_string()
+    } else {
+        "@daily".to_string()
+    };
+    Some(BackupFileEntry {
+        name,
+        file_path,
+        cron,
+    })
+}
+
+async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
+    let volume_name = domain(&entry.name);
+    let src_path = format!(
+        "/var/lib/docker/volumes/{}/_data/{}",
+        volume_name, &entry.file_path
+    );
+    let backup_path = format!("{}.backup", &src_path);
+
+    // cp the file to a temp location on the same filesystem
+    log::info!("backup_file: copying {} to {}", &src_path, &backup_path);
+    tokio::fs::copy(&src_path, &backup_path).await?;
+
+    // upload directly to S3
+    let current_date = Local::now().format("%Y-%m-%d").to_string();
+    let parent_directory = swarm_prefix_from_host()?;
+    let file_name = Path::new(&entry.file_path)
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or("backup");
+    let s3_key = format!(
+        "{}/{}/{}/{}",
+        &parent_directory, &current_date, &entry.name, file_name
+    );
+
+    log::info!(
+        "backup_file: uploading {} to s3://{}",
+        &backup_path,
+        &s3_key
+    );
+    match upload_to_s3_multi(&bucket_name(), &backup_path, &s3_key).await {
+        Ok(_) => {}
+        Err(err) => log::error!("backup_file: S3 upload error: {}", err),
+    }
+
+    // rm the temp backup file
+    let _ = tokio::fs::remove_file(&backup_path).await;
+
+    log::info!(
+        "backup_file: completed backup of {} from {}",
+        &entry.file_path,
+        &entry.name
+    );
+    Ok(())
+}
+
+pub async fn backup_files_cron(backup_files: Vec<String>) -> Result<Vec<JobScheduler>> {
+    log::info!("backup_files: setting up cron schedules");
+    let mut schedulers = Vec::new();
+
+    for entry_str in backup_files {
+        let entry = match parse_backup_file_entry(&entry_str) {
+            Some(e) => e,
+            None => continue,
+        };
+
+        let cron_expr = entry.cron.clone();
+        let name = entry.name.clone();
+        let file_path = entry.file_path.clone();
+
+        log::info!(
+            "backup_files: scheduling {} {} with cron '{}'",
+            &name,
+            &file_path,
+            &cron_expr
+        );
+
+        let sched = JobScheduler::new().await?;
+        let trigger_flag = std::sync::Arc::new(AtomicBool::new(false));
+        let trigger_for_cron = trigger_flag.clone();
+        let trigger_for_loop = trigger_flag.clone();
+
+        sched
+            .add(Job::new_async(cron_expr.as_str(), move |_uuid, _l| {
+                let flag = trigger_for_cron.clone();
+                Box::pin(async move {
+                    flag.store(true, Ordering::Relaxed);
+                })
+            })?)
+            .await?;
+
+        sched.start().await?;
+
+        tokio::spawn(async move {
+            let entry = BackupFileEntry {
+                name,
+                file_path,
+                cron: cron_expr,
+            };
+            loop {
+                if trigger_for_loop.load(Ordering::Relaxed) {
+                    if let Err(e) = backup_single_file(&entry).await {
+                        log::error!(
+                            "backup_file error for {} {}: {:?}",
+                            &entry.name,
+                            &entry.file_path,
+                            e
+                        );
+                    }
+                    if let Ok(prefix) = swarm_prefix_from_host() {
+                        if let Err(e) = delete_old_backups_with_prefix(
+                            &bucket_name(),
+                            backup_retention_days(),
+                            &prefix,
+                        )
+                        .await
+                        {
+                            log::error!("Delete old backup_file backups: {:?}", e);
+                        }
+                    }
+                    trigger_for_loop.store(false, Ordering::Relaxed);
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            }
+        });
+
+        schedulers.push(sched);
+    }
+
+    Ok(schedulers)
 }

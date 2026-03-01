@@ -152,6 +152,7 @@ fn make_stack() -> Stack {
         custom_2b_domain: None,
         global_mem_limit: None,
         backup_services: None,
+        backup_files: None,
         lightning_peers: None,
         auto_restart: None,
         ssl_cert_last_modified: None,
