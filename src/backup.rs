@@ -31,6 +31,12 @@ pub fn bucket_name() -> String {
     getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
 }
 
+fn swarm_prefix_from_host() -> Result<String> {
+    let host = getenv("HOST")?;
+    let host_slug = host.replace('.', "-");
+    Ok(format!("swarm-{}", host_slug))
+}
+
 fn backup_retention_days() -> i64 {
     match getenv("BACKUP_RETENTION_DAYS")
         .unwrap_or("10".to_string())
@@ -334,6 +340,12 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
 
 // Deletes old backups from the S3 bucket
 pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()> {
+    let swarm_number = getenv("SWARM_NUMBER")?;
+    let prefix = format!("swarm{}", swarm_number);
+    delete_old_backups_with_prefix(bucket, retention_days, &prefix).await
+}
+
+async fn delete_old_backups_with_prefix(bucket: &str, retention_days: i64, prefix: &str) -> Result<()> {
     // Read the custom region environment variable
     let region = getenv("AWS_REGION")?;
 
@@ -344,9 +356,7 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
-    let swarm_number = getenv("SWARM_NUMBER")?;
-
-    let object_prefix = format!("swarm{}/", swarm_number);
+    let object_prefix = format!("{}/", prefix);
 
     // List objects in the bucket
     let resp = client
@@ -497,10 +507,8 @@ async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
     futures::pin_mut!(body_reader);
 
     // write the tar to a local temp file
-    let host = getenv("HOST")?;
-    let host_slug = host.replace('.', "-");
     let current_date = Local::now().format("%Y-%m-%d").to_string();
-    let parent_directory = format!("swarm-{}", host_slug);
+    let parent_directory = swarm_prefix_from_host()?;
     let local_dir = format!("{}_{}/{}", &parent_directory, &current_date, &entry.name);
     fs::create_dir_all(&local_dir)?;
 
@@ -581,8 +589,10 @@ pub async fn backup_files_cron(backup_files: Vec<String>) -> Result<Vec<JobSched
                     if let Err(e) = backup_single_file(&entry).await {
                         log::error!("backup_file error for {} {}: {:?}", &entry.name, &entry.file_path, e);
                     }
-                    if let Err(e) = delete_old_backups(&bucket_name(), backup_retention_days()).await {
-                        log::error!("Delete old backup_file backups: {:?}", e);
+                    if let Ok(prefix) = swarm_prefix_from_host() {
+                        if let Err(e) = delete_old_backups_with_prefix(&bucket_name(), backup_retention_days(), &prefix).await {
+                            log::error!("Delete old backup_file backups: {:?}", e);
+                        }
                     }
                     trigger_for_loop.store(false, Ordering::Relaxed);
                 }
