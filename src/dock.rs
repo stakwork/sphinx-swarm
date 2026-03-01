@@ -25,7 +25,7 @@ use std::error::Error;
 use std::time::Duration;
 use tokio::io::AsyncReadExt;
 
-use crate::backup::bucket_name;
+use crate::backup::{bucket_name, parse_backup_entry};
 use crate::builder::{find_img, make_client};
 use crate::config::{Node, State, STATE};
 use crate::conn::swarm::SwarmResponse;
@@ -1117,8 +1117,10 @@ pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool
 
     drop(state);
 
+    let backup_names: Vec<String> = to_backup.iter().map(|s| parse_backup_entry(s).0).collect();
+
     //check if backup s3 link is passed
-    if to_backup.contains(&name.to_string()) {
+    if backup_names.contains(&name.to_string()) {
         log::info!("About to restore: {}", name);
         let img = find_img(&name, &nodes)?;
 

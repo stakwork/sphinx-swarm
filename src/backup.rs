@@ -30,6 +30,31 @@ pub fn bucket_name() -> String {
     getenv("AWS_S3_BUCKET_NAME").unwrap_or("sphinx-swarm".to_string())
 }
 
+fn swarm_prefix_from_host() -> Result<String> {
+    let host = getenv("HOST")?;
+    let host_slug = host.replace('.', "-");
+    Ok(format!("swarm-{}", host_slug))
+}
+
+fn swarm_prefix() -> Result<String> {
+    match getenv("SWARM_NUMBER") {
+        Ok(n) => Ok(format!("swarm{}", n)),
+        Err(_) => swarm_prefix_from_host(),
+    }
+}
+
+/// Parse a backup_services entry like "mixer" or "mixer @daily".
+/// Returns (service_name, optional_cron_schedule).
+pub fn parse_backup_entry(entry: &str) -> (String, Option<String>) {
+    if let Some(idx) = entry.find(" @") {
+        let name = entry[..idx].trim().to_string();
+        let cron = entry[idx + 1..].trim().to_string(); // e.g. "@daily"
+        (name, Some(cron))
+    } else {
+        (entry.trim().to_string(), None)
+    }
+}
+
 fn backup_retention_days() -> i64 {
     match getenv("BACKUP_RETENTION_DAYS")
         .unwrap_or("10".to_string())
@@ -48,6 +73,11 @@ pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
     let nodes = state.stack.nodes.clone();
     drop(state);
 
+    let service_names: Vec<String> = backup_services
+        .iter()
+        .map(|s| parse_backup_entry(s).0)
+        .collect();
+
     let mut containers: Vec<(String, String, String)> = Vec::new();
 
     log::info!("About to start get backup containers");
@@ -57,7 +87,7 @@ pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
         let hostname = domain(&node_name);
         match node.as_internal() {
             Ok(img) => {
-                if backup_services.contains(&node_name) {
+                if service_names.contains(&node_name) {
                     containers.push((hostname.clone(), img.repo().root_volume, node_name.clone()))
                 }
             }
@@ -79,8 +109,7 @@ pub async fn download_and_zip_from_container(
     let docker = Docker::connect_with_local_defaults()?;
 
     // Define the parent directory where all the container volumes will be saved
-    let swarm_number = getenv("SWARM_NUMBER")?;
-    let parent_directory = format!("swarm{}", swarm_number);
+    let parent_directory = swarm_prefix()?;
 
     let current_date = Local::now().format("%Y-%m-%d").to_string();
     let s3_parent_directory = format!("{}_{}", &parent_directory, current_date);
@@ -337,9 +366,9 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
-    let swarm_number = getenv("SWARM_NUMBER")?;
+    let prefix = swarm_prefix()?;
 
-    let object_prefix = format!("swarm{}/", swarm_number);
+    let object_prefix = format!("{}/", prefix);
 
     // List objects in the bucket
     let resp = client
@@ -407,11 +436,20 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
 }
 
 pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Result<JobScheduler> {
-    log::info!(":backup and delete volumes");
+    // Determine the cron schedule: use the first per-service override found, else "@daily"
+    let cron_schedule = backup_services
+        .iter()
+        .find_map(|s| parse_backup_entry(s).1)
+        .unwrap_or_else(|| "@daily".to_string());
+
+    log::info!(
+        "backup and delete volumes (cron: {})",
+        cron_schedule
+    );
     let sched = JobScheduler::new().await?;
 
     sched
-        .add(Job::new_async("@daily", |_uuid, _l| {
+        .add(Job::new_async(cron_schedule.as_str(), |_uuid, _l| {
             Box::pin(async move {
                 if !BACK_AND_DELETE.load(Ordering::Relaxed) {
                     BACK_AND_DELETE.store(true, Ordering::Relaxed);
