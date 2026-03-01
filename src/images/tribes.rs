@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-// tribes /home/tribes.redb
+// tribes tribes.redb
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TribesImage {

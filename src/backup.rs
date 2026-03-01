@@ -10,7 +10,6 @@ use aws_smithy_types::byte_stream::{ByteStream, Length};
 use aws_smithy_types::retry::RetryConfig;
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
-use crate::dock;
 use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use futures_util::stream::TryStreamExt;
 use std::fs::{self, File};
@@ -487,55 +486,37 @@ fn parse_backup_file_entry(entry: &str) -> Option<BackupFileEntry> {
 }
 
 async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
-    let docker = Docker::connect_with_local_defaults()?;
-    let hostname = domain(&entry.name);
-    let backup_path = format!("{}.backup", &entry.file_path);
+    let volume_name = domain(&entry.name);
+    let src_path = format!(
+        "/var/lib/docker/volumes/{}/_data/{}",
+        volume_name, &entry.file_path
+    );
+    let backup_path = format!("{}.backup", &src_path);
 
-    // cp the file to a temp location inside the container
-    let cp_cmd = format!("cp {} {}", &entry.file_path, &backup_path);
-    log::info!("backup_file: copying {} in {}", &entry.file_path, &hostname);
-    dock::exec(&docker, &hostname, &cp_cmd).await?;
+    // cp the file to a temp location on the same filesystem
+    log::info!("backup_file: copying {} to {}", &src_path, &backup_path);
+    tokio::fs::copy(&src_path, &backup_path).await?;
 
-    // stream the backup file out of the container
-    let options = DownloadFromContainerOptions {
-        path: &backup_path,
-    };
-    let stream = docker.download_from_container(&hostname, Some(options));
-    let body_with_io_error =
-        stream.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
-    let body_reader = StreamReader::new(body_with_io_error);
-    futures::pin_mut!(body_reader);
-
-    // write the tar to a local temp file
+    // upload directly to S3
     let current_date = Local::now().format("%Y-%m-%d").to_string();
     let parent_directory = swarm_prefix_from_host()?;
-    let local_dir = format!("{}_{}/{}", &parent_directory, &current_date, &entry.name);
-    fs::create_dir_all(&local_dir)?;
-
     let file_name = Path::new(&entry.file_path)
         .file_name()
         .and_then(|f| f.to_str())
         .unwrap_or("backup");
-    let local_tar_path = format!("{}/{}.tar", &local_dir, file_name);
-    let mut file = BufWriter::new(tokio::fs::File::create(&local_tar_path).await?);
-    tokio::io::copy(&mut body_reader, &mut file).await?;
-
-    log::info!("backup_file: downloaded {} to {}", &entry.file_path, &local_tar_path);
-
-    // upload to S3
     let s3_key = format!(
-        "{}/{}/{}/{}.tar",
+        "{}/{}/{}/{}",
         &parent_directory, &current_date, &entry.name, file_name
     );
-    upload_final_zip_to_s3(local_tar_path, s3_key).await?;
 
-    // rm the temp backup file inside the container
-    let rm_cmd = format!("rm {}", &backup_path);
-    dock::exec(&docker, &hostname, &rm_cmd).await?;
+    log::info!("backup_file: uploading {} to s3://{}", &backup_path, &s3_key);
+    match upload_to_s3_multi(&bucket_name(), &backup_path, &s3_key).await {
+        Ok(_) => {}
+        Err(err) => log::error!("backup_file: S3 upload error: {}", err),
+    }
 
-    // clean up local directory
-    let local_parent = format!("{}_{}", &parent_directory, &current_date);
-    let _ = remove_dir_all(&local_parent).await;
+    // rm the temp backup file
+    let _ = tokio::fs::remove_file(&backup_path).await;
 
     log::info!("backup_file: completed backup of {} from {}", &entry.file_path, &entry.name);
     Ok(())
