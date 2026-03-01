@@ -507,7 +507,9 @@ async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
 
     // cp the file to a temp location on the same filesystem
     log::info!("backup_file: copying {} to {}", &src_path, &backup_path);
-    tokio::fs::copy(&src_path, &backup_path).await?;
+    let bytes_copied = tokio::fs::copy(&src_path, &backup_path).await?;
+    let mb_copied = bytes_copied / (1024 * 1024);
+    log::info!("backup_file: copy complete ({}MB)", mb_copied);
 
     // upload directly to S3
     let current_date = Local::now().format("%Y-%m-%d").to_string();
