@@ -267,7 +267,9 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
     let file_size_mb = file_size / (1024 * 1024);
     log::info!(
         "S3 upload: {} ({}MB, {} chunks)",
-        key, file_size_mb, chunk_count
+        key,
+        file_size_mb,
+        chunk_count
     );
 
     let mut upload_parts: Vec<CompletedPart> = Vec::new();
@@ -305,7 +307,12 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
             }
         };
         let progress = ((chunk_index + 1) as f64 / chunk_count as f64) * 100.0;
-        log::info!("S3 upload: {}/{} chunks ({:.0}%)", chunk_index + 1, chunk_count, progress);
+        log::info!(
+            "S3 upload: {}/{} chunks ({:.0}%)",
+            chunk_index + 1,
+            chunk_count,
+            progress
+        );
         upload_parts.push(
             CompletedPart::builder()
                 .e_tag(upload_part_res.e_tag.unwrap_or_default())
@@ -344,7 +351,11 @@ pub async fn delete_old_backups(bucket: &str, retention_days: i64) -> Result<()>
     delete_old_backups_with_prefix(bucket, retention_days, &prefix).await
 }
 
-async fn delete_old_backups_with_prefix(bucket: &str, retention_days: i64, prefix: &str) -> Result<()> {
+async fn delete_old_backups_with_prefix(
+    bucket: &str,
+    retention_days: i64,
+    prefix: &str,
+) -> Result<()> {
     // Read the custom region environment variable
     let region = getenv("AWS_REGION")?;
 
@@ -458,7 +469,8 @@ pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Res
     Ok(sched)
 }
 
-// backup_files: "mixer /home/data/mydb.redb" or "mixer /home/data/mydb.redb 0 */6 * * *"
+// backup_files: "mixer mixer.redb" or "tribes tribes.redb 0 */6 * * *"
+// (name, file_path - relative to root volume, cron)
 struct BackupFileEntry {
     name: String,
     file_path: String,
@@ -509,7 +521,11 @@ async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
         &parent_directory, &current_date, &entry.name, file_name
     );
 
-    log::info!("backup_file: uploading {} to s3://{}", &backup_path, &s3_key);
+    log::info!(
+        "backup_file: uploading {} to s3://{}",
+        &backup_path,
+        &s3_key
+    );
     match upload_to_s3_multi(&bucket_name(), &backup_path, &s3_key).await {
         Ok(_) => {}
         Err(err) => log::error!("backup_file: S3 upload error: {}", err),
@@ -518,7 +534,11 @@ async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
     // rm the temp backup file
     let _ = tokio::fs::remove_file(&backup_path).await;
 
-    log::info!("backup_file: completed backup of {} from {}", &entry.file_path, &entry.name);
+    log::info!(
+        "backup_file: completed backup of {} from {}",
+        &entry.file_path,
+        &entry.name
+    );
     Ok(())
 }
 
@@ -568,10 +588,21 @@ pub async fn backup_files_cron(backup_files: Vec<String>) -> Result<Vec<JobSched
             loop {
                 if trigger_for_loop.load(Ordering::Relaxed) {
                     if let Err(e) = backup_single_file(&entry).await {
-                        log::error!("backup_file error for {} {}: {:?}", &entry.name, &entry.file_path, e);
+                        log::error!(
+                            "backup_file error for {} {}: {:?}",
+                            &entry.name,
+                            &entry.file_path,
+                            e
+                        );
                     }
                     if let Ok(prefix) = swarm_prefix_from_host() {
-                        if let Err(e) = delete_old_backups_with_prefix(&bucket_name(), backup_retention_days(), &prefix).await {
+                        if let Err(e) = delete_old_backups_with_prefix(
+                            &bucket_name(),
+                            backup_retention_days(),
+                            &prefix,
+                        )
+                        .await
+                        {
                             log::error!("Delete old backup_file backups: {:?}", e);
                         }
                     }
