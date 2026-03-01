@@ -10,6 +10,7 @@ use aws_smithy_types::byte_stream::{ByteStream, Length};
 use aws_smithy_types::retry::RetryConfig;
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
+use crate::dock;
 use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use futures_util::stream::TryStreamExt;
 use std::fs::{self, File};
@@ -258,7 +259,11 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
         return Ok(false);
     }
 
-    log::info!("Total number of chunks: {}", chunk_count);
+    let file_size_mb = file_size / (1024 * 1024);
+    log::info!(
+        "S3 upload: {} ({}MB, {} chunks)",
+        key, file_size_mb, chunk_count
+    );
 
     let mut upload_parts: Vec<CompletedPart> = Vec::new();
 
@@ -294,6 +299,8 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
                 return Ok(false);
             }
         };
+        let progress = ((chunk_index + 1) as f64 / chunk_count as f64) * 100.0;
+        log::info!("S3 upload: {}/{} chunks ({:.0}%)", chunk_index + 1, chunk_count, progress);
         upload_parts.push(
             CompletedPart::builder()
                 .e_tag(upload_part_res.e_tag.unwrap_or_default())
@@ -440,4 +447,151 @@ pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Res
     });
 
     Ok(sched)
+}
+
+// backup_files: "mixer /home/data/mydb.redb" or "mixer /home/data/mydb.redb 0 */6 * * *"
+struct BackupFileEntry {
+    name: String,
+    file_path: String,
+    cron: String,
+}
+
+fn parse_backup_file_entry(entry: &str) -> Option<BackupFileEntry> {
+    let parts: Vec<&str> = entry.splitn(3, ' ').collect();
+    if parts.len() < 2 {
+        log::error!("Invalid backup_files entry: {}", entry);
+        return None;
+    }
+    let name = parts[0].to_string();
+    let file_path = parts[1].to_string();
+    let cron = if parts.len() >= 3 {
+        parts[2].to_string()
+    } else {
+        "@daily".to_string()
+    };
+    Some(BackupFileEntry {
+        name,
+        file_path,
+        cron,
+    })
+}
+
+async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
+    let docker = Docker::connect_with_local_defaults()?;
+    let hostname = domain(&entry.name);
+    let backup_path = format!("{}.backup", &entry.file_path);
+
+    // cp the file to a temp location inside the container
+    let cp_cmd = format!("cp {} {}", &entry.file_path, &backup_path);
+    log::info!("backup_file: copying {} in {}", &entry.file_path, &hostname);
+    dock::exec(&docker, &hostname, &cp_cmd).await?;
+
+    // stream the backup file out of the container
+    let options = DownloadFromContainerOptions {
+        path: &backup_path,
+    };
+    let stream = docker.download_from_container(&hostname, Some(options));
+    let body_with_io_error =
+        stream.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
+    let body_reader = StreamReader::new(body_with_io_error);
+    futures::pin_mut!(body_reader);
+
+    // write the tar to a local temp file
+    let host = getenv("HOST")?;
+    let host_slug = host.replace('.', "-");
+    let current_date = Local::now().format("%Y-%m-%d").to_string();
+    let parent_directory = format!("swarm-{}", host_slug);
+    let local_dir = format!("{}_{}/{}", &parent_directory, &current_date, &entry.name);
+    fs::create_dir_all(&local_dir)?;
+
+    let file_name = Path::new(&entry.file_path)
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or("backup");
+    let local_tar_path = format!("{}/{}.tar", &local_dir, file_name);
+    let mut file = BufWriter::new(tokio::fs::File::create(&local_tar_path).await?);
+    tokio::io::copy(&mut body_reader, &mut file).await?;
+
+    log::info!("backup_file: downloaded {} to {}", &entry.file_path, &local_tar_path);
+
+    // upload to S3
+    let s3_key = format!(
+        "{}/{}/{}/{}.tar",
+        &parent_directory, &current_date, &entry.name, file_name
+    );
+    upload_final_zip_to_s3(local_tar_path, s3_key).await?;
+
+    // rm the temp backup file inside the container
+    let rm_cmd = format!("rm {}", &backup_path);
+    dock::exec(&docker, &hostname, &rm_cmd).await?;
+
+    // clean up local directory
+    let local_parent = format!("{}_{}", &parent_directory, &current_date);
+    let _ = remove_dir_all(&local_parent).await;
+
+    log::info!("backup_file: completed backup of {} from {}", &entry.file_path, &entry.name);
+    Ok(())
+}
+
+pub async fn backup_files_cron(backup_files: Vec<String>) -> Result<Vec<JobScheduler>> {
+    log::info!("backup_files: setting up cron schedules");
+    let mut schedulers = Vec::new();
+
+    for entry_str in backup_files {
+        let entry = match parse_backup_file_entry(&entry_str) {
+            Some(e) => e,
+            None => continue,
+        };
+
+        let cron_expr = entry.cron.clone();
+        let name = entry.name.clone();
+        let file_path = entry.file_path.clone();
+
+        log::info!(
+            "backup_files: scheduling {} {} with cron '{}'",
+            &name,
+            &file_path,
+            &cron_expr
+        );
+
+        let sched = JobScheduler::new().await?;
+        let trigger_flag = std::sync::Arc::new(AtomicBool::new(false));
+        let trigger_for_cron = trigger_flag.clone();
+        let trigger_for_loop = trigger_flag.clone();
+
+        sched
+            .add(Job::new_async(cron_expr.as_str(), move |_uuid, _l| {
+                let flag = trigger_for_cron.clone();
+                Box::pin(async move {
+                    flag.store(true, Ordering::Relaxed);
+                })
+            })?)
+            .await?;
+
+        sched.start().await?;
+
+        tokio::spawn(async move {
+            let entry = BackupFileEntry {
+                name,
+                file_path,
+                cron: cron_expr,
+            };
+            loop {
+                if trigger_for_loop.load(Ordering::Relaxed) {
+                    if let Err(e) = backup_single_file(&entry).await {
+                        log::error!("backup_file error for {} {}: {:?}", &entry.name, &entry.file_path, e);
+                    }
+                    if let Err(e) = delete_old_backups(&bucket_name(), backup_retention_days()).await {
+                        log::error!("Delete old backup_file backups: {:?}", e);
+                    }
+                    trigger_for_loop.store(false, Ordering::Relaxed);
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            }
+        });
+
+        schedulers.push(sched);
+    }
+
+    Ok(schedulers)
 }
