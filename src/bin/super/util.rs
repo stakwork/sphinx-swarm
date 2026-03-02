@@ -427,6 +427,7 @@ pub async fn create_ec2_instance(
     swarm_password: Option<String>,
     anthropic_api_key: Option<String>,
     testing: Option<bool>,
+    enable_cloudwatch_alarms: Option<bool>,
 ) -> Result<CreateSwarmEc2Instance, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -751,6 +752,33 @@ pub async fn create_ec2_instance(
                 instance_id
             );
 
+            if enable_cloudwatch_alarms == Some(true) {
+                match crate::cloudwatch::ensure_sns_topic_and_subscription().await {
+                    Ok(topic_arn) => {
+                        if let Err(e) = crate::cloudwatch::create_cpu_alarms(
+                            &instance_id,
+                            &swarm_number.to_string(),
+                            &topic_arn,
+                        )
+                        .await
+                        {
+                            log::warn!(
+                                "Failed to create CloudWatch alarms for {}: {}",
+                                instance_id,
+                                e
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Failed to ensure SNS topic for {}: {}",
+                            instance_id,
+                            e
+                        );
+                    }
+                }
+            }
+
             return Ok(CreateSwarmEc2Instance {
                 ec2_instance_id: instance_id,
                 swarm_number: swarm_number.to_string(),
@@ -971,6 +999,7 @@ pub async fn create_swarm_ec2(
         info.password.clone(),
         anthropic_api_key.clone(),
         info.testing.clone(),
+        info.enable_cloudwatch_alarms.clone(),
     )
     .await?;
 
