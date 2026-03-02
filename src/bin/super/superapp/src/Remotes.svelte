@@ -17,6 +17,7 @@
     TextInput,
   } from "carbon-components-svelte";
   import { UpdateNow, Stop } from "carbon-icons-svelte";
+  import Renew from "carbon-icons-svelte/lib/Renew.svelte";
 
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
@@ -39,7 +40,12 @@
     get_aws_instance_types,
     restart_child_swarm_containers,
     update_child_swarm_env,
+    get_ec2_cpu_usage,
   } from "../../../../../app/src/api/swarm";
+
+  let cpuData: Record<string, number | null> = {};
+  let cpuLoading: Record<string, boolean> = {};
+  let enable_cloudwatch_alarms = false;
 
   let open_create_ec2 = false;
   let show_notification = false;
@@ -144,12 +150,34 @@
     }
   }
 
+  async function fetchCpuForInstance(ec2_instance_id: string) {
+    if (!ec2_instance_id) return;
+    cpuLoading[ec2_instance_id] = true;
+    cpuLoading = { ...cpuLoading };
+    try {
+      const res = await get_ec2_cpu_usage(ec2_instance_id);
+      cpuData[ec2_instance_id] =
+        res?.success && res?.data?.cpu_percent != null ? res.data.cpu_percent : null;
+    } catch {
+      cpuData[ec2_instance_id] = null;
+    } finally {
+      cpuLoading[ec2_instance_id] = false;
+      cpuData = { ...cpuData };
+      cpuLoading = { ...cpuLoading };
+    }
+  }
+
   onMount(async () => {
     await getAwsInstanceType();
 
     await getConfig();
 
     loading = false;
+
+    // Kick off CPU fetches non-blocking after initial load
+    $remotes.forEach((r) => {
+      if (r.ec2_instance_id) fetchCpuForInstance(r.ec2_instance_id);
+    });
 
     await getConfigSortByUnhealthy();
   });
@@ -362,6 +390,7 @@
     selected_instance = "";
     vanity_input_width = max_input_with;
     swarm_name_width = max_input_with;
+    enable_cloudwatch_alarms = false;
   }
 
   async function handleSubmitCreateEc2() {
@@ -378,6 +407,7 @@
         vanity_address: formattedAddress,
         instance_type: selected_instance,
         ...(repo_2_graph_checked && { env: { ...repo_2_graph_env } }),
+        enable_cloudwatch_alarms,
       };
 
       const response = await create_new_swarm_ec2(data);
@@ -546,6 +576,7 @@
       { key: "ec2", value: "Instance", sort: (a, b) => (a || "").localeCompare(b || "") },
       { key: "public_ip_address", value: "Public IP", sort: (a, b) => (a || "").localeCompare(b || "") },
       { key: "private_ip_address", value: "Private IP", sort: (a, b) => (a || "").localeCompare(b || "") },
+      { key: "cpu", value: "CPU %" },
       { key: "update_env", value: "Update Env" },
       { key: "view", value: "View" },
       { key: "health", value: "Health" },
@@ -589,6 +620,23 @@
         </div>
       {:else if cell.key === "tribes"}
         <Tribes host={row.id} />
+      {:else if cell.key === "cpu"}
+        <div style="display:flex;align-items:center;gap:4px;">
+          {#if cpuLoading[row.ec2_instance_id]}
+            <span>...</span>
+          {:else if cpuData[row.ec2_instance_id] != null}
+            <span>{cpuData[row.ec2_instance_id].toFixed(1)}%</span>
+          {:else}
+            <span>—</span>
+          {/if}
+          <Button
+            kind="ghost"
+            size="sm"
+            iconDescription="Refresh CPU"
+            icon={Renew}
+            on:click={() => fetchCpuForInstance(row.ec2_instance_id)}
+          />
+        </div>
       {:else if cell.key === "update_env"}
         <Button on:click={() => setupUpdateChildSwarmEnv(row.id)}
           >Update Env</Button
@@ -768,6 +816,12 @@
     </div>
     <div class="checkbox_container">
       <Checkbox labelText="Repo2Graph" bind:checked={repo_2_graph_checked} />
+    </div>
+    <div class="checkbox_container">
+      <Checkbox
+        labelText="Enable CloudWatch CPU Alarms (alerts after 2hrs >80% or <20%)"
+        bind:checked={enable_cloudwatch_alarms}
+      />
     </div>
   </Modal>
 

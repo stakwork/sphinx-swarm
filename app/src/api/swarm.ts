@@ -467,18 +467,25 @@ export async function create_new_swarm_ec2({
   vanity_address,
   instance_type,
   env,
+  enable_cloudwatch_alarms,
 }: {
   vanity_address?: string;
   name?: string;
   instance_type: string;
   env: { [key: string]: string };
+  enable_cloudwatch_alarms?: boolean;
 }) {
   return await swarmCmd("CreateNewEc2Instance", {
     vanity_address,
     name,
     instance_type,
     env,
+    enable_cloudwatch_alarms,
   });
+}
+
+export async function get_ec2_cpu_usage(instance_id: string) {
+  return await swarmCmd("GetEc2CpuUtilization", { instance_id });
 }
 
 export async function get_aws_instance_types() {
