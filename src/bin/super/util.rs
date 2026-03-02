@@ -24,6 +24,7 @@ use sphinx_swarm::conn::swarm::ChangePasswordBySuperAdminResponse;
 use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
+use crate::cloudwatch::create_cloudwatch_alarms;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
     CreateEc2InstanceInfo, CreateEc2InstanceRes, CreateSwarmEc2Instance,
@@ -1049,6 +1050,25 @@ pub async fn create_swarm_ec2(
     state.add_remote_stack(new_swarm);
 
     log::info!("New Swarm added to stack");
+
+    // Create CloudWatch alarms for CPU and memory monitoring
+    match create_cloudwatch_alarms(&ec2_intance.ec2_instance_id, &swarm_id).await {
+        Ok((cpu_alarm, memory_alarm)) => {
+            log::info!(
+                "CloudWatch alarms created successfully: CPU={}, Memory={}",
+                cpu_alarm,
+                memory_alarm
+            );
+        }
+        Err(e) => {
+            log::warn!(
+                "Failed to create CloudWatch alarms for swarm {}: {}. Continuing with swarm creation.",
+                swarm_id,
+                e
+            );
+        }
+    }
+
     Ok(CreateEc2InstanceRes {
         swarm_id: swarm_id,
         x_api_key: ec2_intance.x_api_key.clone(),
