@@ -1,6 +1,7 @@
 mod auth_token;
 mod aws_util;
 mod checker;
+pub mod cloudwatch;
 mod cmd;
 mod ec2;
 mod lightning_bots;
@@ -562,6 +563,27 @@ pub async fn super_handle(
                 let res =
                     handle_update_child_swarm_public_ip(&mut state, &mut must_save_stack, info)
                         .await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetEc2CpuUtilization(req) => {
+                let res: SuperSwarmResponse =
+                    match crate::cloudwatch::get_cpu_utilization(&req.instance_id).await {
+                        Ok(Some(val)) => SuperSwarmResponse {
+                            success: true,
+                            message: "ok".to_string(),
+                            data: Some(serde_json::json!({ "cpu_percent": val })),
+                        },
+                        Ok(None) => SuperSwarmResponse {
+                            success: true,
+                            message: "no data".to_string(),
+                            data: None,
+                        },
+                        Err(err) => SuperSwarmResponse {
+                            success: false,
+                            message: err.to_string(),
+                            data: None,
+                        },
+                    };
                 Some(serde_json::to_string(&res)?)
             }
         },

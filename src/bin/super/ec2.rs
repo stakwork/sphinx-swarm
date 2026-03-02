@@ -169,6 +169,15 @@ pub async fn stop_ec2_instance_and_tag(instance_id: &str) -> Result<(), Error> {
         .send()
         .await?;
 
+    // Delete CloudWatch alarms (non-fatal: alarms may not exist)
+    if let Err(e) = crate::cloudwatch::delete_cpu_alarms(instance_id).await {
+        log::warn!(
+            "Failed to delete CloudWatch alarms for {}: {}",
+            instance_id,
+            e
+        );
+    }
+
     // Add the DeletedOn tag with current date
     let current_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let tags = vec![Ec2Tags {

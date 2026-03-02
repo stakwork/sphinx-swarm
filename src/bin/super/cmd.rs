@@ -118,6 +118,7 @@ pub enum SwarmCmd {
     RenewSslCert,
     UploadSSlCert,
     UpdateChildSwarmPublicIp(UpdateChildSwarmPublicIpBody),
+    GetEc2CpuUtilization(GetEc2CpuUtilizationReq),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -193,6 +194,12 @@ pub struct CreateEc2InstanceInfo {
     pub subdomain_ssl: Option<bool>,
     pub password: Option<String>,
     pub testing: Option<bool>,
+    pub enable_cloudwatch_alarms: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetEc2CpuUtilizationReq {
+    pub instance_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

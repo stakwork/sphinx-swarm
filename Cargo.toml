@@ -64,6 +64,8 @@ tokio-util = { version = "*", features = ["io-util", "io"] }
 futures = "*"
 aws-sdk-ec2 = "1.72.0"
 aws-sdk-route53 = "1.45.0"
+aws-sdk-cloudwatch = "1"
+aws-sdk-sns = "1"
 
 [lib]
 name = "sphinx_swarm"
