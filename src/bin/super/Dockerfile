@@ -59,7 +59,8 @@ WORKDIR /sphinx-swarm
 RUN mkdir -p /sphinx-swarm/app && cp -r /sphinx-swarm/src/bin/super/superapp/dist /sphinx-swarm/app/dist
 COPY --from=builder /sphinx-swarm/target/release/super /usr/local/bin/super
 
-
+# Run from / so vol/super/config.yaml resolves to /vol/... (mount: /home/admin/vol:/vol)
+WORKDIR /
 
 ENV ROCKET_ADDRESS=0.0.0.0 \
     ROCKET_PORT=8000
