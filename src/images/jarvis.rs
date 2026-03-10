@@ -143,7 +143,9 @@ fn jarvis(
         env.push(format!("STAKWORK_ADD_NODE_TOKEN={}", stakwork_key));
     }
 
-    if let Ok(swarm_host) = getenv("HOST") {
+    if let Ok(swarm_number) = getenv("SWARM_NUMBER") {
+        env.push(format!("SWARM_NUMBER={}", swarm_number));
+    } else if let Ok(swarm_host) = getenv("HOST") {
         let swarm_number = extract_swarm_number(swarm_host);
         env.push(format!("SWARM_NUMBER={}", swarm_number));
     }
