@@ -98,9 +98,9 @@ pub async fn handle_assign_reserved_swarm(
         let seed = sphinx_swarm::secrets::hex_secret_32();
         envs_map.insert("SEED".to_string(), seed);
         // use our shared BTC node for mainnet
-        if let Ok(btc_url) = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC") {
-            envs_map.insert("CLN_MAINNET_BTC".to_string(), btc_url);
-        }
+        let btc_url = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC")
+            .map_err(|_| anyhow!("CLN_MAINNET_BTC env var required for graph_mindset workspace"))?;
+        envs_map.insert("CLN_MAINNET_BTC".to_string(), btc_url);
     }
 
     if envs.is_some() && envs.clone().unwrap().is_empty() {

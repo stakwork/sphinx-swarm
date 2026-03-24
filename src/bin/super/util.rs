@@ -494,7 +494,8 @@ pub async fn create_ec2_instance(
     // workspace type env lines for user data script
     let workspace_env_lines = if workspace_type.as_deref() == Some("graph_mindset") {
         let seed = sphinx_swarm::secrets::hex_secret_32();
-        let cln_btc = getenv("CLN_MAINNET_BTC").unwrap_or_default();
+        let cln_btc = getenv("CLN_MAINNET_BTC")
+            .map_err(|_| anyhow!("CLN_MAINNET_BTC env var required for graph_mindset workspace"))?;
         format!(
             r#"echo "GRAPH_MINDSET_ONLY=true" >> .env && \
           echo "SEED={seed}" >> .env && \
