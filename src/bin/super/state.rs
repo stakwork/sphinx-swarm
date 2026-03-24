@@ -36,6 +36,12 @@ pub struct RemoteStack {
     pub id: Option<String>,
     pub deleted: Option<bool>,
     pub route53_domain_names: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_pubkey: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cln_pubkey: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
@@ -188,6 +194,9 @@ impl Super {
                 id: n.id.clone(),
                 deleted: n.deleted.clone(),
                 route53_domain_names: n.route53_domain_names.clone(),
+                owner_pubkey: n.owner_pubkey.clone(),
+                workspace_type: n.workspace_type.clone(),
+                cln_pubkey: n.cln_pubkey.clone(),
             })
             .collect();
         let bots = self
@@ -257,6 +266,9 @@ impl Super {
                 id: Some(format!("swarm{}", selected_reserved_instance.swarm_number)),
                 deleted: None,
                 route53_domain_names: None,
+                owner_pubkey: None,
+                workspace_type: None,
+                cln_pubkey: None,
             });
         }
         let pos = self.stacks.iter().position(|s| s.host == host);

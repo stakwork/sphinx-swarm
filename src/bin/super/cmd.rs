@@ -194,6 +194,8 @@ pub struct CreateEc2InstanceInfo {
     pub subdomain_ssl: Option<bool>,
     pub password: Option<String>,
     pub testing: Option<bool>,
+    pub workspace_type: Option<String>,
+    pub owner_pubkey: Option<String>,
     pub enable_cloudwatch_alarms: Option<bool>,
 }
 

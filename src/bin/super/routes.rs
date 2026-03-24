@@ -147,6 +147,8 @@ async fn create_new_swarm(
         password: body.password.clone(),
         testing: body.testing.clone(),
         enable_cloudwatch_alarms: body.enable_cloudwatch_alarms.clone(),
+        workspace_type: body.workspace_type.clone(),
+        owner_pubkey: body.owner_pubkey.clone(),
     }));
 
     let txt = serde_json::to_string(&cmd)?;

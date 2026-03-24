@@ -242,6 +242,9 @@ pub async fn super_handle(
                     id: None,
                     deleted: Some(false),
                     route53_domain_names: None,
+                    owner_pubkey: None,
+                    workspace_type: None,
+                    cln_pubkey: None,
                 };
 
                 let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
@@ -265,6 +268,9 @@ pub async fn super_handle(
                             id: state.stacks[ui].id.clone(),
                             deleted: state.stacks[ui].deleted.clone(),
                             route53_domain_names: state.stacks[ui].route53_domain_names.clone(),
+                            owner_pubkey: state.stacks[ui].owner_pubkey.clone(),
+                            workspace_type: state.stacks[ui].workspace_type.clone(),
+                            cln_pubkey: state.stacks[ui].cln_pubkey.clone(),
                         };
                         must_save_stack = true;
                         hm = AddSwarmResponse {
@@ -311,6 +317,9 @@ pub async fn super_handle(
                     id: c.id,
                     deleted: Some(false),
                     route53_domain_names: None,
+                    owner_pubkey: None,
+                    workspace_type: None,
+                    cln_pubkey: None,
                 };
                 let hm =
                     add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);
