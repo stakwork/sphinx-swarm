@@ -428,6 +428,7 @@ pub async fn create_ec2_instance(
     anthropic_api_key: Option<String>,
     testing: Option<bool>,
     enable_cloudwatch_alarms: Option<bool>,
+    workspace_type: Option<String>,
 ) -> Result<CreateSwarmEc2Instance, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -489,6 +490,19 @@ pub async fn create_ec2_instance(
     }
 
     let boltwall_api_secret = generate_random_secret(32);
+
+    // workspace type env lines for user data script
+    let workspace_env_lines = if workspace_type.as_deref() == Some("graph_mindset") {
+        let seed = sphinx_swarm::secrets::hex_secret_32();
+        let cln_btc = getenv("CLN_MAINNET_BTC").unwrap_or_default();
+        format!(
+            r#"echo "GRAPH_MINDSET_ONLY=true" >> .env && \
+          echo "SEED={seed}" >> .env && \
+          echo "CLN_MAINNET_BTC={cln_btc}" >> .env && \"#
+        )
+    } else {
+        r#"echo "SECOND_BRAIN_ONLY=true" >> .env && \"#.to_string()
+    };
 
     let mut host = format!("swarm{}.sphinx.chat", swarm_number);
 
@@ -611,7 +625,7 @@ pub async fn create_ec2_instance(
           echo "SUPER_TOKEN={super_token}" >> .env && \
           echo "SUPER_URL={super_url}" >> .env && \
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \
-          echo "SECOND_BRAIN_ONLY=true" >> .env && \
+          {workspace_env_lines}
           echo "SWARM_NUMBER={swarm_number}" >> .env && \
           echo "PASSWORD={password}" >> .env && \
           echo "GITHUB_PAT={github_pat}" >> .env && \
@@ -1000,6 +1014,7 @@ pub async fn create_swarm_ec2(
         anthropic_api_key.clone(),
         info.testing.clone(),
         info.enable_cloudwatch_alarms.clone(),
+        info.workspace_type.clone(),
     )
     .await?;
 
@@ -1073,6 +1088,9 @@ pub async fn create_swarm_ec2(
         id: Some(swarm_id.clone()),
         deleted: Some(false),
         route53_domain_names: Some(domain_names),
+        owner_pubkey: info.owner_pubkey.clone(),
+        workspace_type: info.workspace_type.clone(),
+        cln_pubkey: None,
     };
 
     state.add_remote_stack(new_swarm);

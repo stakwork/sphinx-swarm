@@ -89,6 +89,24 @@ pub async fn handle_assign_reserved_swarm(
         }
     }
 
+    // inject graph_mindset env vars if workspace type is graph_mindset
+    if info.workspace_type.as_deref() == Some("graph_mindset") {
+        let envs_map = envs.get_or_insert_with(HashMap::new);
+        envs_map.insert("GRAPH_MINDSET_ONLY".to_string(), "true".to_string());
+        envs_map.insert("SECOND_BRAIN_ONLY".to_string(), "false".to_string());
+        // generate unique seed for this swarm's CLN node
+        let seed = sphinx_swarm::secrets::hex_secret_32();
+        envs_map.insert("SEED".to_string(), seed);
+        // use our shared BTC node for mainnet
+        if let Ok(btc_url) = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC") {
+            envs_map.insert("CLN_MAINNET_BTC".to_string(), btc_url);
+        }
+        // remove external LND so boltwall uses internal CLN
+        envs_map.insert("EXTERNAL_LND_ADDRESS".to_string(), "".to_string());
+        envs_map.insert("EXTERNAL_LND_MACAROON".to_string(), "".to_string());
+        envs_map.insert("EXTERNAL_LND_CERT".to_string(), "".to_string());
+    }
+
     if envs.is_some() && envs.clone().unwrap().is_empty() {
         envs = None;
     }
@@ -111,6 +129,9 @@ pub async fn handle_assign_reserved_swarm(
         id: Some(format!("swarm{}", selected_reserved_instance.swarm_number)),
         deleted: None,
         route53_domain_names: None,
+        owner_pubkey: info.owner_pubkey.clone(),
+        workspace_type: info.workspace_type.clone(),
+        cln_pubkey: None,
     };
     let set_value_res = match call_child_swarm_to_activate_new_swarm(
         &swarm_details,
@@ -200,6 +221,9 @@ pub async fn handle_assign_reserved_swarm(
         id: Some(swarm_id.clone()),
         deleted: Some(false),
         route53_domain_names: Some(vec![host.clone()]),
+        owner_pubkey: info.owner_pubkey.clone(),
+        workspace_type: info.workspace_type.clone(),
+        cln_pubkey: None,
     });
     let x_api_key = selected_reserved_instance.x_api_key.clone();
     let ec2_id = selected_reserved_instance.instance_id.clone();

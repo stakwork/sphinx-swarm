@@ -82,6 +82,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             anthropic_api_key.clone(),
             None,
             None,
+            None, // workspace_type: warm swarms default to second_brain
         )
         .await?;
 
