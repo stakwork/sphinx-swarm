@@ -206,7 +206,8 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
                 "{}=0.0.0.0:{}",
                 dbms_connector_bolt_listen_address, &node.bolt_port
             ),
-            format!("NEO4J_dbms.security.procedures.allowlist=gds.*"),
+            format!("NEO4J_dbms.security.procedures.allowlist=gds.*,apoc.*"),
+            format!("NEO4J_dbms.security.procedures.unrestricted=apoc.*,gds.*,algo.*"),
             format!("{}", dbms_allow_upgrade),
             format!("{}", dbms_default_database),
             format!("NEO4J_dbms_security_auth__minimum__password__length=4"),
@@ -217,6 +218,10 @@ fn neo4j(node: &Neo4jImage) -> Config<String> {
             format!(
                 "{}",
                 "NEO4J_dbms_security_procedures_whitelist=apoc.*,gds.*,algo.*"
+            ),
+            format!(
+                "{}",
+                "NEO4J_dbms_security_procedures_allowlist=apoc.*,gds.*,algo.*"
             ),
             format!("NEO4J_PLUGINS=[\"graph-data-science\"]"),
         ]),
