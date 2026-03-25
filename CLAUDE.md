@@ -82,3 +82,11 @@ The system manages various containerized services defined in `src/images/`:
 - Dynamic container creation and management
 - Service health monitoring and auto-restart capabilities
 - Volume backup and restoration system
+
+## Important Gotchas
+
+- **`app/dist/` is committed to git** — CI rebuilds it on every push to master via `buildAndRelease.yml`. Do not manually edit files in `app/dist/`.
+- **`CLN_MAINNET_BTC` env var is required** when using the `graph_mindset` preset. The app errors early if it's missing.
+- **Environment setup**: Copy `.env.example` to `.env` for local development. See `.env.example` for all available vars.
+- **Docker network**: The `sphinx-swarm` Docker network must exist before starting services.
+- **Stack configs**: YAML files in the repo root (`config.yml`, `sphinx.yml`, `second-brain.yml`) define which containers to run.
