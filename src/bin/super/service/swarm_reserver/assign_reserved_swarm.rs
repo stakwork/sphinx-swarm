@@ -16,10 +16,24 @@ use crate::{
 use anyhow::{anyhow, Error};
 use sphinx_swarm::cmd::AssignSwarmNewDetails;
 
+/// Revert the EC2 instance Name tag back to the original reserved name so that
+/// a failed assignment does not poison `instance_with_swarm_name_exists`.
+async fn revert_instance_name_tag(instance_id: &str, original_name: &str) {
+    let revert_tags = vec![Ec2Tags {
+        key: "Name".to_string(),
+        value: original_name.to_string(),
+    }];
+    if let Err(e) = add_new_tags_to_instance(instance_id, revert_tags).await {
+        log::error!("Failed to revert Name tag after assign failure: {}", e);
+    }
+}
+
 pub async fn handle_assign_reserved_swarm(
     info: &CreateEc2InstanceInfo,
     state: &mut Super,
 ) -> Result<CreateEc2InstanceRes, Error> {
+    // ── Phase 1: Validate everything — zero side effects ──────────────────────
+
     if !check_reserve_swarm_flag_set() {
         return Err(anyhow!(
             "Reserve Swarm Flag not set, we can't assign a reserved swarm at the momemnt"
@@ -41,12 +55,26 @@ pub async fn handle_assign_reserved_swarm(
         return Err(anyhow!("No reserved instances available at the moment"));
     }
 
+    // Validate graph_mindset env vars before any AWS mutation
+    let cln_btc_url: Option<String> = if info.workspace_type.as_deref() == Some("graph_mindset") {
+        let url = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC")
+            .map_err(|_| anyhow!("CLN_MAINNET_BTC env var required for graph_mindset workspace"))?;
+        Some(url)
+    } else {
+        None
+    };
+
+    // ── Phase 2: Build data structures — zero side effects ────────────────────
+
     let selected_reserved_instance = state
         .reserved_instances
         .clone()
         .unwrap()
         .available_instances[0]
         .clone();
+
+    // Capture the original name now so we can revert the tag on failure
+    let original_name = selected_reserved_instance.swarm_id();
 
     let mut tags = vec![
         Ec2Tags {
@@ -69,8 +97,6 @@ pub async fn handle_assign_reserved_swarm(
         });
     }
 
-    // update tag name on AWS
-    add_new_tags_to_instance(&selected_reserved_instance.instance_id, tags).await?;
     let mut envs: Option<HashMap<String, String>> = info.env.clone();
     if envs.is_none() {
         envs = Some(HashMap::new());
@@ -89,17 +115,14 @@ pub async fn handle_assign_reserved_swarm(
         }
     }
 
-    // inject graph_mindset env vars if workspace type is graph_mindset
-    if info.workspace_type.as_deref() == Some("graph_mindset") {
+    // inject graph_mindset env vars using the already-validated cln_btc_url
+    if let Some(btc_url) = cln_btc_url {
         let envs_map = envs.get_or_insert_with(HashMap::new);
         envs_map.insert("GRAPH_MINDSET_ONLY".to_string(), "true".to_string());
         envs_map.insert("SECOND_BRAIN_ONLY".to_string(), "false".to_string());
         // generate unique seed for this swarm's CLN node
         let seed = sphinx_swarm::secrets::hex_secret_32();
         envs_map.insert("SEED".to_string(), seed);
-        // use our shared BTC node for mainnet
-        let btc_url = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC")
-            .map_err(|_| anyhow!("CLN_MAINNET_BTC env var required for graph_mindset workspace"))?;
         envs_map.insert("CLN_MAINNET_BTC".to_string(), btc_url);
     }
 
@@ -107,11 +130,6 @@ pub async fn handle_assign_reserved_swarm(
         envs = None;
     }
 
-    // if password passed update child swarm password
-    // if env passed update child swarm env
-    // if vanity address passed update HOST in .env
-    // if vanity address passed update route53 record with vanity address and delete old record
-    // stop all child services
     let swarm_details = RemoteStack {
         host: "".to_string(),
         note: None,
@@ -129,6 +147,15 @@ pub async fn handle_assign_reserved_swarm(
         workspace_type: info.workspace_type.clone(),
         cln_pubkey: None,
     };
+
+    // ── Phase 3: Execute side effects in order ────────────────────────────────
+
+    // update tag name on AWS
+    add_new_tags_to_instance(&selected_reserved_instance.instance_id, tags).await?;
+
+    // if password passed update child swarm password
+    // if env passed update child swarm env
+    // if vanity address passed update HOST in .env
     let set_value_res = match call_child_swarm_to_activate_new_swarm(
         &swarm_details,
         AssignSwarmNewDetails {
@@ -141,6 +168,12 @@ pub async fn handle_assign_reserved_swarm(
     {
         Ok(res) => res,
         Err(err) => {
+            // Revert Name tag so retry is not blocked by stale tag
+            revert_instance_name_tag(
+                &selected_reserved_instance.instance_id,
+                &original_name,
+            )
+            .await;
             // TODO: send error message via a bot to a tribe
             return Err(anyhow!(
                 "Failed to call child swarm to activate new swarm: {}",
@@ -181,6 +214,12 @@ pub async fn handle_assign_reserved_swarm(
         {
             Ok(_) => {}
             Err(err) => {
+                // Revert Name tag so retry is not blocked by stale tag
+                revert_instance_name_tag(
+                    &selected_reserved_instance.instance_id,
+                    &original_name,
+                )
+                .await;
                 return Err(anyhow!(
                     "Failed to add domain name to route53: {}",
                     err.to_string()
