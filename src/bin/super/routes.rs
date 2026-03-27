@@ -133,6 +133,7 @@ async fn create_new_swarm(
                 success: false,
                 message: "unauthorized, invalid token".to_string(),
                 data: None,
+                status_code: None,
             }),
         ));
     }
@@ -163,11 +164,16 @@ async fn create_new_swarm(
 
     let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
 
-    let mut status = Status::Conflict;
-
-    if response.success == true {
-        status = Status::Created
-    }
+    let status = if response.success {
+        Status::Created
+    } else {
+        match response.status_code {
+            Some(409) => Status::Conflict,
+            Some(429) => Status::TooManyRequests,
+            Some(400) => Status::BadRequest,
+            _ => Status::InternalServerError,
+        }
+    };
 
     return Ok(Custom(status, Json(response)));
 }
@@ -185,6 +191,7 @@ async fn stop_swarm(
                 success: false,
                 message: "unauthorized, invalid token".to_string(),
                 data: None,
+                status_code: None,
             }),
         ));
     }
@@ -227,6 +234,7 @@ async fn get_swarm_details(
                 success: false,
                 message: "unauthorized, invalid token".to_string(),
                 data: None,
+                status_code: None,
             }),
         ));
     }
@@ -253,6 +261,7 @@ async fn check_duplicate_domain(
                 success: false,
                 message: "unauthorized, invalid token".to_string(),
                 data: None,
+                status_code: None,
             }),
         ));
     }

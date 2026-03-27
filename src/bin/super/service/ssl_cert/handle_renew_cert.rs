@@ -116,6 +116,7 @@ pub async fn handle_get_ssl_cert_expiry() -> SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             }
         }
     };
@@ -125,11 +126,13 @@ pub async fn handle_get_ssl_cert_expiry() -> SuperSwarmResponse {
             success: true,
             message: "expiry days gotten successfully".to_string(),
             data: Some(res),
+            status_code: None,
         },
         Err(err) => SuperSwarmResponse {
             success: false,
             message: err.to_string(),
             data: None,
+            status_code: None,
         },
     }
 }

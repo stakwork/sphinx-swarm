@@ -337,6 +337,7 @@ pub async fn super_handle(
                                 success: false,
                                 message: err.to_string(),
                                 data: None,
+                                status_code: None,
                             }
                         }
                     },
@@ -345,6 +346,7 @@ pub async fn super_handle(
                             success: false,
                             message: "Swarm does not exist".to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                 }
@@ -360,6 +362,7 @@ pub async fn super_handle(
                                 success: false,
                                 message: err.to_string(),
                                 data: None,
+                                status_code: None,
                             }
                         }
                     },
@@ -368,6 +371,7 @@ pub async fn super_handle(
                             success: false,
                             message: "Swarm does not exist".to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                 }
@@ -410,13 +414,31 @@ pub async fn super_handle(
                             success: true,
                             message: format!("{} was created successfully", display_name),
                             data: Some(parsed_data),
+                            status_code: None,
                         }
                     }
                     Err(err) => {
+                        let msg = err.to_string();
+                        let status_code = if msg.contains("Another Swarm with name")
+                            || msg.contains("another Service is using this vanity address")
+                        {
+                            409u16
+                        } else if msg.contains("Daily limit") {
+                            429u16
+                        } else if msg.contains("Invalid instance type")
+                            || msg.contains("valid vanity address")
+                            || msg.contains("expected format")
+                            || msg.contains("password cannot be")
+                        {
+                            400u16
+                        } else {
+                            500u16
+                        };
                         res = SuperSwarmResponse {
                             success: false,
-                            message: err.to_string(),
+                            message: msg,
                             data: None,
+                            status_code: Some(status_code),
                         }
                     }
                 }
@@ -434,6 +456,7 @@ pub async fn super_handle(
                                 info.instance_id
                             ),
                             data: None,
+                            status_code: None,
                         }
                     }
                     Err(err) => {
@@ -441,6 +464,7 @@ pub async fn super_handle(
                             success: false,
                             message: err.to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                 }
@@ -456,6 +480,7 @@ pub async fn super_handle(
                             success: true,
                             message: "Instance updated successfully".to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                     Err(err) => {
@@ -463,6 +488,7 @@ pub async fn super_handle(
                             success: false,
                             message: err.to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                 }
@@ -477,6 +503,7 @@ pub async fn super_handle(
                             success: false,
                             message: err.to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                 }
@@ -492,6 +519,7 @@ pub async fn super_handle(
                                 success: false,
                                 message: err.to_string(),
                                 data: None,
+                                status_code: None,
                             }
                         }
                     },
@@ -500,6 +528,7 @@ pub async fn super_handle(
                             success: false,
                             message: "Swarm does not exist".to_string(),
                             data: None,
+                            status_code: None,
                         }
                     }
                 }
@@ -581,16 +610,19 @@ pub async fn super_handle(
                             success: true,
                             message: "ok".to_string(),
                             data: Some(serde_json::json!({ "cpu_percent": val })),
+                            status_code: None,
                         },
                         Ok(None) => SuperSwarmResponse {
                             success: true,
                             message: "no data".to_string(),
                             data: None,
+                            status_code: None,
                         },
                         Err(err) => SuperSwarmResponse {
                             success: false,
                             message: err.to_string(),
                             data: None,
+                            status_code: None,
                         },
                     };
                 Some(serde_json::to_string(&res)?)

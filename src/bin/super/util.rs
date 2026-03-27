@@ -200,6 +200,7 @@ pub async fn get_child_swarm_config(
         success: true,
         message: "child swarm config successfully retrieved".to_string(),
         data: Some(nodes),
+        status_code: None,
     })
 }
 
@@ -245,6 +246,7 @@ pub async fn get_child_swarm_containers(
         success: true,
         message: "child swarm containers successfully retrieved".to_string(),
         data: Some(containers),
+        status_code: None,
     })
 }
 
@@ -268,6 +270,7 @@ pub async fn get_child_swarm_image_versions(
         success: true,
         message: "child swarm image versions successfully retrieved".to_string(),
         data: Some(image_version),
+        status_code: None,
     })
 }
 
@@ -322,6 +325,7 @@ pub async fn access_child_swarm_containers(
                     success: false,
                     message: format!("Error occured trying to {}", cmd_text),
                     data: Some(error_map),
+                    status_code: None,
                 });
             }
             Err(err) => {
@@ -333,6 +337,7 @@ pub async fn access_child_swarm_containers(
         success: true,
         message: format!("{} executed successfully", cmd_text),
         data: None,
+        status_code: None,
     })
 }
 
@@ -350,6 +355,7 @@ pub async fn accessing_child_container_controller(
                     success: false,
                     message: err.to_string(),
                     data: None,
+                    status_code: None,
                 }
             }
         },
@@ -358,6 +364,7 @@ pub async fn accessing_child_container_controller(
                 success: false,
                 message: "Swarm does not exist".to_string(),
                 data: None,
+                status_code: None,
             }
         }
     }
@@ -390,11 +397,13 @@ pub fn get_aws_instance_types() -> SuperSwarmResponse {
             success: true,
             message: "Aws Instance types loaded successfully".to_string(),
             data: Some(instance_value),
+            status_code: None,
         },
         Err(err) => SuperSwarmResponse {
             success: false,
             message: err.to_string(),
             data: None,
+            status_code: None,
         },
     }
 }
@@ -1385,6 +1394,7 @@ pub fn get_swarm_instance_type(
             success: true,
             message: "instance type".to_string(),
             data: Some(value),
+            status_code: None,
         });
     }
 
@@ -1407,6 +1417,7 @@ pub fn get_swarm_instance_type(
         success: true,
         message: "instance type".to_string(),
         data: Some(value),
+        status_code: None,
     });
 }
 
@@ -1521,6 +1532,7 @@ pub async fn update_swarm_child_password(
                     success: false,
                     message: err.to_string(),
                     data: None,
+                    status_code: None,
                 }
             }
         },
@@ -1529,6 +1541,7 @@ pub async fn update_swarm_child_password(
                 success: false,
                 message: "Swarm does not exist".to_string(),
                 data: None,
+                status_code: None,
             }
         }
     }
@@ -1557,6 +1570,7 @@ async fn handle_update_swarm_child_password(
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             })
         }
     };
@@ -1565,6 +1579,7 @@ async fn handle_update_swarm_child_password(
         success: result.success,
         message: result.message,
         data: None,
+        status_code: None,
     })
 }
 
@@ -1578,12 +1593,14 @@ pub async fn get_swarm_details_by_id(id: &str) -> SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             },
         },
         None => SuperSwarmResponse {
             success: false,
             message: "Invalid swarm id".to_string(),
             data: None,
+            status_code: None,
         },
     }
 }
@@ -1604,6 +1621,7 @@ async fn handle_get_swarm_details_by_default_id(
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             })
         }
     };
@@ -1620,6 +1638,7 @@ async fn handle_get_swarm_details_by_default_id(
         success: true,
         message: "Swarm details".to_string(),
         data: Some(json_value),
+        status_code: None,
     })
 }
 

@@ -25,6 +25,7 @@ pub async fn handle_update_child_swarm(
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             })
         }
     };
@@ -33,5 +34,6 @@ pub async fn handle_update_child_swarm(
         success: result.success,
         message: result.message,
         data: None,
+        status_code: None,
     })
 }

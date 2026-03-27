@@ -29,6 +29,7 @@ pub async fn update_super_admin() -> SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             }
         }
     };
@@ -39,6 +40,7 @@ pub async fn update_super_admin() -> SuperSwarmResponse {
                 success: true,
                 message: text,
                 data: None,
+                status_code: None,
             }
         }
         Err(err) => {
@@ -46,6 +48,7 @@ pub async fn update_super_admin() -> SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             }
         }
     }

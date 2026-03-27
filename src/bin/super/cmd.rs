@@ -145,6 +145,8 @@ pub struct SuperSwarmResponse {
     pub success: bool,
     pub message: String,
     pub data: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_code: Option<u16>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
