@@ -322,6 +322,21 @@ pub async fn handle(
                 .await?;
                 Some(serde_json::to_string(&response)?)
             }
+            SwarmCmd::UpdateEndpointPrice(details) => {
+                log::info!(
+                    "UpdateEndpointPrice -> ID:{} Price:{}",
+                    details.id,
+                    details.price
+                );
+                let boltwall = find_boltwall(&state.stack.nodes)?;
+                let response = crate::conn::boltwall::update_endpoint_price(
+                    &boltwall,
+                    details.id,
+                    details.price,
+                )
+                .await?;
+                Some(serde_json::to_string(&response)?)
+            }
             SwarmCmd::UpdateBoltwallAccessibility(is_public) => {
                 log::info!("UpdateBoltwallAccessibility -> Status:{} ", is_public);
                 let boltwall = find_boltwall(&state.stack.nodes)?;
