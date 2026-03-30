@@ -5,8 +5,8 @@ on:
     branches: [master]
 
 jobs:
-  build:
-    name: Build
+  build-and-check:
+    name: Build & Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,36 +31,9 @@ jobs:
         working-directory: ./app
         run: yarn install --frozen-lockfile
 
-      - name: Build
+      - name: Build and type check
         working-directory: ./app
-        run: yarn build
-
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-modules
-        uses: actions/cache@v4
-        with:
-          path: app/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('app/yarn.lock') }}
-
-      - name: Install dependencies
-        if: steps.cache-modules.outputs.cache-hit != 'true'
-        working-directory: ./app
-        run: yarn install --frozen-lockfile
-
-      - name: Type check
-        working-directory: ./app
-        run: yarn check
+        run: |
+          yarn build &
+          yarn check &
+          wait
