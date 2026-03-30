@@ -16,10 +16,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: app/yarn.lock
+
+      - name: Cache node_modules
+        id: cache-modules
+        uses: actions/cache@v4
+        with:
+          path: app/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('app/yarn.lock') }}
 
       - name: Install dependencies
+        if: steps.cache-modules.outputs.cache-hit != 'true'
         working-directory: ./app
         run: yarn install --frozen-lockfile
 
@@ -38,10 +44,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: app/yarn.lock
+
+      - name: Cache node_modules
+        id: cache-modules
+        uses: actions/cache@v4
+        with:
+          path: app/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('app/yarn.lock') }}
 
       - name: Install dependencies
+        if: steps.cache-modules.outputs.cache-hit != 'true'
         working-directory: ./app
         run: yarn install --frozen-lockfile
 
