@@ -26,9 +26,9 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
     AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
-    CreateEc2InstanceInfo, CreateEc2InstanceRes, CreateSwarmEc2Instance,
-    GetInstanceTypeByInstanceId, GetInstanceTypeRes, GetSwarmDetailsByDefaultHost, LoginResponse,
-    SuperSwarmResponse, UpdateInstanceDetails,
+    ChildSwarmCredentials, CreateEc2InstanceInfo, CreateEc2InstanceRes, CreateSwarmEc2Instance,
+    GetChildSwarmCredentialsReq, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
+    GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
 };
 use crate::ec2::{
     get_instances_from_aws_by_swarm_tag_and_return_hash_map, instance_with_swarm_name_exists,
@@ -1651,3 +1651,255 @@ async fn handle_get_swarm_details_by_default_id(
 //         .send()
 //         .await?)
 // }
+
+pub fn get_child_swarm_credentials(
+    req: GetChildSwarmCredentialsReq,
+    state: &Super,
+) -> SuperSwarmResponse {
+    let swarm: Option<RemoteStack> = if let Some(host) = req.host {
+        state.find_swarm_by_host(&host, req.is_reserved)
+    } else if let Some(id) = req.id {
+        state.find_swarm_by_id(&id).cloned()
+    } else if let Some(instance_id) = req.instance_id {
+        if req.is_reserved == Some(true) {
+            if let Some(reserved) = &state.reserved_instances {
+                reserved
+                    .available_instances
+                    .iter()
+                    .find(|r| r.instance_id == instance_id)
+                    .map(|r| RemoteStack {
+                        host: r.host.clone(),
+                        note: None,
+                        ec2: None,
+                        user: r.user.clone(),
+                        pass: r.pass.clone(),
+                        default_host: r.default_host.clone(),
+                        ec2_instance_id: r.instance_id.clone(),
+                        public_ip_address: r.ip_address.clone(),
+                        private_ip_address: None,
+                        id: Some(format!("swarm{}", r.swarm_number)),
+                        deleted: None,
+                        route53_domain_names: None,
+                        owner_pubkey: None,
+                        workspace_type: None,
+                        cln_pubkey: None,
+                    })
+            } else {
+                None
+            }
+        } else {
+            state
+                .stacks
+                .iter()
+                .find(|s| s.ec2_instance_id == instance_id)
+                .cloned()
+        }
+    } else {
+        None
+    };
+
+    match swarm {
+        Some(s) => {
+            let creds = ChildSwarmCredentials {
+                username: s.user.clone(),
+                password: s.pass.clone(),
+            };
+            match serde_json::to_value(creds) {
+                Ok(json_value) => SuperSwarmResponse {
+                    success: true,
+                    message: "Swarm credentials".to_string(),
+                    data: Some(json_value),
+                },
+                Err(err) => SuperSwarmResponse {
+                    success: false,
+                    message: err.to_string(),
+                    data: None,
+                },
+            }
+        }
+        None => SuperSwarmResponse {
+            success: false,
+            message: "Swarm not found".to_string(),
+            data: None,
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::{AvailableInstances, ReservedInstances};
+
+    fn make_state_with_stack() -> Super {
+        let mut state = Super::default();
+        state.stacks.push(RemoteStack {
+            host: "myhost.com".to_string(),
+            note: None,
+            ec2: None,
+            user: Some("admin".to_string()),
+            pass: Some("secret".to_string()),
+            default_host: "myhost.com".to_string(),
+            ec2_instance_id: "i-1234".to_string(),
+            public_ip_address: None,
+            private_ip_address: None,
+            id: Some("swarm1".to_string()),
+            deleted: None,
+            route53_domain_names: None,
+            owner_pubkey: None,
+            workspace_type: None,
+            cln_pubkey: None,
+        });
+        state
+    }
+
+    fn make_state_with_reserved() -> Super {
+        let mut state = Super::default();
+        let instance = AvailableInstances {
+            instance_id: "i-reserved99".to_string(),
+            instance_type: "t3.medium".to_string(),
+            swarm_number: "42".to_string(),
+            default_host: "reserved.com".to_string(),
+            host: "reserved.com".to_string(),
+            user: Some("resuser".to_string()),
+            pass: Some("respass".to_string()),
+            ip_address: None,
+            admin_password: "adminpw".to_string(),
+            x_api_key: "xkey".to_string(),
+        };
+        state.reserved_instances = Some(ReservedInstances {
+            minimum_available: 0,
+            available_instances: vec![instance],
+        });
+        state
+    }
+
+    #[test]
+    fn test_lookup_by_host_hit() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: Some("myhost.com".to_string()),
+            id: None,
+            instance_id: None,
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(res.success);
+        assert_eq!(res.message, "Swarm credentials");
+        let data = res.data.unwrap();
+        assert_eq!(data["username"], "admin");
+        assert_eq!(data["password"], "secret");
+    }
+
+    #[test]
+    fn test_lookup_by_host_miss() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: Some("unknown.com".to_string()),
+            id: None,
+            instance_id: None,
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(!res.success);
+        assert_eq!(res.message, "Swarm not found");
+    }
+
+    #[test]
+    fn test_lookup_by_id_hit() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: Some("swarm1".to_string()),
+            instance_id: None,
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(res.success);
+        let data = res.data.unwrap();
+        assert_eq!(data["username"], "admin");
+    }
+
+    #[test]
+    fn test_lookup_by_id_miss() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: Some("swarm999".to_string()),
+            instance_id: None,
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(!res.success);
+    }
+
+    #[test]
+    fn test_lookup_by_instance_id_active_hit() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: None,
+            instance_id: Some("i-1234".to_string()),
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(res.success);
+        let data = res.data.unwrap();
+        assert_eq!(data["username"], "admin");
+    }
+
+    #[test]
+    fn test_lookup_by_instance_id_active_miss() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: None,
+            instance_id: Some("i-9999".to_string()),
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(!res.success);
+    }
+
+    #[test]
+    fn test_lookup_by_instance_id_reserved_hit() {
+        let state = make_state_with_reserved();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: None,
+            instance_id: Some("i-reserved99".to_string()),
+            is_reserved: Some(true),
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(res.success);
+        let data = res.data.unwrap();
+        assert_eq!(data["username"], "resuser");
+        assert_eq!(data["password"], "respass");
+    }
+
+    #[test]
+    fn test_lookup_by_instance_id_reserved_miss() {
+        let state = make_state_with_reserved();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: None,
+            instance_id: Some("i-notfound".to_string()),
+            is_reserved: Some(true),
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(!res.success);
+    }
+
+    #[test]
+    fn test_no_params_provided() {
+        let state = make_state_with_stack();
+        let req = GetChildSwarmCredentialsReq {
+            host: None,
+            id: None,
+            instance_id: None,
+            is_reserved: None,
+        };
+        let res = get_child_swarm_credentials(req, &state);
+        assert!(!res.success);
+        assert_eq!(res.message, "Swarm not found");
+    }
+}
