@@ -100,13 +100,6 @@ pub async fn handle_assign_reserved_swarm(
         let envs_map = envs.get_or_insert_with(HashMap::new);
         envs_map.insert("GRAPH_MINDSET_ONLY".to_string(), "true".to_string());
         envs_map.insert("SECOND_BRAIN_ONLY".to_string(), "false".to_string());
-        // generate unique seed for this swarm's CLN node
-        let seed = sphinx_swarm::secrets::hex_secret_32();
-        envs_map.insert("SEED".to_string(), seed);
-        // use our shared BTC node for mainnet
-        let btc_url = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC")
-            .map_err(|_| anyhow!("CLN_MAINNET_BTC env var required for graph_mindset workspace"))?;
-        envs_map.insert("CLN_MAINNET_BTC".to_string(), btc_url);
     }
 
     if envs.is_some() && envs.clone().unwrap().is_empty() {
