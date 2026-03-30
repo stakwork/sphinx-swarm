@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::HashMap, time::Duration};
 
+const SWARM_ENV_KEYS: &[&str] = &["GRAPH_MINDSET_ONLY", "SECOND_BRAIN_ONLY", "SEED", "CLN_MAINNET_BTC"];
+
 use crate::{
     builder::find_img,
     cmd::{
@@ -552,20 +554,41 @@ pub async fn handle_assign_reserved_swarm_to_active(
     }
 
     if new_details.env.is_some() {
-        let envs = new_details.env.clone().unwrap();
-        let update_env_response = update_env_variables(
-            docker,
-            &mut UpdateEnvRequest {
-                id: Some("boltwall".to_string()),
-                values: envs,
-            },
-            state,
-            must_save_stack,
-        )
-        .await;
-        log::info!("Update env response: {:?}", update_env_response);
-        if !update_env_response.success {
-            error_messages.push(update_env_response.message);
+        let all_envs = new_details.env.clone().unwrap();
+
+        // Split into swarm-level and boltwall-level vars
+        let (swarm_envs, boltwall_envs): (HashMap<_, _>, HashMap<_, _>) = all_envs
+            .into_iter()
+            .partition(|(k, _)| SWARM_ENV_KEYS.contains(&k.as_str()));
+
+        // Write swarm-level vars to the swarm process's own .env (id: None)
+        if !swarm_envs.is_empty() {
+            let swarm_env_response = update_env_variables(
+                docker,
+                &mut UpdateEnvRequest { id: None, values: swarm_envs },
+                state,
+                must_save_stack,
+            )
+            .await;
+            log::info!("Swarm env update response: {:?}", swarm_env_response);
+            if !swarm_env_response.success {
+                error_messages.push(swarm_env_response.message);
+            }
+        }
+
+        // Write boltwall-level vars (existing behaviour preserved)
+        if !boltwall_envs.is_empty() {
+            let boltwall_env_response = update_env_variables(
+                docker,
+                &mut UpdateEnvRequest { id: Some("boltwall".to_string()), values: boltwall_envs },
+                state,
+                must_save_stack,
+            )
+            .await;
+            log::info!("Boltwall env update response: {:?}", boltwall_env_response);
+            if !boltwall_env_response.success {
+                error_messages.push(boltwall_env_response.message);
+            }
         }
     }
     *must_save_stack = true;
