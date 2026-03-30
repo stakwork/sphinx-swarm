@@ -59,6 +59,12 @@ pub struct UpdatePaidEndpointRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateEndpointPriceRequest {
+    pub id: u64,
+    pub price: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddUserRequest {
     pub role: u32,
     pub pubkey: String,
@@ -178,6 +184,7 @@ pub enum SwarmCmd {
     DeleteSubAdmin(String),
     ListPaidEndpoint,
     UpdatePaidEndpoint(UpdatePaidEndpointRequest),
+    UpdateEndpointPrice(UpdateEndpointPriceRequest),
     UpdateSwarm,
     UpdateBoltwallAccessibility(bool),
     GetBoltwallAccessibility,
