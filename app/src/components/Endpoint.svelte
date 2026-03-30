@@ -57,12 +57,14 @@
     <p class:active={toggled} class="endpoint-description">{description}</p>
     <div class="controls-container">
       <div class="price-container">
-        <NumberInput
-          size="sm"
-          min={0}
-          bind:value={editedPrice}
-          hideSteppers
-        />
+        <div class="price-input-wrapper">
+          <NumberInput
+            size="sm"
+            min={0}
+            bind:value={editedPrice}
+            hideSteppers
+          />
+        </div>
         <Button
           size="small"
           kind="primary"
@@ -110,6 +112,11 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .price-input-wrapper {
+    width: 80px;
+    flex-shrink: 0;
   }
 
   .toggle-container {
