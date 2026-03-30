@@ -173,13 +173,13 @@ fn default_superuser() -> User {
 
 pub fn default_reserved_instances() -> ReservedInstances {
     let minimum_second_brain = getenv("MINIMUM_RESERVED_SECOND_BRAIN")
-        .unwrap_or("0".to_string())
+        .unwrap_or("3".to_string())
         .parse::<i32>()
-        .unwrap_or(0);
+        .unwrap_or(3);
     let minimum_graph_mindset = getenv("MINIMUM_RESERVED_GRAPH_MINDSET")
-        .unwrap_or("0".to_string())
+        .unwrap_or("3".to_string())
         .parse::<i32>()
-        .unwrap_or(0);
+        .unwrap_or(3);
     ReservedInstances {
         minimum_second_brain,
         minimum_graph_mindset,
