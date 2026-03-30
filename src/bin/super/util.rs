@@ -74,15 +74,46 @@ pub fn add_new_swarm_from_child_swarm(
     must_save_stack: &mut bool,
 ) -> AddSwarmResponse {
     if state.reserved_instances.is_some() && swarm_details.id.is_some() {
+        let swarm_id = swarm_details.id.clone().unwrap();
         if let Some(reserved_instances) = &mut state.reserved_instances {
-            if let Some(pos) = reserved_instances
-                .available_instances
+            // Search second_brain_instances, graph_mindset_instances, then legacy available_instances
+            let found_in_second_brain = reserved_instances
+                .second_brain_instances
                 .iter()
-                .position(|instance| {
-                    format!("swarm{}", instance.swarm_number) == swarm_details.id.clone().unwrap()
-                })
-            {
-                let mut selected_instance = reserved_instances.available_instances[pos].clone();
+                .position(|instance| format!("swarm{}", instance.swarm_number) == swarm_id);
+            let found_in_graph_mindset = if found_in_second_brain.is_none() {
+                reserved_instances
+                    .graph_mindset_instances
+                    .iter()
+                    .position(|instance| format!("swarm{}", instance.swarm_number) == swarm_id)
+            } else {
+                None
+            };
+            let found_in_legacy = if found_in_second_brain.is_none() && found_in_graph_mindset.is_none() {
+                reserved_instances
+                    .available_instances
+                    .iter()
+                    .position(|instance| format!("swarm{}", instance.swarm_number) == swarm_id)
+            } else {
+                None
+            };
+
+            let (list, pos) = if let Some(p) = found_in_second_brain {
+                (0usize, p)
+            } else if let Some(p) = found_in_graph_mindset {
+                (1usize, p)
+            } else if let Some(p) = found_in_legacy {
+                (2usize, p)
+            } else {
+                (3usize, 0)
+            };
+
+            if list < 3 {
+                let selected_instance = match list {
+                    0 => &mut reserved_instances.second_brain_instances[pos],
+                    1 => &mut reserved_instances.graph_mindset_instances[pos],
+                    _ => &mut reserved_instances.available_instances[pos],
+                };
                 if selected_instance.pass.is_some() {
                     return AddSwarmResponse {
                         success: false,
@@ -92,8 +123,6 @@ pub fn add_new_swarm_from_child_swarm(
                 selected_instance.pass = swarm_details.pass.clone();
                 selected_instance.user = swarm_details.user.clone();
                 selected_instance.host = swarm_details.host.clone();
-
-                reserved_instances.available_instances[pos] = selected_instance;
 
                 *must_save_stack = true;
                 return AddSwarmResponse {
@@ -961,25 +990,20 @@ pub async fn create_swarm_ec2(
         }
     }
 
-    let mut potential_swarm_to_be_used = None;
-    if state.reserved_instances.clone().is_some()
-        && state
-            .reserved_instances
-            .clone()
-            .unwrap()
-            .available_instances
-            .len()
-            > 0
-    {
-        potential_swarm_to_be_used = Some(
-            state
-                .reserved_instances
-                .clone()
-                .unwrap()
-                .available_instances[0]
-                .clone(),
-        )
-    }
+    // Pick a candidate from the correct typed pool based on workspace_type
+    let potential_swarm_to_be_used: Option<crate::state::AvailableInstances> =
+        state.reserved_instances.as_ref().and_then(|r| {
+            if info.workspace_type.as_deref() == Some("graph_mindset") {
+                r.graph_mindset_instances.first().cloned()
+            } else {
+                // prefer second_brain_instances, fall back to legacy available_instances
+                r.second_brain_instances
+                    .first()
+                    .cloned()
+                    .or_else(|| r.available_instances.first().cloned())
+            }
+        });
+
     if check_reserve_swarm_flag_set()
         && state.reserved_instances.clone().is_some()
         && potential_swarm_to_be_used.is_some()
@@ -1364,28 +1388,21 @@ pub fn get_swarm_instance_type(
             return Err(anyhow!("No reserved instances available"));
         }
 
-        let pos = state
-            .reserved_instances
-            .as_ref()
-            .unwrap()
-            .available_instances
-            .iter()
-            .position(|r| r.instance_id == info.instance_id);
+        let reserved = state.reserved_instances.as_ref().unwrap();
 
-        if let None = pos {
-            return Err(anyhow!("Reserved instance does not exist"));
-        }
+        // Search second_brain_instances, graph_mindset_instances, then legacy available_instances
+        let found_instance = reserved
+            .second_brain_instances
+            .iter()
+            .chain(reserved.graph_mindset_instances.iter())
+            .chain(reserved.available_instances.iter())
+            .find(|r| r.instance_id == info.instance_id);
+
+        let instance = found_instance
+            .ok_or_else(|| anyhow!("Reserved instance does not exist"))?;
 
         let value = serde_json::to_value(GetInstanceTypeRes {
-            instance_type: Some(
-                state
-                    .reserved_instances
-                    .clone()
-                    .unwrap()
-                    .available_instances[pos.unwrap()]
-                .instance_type
-                .clone(),
-            ),
+            instance_type: Some(instance.instance_type.clone()),
         })?;
 
         return Ok(SuperSwarmResponse {

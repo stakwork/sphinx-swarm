@@ -52,8 +52,19 @@ pub struct Ec2Limit {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct ReservedInstances {
-    pub minimum_available: i32,
+    // Legacy field — kept with #[serde(default)] for backward-compat deserialization
+    #[serde(default)]
     pub available_instances: Vec<AvailableInstances>,
+    // New typed pools
+    #[serde(default)]
+    pub second_brain_instances: Vec<AvailableInstances>,
+    #[serde(default)]
+    pub graph_mindset_instances: Vec<AvailableInstances>,
+    pub minimum_second_brain: i32,
+    pub minimum_graph_mindset: i32,
+    // Kept for serde compat; no longer used as the pool floor
+    #[serde(default)]
+    pub minimum_available: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
@@ -137,7 +148,11 @@ impl Default for Super {
 
 pub static STATE: Lazy<Mutex<Super>> = Lazy::new(|| Mutex::new(Default::default()));
 
-pub async fn hydrate(sup: Super) {
+pub async fn hydrate(mut sup: Super) {
+    // One-time migration of legacy available_instances → second_brain_instances
+    if let Some(ref mut reserved) = sup.reserved_instances {
+        migrate_reserved_instances(reserved);
+    }
     // set into the main state mutex
     let mut state = STATE.lock().await;
     *state = sup;
@@ -157,13 +172,34 @@ fn default_superuser() -> User {
 }
 
 pub fn default_reserved_instances() -> ReservedInstances {
-    let minimum_reserver = getenv("MINIMUM_RESERVED_INSTANCES")
-        .unwrap_or("1".to_string())
+    let minimum_second_brain = getenv("MINIMUM_RESERVED_SECOND_BRAIN")
+        .unwrap_or("0".to_string())
         .parse::<i32>()
-        .unwrap_or(1);
+        .unwrap_or(0);
+    let minimum_graph_mindset = getenv("MINIMUM_RESERVED_GRAPH_MINDSET")
+        .unwrap_or("0".to_string())
+        .parse::<i32>()
+        .unwrap_or(0);
     ReservedInstances {
-        minimum_available: minimum_reserver,
+        minimum_second_brain,
+        minimum_graph_mindset,
         available_instances: Vec::new(),
+        second_brain_instances: Vec::new(),
+        graph_mindset_instances: Vec::new(),
+        minimum_available: 0,
+    }
+}
+
+/// One-time migration: move legacy `available_instances` into `second_brain_instances`
+/// if the new list is empty. Call this after deserializing persisted state.
+pub fn migrate_reserved_instances(reserved: &mut ReservedInstances) {
+    if !reserved.available_instances.is_empty() && reserved.second_brain_instances.is_empty() {
+        log::info!(
+            "Migrating {} legacy available_instances -> second_brain_instances",
+            reserved.available_instances.len()
+        );
+        reserved.second_brain_instances = reserved.available_instances.clone();
+        reserved.available_instances.clear();
     }
 }
 
@@ -236,22 +272,17 @@ impl Super {
                 return None;
             }
 
-            let pos = self
-                .reserved_instances
-                .as_ref()
-                .unwrap()
-                .available_instances
+            let reserved = self.reserved_instances.as_ref().unwrap();
+
+            // Search second_brain_instances, graph_mindset_instances, then legacy available_instances
+            let found: Option<&AvailableInstances> = reserved
+                .second_brain_instances
                 .iter()
-                .position(|r| r.host == host);
-            if let None = pos {
-                return None;
-            }
-            let selected_reserved_instance = self
-                .reserved_instances
-                .as_ref()
-                .unwrap()
-                .available_instances[pos.unwrap()]
-            .clone();
+                .chain(reserved.graph_mindset_instances.iter())
+                .chain(reserved.available_instances.iter())
+                .find(|r| r.host == host);
+
+            let selected_reserved_instance = found?.clone();
 
             return Some(RemoteStack {
                 host: selected_reserved_instance.host.clone(),

@@ -36,9 +36,14 @@ pub async fn migrate_log_group_tags() {
         }
     }
 
-    // Also tag reserved instances
+    // Also tag reserved instances (second_brain, graph_mindset, and legacy pools)
     if let Some(reserved) = &state.reserved_instances {
-        for instance in &reserved.available_instances {
+        for instance in reserved
+            .second_brain_instances
+            .iter()
+            .chain(reserved.graph_mindset_instances.iter())
+            .chain(reserved.available_instances.iter())
+        {
             if !instance.instance_id.is_empty() && !instance.swarm_number.is_empty() {
                 to_tag.push((
                     instance.instance_id.clone(),

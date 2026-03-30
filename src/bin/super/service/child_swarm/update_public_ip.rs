@@ -17,12 +17,34 @@ pub async fn handle_update_child_swarm_public_ip(
     let swarm_id = info.id.clone().unwrap();
     if state.reserved_instances.is_some() {
         if let Some(reserved_instances) = &mut state.reserved_instances {
-            if let Some(pos) = reserved_instances
-                .available_instances
+            // Find the instance in second_brain_instances, graph_mindset_instances, or legacy available_instances
+            enum PoolKind { SecondBrain, GraphMindset, Legacy }
+            let found: Option<(PoolKind, usize)> = reserved_instances
+                .second_brain_instances
                 .iter()
-                .position(|instance| format!("swarm{}", instance.swarm_number) == swarm_id)
-            {
-                let mut selected_instance = reserved_instances.available_instances[pos].clone();
+                .position(|i| format!("swarm{}", i.swarm_number) == swarm_id)
+                .map(|p| (PoolKind::SecondBrain, p))
+                .or_else(|| {
+                    reserved_instances
+                        .graph_mindset_instances
+                        .iter()
+                        .position(|i| format!("swarm{}", i.swarm_number) == swarm_id)
+                        .map(|p| (PoolKind::GraphMindset, p))
+                })
+                .or_else(|| {
+                    reserved_instances
+                        .available_instances
+                        .iter()
+                        .position(|i| format!("swarm{}", i.swarm_number) == swarm_id)
+                        .map(|p| (PoolKind::Legacy, p))
+                });
+
+            if let Some((pool_kind, pos)) = found {
+                let selected_instance = match pool_kind {
+                    PoolKind::SecondBrain => reserved_instances.second_brain_instances[pos].clone(),
+                    PoolKind::GraphMindset => reserved_instances.graph_mindset_instances[pos].clone(),
+                    PoolKind::Legacy => reserved_instances.available_instances[pos].clone(),
+                };
 
                 if selected_instance.ip_address.as_deref() == Some(&info.public_ip) {
                     return SuperSwarmResponse {
@@ -69,8 +91,16 @@ pub async fn handle_update_child_swarm_public_ip(
                     );
                 }
 
-                selected_instance.ip_address = Some(info.public_ip.clone());
-                reserved_instances.available_instances[pos] = selected_instance;
+                let updated_instance = {
+                    let mut inst = selected_instance;
+                    inst.ip_address = Some(info.public_ip.clone());
+                    inst
+                };
+                match pool_kind {
+                    PoolKind::SecondBrain => reserved_instances.second_brain_instances[pos] = updated_instance,
+                    PoolKind::GraphMindset => reserved_instances.graph_mindset_instances[pos] = updated_instance,
+                    PoolKind::Legacy => reserved_instances.available_instances[pos] = updated_instance,
+                }
 
                 *must_save_stack = true;
                 return SuperSwarmResponse {

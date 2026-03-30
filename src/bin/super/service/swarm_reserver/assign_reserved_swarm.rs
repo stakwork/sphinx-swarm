@@ -30,23 +30,33 @@ pub async fn handle_assign_reserved_swarm(
         return Err(anyhow!("No reserved instances available at the moment"));
     }
 
-    if state
-        .reserved_instances
-        .clone()
-        .unwrap()
-        .available_instances
-        .len()
-        <= 0
-    {
+    // Pick from the correct typed pool based on workspace_type
+    let is_graph_mindset = info.workspace_type.as_deref() == Some("graph_mindset");
+
+    let pool_empty = {
+        let reserved = state.reserved_instances.as_ref().unwrap();
+        if is_graph_mindset {
+            reserved.graph_mindset_instances.is_empty()
+        } else {
+            reserved.second_brain_instances.is_empty()
+                && reserved.available_instances.is_empty()
+        }
+    };
+
+    if pool_empty {
         return Err(anyhow!("No reserved instances available at the moment"));
     }
 
-    let selected_reserved_instance = state
-        .reserved_instances
-        .clone()
-        .unwrap()
-        .available_instances[0]
-        .clone();
+    let selected_reserved_instance = {
+        let reserved = state.reserved_instances.as_ref().unwrap();
+        if is_graph_mindset {
+            reserved.graph_mindset_instances[0].clone()
+        } else if !reserved.second_brain_instances.is_empty() {
+            reserved.second_brain_instances[0].clone()
+        } else {
+            reserved.available_instances[0].clone()
+        }
+    };
 
     let mut tags = vec![
         Ec2Tags {
@@ -95,18 +105,12 @@ pub async fn handle_assign_reserved_swarm(
         envs_map.insert("OWNER_PUBKEY".to_string(), pubkey.clone());
     }
 
-    // inject graph_mindset env vars if workspace type is graph_mindset
+    // For graph_mindset: SEED, GRAPH_MINDSET_ONLY, and CLN_MAINNET_BTC are already baked
+    // into the instance .env at provisioning time (warm pool creation).
+    // We only ensure SECOND_BRAIN_ONLY=false is set so it doesn't conflict.
     if info.workspace_type.as_deref() == Some("graph_mindset") {
         let envs_map = envs.get_or_insert_with(HashMap::new);
-        envs_map.insert("GRAPH_MINDSET_ONLY".to_string(), "true".to_string());
-        envs_map.insert("SECOND_BRAIN_ONLY".to_string(), "false".to_string());
-        // generate unique seed for this swarm's CLN node
-        let seed = sphinx_swarm::secrets::hex_secret_32();
-        envs_map.insert("SEED".to_string(), seed);
-        // use our shared BTC node for mainnet
-        let btc_url = sphinx_swarm::utils::getenv("CLN_MAINNET_BTC")
-            .map_err(|_| anyhow!("CLN_MAINNET_BTC env var required for graph_mindset workspace"))?;
-        envs_map.insert("CLN_MAINNET_BTC".to_string(), btc_url);
+        envs_map.entry("SECOND_BRAIN_ONLY".to_string()).or_insert_with(|| "false".to_string());
     }
 
     if envs.is_some() && envs.clone().unwrap().is_empty() {
@@ -230,12 +234,20 @@ pub async fn handle_assign_reserved_swarm(
     let x_api_key = selected_reserved_instance.x_api_key.clone();
     let ec2_id = selected_reserved_instance.instance_id.clone();
 
-    state
-        .reserved_instances
-        .as_mut()
-        .unwrap()
-        .available_instances
-        .remove(0);
+    // Remove the assigned instance from the correct typed pool
+    {
+        let reserved = state.reserved_instances.as_mut().unwrap();
+        if is_graph_mindset {
+            if !reserved.graph_mindset_instances.is_empty() {
+                reserved.graph_mindset_instances.remove(0);
+            }
+        } else if !reserved.second_brain_instances.is_empty() {
+            reserved.second_brain_instances.remove(0);
+        } else if !reserved.available_instances.is_empty() {
+            // fall back to legacy pool
+            reserved.available_instances.remove(0);
+        }
+    }
 
     Ok(CreateEc2InstanceRes {
         swarm_id: swarm_id,

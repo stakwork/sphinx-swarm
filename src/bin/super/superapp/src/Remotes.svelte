@@ -101,10 +101,16 @@
     if (
       conf &&
       conf.reserved_instances &&
-      conf.reserved_instances?.available_instances &&
-      conf.reserved_instances?.available_instances.length
+      (conf.reserved_instances?.second_brain_instances?.length ||
+        conf.reserved_instances?.graph_mindset_instances?.length ||
+        conf.reserved_instances?.available_instances?.length)
     ) {
-      reservedRemotes.set(conf.reserved_instances?.available_instances);
+      const allReserved = [
+        ...(conf.reserved_instances?.second_brain_instances ?? []),
+        ...(conf.reserved_instances?.graph_mindset_instances ?? []),
+        ...(conf.reserved_instances?.available_instances ?? []),
+      ];
+      reservedRemotes.set(allReserved);
     }
   }
 

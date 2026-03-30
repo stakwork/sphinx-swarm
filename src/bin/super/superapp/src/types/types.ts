@@ -51,6 +51,7 @@ export interface ReservedRemote {
   ip_address?: string;
   admin_password: string;
   x_api_key: string;
+  workspace_type?: string;
 }
 
 export interface ILightningBot {
