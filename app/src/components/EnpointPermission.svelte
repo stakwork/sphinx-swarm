@@ -63,6 +63,7 @@
       description={endpoint.route_description}
       toggled={endpoint.status}
       id={endpoint.id}
+      price={endpoint.price}
     />
   {/each}
 </div>

@@ -67,6 +67,7 @@ export type Cmd =
   | "DeleteSubAdmin"
   | "ListPaidEndpoint"
   | "UpdatePaidEndpoint"
+  | "UpdateEndpointPrice"
   | "UpdateSwarm"
   | "UpdateBoltwallAccessibility"
   | "GetBoltwallAccessibility"
