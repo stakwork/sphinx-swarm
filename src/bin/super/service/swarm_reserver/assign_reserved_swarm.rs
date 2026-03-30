@@ -89,6 +89,12 @@ pub async fn handle_assign_reserved_swarm(
         }
     }
 
+    // inject owner pubkey if present
+    if let Some(pubkey) = &info.owner_pubkey {
+        let envs_map = envs.get_or_insert_with(HashMap::new);
+        envs_map.insert("OWNER_PUBKEY".to_string(), pubkey.clone());
+    }
+
     // inject graph_mindset env vars if workspace type is graph_mindset
     if info.workspace_type.as_deref() == Some("graph_mindset") {
         let envs_map = envs.get_or_insert_with(HashMap::new);

@@ -1005,11 +1005,18 @@ pub async fn create_swarm_ec2(
         }
     }
 
+    let mut ec2_env = info.env.clone();
+    if let Some(pubkey) = &info.owner_pubkey {
+        ec2_env
+            .get_or_insert_with(HashMap::new)
+            .insert("OWNER_PUBKEY".to_string(), pubkey.clone());
+    }
+
     let ec2_intance = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),
         info.instance_type.clone(),
-        info.env.clone(),
+        ec2_env,
         info.subdomain_ssl.clone(),
         info.password.clone(),
         anthropic_api_key.clone(),
