@@ -24,8 +24,7 @@ pub struct BoltwallImage {
     pub external_lnd: Option<ExternalLnd>,
     pub links: Links,
     pub admin_token: Option<String>,
-    // stakwork_secret is NOT the api for stakwork, but the x_api_token in jarvis
-    pub stakwork_secret: Option<String>,
+    pub swarm_api_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_per_seconds: Option<i64>,
     pub max_request_limit: Option<String>,
@@ -42,7 +41,7 @@ impl BoltwallImage {
             external_lnd: None,
             links: vec![],
             admin_token: Some(secrets::random_word(32)),
-            stakwork_secret: Some(determine_boltwall_api_secret()),
+            swarm_api_token: Some(determine_boltwall_api_secret()),
             request_per_seconds: Some(50),
             max_request_limit: Some("1mb".to_string()),
         }
@@ -56,8 +55,8 @@ impl BoltwallImage {
     pub fn set_admin_token(&mut self, at: &str) {
         self.admin_token = Some(at.to_string());
     }
-    pub fn set_stakwork_token(&mut self, ss: &str) {
-        self.stakwork_secret = Some(ss.to_string());
+    pub fn set_swarm_api_token(&mut self, ss: &str) {
+        self.swarm_api_token = Some(ss.to_string());
     }
     pub fn set_request_per_seconds(&mut self, rps: i64) {
         self.request_per_seconds = Some(rps);
@@ -248,9 +247,10 @@ fn boltwall(
         env.push(format!("ADMIN_TOKEN={}", at));
     }
 
-    //stakwork secret to ensure we only accept request from stakwork
-    if let Some(ss) = &node.stakwork_secret {
-        env.push(format!("STAKWORK_SECRET={}", ss))
+    // swarm api token — dual-emit during transition; remove STAKWORK_SECRET in cleanup phase
+    if let Some(ss) = &node.swarm_api_token {
+        env.push(format!("SWARM_API_TOKEN={}", ss));
+        env.push(format!("STAKWORK_SECRET={}", ss)); // legacy compat — remove in cleanup phase
     }
 
     // add request per seconds to boltwall env

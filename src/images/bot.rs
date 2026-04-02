@@ -102,7 +102,7 @@ fn bot(
 
     let admin_token = boltwall
         .as_ref()
-        .and_then(|b| b.stakwork_secret.clone())
+        .and_then(|b| b.swarm_api_token.clone())
         .unwrap_or_else(|| img.admin_token.clone());
 
     let broker_url = if let Some(b) = broker {
@@ -177,30 +177,30 @@ mod tests {
     }
 
     #[test]
-    fn test_admin_token_uses_boltwall_stakwork_secret_when_present() {
+    fn test_admin_token_uses_boltwall_swarm_api_token_when_present() {
         let img = make_bot();
         let broker = make_broker();
         let mut boltwall = BoltwallImage::new("boltwall", "latest", "8444");
-        boltwall.stakwork_secret = Some("boltwall-secret".to_string());
+        boltwall.swarm_api_token = Some("boltwall-secret".to_string());
         let config = bot(&img, Some(&broker), &None, &Some(boltwall)).unwrap();
         let env = config.env.unwrap();
         assert!(
             env.contains(&"ADMIN_TOKEN=boltwall-secret".to_string()),
-            "Expected ADMIN_TOKEN to equal boltwall stakwork_secret"
+            "Expected ADMIN_TOKEN to equal boltwall swarm_api_token"
         );
     }
 
     #[test]
-    fn test_admin_token_falls_back_to_bot_when_boltwall_secret_is_none() {
+    fn test_admin_token_falls_back_to_bot_when_boltwall_swarm_api_token_is_none() {
         let img = make_bot();
         let broker = make_broker();
         let mut boltwall = BoltwallImage::new("boltwall", "latest", "8444");
-        boltwall.stakwork_secret = None;
+        boltwall.swarm_api_token = None;
         let config = bot(&img, Some(&broker), &None, &Some(boltwall)).unwrap();
         let env = config.env.unwrap();
         assert!(
             env.contains(&"ADMIN_TOKEN=bot-own-token".to_string()),
-            "Expected ADMIN_TOKEN to fall back to bot's own admin_token when stakwork_secret is None"
+            "Expected ADMIN_TOKEN to fall back to bot's own admin_token when swarm_api_token is None"
         );
     }
 }

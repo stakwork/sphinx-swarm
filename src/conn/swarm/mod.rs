@@ -420,8 +420,8 @@ fn get_boltwall_stored_env() -> HashMap<String, (String, String)> {
     );
 
     boltwall_envs.insert(
-        "STAKWORK_SECRET".to_string(),
-        ("stakwork_secret".to_string(), "".to_string()),
+        "SWARM_API_TOKEN".to_string(),
+        ("swarm_api_token".to_string(), "".to_string()),
     );
 
     boltwall_envs.insert(
@@ -496,8 +496,8 @@ fn update_boltwall_env(state: &mut State, env_values: &mut HashMap<String, Strin
                                 }
                             } else if boltwall_values.0 == "admin_token" {
                                 b.set_admin_token(&value.clone());
-                            } else if boltwall_values.0 == "stakwork_secret" {
-                                b.set_stakwork_token(&value.clone());
+                            } else if boltwall_values.0 == "swarm_api_token" {
+                                b.set_swarm_api_token(&value.clone());
                             } else if boltwall_values.0 == "request_per_seconds" {
                                 if let Ok(parse_value) = value.parse() {
                                     b.set_request_per_seconds(parse_value);

@@ -49,9 +49,9 @@ impl VectorImage {
             "quickwit.sphinx".to_string()
         };
 
-        // Use boltwall's stakwork_secret if linked, otherwise use our own token
+        // Use boltwall's swarm_api_token if linked, otherwise use our own token
         let base_token = if let Some(boltwall) = li.find_boltwall() {
-            boltwall.stakwork_secret.unwrap_or(self.auth_token.clone())
+            boltwall.swarm_api_token.unwrap_or(self.auth_token.clone())
         } else {
             self.auth_token.clone()
         };

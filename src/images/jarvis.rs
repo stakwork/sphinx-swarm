@@ -134,9 +134,10 @@ fn jarvis(
         }
     }
 
-    //stakwork-secret from boltwall
-    if let Some(ss) = &boltwall.stakwork_secret {
-        env.push(format!("STAKWORK_SECRET={}", ss))
+    // swarm api token from boltwall — dual-emit during transition; remove STAKWORK_SECRET in cleanup phase
+    if let Some(ss) = &boltwall.swarm_api_token {
+        env.push(format!("SWARM_API_TOKEN={}", ss));
+        env.push(format!("STAKWORK_SECRET={}", ss)); // legacy compat — remove in cleanup phase
     }
     // from the stack-prod.yml
     if let Ok(stakwork_key) = getenv("STAKWORK_ADD_NODE_TOKEN") {

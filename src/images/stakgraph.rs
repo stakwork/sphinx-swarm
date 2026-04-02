@@ -107,7 +107,7 @@ fn stakgraph(
         env.push(format!("PAT={}", github_request_token))
     }
     if let Some(boltwall) = boltwall {
-        if let Some(api_token) = &boltwall.stakwork_secret {
+        if let Some(api_token) = &boltwall.swarm_api_token {
             env.push(format!("API_TOKEN={}", api_token));
             env.push(format!("WEBHOOK_SECRET={}", api_token));
         }

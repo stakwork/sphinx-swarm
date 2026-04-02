@@ -414,7 +414,7 @@ pub async fn update_user(
 
 pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
     let api_token = boltwall
-        .stakwork_secret
+        .swarm_api_token
         .clone()
         .context(anyhow!("No admin token"))?;
 
