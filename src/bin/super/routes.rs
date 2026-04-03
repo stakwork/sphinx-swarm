@@ -343,6 +343,7 @@ async fn get_swarm_credentials(
                 success: false,
                 message: "unauthorized, invalid token".to_string(),
                 data: None,
+                status_code: Some(401),
             }),
         ));
     }

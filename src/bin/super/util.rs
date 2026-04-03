@@ -1721,11 +1721,13 @@ pub fn get_child_swarm_credentials(
                     success: true,
                     message: "Swarm credentials".to_string(),
                     data: Some(json_value),
+                    status_code: None,
                 },
                 Err(err) => SuperSwarmResponse {
                     success: false,
                     message: err.to_string(),
                     data: None,
+                    status_code: None,
                 },
             }
         }
@@ -1733,6 +1735,7 @@ pub fn get_child_swarm_credentials(
             success: false,
             message: "Swarm not found".to_string(),
             data: None,
+            status_code: None,
         },
     }
 }
