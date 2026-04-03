@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bollard::container::Config;
-use bollard_stubs::models::HostConfig;
+use bollard::models::HostConfig;
 use rocket::tokio::signal;
 use sphinx_swarm::dock::*;
 use sphinx_swarm::utils::host_port;
