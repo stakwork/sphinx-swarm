@@ -301,6 +301,15 @@ fn boltwall(
         }
     }
 
+    match getenv("OWNER_PUBKEY") {
+        Ok(env_value) => {
+            env.push(format!("OWNER_PUBKEY={}", env_value));
+        }
+        Err(err) => {
+            log::error!("Error getting env OWNER_PUBKEY: {}", err.to_string())
+        }
+    }
+
     let mut c = Config {
         image: Some(format!("{}:{}", img, node.version)),
         hostname: Some(domain(&name)),
