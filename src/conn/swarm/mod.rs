@@ -7,8 +7,8 @@ use std::{collections::HashMap, time::Duration};
 use crate::{
     builder::find_img,
     cmd::{
-        AssignSwarmNewDetails, ChangeUserPasswordBySuperAdminInfo, GetDockerImageTagsDetails,
-        UpdateEnvRequest,
+        AssignSwarmNewDetails, BotBalanceRes, ChangeUserPasswordBySuperAdminInfo,
+        CreateBotInvoiceRequest, GetDockerImageTagsDetails, UpdateEnvRequest,
     },
     config::{LightningPeer, Node, State},
     dock::stop_and_remove,
@@ -16,7 +16,10 @@ use crate::{
         boltwall::{ExternalLnd, LndCreds},
         Image,
     },
-    utils::{domain, getenv, is_using_port_based_ssl, update_or_write_to_env_file},
+    utils::{
+        docker_domain, domain, getenv, is_using_port_based_ssl, make_reqwest_client,
+        update_or_write_to_env_file,
+    },
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -349,6 +352,86 @@ pub fn get_bot_token(nodes: &Vec<Node>) -> SwarmResponse {
         Err(err) => SwarmResponse {
             success: false,
             message: err.to_string(),
+            data: None,
+        },
+    }
+}
+
+pub async fn get_bot_balance(nodes: &Vec<Node>) -> SwarmResponse {
+    let bot = match find_img("bot", nodes).and_then(|i| i.as_bot()) {
+        Ok(b) => b,
+        Err(e) => {
+            return SwarmResponse {
+                success: false,
+                message: e.to_string(),
+                data: None,
+            }
+        }
+    };
+    let url = format!("http://{}:{}/balance", docker_domain(&bot.name), bot.port);
+    let client = make_reqwest_client();
+    match client
+        .get(&url)
+        .header("x-admin-token", &bot.admin_token)
+        .send()
+        .await
+    {
+        Ok(res) => match res.json::<BotBalanceRes>().await {
+            Ok(bal) => SwarmResponse {
+                success: true,
+                message: "bot balance retrieved".to_string(),
+                data: Some(serde_json::to_value(bal).unwrap_or(Value::Null)),
+            },
+            Err(e) => SwarmResponse {
+                success: false,
+                message: e.to_string(),
+                data: None,
+            },
+        },
+        Err(e) => SwarmResponse {
+            success: false,
+            message: e.to_string(),
+            data: None,
+        },
+    }
+}
+
+pub async fn create_bot_invoice(nodes: &Vec<Node>, amt_msat: u64) -> SwarmResponse {
+    let bot = match find_img("bot", nodes).and_then(|i| i.as_bot()) {
+        Ok(b) => b,
+        Err(e) => {
+            return SwarmResponse {
+                success: false,
+                message: e.to_string(),
+                data: None,
+            }
+        }
+    };
+    let url = format!("http://{}:{}/invoice", docker_domain(&bot.name), bot.port);
+    let client = make_reqwest_client();
+    let body = serde_json::json!({ "amt_msat": amt_msat });
+    match client
+        .post(&url)
+        .header("x-admin-token", &bot.admin_token)
+        .json(&body)
+        .send()
+        .await
+    {
+        Ok(res) => match res.json::<Value>().await {
+            Ok(data) => SwarmResponse {
+                success: true,
+                message: "invoice created".to_string(),
+                data: Some(data),
+            },
+            Err(e) => SwarmResponse {
+                success: false,
+                message: e.to_string(),
+                data: None,
+            },
+        },
+        Err(e) => SwarmResponse {
+            success: false,
+            message: e.to_string(),
             data: None,
         },
     }
