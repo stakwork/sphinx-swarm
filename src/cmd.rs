@@ -206,6 +206,7 @@ pub enum SwarmCmd {
     AddLightningPeer(LightningPeer),
     UpdateLightningPeer(LightningPeer),
     GetNeo4jPassword,
+    GetBotToken,
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
     GetBoltwallMaxRequestLimit,
