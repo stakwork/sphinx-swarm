@@ -207,6 +207,8 @@ pub enum SwarmCmd {
     UpdateLightningPeer(LightningPeer),
     GetNeo4jPassword,
     GetBotToken,
+    GetBotBalance,
+    CreateBotInvoice(CreateBotInvoiceRequest),
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
     GetBoltwallMaxRequestLimit,
@@ -255,6 +257,14 @@ pub struct AddPeer {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddInvoice {
     pub amt_paid_sat: i64,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CreateBotInvoiceRequest {
+    pub amt_msat: u64,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BotBalanceRes {
+    pub msat: u64,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PayInvoice {
