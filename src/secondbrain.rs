@@ -89,6 +89,8 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         } else {
             bolt.links(vec!["jarvis", lightning_provider]);
         }
+    } else {
+        bolt.links(vec!["jarvis"]);
     }
     bolt.host(host.clone());
 
