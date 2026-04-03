@@ -88,6 +88,8 @@ const stakgraphControls: Control[] = [];
 
 const repo2graphControls: Control[] = [];
 
+const botControls: Control[] = [];
+
 export const controls = {
   Relay: relayControls,
   Proxy: proxyControls,
@@ -101,4 +103,5 @@ export const controls = {
   Neo4j: neo4jControls,
   Stakgraph: stakgraphControls,
   Repo2Graph: repo2graphControls,
+  Bot: botControls,
 };

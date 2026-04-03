@@ -1,13 +1,13 @@
 use crate::auth;
 use crate::auth_token::VerifySuperToken;
 use crate::cmd::{
-    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, StopEc2InstanceInfo,
-    SuperSwarmResponse, SwarmCmd,
+    AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, GetChildSwarmCredentialsReq,
+    StopEc2InstanceInfo, SuperSwarmResponse, SwarmCmd,
 };
 use crate::events::EventChan;
 use crate::logs::LogChans;
 use crate::service::check_domain::check_domain;
-use crate::util::get_swarm_details_by_id;
+use crate::util::{get_child_swarm_credentials, get_swarm_details_by_id};
 use fs::{relative, FileServer};
 use rocket::http::Status;
 use rocket::response::status::Custom;
@@ -46,7 +46,8 @@ pub async fn launch_rocket(
                 stop_swarm,
                 get_swarm_details,
                 check_duplicate_domain,
-                update_child_swarm_public_ip
+                update_child_swarm_public_ip,
+                get_swarm_credentials
             ],
         )
         .attach(CORS)
@@ -147,6 +148,8 @@ async fn create_new_swarm(
         password: body.password.clone(),
         testing: body.testing.clone(),
         enable_cloudwatch_alarms: body.enable_cloudwatch_alarms.clone(),
+        workspace_type: body.workspace_type.clone(),
+        owner_pubkey: body.owner_pubkey.clone(),
     }));
 
     let txt = serde_json::to_string(&cmd)?;
@@ -314,4 +317,39 @@ async fn update_child_swarm_public_ip(
             message: response.message,
         }),
     ));
+}
+
+#[rocket::get("/super/swarm_credentials?<host>&<id>&<instance_id>&<is_reserved>")]
+async fn get_swarm_credentials(
+    host: Option<String>,
+    id: Option<String>,
+    instance_id: Option<String>,
+    is_reserved: Option<bool>,
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<SuperSwarmResponse>>> {
+    if let None = verify_super_token.token {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: "unauthorized, invalid token".to_string(),
+                data: None,
+            }),
+        ));
+    }
+
+    let state = crate::state::STATE.lock().await;
+    let req = GetChildSwarmCredentialsReq {
+        host,
+        id,
+        instance_id,
+        is_reserved,
+    };
+    let response = get_child_swarm_credentials(req, &state);
+    let status = if response.success {
+        Status::Ok
+    } else {
+        Status::BadRequest
+    };
+    return Ok(Custom(status, Json(response)));
 }

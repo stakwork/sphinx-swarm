@@ -331,6 +331,29 @@ pub fn get_neo4j_password(nodes: &Vec<Node>) -> SwarmResponse {
     }
 }
 
+pub fn get_bot_token(nodes: &Vec<Node>) -> SwarmResponse {
+    let bot = find_img("bot", nodes);
+    match bot {
+        Ok(image) => match image.as_bot() {
+            Ok(bot) => SwarmResponse {
+                success: true,
+                message: "bot admin token successfully retrieved".to_string(),
+                data: Some(serde_json::Value::String(bot.admin_token)),
+            },
+            Err(err) => SwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            },
+        },
+        Err(err) => SwarmResponse {
+            success: false,
+            message: err.to_string(),
+            data: None,
+        },
+    }
+}
+
 pub async fn update_env_variables(
     docker: &Docker,
     update_value: &mut UpdateEnvRequest,

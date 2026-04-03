@@ -119,6 +119,21 @@ pub enum SwarmCmd {
     UploadSSlCert,
     UpdateChildSwarmPublicIp(UpdateChildSwarmPublicIpBody),
     GetEc2CpuUtilization(GetEc2CpuUtilizationReq),
+    GetChildSwarmCredentials(GetChildSwarmCredentialsReq),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetChildSwarmCredentialsReq {
+    pub host: Option<String>,
+    pub id: Option<String>,
+    pub instance_id: Option<String>,
+    pub is_reserved: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChildSwarmCredentials {
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -194,6 +209,8 @@ pub struct CreateEc2InstanceInfo {
     pub subdomain_ssl: Option<bool>,
     pub password: Option<String>,
     pub testing: Option<bool>,
+    pub workspace_type: Option<String>,
+    pub owner_pubkey: Option<String>,
     pub enable_cloudwatch_alarms: Option<bool>,
 }
 

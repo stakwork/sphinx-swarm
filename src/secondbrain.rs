@@ -1,6 +1,7 @@
 use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
+use crate::images::bot::BotImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
@@ -33,6 +34,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "stakgraph".to_string(),
             "quickwit".to_string(),
             "vector".to_string(),
+            "bot".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -80,11 +82,13 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     // boltwall
     v = "latest";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-    if let Some(ext) = external_lnd() {
-        bolt.external_lnd(ext);
-        bolt.links(vec!["jarvis"]);
-    } else {
-        bolt.links(vec!["jarvis", lightning_provider]);
+    if lightning_provider != "bot" {
+        if let Some(ext) = external_lnd() {
+            bolt.external_lnd(ext);
+            bolt.links(vec!["jarvis"]);
+        } else {
+            bolt.links(vec!["jarvis", lightning_provider]);
+        }
     }
     bolt.host(host.clone());
 
@@ -113,6 +117,13 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Quickwit(quickwit),
         Image::Vector(vector),
     ];
+
+    if lightning_provider == "bot" {
+        let mut bot = BotImage::new("bot", "latest", "3000");
+        bot.set_external_broker("broker.v2.sphinx.chat");
+        bot.links(vec!["boltwall"]);
+        imgs.push(Image::Bot(bot));
+    }
 
     if env_is_true("LOCAL_LLAMA") {
         let mut llama = LlamaImage::new("llama", "8787");

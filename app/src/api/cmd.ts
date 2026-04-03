@@ -67,6 +67,7 @@ export type Cmd =
   | "DeleteSubAdmin"
   | "ListPaidEndpoint"
   | "UpdatePaidEndpoint"
+  | "UpdateEndpointPrice"
   | "UpdateSwarm"
   | "UpdateBoltwallAccessibility"
   | "GetBoltwallAccessibility"
@@ -118,7 +119,9 @@ export type Cmd =
   | "RenewSslCert"
   | "UploadSSlCert"
   | "UpdateSslCert"
-  | "UpdateNeo4jConfig";
+  | "UpdateNeo4jConfig"
+  | "GetEc2CpuUtilization"
+  | "GetBotToken";
 interface CmdData {
   cmd: Cmd;
   content?: any;

@@ -288,7 +288,7 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         format!("--network={}", &img.network),
         format!("--bitcoin-rpcconnect={}", &btc.rpcconnect),
         format!("--grpc-host=0.0.0.0"),
-        "--bitcoin-rpcport=18443".to_string(),
+        format!("--bitcoin-rpcport={}", &btc.port.unwrap_or(18443)),
         "--log-level=info:gossipd".to_string(),
         "--log-level=info:channeld".to_string(),
         "--log-level=debug".to_string(),

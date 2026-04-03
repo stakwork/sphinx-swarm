@@ -22,8 +22,8 @@ use state::Super;
 use util::{
     accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
     get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
-    get_child_swarm_image_versions, get_config, get_swarm_instance_type, update_aws_instance_type,
-    update_swarm_child_password,
+    get_child_swarm_credentials, get_child_swarm_image_versions, get_config,
+    get_swarm_instance_type, update_aws_instance_type, update_swarm_child_password,
 };
 
 use crate::checker::swarm_checker;
@@ -242,6 +242,9 @@ pub async fn super_handle(
                     id: None,
                     deleted: Some(false),
                     route53_domain_names: None,
+                    owner_pubkey: None,
+                    workspace_type: None,
+                    cln_pubkey: None,
                 };
 
                 let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
@@ -265,6 +268,9 @@ pub async fn super_handle(
                             id: state.stacks[ui].id.clone(),
                             deleted: state.stacks[ui].deleted.clone(),
                             route53_domain_names: state.stacks[ui].route53_domain_names.clone(),
+                            owner_pubkey: state.stacks[ui].owner_pubkey.clone(),
+                            workspace_type: state.stacks[ui].workspace_type.clone(),
+                            cln_pubkey: state.stacks[ui].cln_pubkey.clone(),
                         };
                         must_save_stack = true;
                         hm = AddSwarmResponse {
@@ -311,6 +317,9 @@ pub async fn super_handle(
                     id: c.id,
                     deleted: Some(false),
                     route53_domain_names: None,
+                    owner_pubkey: None,
+                    workspace_type: None,
+                    cln_pubkey: None,
                 };
                 let hm =
                     add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);
@@ -563,6 +572,10 @@ pub async fn super_handle(
                 let res =
                     handle_update_child_swarm_public_ip(&mut state, &mut must_save_stack, info)
                         .await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetChildSwarmCredentials(req) => {
+                let res = get_child_swarm_credentials(req, &state);
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::GetEc2CpuUtilization(req) => {
