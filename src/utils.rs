@@ -1,12 +1,11 @@
 use crate::dock;
 use anyhow::{anyhow, Result};
 use bollard::container::NetworkingConfig;
-use bollard::models::DeviceRequest;
-use bollard::network::CreateNetworkOptions;
-use bollard_stubs::models::{
-    HostConfig, HostConfigLogConfig, Ipam, IpamConfig, PortBinding, PortMap, ResourcesUlimits,
-    RestartPolicy, RestartPolicyNameEnum,
+use bollard::models::{
+    DeviceRequest, HostConfig, HostConfigLogConfig, Ipam, IpamConfig, PortBinding, PortMap,
+    ResourcesUlimits, RestartPolicy, RestartPolicyNameEnum,
 };
+use bollard::network::CreateNetworkOptions;
 use rocket::tokio;
 use serde::{de::DeserializeOwned, Serialize};
 use std::env;
