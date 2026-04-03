@@ -105,6 +105,10 @@ export async function update_paid_endpoint(id: number, status: boolean) {
   return await swarmCmd("UpdatePaidEndpoint", { id, status });
 }
 
+export async function update_endpoint_price(id: number, price: number) {
+  return await swarmCmd("UpdateEndpointPrice", { id, price });
+}
+
 export async function update_swarm() {
   return await swarmCmd("UpdateSwarm");
 }
@@ -605,4 +609,8 @@ export async function update_neo4j_config({
     tx_max_gb,
     checkpoint_iops,
   });
+}
+
+export async function get_bot_token() {
+  return await swarmCmd("GetBotToken");
 }

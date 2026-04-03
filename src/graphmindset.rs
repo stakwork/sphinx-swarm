@@ -1,7 +1,7 @@
 use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::BoltwallImage;
-use crate::images::cln::{ClnImage, ClnPlugin};
+use crate::images::bot::BotImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
@@ -12,19 +12,10 @@ use crate::images::Image;
 use crate::secrets;
 
 pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
-    let mut internal_nodes = vec![];
-    let mut external_nodes = vec![];
-
-    add_btc(network, &mut internal_nodes, &mut external_nodes);
-
-    let imgs = graph_mindset_imgs(network, host.clone());
-    internal_nodes.extend(imgs);
-
-    let mut nodes: Vec<Node> = internal_nodes
-        .iter()
-        .map(|n| Node::Internal(n.to_owned()))
+    let nodes: Vec<Node> = graph_mindset_imgs(network, host.clone())
+        .into_iter()
+        .map(|n| Node::Internal(n))
         .collect();
-    nodes.extend(external_nodes);
 
     Stack {
         network: network.to_string(),
@@ -40,6 +31,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
             "navfiber".to_string(),
             "repo2graph".to_string(),
             "stakgraph".to_string(),
+            "bot".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -52,20 +44,11 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
     }
 }
 
-pub fn graph_mindset_imgs(network: &str, host: Option<String>) -> Vec<Image> {
-    // cln
-    let seed_str = std::env::var("SEED").expect("SEED env var required for graph_mindset");
-    if seed_str.len() != 64 {
-        panic!("SEED must be 64 hex chars");
-    }
-    let seed_vec = hex::decode(&seed_str).expect("SEED decode failed");
-    let seed = hex::encode(seed_vec);
-
-    let mut cln = ClnImage::new("cln", "latest", network, "9735", "10009");
-    cln.set_seed(seed);
-    cln.plugins(vec![ClnPlugin::HtlcInterceptor]);
-    cln.host(host.clone());
-    cln.links(vec!["bitcoind"]);
+pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
+    // bot (v2 user — replaces CLN + bitcoind)
+    let mut bot = BotImage::new("bot", "latest", "3000");
+    bot.set_external_broker("broker.v2.sphinx.chat");
+    bot.links(vec!["boltwall"]);
 
     // neo4j
     let mut v = "5.19.0";
@@ -81,10 +64,10 @@ pub fn graph_mindset_imgs(network: &str, host: Option<String>) -> Vec<Image> {
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
     jarvis.links(vec!["neo4j", "boltwall", "redis"]);
 
-    // boltwall - linked to cln for internal lightning
+    // boltwall - linked to bot for v2 lightning
     v = "latest";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-    bolt.links(vec!["jarvis", "cln"]);
+    bolt.links(vec!["jarvis", "bot"]);
     bolt.host(host.clone());
 
     // navfiber
@@ -106,7 +89,7 @@ pub fn graph_mindset_imgs(network: &str, host: Option<String>) -> Vec<Image> {
     stakgraph.links(vec!["neo4j", "boltwall"]);
 
     vec![
-        Image::Cln(cln),
+        Image::Bot(bot),
         Image::NavFiber(nav),
         Image::Neo4j(neo4j),
         Image::BoltWall(bolt),

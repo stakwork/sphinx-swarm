@@ -31,6 +31,12 @@ pub struct UpdatePaidEndpointBody {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateEndpointPriceBody {
+    id: u64,
+    price: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiToken {
     pub x_api_token: String,
 }
@@ -222,6 +228,25 @@ pub async fn update_paid_endpoint(img: &BoltwallImage, id: u64, status: bool) ->
     let response_text = response.text().await?;
 
     Ok(response_text)
+}
+
+pub async fn update_endpoint_price(img: &BoltwallImage, id: u64, price: u64) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+
+    let client = make_client();
+    let host = docker_domain(&img.name);
+
+    let route = format!("http://{}:{}/endpoint_price", host, img.port);
+
+    let body = UpdateEndpointPriceBody { id, price };
+    let response = client
+        .put(route.as_str())
+        .header("x-admin-token", admin_token)
+        .json(&body)
+        .send()
+        .await?;
+
+    Ok(response.text().await?)
 }
 
 pub async fn update_boltwall_accessibility(img: &BoltwallImage, is_public: bool) -> Result<String> {

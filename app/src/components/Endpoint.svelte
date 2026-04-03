@@ -1,11 +1,14 @@
-<script>
+<script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { Toggle } from "carbon-components-svelte";
-  import { update_paid_endpoint } from "../api/swarm";
+  import { Toggle, NumberInput, Button } from "carbon-components-svelte";
+  import { update_paid_endpoint, update_endpoint_price } from "../api/swarm";
 
   export let id;
   export let description = "";
   export let toggled = false;
+  export let price: number = 0;
+
+  let editedPrice = price;
 
   const dispatch = createEventDispatcher();
 
@@ -31,22 +34,58 @@
       sendDataToParent(success);
     }
   }
+
+  async function handleSavePrice() {
+    try {
+      const result = await update_endpoint_price(id[0], editedPrice);
+      const parsedResult = JSON.parse(result);
+      if (parsedResult.success) {
+        price = editedPrice;
+        sendDataToParent(true);
+      } else {
+        sendDataToParent(false);
+      }
+    } catch (error) {
+      console.error(`Error updating endpoint price: ${error}`);
+      sendDataToParent(false);
+    }
+  }
 </script>
 
 <div class="container">
   <div class="endpoint-container">
     <p class:active={toggled} class="endpoint-description">{description}</p>
-    <div class="toggle-container">
-      <Toggle
-        size="default"
-        labelA=""
-        labelB=""
-        bind:toggled
-        on:toggle={(e) => {
-          handleUpdatePaidEndpoint(e.detail.toggled);
-        }}
-        {disabled}
-      />
+    <div class="controls-container">
+      <div class="price-container">
+        <div class="price-input-wrapper">
+          <NumberInput
+            size="sm"
+            min={0}
+            bind:value={editedPrice}
+            hideSteppers
+          />
+        </div>
+        <Button
+          size="small"
+          kind="primary"
+          disabled={editedPrice === price}
+          on:click={handleSavePrice}
+        >
+          Save
+        </Button>
+      </div>
+      <div class="toggle-container">
+        <Toggle
+          size="default"
+          labelA=""
+          labelB=""
+          bind:toggled
+          on:toggle={(e) => {
+            handleUpdatePaidEndpoint(e.detail.toggled);
+          }}
+          {disabled}
+        />
+      </div>
     </div>
   </div>
 </div>
@@ -59,6 +98,25 @@
     justify-content: space-between;
     padding: 0.3rem 0;
     border-bottom: 1px solid #00000040;
+    gap: 1rem;
+  }
+
+  .controls-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .price-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .price-input-wrapper {
+    width: 80px;
+    flex-shrink: 0;
   }
 
   .toggle-container {
@@ -75,6 +133,8 @@
     line-height: 1.125rem;
     letter-spacing: 0.01em;
     color: #6b7a8d;
+    flex: 1;
+    min-width: 0;
   }
 
   .active {

@@ -1,6 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
+use crate::images::boltwall::BoltwallImage;
 use crate::images::broker::BrokerImage;
 use crate::images::tribes::TribesImage;
 use crate::utils::{domain, exposed_ports, host_config};
@@ -20,6 +21,7 @@ pub struct BotImage {
     pub router_url: Option<String>,
     pub initial_delay: Option<String>,
     pub links: Links,
+    pub external_broker: Option<String>,
 }
 
 impl BotImage {
@@ -34,6 +36,7 @@ impl BotImage {
             router_url: None,
             initial_delay: None,
             links: vec![],
+            external_broker: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -53,15 +56,23 @@ impl BotImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
+    pub fn set_external_broker(&mut self, url: &str) {
+        self.external_broker = Some(url.to_string());
+    }
 }
 
 #[async_trait]
 impl DockerConfig for BotImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let broker = li.find_broker().context("Bot: No Broker")?;
+        let broker = if self.external_broker.is_some() {
+            None
+        } else {
+            Some(li.find_broker().context("Bot: No Broker")?)
+        };
         let tribes = li.find_tribes();
-        Ok(bot(self, &broker, &tribes)?)
+        let boltwall = li.find_boltwall();
+        Ok(bot(self, broker.as_ref(), &tribes, &boltwall)?)
     }
 }
 
@@ -78,8 +89,9 @@ impl DockerHubImage for BotImage {
 
 fn bot(
     img: &BotImage,
-    broker: &BrokerImage,
+    broker: Option<&BrokerImage>,
     tribes_opt: &Option<TribesImage>,
+    boltwall: &Option<BoltwallImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -88,17 +100,25 @@ fn bot(
 
     let ports = vec![img.port.clone()];
 
+    let admin_token = boltwall
+        .as_ref()
+        .and_then(|b| b.stakwork_secret.clone())
+        .unwrap_or_else(|| img.admin_token.clone());
+
+    let broker_url = if let Some(b) = broker {
+        format!("http://{}:{}", domain(&b.name), b.mqtt_port)
+    } else {
+        img.external_broker.clone().unwrap_or_default()
+    };
+
     let mut env = vec![
         format!("MY_ALIAS={}", "bot"),
         format!("PORT={}", img.port),
         format!("SEED={}", img.seed),
-        format!("ADMIN_TOKEN={}", img.admin_token),
+        format!("ADMIN_TOKEN={}", admin_token),
         format!("STORE_FILE={}", "/home/.bot/db"),
-        format!(
-            "BROKER=http://{}:{}",
-            domain(&broker.name),
-            broker.mqtt_port
-        ),
+        format!("BROKER={}", broker_url),
+        "NETWORK=bitcoin".to_string(),
     ];
     if let Some(tribes) = tribes_opt {
         env.push(format!(
@@ -126,4 +146,61 @@ fn bot(
         c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
     }
     Ok(c)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::images::boltwall::BoltwallImage;
+    use crate::images::broker::BrokerImage;
+
+    fn make_bot() -> BotImage {
+        let mut b = BotImage::new("test-bot", "latest", "3000");
+        b.admin_token = "bot-own-token".to_string();
+        b
+    }
+
+    fn make_broker() -> BrokerImage {
+        BrokerImage::new("broker", "latest", "regtest", "1883", None)
+    }
+
+    #[test]
+    fn test_admin_token_uses_bot_own_when_no_boltwall() {
+        let img = make_bot();
+        let broker = make_broker();
+        let config = bot(&img, Some(&broker), &None, &None).unwrap();
+        let env = config.env.unwrap();
+        assert!(
+            env.contains(&"ADMIN_TOKEN=bot-own-token".to_string()),
+            "Expected ADMIN_TOKEN to equal bot's own admin_token"
+        );
+    }
+
+    #[test]
+    fn test_admin_token_uses_boltwall_stakwork_secret_when_present() {
+        let img = make_bot();
+        let broker = make_broker();
+        let mut boltwall = BoltwallImage::new("boltwall", "latest", "8444");
+        boltwall.stakwork_secret = Some("boltwall-secret".to_string());
+        let config = bot(&img, Some(&broker), &None, &Some(boltwall)).unwrap();
+        let env = config.env.unwrap();
+        assert!(
+            env.contains(&"ADMIN_TOKEN=boltwall-secret".to_string()),
+            "Expected ADMIN_TOKEN to equal boltwall stakwork_secret"
+        );
+    }
+
+    #[test]
+    fn test_admin_token_falls_back_to_bot_when_boltwall_secret_is_none() {
+        let img = make_bot();
+        let broker = make_broker();
+        let mut boltwall = BoltwallImage::new("boltwall", "latest", "8444");
+        boltwall.stakwork_secret = None;
+        let config = bot(&img, Some(&broker), &None, &Some(boltwall)).unwrap();
+        let env = config.env.unwrap();
+        assert!(
+            env.contains(&"ADMIN_TOKEN=bot-own-token".to_string()),
+            "Expected ADMIN_TOKEN to fall back to bot's own admin_token when stakwork_secret is None"
+        );
+    }
 }

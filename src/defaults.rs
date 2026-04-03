@@ -68,7 +68,7 @@ impl Default for Stack {
         let lightning_provider = if is_cln { "cln" } else { "lnd" };
 
         if env_is_true("SECOND_BRAIN_ONLY") {
-            return only_second_brain(&network, host.clone(), lightning_provider);
+            return only_second_brain(&network, host.clone(), "bot");
         }
 
         let mut internal_nodes = vec![];
