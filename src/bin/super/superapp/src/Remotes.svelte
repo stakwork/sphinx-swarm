@@ -67,8 +67,6 @@
   let vanity_address_error = "";
   let repo_2_graph_checked = false;
   let repo_2_graph_env = {
-    JARVIS_FEATURE_FLAG_WFA_SCHEMAS: "true",
-    JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS: "true",
   };
   let selected_host = "";
   let selected_is_reserved;

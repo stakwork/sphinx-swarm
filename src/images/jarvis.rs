@@ -187,24 +187,10 @@ fn jarvis(
             jarvis_feature_flag_schema
         ));
     }
-    if let Ok(jarvis_feature_flag_wfa_schemas) = getenv("JARVIS_FEATURE_FLAG_WFA_SCHEMAS") {
-        env.push(format!(
-            "FEATURE_FLAG_WFA_SCHEMAS={}",
-            jarvis_feature_flag_wfa_schemas
-        ));
-    }
     if let Ok(feature_flag_text_embeddings) = getenv("FEATURE_FLAG_TEXT_EMBEDDINGS") {
         env.push(format!(
             "FEATURE_FLAG_TEXT_EMBEDDINGS={}",
             feature_flag_text_embeddings
-        ));
-    }
-    if let Ok(jarvis_feature_flag_codegraph_schemas) =
-        getenv("JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS")
-    {
-        env.push(format!(
-            "FEATURE_FLAG_CODEGRAPH_SCHEMAS={}",
-            jarvis_feature_flag_codegraph_schemas
         ));
     }
     if let Ok(radar_rss_scheduler_time_in_sec) = getenv("RADAR_RSS_SCHEDULER_TIME_IN_SEC") {
