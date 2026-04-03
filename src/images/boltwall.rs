@@ -24,6 +24,7 @@ pub struct BoltwallImage {
     pub external_lnd: Option<ExternalLnd>,
     pub links: Links,
     pub admin_token: Option<String>,
+    #[serde(alias = "stakwork_secret")]
     pub swarm_api_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_per_seconds: Option<i64>,
