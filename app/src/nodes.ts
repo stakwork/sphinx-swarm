@@ -54,7 +54,8 @@ export type NodeType =
   | "Cln"
   | "Llama"
   | "Repo2Graph"
-  | "Stakgraph";
+  | "Stakgraph"
+  | "Bot";
 
 export const allNodeTypes: NodeType[] = [
   "Btc",
@@ -73,6 +74,7 @@ export const allNodeTypes: NodeType[] = [
   "Elastic",
   "NavFiber",
   "Jarvis",
+  "Bot",
 ];
 
 export const upgradableNodes: NodeType[] = [
@@ -84,6 +86,7 @@ export const upgradableNodes: NodeType[] = [
   "Cln",
   "Jarvis",
   "BoltWall",
+  "Bot",
 ];
 
 type Place = "Internal" | "External";
@@ -197,6 +200,7 @@ const defpos = {
   lss: [400, 270],
   mixer: [850, 270],
   broker: [600, 320],
+  bot: [600, 430],
   mixer_1: [940, 120],
   mixer_2: [940, 380],
   mixer_3: [940, 640],

@@ -5,6 +5,8 @@ env:
 on:
   release:
     types: [published]
+  pull_request:
+    branches: [master]
 
 jobs:
   build:
@@ -56,13 +58,20 @@ jobs:
           echo ${{ env.RELEASE_TAG }}
       - name: Run Docker buildx
         run: |
-          docker buildx build \
-          -f src/bin/stack/Dockerfile \
-          --cache-to "type=local,dest=/tmp/.buildx-cache" \
-          --platform linux/amd64 \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:${{ env.RELEASE_TAG }}" \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:latest" \
-          --output "type=registry" ./
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            docker buildx build \
+            -f src/bin/stack/Dockerfile \
+            --no-cache \
+            --platform linux/amd64 ./
+          else
+            docker buildx build \
+            -f src/bin/stack/Dockerfile \
+            --cache-to "type=local,dest=/tmp/.buildx-cache" \
+            --platform linux/amd64 \
+            --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:${{ env.RELEASE_TAG }}" \
+            --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:latest" \
+            --output "type=registry" ./
+          fi
   build_superadmin:
     runs-on: ubuntu-latest
     name: Build and push superadmin image
@@ -117,10 +126,17 @@ jobs:
           echo ${{ env.RELEASE_TAG }}
       - name: Run Docker buildx
         run: |
-          docker buildx build \
-          -f src/bin/super/Dockerfile \
-          --cache-to "type=local,dest=/tmp/.buildx-cache" \
-          --platform linux/amd64 \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:${{ env.RELEASE_TAG }}" \
-          --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:latest" \
-          --output "type=registry" ./
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            docker buildx build \
+            -f src/bin/super/Dockerfile \
+            --no-cache \
+            --platform linux/amd64 ./
+          else
+            docker buildx build \
+            -f src/bin/super/Dockerfile \
+            --cache-to "type=local,dest=/tmp/.buildx-cache" \
+            --platform linux/amd64 \
+            --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:${{ env.RELEASE_TAG }}" \
+            --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:latest" \
+            --output "type=registry" ./
+          fi

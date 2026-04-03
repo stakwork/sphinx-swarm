@@ -98,6 +98,7 @@ impl DockerConfig for BoltwallImage {
                 None,
                 Some(ext.creds),
                 None,
+                None,
                 &jarvis_node,
                 Some(ext.address),
             ));
@@ -118,12 +119,14 @@ impl DockerConfig for BoltwallImage {
             });
         }
         let cln_node = li.find_cln();
+        let bot_node = li.find_bot();
 
         Ok(boltwall(
             &self,
             lnd_node,
             lnd_creds,
             cln_node,
+            bot_node,
             &jarvis_node,
             None,
         ))
@@ -184,6 +187,7 @@ fn boltwall(
     lnd_node: Option<lnd::LndImage>,
     lnd_creds: Option<LndCreds>,
     cln_node: Option<cln::ClnImage>,
+    bot_node: Option<bot::BotImage>,
     jarvis: &jarvis::JarvisImage,
     external_lnd_address: Option<String>,
 ) -> Config<String> {
@@ -231,6 +235,9 @@ fn boltwall(
         env.push(format!("CLN_TLS_KEY_LOCATION={}", creds.client_key));
         env.push(format!("CLN_TLS_CHAIN_LOCATION={}", creds.client_cert));
         env.push(format!("CLN_URI={}:{}", domain(&cln.name), cln.grpc_port));
+    // SPHINXY BOT (V2 USER)
+    } else if let Some(ref bot) = bot_node {
+        env.push(format!("SPHINXY_URL=http://{}:{}", domain(&bot.name), bot.port));
     }
     // the webhook url "callback"
     if let Some(h) = &node.get_host() {
