@@ -14,7 +14,7 @@ use crate::conn::boltwall::{
     update_request_per_seconds, update_user,
 };
 use crate::conn::swarm::add_new_lightning_peer;
-use crate::conn::swarm::{get_bot_token, get_neo4j_password};
+use crate::conn::swarm::{create_bot_invoice, get_bot_balance, get_bot_token, get_neo4j_password};
 use crate::conn::swarm::handle_assign_reserved_swarm_to_active;
 use crate::conn::swarm::update_lightning_peer;
 use crate::conn::swarm::SwarmResponse;
@@ -499,6 +499,16 @@ pub async fn handle(
             SwarmCmd::GetBotToken => {
                 log::info!("Get Bot Token");
                 let res = get_bot_token(&state.stack.nodes);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetBotBalance => {
+                log::info!("Get Bot Balance");
+                let res = get_bot_balance(&state.stack.nodes).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::CreateBotInvoice(body) => {
+                log::info!("Create Bot Invoice");
+                let res = create_bot_invoice(&state.stack.nodes, body.amt_msat).await;
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
