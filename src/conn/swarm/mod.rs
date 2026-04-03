@@ -657,8 +657,9 @@ pub async fn handle_assign_reserved_swarm_to_active(
         }
     }
 
-    if new_details.env.is_some() {
-        let envs = new_details.env.clone().unwrap();
+    {
+        let mut envs = new_details.env.clone().unwrap_or_default();
+        envs.insert("SWARM_ASSIGNED".to_string(), "true".to_string());
         let update_env_response = update_env_variables(
             docker,
             &mut UpdateEnvRequest {
