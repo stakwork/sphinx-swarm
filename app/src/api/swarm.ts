@@ -610,3 +610,7 @@ export async function update_neo4j_config({
     checkpoint_iops,
   });
 }
+
+export async function get_bot_token() {
+  return await swarmCmd("GetBotToken");
+}
