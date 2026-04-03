@@ -21,9 +21,11 @@ RUN apt-get update && \
     apt-get install -y \
     protobuf-compiler 
 
+# Allow overriding optimization level (e.g., O1 for CI, O3 for release)
+ARG CARGO_PROFILE_RELEASE_OPT_LEVEL=3
+ENV CARGO_PROFILE_RELEASE_OPT_LEVEL=${CARGO_PROFILE_RELEASE_OPT_LEVEL}
+
 # Build for release.
-# remove the lib
-# RUN rm ./target/release/deps/sphinx_swarm*
 RUN cargo build --release --bin stack
 
 # The final base image
