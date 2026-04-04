@@ -387,11 +387,24 @@ pub async fn get_bot_balance(nodes: &Vec<Node>) -> SwarmResponse {
         .send()
         .await
     {
-        Ok(res) => match res.json::<BotBalanceRes>().await {
-            Ok(bal) => SwarmResponse {
-                success: true,
-                message: "bot balance retrieved".to_string(),
-                data: Some(serde_json::to_value(bal).unwrap_or(Value::Null)),
+        Ok(res) => match res.text().await {
+            Ok(body) => {
+                // bot returns a bare number (msat), not a JSON object
+                match body.trim().parse::<u64>() {
+                    Ok(msat) => SwarmResponse {
+                        success: true,
+                        message: "bot balance retrieved".to_string(),
+                        data: Some(serde_json::to_value(BotBalanceRes { msat }).unwrap_or(Value::Null)),
+                    },
+                    Err(e) => {
+                        log::error!("bot balance response body: {}", body);
+                        SwarmResponse {
+                            success: false,
+                            message: format!("{}: {}", e, body),
+                            data: None,
+                        }
+                    }
+                }
             },
             Err(e) => SwarmResponse {
                 success: false,
