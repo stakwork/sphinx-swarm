@@ -237,7 +237,11 @@ fn boltwall(
         env.push(format!("CLN_URI={}:{}", domain(&cln.name), cln.grpc_port));
     // SPHINXY BOT (V2 USER)
     } else if let Some(ref bot) = bot_node {
-        env.push(format!("SPHINXY_URL=http://{}:{}", domain(&bot.name), bot.port));
+        env.push(format!(
+            "SPHINXY_URL=http://{}:{}",
+            domain(&bot.name),
+            bot.port
+        ));
     }
     // the webhook url "callback"
     if let Some(h) = &node.get_host() {
