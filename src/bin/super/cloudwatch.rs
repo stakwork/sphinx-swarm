@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Error};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
-use aws_sdk_cloudwatch::types::{Dimension, StandardUnit, Statistic};
 use aws_sdk_cloudwatch::types::ComparisonOperator;
+use aws_sdk_cloudwatch::types::{Dimension, StandardUnit, Statistic};
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use aws_sdk_sns::Client as SnsClient;
 use sphinx_swarm::utils::getenv;
@@ -10,20 +10,14 @@ use sphinx_swarm::utils::getenv;
 async fn make_cloudwatch_client() -> Result<CloudWatchClient, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-    let config = aws_config::from_env()
-        .region(region_provider)
-        .load()
-        .await;
+    let config = aws_config::from_env().region(region_provider).load().await;
     Ok(CloudWatchClient::new(&config))
 }
 
 async fn make_sns_client() -> Result<SnsClient, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-    let config = aws_config::from_env()
-        .region(region_provider)
-        .load()
-        .await;
+    let config = aws_config::from_env().region(region_provider).load().await;
     Ok(SnsClient::new(&config))
 }
 
@@ -111,7 +105,10 @@ pub async fn create_cpu_alarms(
 pub async fn delete_cpu_alarms(instance_id: &str) -> Result<(), Error> {
     let cw = make_cloudwatch_client().await?;
 
-    log::info!("Deleting CloudWatch CPU alarms for instance {}", instance_id);
+    log::info!(
+        "Deleting CloudWatch CPU alarms for instance {}",
+        instance_id
+    );
 
     cw.delete_alarms()
         .alarm_names(format!("swarm-{}-high-cpu", instance_id))
