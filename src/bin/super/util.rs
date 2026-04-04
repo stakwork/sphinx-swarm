@@ -778,11 +778,7 @@ pub async fn create_ec2_instance(
                         }
                     }
                     Err(e) => {
-                        log::warn!(
-                            "Failed to ensure SNS topic for {}: {}",
-                            instance_id,
-                            e
-                        );
+                        log::warn!("Failed to ensure SNS topic for {}: {}", instance_id, e);
                     }
                 }
             }
