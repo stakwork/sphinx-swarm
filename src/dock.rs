@@ -765,10 +765,7 @@ pub async fn get_image_version_from_digest(image_name: &str, digest: &str) -> Ve
 }
 
 // repo is "{org}/{package}" e.g. "stakwork/stakgraph-mcp"
-pub async fn get_version_from_github_container_registry(
-    repo: &str,
-    digest: &str,
-) -> VersionInfo {
+pub async fn get_version_from_github_container_registry(repo: &str, digest: &str) -> VersionInfo {
     let latest_default = VersionInfo {
         current_version: "".to_string(),
         is_latest: true,
@@ -782,10 +779,7 @@ pub async fn get_version_from_github_container_registry(
         .expect("couldnt build swarm updater reqwest client");
 
     // 1. Get anonymous token from GHCR
-    let token_url = format!(
-        "https://ghcr.io/token?scope=repository:{}:pull",
-        repo
-    );
+    let token_url = format!("https://ghcr.io/token?scope=repository:{}:pull", repo);
     let token_res = match client.get(&token_url).send().await {
         Ok(res) => res,
         Err(err) => {
@@ -803,10 +797,7 @@ pub async fn get_version_from_github_container_registry(
     let token = &token_body.token;
 
     // 2. Get the digest for the "latest" tag
-    let manifest_url = format!(
-        "https://ghcr.io/v2/{}/manifests/latest",
-        repo
-    );
+    let manifest_url = format!("https://ghcr.io/v2/{}/manifests/latest", repo);
     let latest_res = match client
         .head(&manifest_url)
         .header("Authorization", format!("Bearer {}", token))
@@ -931,7 +922,11 @@ pub async fn get_version_from_docker_hub(docker_url: &str, digest: &str) -> Vers
     let response_text = match response.text().await {
         Ok(text) => text,
         Err(err) => {
-            log::error!("Error reading Docker Hub response body from {}: {:?}", docker_url, err);
+            log::error!(
+                "Error reading Docker Hub response body from {}: {:?}",
+                docker_url,
+                err
+            );
             return VersionInfo {
                 current_version: "".to_string(),
                 is_latest: true,
