@@ -614,3 +614,11 @@ export async function update_neo4j_config({
 export async function get_bot_token() {
   return await swarmCmd("GetBotToken");
 }
+
+export async function get_bot_balance() {
+  return await swarmCmd("GetBotBalance");
+}
+
+export async function create_bot_invoice(amt_msat: number) {
+  return await swarmCmd("CreateBotInvoice", { amt_msat });
+}

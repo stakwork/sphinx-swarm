@@ -37,11 +37,8 @@ jobs:
           yarn install
           yarn run build
       - name: Setup Docker buildx action
-        uses: crazy-max/ghaction-docker-buildx@v1
+        uses: docker/setup-buildx-action@v3
         id: buildx
-        with:
-          buildx-version: latest
-          qemu-version: latest
       - name: Show available buildx platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
       - name: Cache Docker layers
@@ -61,6 +58,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             docker buildx build \
             -f src/bin/stack/Dockerfile \
+            --build-arg CARGO_PROFILE_RELEASE_OPT_LEVEL=0 \
             --no-cache \
             --platform linux/amd64 ./
           else
@@ -105,11 +103,8 @@ jobs:
           yarn install
           yarn run build
       - name: Setup Docker buildx action
-        uses: crazy-max/ghaction-docker-buildx@v1
+        uses: docker/setup-buildx-action@v3
         id: buildx
-        with:
-          buildx-version: latest
-          qemu-version: latest
       - name: Show available buildx platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
       - name: Cache Docker layers
@@ -129,6 +124,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             docker buildx build \
             -f src/bin/super/Dockerfile \
+            --build-arg CARGO_PROFILE_RELEASE_OPT_LEVEL=0 \
             --no-cache \
             --platform linux/amd64 ./
           else

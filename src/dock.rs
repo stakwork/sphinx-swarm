@@ -147,7 +147,10 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
 
 pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<String> {
     let name: String = c.hostname.clone().context("expected hostname")?.into();
-    let create_opts = CreateContainerOptions { name };
+    let create_opts = CreateContainerOptions {
+        name,
+        platform: None,
+    };
     let id = docker
         .create_container::<String, String>(Some(create_opts), c)
         .await?
@@ -602,7 +605,7 @@ pub struct ParsedNode {
 pub async fn get_image_digest(image_name: &str) -> Result<GetImageDigestResponse> {
     let docker = Docker::connect_with_local_defaults()?;
 
-    let image_info: bollard_stubs::models::ImageInspect = docker.inspect_image(image_name).await?;
+    let image_info: bollard::models::ImageInspect = docker.inspect_image(image_name).await?;
 
     let error_response = GetImageDigestResponse {
         success: false,

@@ -16,6 +16,10 @@ RUN apt-get update && \
     protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 
+# Allow overriding optimization level (e.g., O1 for CI, O3 for release)
+ARG CARGO_PROFILE_RELEASE_OPT_LEVEL=3
+ENV CARGO_PROFILE_RELEASE_OPT_LEVEL=${CARGO_PROFILE_RELEASE_OPT_LEVEL}
+
 COPY --from=planner /sphinx-swarm/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo +nightly chef cook --release --recipe-path recipe.json
