@@ -40,10 +40,7 @@ pub async fn migrate_log_group_tags() {
     if let Some(reserved) = &state.reserved_instances {
         for instance in &reserved.available_instances {
             if !instance.instance_id.is_empty() && !instance.swarm_number.is_empty() {
-                to_tag.push((
-                    instance.instance_id.clone(),
-                    instance.swarm_number.clone(),
-                ));
+                to_tag.push((instance.instance_id.clone(), instance.swarm_number.clone()));
             }
         }
     }

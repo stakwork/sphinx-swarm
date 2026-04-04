@@ -14,13 +14,13 @@ use crate::conn::boltwall::{
     update_request_per_seconds, update_user,
 };
 use crate::conn::swarm::add_new_lightning_peer;
-use crate::conn::swarm::{create_bot_invoice, get_bot_balance, get_bot_token, get_neo4j_password};
 use crate::conn::swarm::handle_assign_reserved_swarm_to_active;
 use crate::conn::swarm::update_lightning_peer;
 use crate::conn::swarm::SwarmResponse;
 use crate::conn::swarm::{
     change_swarm_user_password_by_user_admin, get_image_tags, update_env_variables,
 };
+use crate::conn::swarm::{create_bot_invoice, get_bot_balance, get_bot_token, get_neo4j_password};
 use crate::dock::*;
 use crate::images::DockerHubImage;
 use crate::images::Image;
