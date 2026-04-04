@@ -59,6 +59,14 @@ impl BotImage {
     pub fn set_external_broker(&mut self, url: &str) {
         self.external_broker = Some(url.to_string());
     }
+    /// Resolve the actual admin token used by the running container.
+    /// If a linked BoltWall has a swarm_api_token, that overrides the bot's own token.
+    pub fn actual_admin_token(&self, boltwall: &Option<BoltwallImage>) -> String {
+        boltwall
+            .as_ref()
+            .and_then(|b| b.swarm_api_token.clone())
+            .unwrap_or_else(|| self.admin_token.clone())
+    }
 }
 
 #[async_trait]
@@ -100,10 +108,7 @@ fn bot(
 
     let ports = vec![img.port.clone()];
 
-    let admin_token = boltwall
-        .as_ref()
-        .and_then(|b| b.swarm_api_token.clone())
-        .unwrap_or_else(|| img.admin_token.clone());
+    let admin_token = img.actual_admin_token(boltwall);
 
     let broker_url = if let Some(b) = broker {
         format!("http://{}:{}", domain(&b.name), b.mqtt_port)

@@ -227,10 +227,7 @@ fn jarvis(
         ));
     }
     if let Ok(radar_scheduler_job) = getenv("RADAR_SCHEDULER_JOB") {
-        env.push(format!(
-            "RADAR_SCHEDULER_JOB={}",
-            radar_scheduler_job
-        ));
+        env.push(format!("RADAR_SCHEDULER_JOB={}", radar_scheduler_job));
     }
     if let Ok(radar_topic_scheduler_job) = getenv("RADAR_TOPIC_SCHEDULER_JOB") {
         env.push(format!(

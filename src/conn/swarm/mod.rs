@@ -8,7 +8,7 @@ use crate::{
     builder::find_img,
     cmd::{
         AssignSwarmNewDetails, BotBalanceRes, ChangeUserPasswordBySuperAdminInfo,
-        CreateBotInvoiceRequest, GetDockerImageTagsDetails, UpdateEnvRequest,
+        GetDockerImageTagsDetails, UpdateEnvRequest,
     },
     config::{LightningPeer, Node, State},
     dock::stop_and_remove,
@@ -334,15 +334,24 @@ pub fn get_neo4j_password(nodes: &Vec<Node>) -> SwarmResponse {
     }
 }
 
+fn find_boltwall_opt(nodes: &Vec<Node>) -> Option<crate::images::boltwall::BoltwallImage> {
+    nodes
+        .iter()
+        .find_map(|n| n.as_internal().ok().and_then(|i| i.as_boltwall().ok()))
+}
+
 pub fn get_bot_token(nodes: &Vec<Node>) -> SwarmResponse {
     let bot = find_img("bot", nodes);
     match bot {
         Ok(image) => match image.as_bot() {
-            Ok(bot) => SwarmResponse {
-                success: true,
-                message: "bot admin token successfully retrieved".to_string(),
-                data: Some(serde_json::Value::String(bot.admin_token)),
-            },
+            Ok(bot) => {
+                let boltwall = find_boltwall_opt(nodes);
+                SwarmResponse {
+                    success: true,
+                    message: "bot admin token successfully retrieved".to_string(),
+                    data: Some(serde_json::Value::String(bot.actual_admin_token(&boltwall))),
+                }
+            }
             Err(err) => SwarmResponse {
                 success: false,
                 message: err.to_string(),
@@ -368,11 +377,13 @@ pub async fn get_bot_balance(nodes: &Vec<Node>) -> SwarmResponse {
             }
         }
     };
+    let boltwall = find_boltwall_opt(nodes);
+    let admin_token = bot.actual_admin_token(&boltwall);
     let url = format!("http://{}:{}/balance", docker_domain(&bot.name), bot.port);
     let client = make_reqwest_client();
     match client
         .get(&url)
-        .header("x-admin-token", &bot.admin_token)
+        .header("x-admin-token", &admin_token)
         .send()
         .await
     {
@@ -407,12 +418,14 @@ pub async fn create_bot_invoice(nodes: &Vec<Node>, amt_msat: u64) -> SwarmRespon
             }
         }
     };
+    let boltwall = find_boltwall_opt(nodes);
+    let admin_token = bot.actual_admin_token(&boltwall);
     let url = format!("http://{}:{}/invoice", docker_domain(&bot.name), bot.port);
     let client = make_reqwest_client();
     let body = serde_json::json!({ "amt_msat": amt_msat });
     match client
         .post(&url)
-        .header("x-admin-token", &bot.admin_token)
+        .header("x-admin-token", &admin_token)
         .json(&body)
         .send()
         .await
