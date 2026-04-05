@@ -286,6 +286,12 @@ fn jarvis(
             single_audio_or_video_episode_workflow_id
         ))
     }
+    if let Ok(graphmindset_workflow_id) = getenv("GRAPHMINDSET_STAKWORK_WORKFLOW_ID") {
+        env.push(format!(
+            "GRAPHMINDSET_STAKWORK_WORKFLOW_ID={}",
+            graphmindset_workflow_id
+        ));
+    }
     if let Ok(jarvis_features) = getenv("JARVIS_FEATURES") {
         env.push(format!("FEATURES={}", jarvis_features));
     }
