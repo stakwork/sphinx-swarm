@@ -34,8 +34,8 @@ jobs:
       - name: Run Build
         working-directory: ./app
         run: |
-          yarn install
-          yarn run build
+          npm ci
+          npm run build
       - name: Setup Docker buildx action
         uses: docker/setup-buildx-action@v3
         id: buildx
@@ -95,8 +95,8 @@ jobs:
       - name: Run Swarm Build
         working-directory: ./app
         run: |
-          yarn install
-          yarn run build
+          npm ci
+          npm run build
       - name: Run Build
         working-directory: ./src/bin/super/superapp
         run: |
