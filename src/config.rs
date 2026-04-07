@@ -351,6 +351,7 @@ impl Stack {
                 Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
                 Image::Elastic(n) => Node::Internal(Image::Elastic(n)),
                 Image::NavFiber(nf) => Node::Internal(Image::NavFiber(nf)),
+                Image::GraphMindset(gm) => Node::Internal(Image::GraphMindset(gm)),
                 Image::Jarvis(j) => Node::Internal(Image::Jarvis(j)),
                 Image::BoltWall(mut b) => {
                     b.session_secret = "".to_string();
