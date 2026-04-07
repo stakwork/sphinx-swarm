@@ -76,6 +76,8 @@ const tribesControls: Control[] = [];
 
 const navfiberControls: Control[] = [];
 
+const graphmindsetControls: Control[] = [];
+
 const clnControls: Control[] = [];
 
 const boltwallControls: Control[] = [];
@@ -97,6 +99,7 @@ export const controls = {
   Btc: btcControls,
   Tribes: tribesControls,
   NavFiber: navfiberControls,
+  GraphMindset: graphmindsetControls,
   Cln: clnControls,
   BoltWall: boltwallControls,
   Jarvis: jarvisControls,
