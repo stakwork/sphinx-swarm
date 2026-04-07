@@ -34,6 +34,10 @@ docker stop navfiber.sphinx
 docker rm navfiber.sphinx
 docker volume rm navfiber.sphinx
 
+docker stop graphmindset.sphinx
+docker rm graphmindset.sphinx
+docker volume rm graphmindset.sphinx
+
 docker stop cache.sphinx
 docker rm cache.sphinx
 docker volume rm cache.sphinx

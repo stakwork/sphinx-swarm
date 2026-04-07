@@ -142,7 +142,7 @@ pub fn traefik_labels(
     ];
     if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
         let shared_host = navfiber_boltwall_shared_host().unwrap();
-        if name == "navfiber" {
+        if name == "navfiber" || name == "graphmindset" {
             // anything except /api (local resources)
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`)",
@@ -189,7 +189,14 @@ pub fn traefik_labels_port_based_ssl(
     let base_host = extract_base_domain(host);
 
     // SPECIAL case for navfiber (internal port 80 -> external port 8000)
-    let entrypoint_port = if port == "80" { "8000" } else { port };
+    // and graphmindset (internal port 3000 -> external port 3100)
+    let entrypoint_port = if port == "80" {
+        "8000"
+    } else if port == "3000" {
+        "3100"
+    } else {
+        port
+    };
     let entrypoint_name = format!("port{}", entrypoint_port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
 
@@ -214,7 +221,7 @@ pub fn traefik_labels_port_based_ssl(
 }
 
 fn is_navfiber_or_boltwall(name: &str) -> bool {
-    name == "navfiber" || name == "boltwall"
+    name == "navfiber" || name == "graphmindset" || name == "boltwall"
 }
 pub fn navfiber_boltwall_shared_host() -> Option<String> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();
