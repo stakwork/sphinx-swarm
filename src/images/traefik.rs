@@ -188,12 +188,9 @@ pub fn traefik_labels_port_based_ssl(
 ) -> HashMap<String, String> {
     let base_host = extract_base_domain(host);
 
-    // SPECIAL case for navfiber (internal port 80 -> external port 8000)
-    // and graphmindset (internal port 3000 -> external port 3100)
+    // navfiber serves on internal port 80, but uses external entrypoint 8000
     let entrypoint_port = if port == "80" {
         "8000"
-    } else if port == "3000" {
-        "3100"
     } else {
         port
     };
