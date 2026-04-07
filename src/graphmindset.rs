@@ -4,6 +4,7 @@ use crate::images::boltwall::BoltwallImage;
 use crate::images::bot::BotImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::graphmindset::GraphMindsetImage;
+use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::repo2graph::Repo2GraphImage;
@@ -28,6 +29,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
         auto_update: Some(vec![
             "jarvis".to_string(),
             "boltwall".to_string(),
+            "navfiber".to_string(),
             "graphmindset".to_string(),
             "repo2graph".to_string(),
             "stakgraph".to_string(),
@@ -70,11 +72,17 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     bolt.links(vec!["jarvis", "bot"]);
     bolt.host(host.clone());
 
-    // graphmindset
+    // navfiber (existing frontend)
     v = "latest";
-    let mut nav = GraphMindsetImage::new("graphmindset", v, "8000");
+    let mut nav = NavFiberImage::new("navfiber", v, "8000");
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
+
+    // graphmindset (v2 frontend)
+    v = "latest";
+    let mut gm = GraphMindsetImage::new("graphmindset", v, "8000");
+    gm.links(vec!["jarvis"]);
+    gm.host(host.clone());
 
     // repo2graph
     v = "latest";
@@ -90,7 +98,8 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
 
     vec![
         Image::Bot(bot),
-        Image::GraphMindset(nav),
+        Image::NavFiber(nav),
+        Image::GraphMindset(gm),
         Image::Neo4j(neo4j),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),

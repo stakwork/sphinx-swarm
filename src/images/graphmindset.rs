@@ -31,7 +31,7 @@ impl GraphMindsetImage {
     }
     pub fn host(&mut self, eh: Option<String>) {
         if let Some(h) = eh {
-            self.host = Some(format!("nav.{}", h));
+            self.host = Some(format!("graph.{}", h));
         }
     }
 }
