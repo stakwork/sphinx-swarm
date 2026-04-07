@@ -477,6 +477,12 @@ pub async fn update_env_variables(
         };
     }
 
+    // sync new values into the process environment so that
+    // getenv() picks them up when containers are recreated
+    for (key, value) in &update_value.values {
+        std::env::set_var(key, value);
+    }
+
     *must_save_stack = true;
     // stop the expected service(Boltwall and Jarvis)
 
