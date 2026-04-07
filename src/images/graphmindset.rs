@@ -61,7 +61,9 @@ fn graphmindset(node: &GraphMindsetImage) -> Config<String> {
     let root_vol = repo.root_volume;
     let ports = vec![node.port.clone()];
 
-    let mut env = vec![];
+    let mut env = vec![
+        format!("PORT={}", node.port),
+    ];
 
     match getenv("NEXT_PUBLIC_API_URL") {
         Ok(api_url) => {
@@ -82,7 +84,7 @@ fn graphmindset(node: &GraphMindsetImage) -> Config<String> {
     };
 
     if let Some(host) = node.host.clone() {
-        c.labels = Some(traefik_labels(&node.name, &host, "3000", false));
+        c.labels = Some(traefik_labels(&node.name, &host, &node.port, false));
     }
 
     c
