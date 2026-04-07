@@ -51,6 +51,7 @@ export type NodeType =
   | "Neo4j"
   | "Elastic"
   | "NavFiber"
+  | "GraphMindset"
   | "Cln"
   | "Llama"
   | "Repo2Graph"
@@ -197,6 +198,7 @@ const defpos = {
   neo4j: [540, 425],
   elastic: [320, 625],
   navfiber: [1150, 475],
+  graphmindset: [1150, 575],
   lss: [400, 270],
   mixer: [850, 270],
   broker: [600, 320],

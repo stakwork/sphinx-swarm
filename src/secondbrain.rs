@@ -2,6 +2,7 @@ use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
 use crate::images::bot::BotImage;
+use crate::images::graphmindset::GraphMindsetImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
@@ -30,6 +31,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "jarvis".to_string(),
             "boltwall".to_string(),
             "navfiber".to_string(),
+            "graphmindset".to_string(),
             "repo2graph".to_string(),
             "stakgraph".to_string(),
             "quickwit".to_string(),
@@ -100,6 +102,12 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     nav.links(vec!["jarvis"]);
     nav.host(host.clone());
 
+    // graphmindset (v2 frontend)
+    v = "latest";
+    let mut gm = GraphMindsetImage::new("graphmindset", v, "3100");
+    gm.links(vec!["jarvis"]);
+    gm.host(host.clone());
+
     // quickwit - log storage and search (internal only)
     let quickwit = QuickwitImage::new("quickwit", "latest");
 
@@ -110,6 +118,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
 
     let mut imgs = vec![
         Image::NavFiber(nav),
+        Image::GraphMindset(gm),
         Image::Neo4j(neo4j),
         Image::BoltWall(bolt),
         Image::Jarvis(jarvis),

@@ -55,6 +55,8 @@ export async function handleGetImageTags(node_name: string): Promise<string[]> {
     image_name = `cln-sphinx`;
   } else if (node_name === "navfiber") {
     image_name = `sphinx-nav-fiber`;
+  } else if (node_name === "graphmindset") {
+    image_name = `graphmindset`;
   } else if (node_name === "cache") {
     image_name = ``;
   } else if (node_name === "jarvis") {
