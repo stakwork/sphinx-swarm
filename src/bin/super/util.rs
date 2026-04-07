@@ -783,6 +783,11 @@ pub async fn create_ec2_instance(
                 }
             }
 
+            let log_group = format!("/swarms/{}", swarm_number);
+            if let Err(e) = crate::cloudwatch::set_log_group_retention(&log_group).await {
+                log::warn!("Failed to set log group retention for {}: {}", log_group, e);
+            }
+
             return Ok(CreateSwarmEc2Instance {
                 ec2_instance_id: instance_id,
                 swarm_number: swarm_number.to_string(),

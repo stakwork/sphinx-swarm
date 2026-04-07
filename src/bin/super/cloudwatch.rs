@@ -4,6 +4,7 @@ use aws_config::Region;
 use aws_sdk_cloudwatch::types::ComparisonOperator;
 use aws_sdk_cloudwatch::types::{Dimension, StandardUnit, Statistic};
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
+use aws_sdk_cloudwatchlogs::Client as CloudWatchLogsClient;
 use aws_sdk_sns::Client as SnsClient;
 use sphinx_swarm::utils::getenv;
 
@@ -12,6 +13,13 @@ async fn make_cloudwatch_client() -> Result<CloudWatchClient, Error> {
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
     let config = aws_config::from_env().region(region_provider).load().await;
     Ok(CloudWatchClient::new(&config))
+}
+
+async fn make_cloudwatch_logs_client() -> Result<CloudWatchLogsClient, Error> {
+    let region = getenv("AWS_REGION")?;
+    let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
+    let config = aws_config::from_env().region(region_provider).load().await;
+    Ok(CloudWatchLogsClient::new(&config))
 }
 
 async fn make_sns_client() -> Result<SnsClient, Error> {
@@ -171,6 +179,19 @@ pub async fn get_cpu_utilization(instance_id: &str) -> Result<Option<f64>, Error
 
     let most_recent = datapoints[0].average();
     Ok(most_recent)
+}
+
+pub async fn set_log_group_retention(log_group_name: &str) -> Result<(), Error> {
+    let client = make_cloudwatch_logs_client().await?;
+    client
+        .put_retention_policy()
+        .log_group_name(log_group_name)
+        .retention_in_days(7)
+        .send()
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
+    log::info!("Set 7-day retention on log group {}", log_group_name);
+    Ok(())
 }
 
 #[cfg(test)]
