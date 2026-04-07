@@ -80,7 +80,7 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
 
     // graphmindset (v2 frontend)
     v = "latest";
-    let mut gm = GraphMindsetImage::new("graphmindset", v, "8000");
+    let mut gm = GraphMindsetImage::new("graphmindset", v, "3100");
     gm.links(vec!["jarvis"]);
     gm.host(host.clone());
 

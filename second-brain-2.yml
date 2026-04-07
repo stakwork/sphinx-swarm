@@ -25,6 +25,7 @@ services:
       - "--entrypoints.port3355.address=:3355"
       - "--entrypoints.port6000.address=:6000"
       - "--entrypoints.port8000.address=:8000"
+      - "--entrypoints.port3100.address=:3100"
       - "--entrypoints.port8444.address=:8444"
       - "--entrypoints.port8800.address=:8800"
       - "--entrypoints.port9000.address=:9000"
@@ -41,6 +42,7 @@ services:
       - 3355:3355 # repo2graph
       - 6000:6000 # jarvis
       - 8000:8000 # navfiber
+      - 3100:3100 # graphmindset
       - 8444:8444 # boltwall
       - 8800:8800 # swarm
       - 9000:9000 # vector
