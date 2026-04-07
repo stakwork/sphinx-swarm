@@ -140,22 +140,27 @@ pub fn traefik_labels(
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
-    if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
-        let shared_host = navfiber_boltwall_shared_host().unwrap();
-        if name == "navfiber" || name == "graphmindset" {
-            // anything except /api (local resources)
+    if shared_host().is_some() && is_shared_host_service(name) {
+        let shared_host = shared_host().unwrap();
+        if name == "graphmindset" {
+            def.push(format!(
+                "traefik.http.routers.{}.rule=Host(`{}`)",
+                name, shared_host
+            ));
+            def.push(format!("traefik.http.routers.{}.priority=2", name));
+        } else if name == "navfiber" {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`)",
                 name, shared_host
             ));
             def.push(format!("traefik.http.routers.{}.priority=1", name));
         } else {
-            // if /api then all should go here
+            // boltwall: /api and /socket.io paths
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
                 name, shared_host
             ));
-            def.push(format!("traefik.http.routers.{}.priority=2", name));
+            def.push(format!("traefik.http.routers.{}.priority=3", name));
         }
     } else {
         def.push(format!(
@@ -210,6 +215,37 @@ pub fn traefik_labels_port_based_ssl(
         // format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
     ];
 
+    // shared host routing (vanity domain on port 443)
+    if shared_host().is_some() && is_shared_host_service(name) {
+        let shared_host = shared_host().unwrap();
+        let shared_name = format!("{}-shared", name);
+        def.push(format!("traefik.http.routers.{}.entrypoints=websecure", shared_name));
+        def.push(format!("traefik.http.routers.{}.tls=true", shared_name));
+        def.push(format!(
+            "traefik.http.services.{}.loadbalancer.server.port={}",
+            shared_name, port
+        ));
+        if name == "graphmindset" {
+            def.push(format!(
+                "traefik.http.routers.{}.rule=Host(`{}`)",
+                shared_name, shared_host
+            ));
+            def.push(format!("traefik.http.routers.{}.priority=2", shared_name));
+        } else if name == "navfiber" {
+            def.push(format!(
+                "traefik.http.routers.{}.rule=Host(`{}`)",
+                shared_name, shared_host
+            ));
+            def.push(format!("traefik.http.routers.{}.priority=1", shared_name));
+        } else {
+            def.push(format!(
+                "traefik.http.routers.{}.rule=Host(`{}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
+                shared_name, shared_host
+            ));
+            def.push(format!("traefik.http.routers.{}.priority=2", shared_name));
+        }
+    }
+
     if websockets {
         def.push("traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https".to_string());
     }
@@ -217,10 +253,10 @@ pub fn traefik_labels_port_based_ssl(
     to_labels(def)
 }
 
-fn is_navfiber_or_boltwall(name: &str) -> bool {
+fn is_shared_host_service(name: &str) -> bool {
     name == "navfiber" || name == "graphmindset" || name == "boltwall"
 }
-pub fn navfiber_boltwall_shared_host() -> Option<String> {
+pub fn shared_host() -> Option<String> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();
     match sh {
         Some(h) => {
