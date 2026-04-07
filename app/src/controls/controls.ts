@@ -74,7 +74,7 @@ const proxyControls: Control[] = [
 
 const tribesControls: Control[] = [];
 
-const navfiberControls: Control[] = [];
+const graphmindsetControls: Control[] = [];
 
 const clnControls: Control[] = [];
 
@@ -96,7 +96,7 @@ export const controls = {
   Lnd: lndControls,
   Btc: btcControls,
   Tribes: tribesControls,
-  NavFiber: navfiberControls,
+  GraphMindset: graphmindsetControls,
   Cln: clnControls,
   BoltWall: boltwallControls,
   Jarvis: jarvisControls,

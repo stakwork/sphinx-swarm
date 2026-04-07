@@ -412,7 +412,7 @@ html {
 }
 
 .selected-neo4j .node-neo4j,
-.selected-navfiber .node-navfiber,
+.selected-graphmindset .node-graphmindset,
 .selected-boltwall .node-boltwall,
 .selected-cln .node-cln,
 .selected-lss .node-lss,
@@ -429,11 +429,11 @@ html {
   color: #6a6c6d;
 }
 
-.selected-navfiber.navfiber-stopped .node-navfiber {
+.selected-graphmindset.graphmindset-stopped .node-graphmindset {
   border: 3px solid #6a6c6d !important;
 }
 
-.selected-navfiber.navfiber-stopped .node-navfiber.node-html .node-text {
+.selected-graphmindset.graphmindset-stopped .node-graphmindset.node-html .node-text {
   color: #6a6c6d;
 }
 

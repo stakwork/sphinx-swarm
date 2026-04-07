@@ -14,4 +14,4 @@ sphinxlightning/sphinx-cache:latest
 
 sphinxlightning/sphinx-lss:latest
 
-sphinxlightning/sphinx-nav-fiber:latest
+sphinxlightning/graphmindset:latest

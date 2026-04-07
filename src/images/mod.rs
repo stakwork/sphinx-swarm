@@ -16,7 +16,7 @@ pub mod lnd;
 pub mod lss;
 pub mod mixer;
 pub mod mongo;
-pub mod navfiber;
+pub mod graphmindset;
 pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
@@ -52,7 +52,7 @@ pub enum Image {
     Cache(cache::CacheImage),
     Neo4j(neo4j::Neo4jImage),
     Elastic(elastic::ElasticImage),
-    NavFiber(navfiber::NavFiberImage),
+    GraphMindset(graphmindset::GraphMindsetImage),
     BoltWall(boltwall::BoltwallImage),
     Jarvis(jarvis::JarvisImage),
     Lss(lss::LssImage),
@@ -130,7 +130,7 @@ impl Image {
             Image::Cache(n) => n.name.clone(),
             Image::Neo4j(n) => n.name.clone(),
             Image::Elastic(n) => n.name.clone(),
-            Image::NavFiber(n) => n.name.clone(),
+            Image::GraphMindset(n) => n.name.clone(),
             Image::Jarvis(n) => n.name.clone(),
             Image::BoltWall(n) => n.name.clone(),
             Image::Lss(n) => n.name.clone(),
@@ -168,7 +168,7 @@ impl Image {
             Image::Cache(_) => None,
             Image::Neo4j(n) => n.host.clone(),
             Image::Elastic(n) => n.host.clone(),
-            Image::NavFiber(n) => n.host.clone(),
+            Image::GraphMindset(n) => n.host.clone(),
             Image::Jarvis(_) => None,
             Image::BoltWall(n) => n.host.clone(),
             Image::Lss(_) => None,
@@ -205,7 +205,7 @@ impl Image {
             Image::Cache(_n) => "Cache",
             Image::Neo4j(_n) => "Neo4j",
             Image::Elastic(_n) => "Elastic",
-            Image::NavFiber(_n) => "NavFiber",
+            Image::GraphMindset(_n) => "GraphMindset",
             Image::Jarvis(_n) => "JarvisBackend",
             Image::BoltWall(_n) => "BoltWall",
             Image::Lss(_n) => "LSS",
@@ -243,7 +243,7 @@ impl Image {
             Image::Cache(n) => n.version = version.to_string(),
             Image::Neo4j(n) => n.version = version.to_string(),
             Image::Elastic(n) => n.version = version.to_string(),
-            Image::NavFiber(n) => n.version = version.to_string(),
+            Image::GraphMindset(n) => n.version = version.to_string(),
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
             Image::Lss(n) => n.version = version.to_string(),
@@ -281,7 +281,7 @@ impl Image {
             Image::Cache(_) => (),
             Image::Neo4j(n) => n.host(Some(host.to_string())),
             Image::Elastic(n) => n.host(Some(host.to_string())),
-            Image::NavFiber(n) => n.host(Some(host.to_string())),
+            Image::GraphMindset(n) => n.host(Some(host.to_string())),
             Image::Jarvis(_) => (),
             Image::BoltWall(n) => n.host(Some(host.to_string())),
             Image::Lss(_) => (),
@@ -380,7 +380,7 @@ impl DockerConfig for Image {
             Image::Cache(n) => n.make_config(nodes, docker).await,
             Image::Neo4j(n) => n.make_config(nodes, docker).await,
             Image::Elastic(n) => n.make_config(nodes, docker).await,
-            Image::NavFiber(n) => n.make_config(nodes, docker).await,
+            Image::GraphMindset(n) => n.make_config(nodes, docker).await,
             Image::Jarvis(n) => n.make_config(nodes, docker).await,
             Image::BoltWall(n) => n.make_config(nodes, docker).await,
             Image::Lss(n) => n.make_config(nodes, docker).await,
@@ -420,7 +420,7 @@ impl DockerHubImage for Image {
             Image::Cache(n) => n.repo(),
             Image::Neo4j(n) => n.repo(),
             Image::Elastic(n) => n.repo(),
-            Image::NavFiber(n) => n.repo(),
+            Image::GraphMindset(n) => n.repo(),
             Image::Jarvis(n) => n.repo(),
             Image::BoltWall(n) => n.repo(),
             Image::Lss(n) => n.repo(),
@@ -663,10 +663,10 @@ impl Image {
             _ => Err(anyhow::anyhow!("Not Elastic".to_string())),
         }
     }
-    pub fn as_navfiber(&self) -> anyhow::Result<navfiber::NavFiberImage> {
+    pub fn as_graphmindset(&self) -> anyhow::Result<graphmindset::GraphMindsetImage> {
         match self {
-            Image::NavFiber(i) => Ok(i.clone()),
-            _ => Err(anyhow::anyhow!("Not NavFiber".to_string())),
+            Image::GraphMindset(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not GraphMindset".to_string())),
         }
     }
     pub fn as_boltwall(&self) -> anyhow::Result<boltwall::BoltwallImage> {

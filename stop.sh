@@ -7,7 +7,7 @@ if  [ $1 == "btc" ] || \
     [ $1 == "boltwall" ] || \
     [ $1 == "neo4j" ] || \
     [ $1 == "elastic" ] || \
-    [ $1 == "navfiber" ] || \
+    [ $1 == "graphmindset" ] || \
     [ $1 == "cache" ] || \
     [ $1 == "lss" ] || \
     [ $1 == "mixer" ] || \

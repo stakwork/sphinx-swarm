@@ -40,7 +40,7 @@ services:
       - 7799:7799 # stakgraph
       - 3355:3355 # repo2graph
       - 6000:6000 # jarvis
-      - 8000:8000 # navfiber
+      - 8000:8000 # graphmindset
       - 8444:8444 # boltwall
       - 8800:8800 # swarm
       - 9000:9000 # vector

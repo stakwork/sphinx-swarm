@@ -18,7 +18,7 @@ This repository contains two separate projects:
 
 ### Service Management
 - **Stop all services**: `./clear.sh`
-- **Stop specific service**: `./stop.sh <service>` (services: jarvis, neo4j, elastic, boltwall, navfiber)
+- **Stop specific service**: `./stop.sh <service>` (services: jarvis, neo4j, elastic, boltwall, graphmindset)
 - **Restart services**: `./restart.sh`
 
 ### Build Commands
@@ -59,7 +59,7 @@ The system manages various containerized services defined in `src/images/`:
 - **Storage**: Neo4j, Elasticsearch, Redis, MongoDB, PostgreSQL
 - **Communication**: Relay, Proxy, MQTT Broker
 - **AI/ML**: Jarvis, LLaMA, Second Brain
-- **Infrastructure**: Traefik, Cache, NavFiber
+- **Infrastructure**: Traefik, Cache, GraphMindset
 
 ### Configuration
 - **Stack config**: YAML files in root (e.g., `config.yml`, `sphinx.yml`, `second-brain.yml`)

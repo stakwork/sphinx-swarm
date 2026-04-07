@@ -50,7 +50,7 @@ export type NodeType =
   | "BoltWall"
   | "Neo4j"
   | "Elastic"
-  | "NavFiber"
+  | "GraphMindset"
   | "Cln"
   | "Llama"
   | "Repo2Graph"
@@ -72,7 +72,7 @@ export const allNodeTypes: NodeType[] = [
   "BoltWall",
   "Neo4j",
   "Elastic",
-  "NavFiber",
+  "GraphMindset",
   "Jarvis",
   "Bot",
 ];
@@ -196,7 +196,7 @@ const defpos = {
   boltwall: [770, 380],
   neo4j: [540, 425],
   elastic: [320, 625],
-  navfiber: [1150, 475],
+  graphmindset: [1150, 475],
   lss: [400, 270],
   mixer: [850, 270],
   broker: [600, 320],

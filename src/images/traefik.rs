@@ -123,7 +123,7 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
 pub fn traefik_labels(
     name: &str,
     host: &str, // stakgraph.swarm38.sphinx.chat
-    port: &str, // inner port (like 80 for navfiber nginx, not 8000)
+    port: &str, // inner port (like 3000 for graphmindset, not 8000)
     websockets: bool,
 ) -> HashMap<String, String> {
     if let Ok(pbs) = getenv("PORT_BASED_SSL") {
@@ -140,9 +140,9 @@ pub fn traefik_labels(
         format!("traefik.http.routers.{}.tls.certresolver=myresolver", name),
         format!("traefik.http.routers.{}.entrypoints=websecure", name),
     ];
-    if navfiber_boltwall_shared_host().is_some() && is_navfiber_or_boltwall(name) {
+    if navfiber_boltwall_shared_host().is_some() && is_graphmindset_or_boltwall(name) {
         let shared_host = navfiber_boltwall_shared_host().unwrap();
-        if name == "navfiber" {
+        if name == "graphmindset" {
             // anything except /api (local resources)
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`)",
@@ -188,8 +188,8 @@ pub fn traefik_labels_port_based_ssl(
 ) -> HashMap<String, String> {
     let base_host = extract_base_domain(host);
 
-    // SPECIAL case for navfiber (internal port 80 -> external port 8000)
-    let entrypoint_port = if port == "80" { "8000" } else { port };
+    // SPECIAL case for graphmindset (internal port 3000 -> external port 8000)
+    let entrypoint_port = if port == "3000" { "8000" } else { port };
     let entrypoint_name = format!("port{}", entrypoint_port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
 
@@ -213,8 +213,8 @@ pub fn traefik_labels_port_based_ssl(
     to_labels(def)
 }
 
-fn is_navfiber_or_boltwall(name: &str) -> bool {
-    name == "navfiber" || name == "boltwall"
+fn is_graphmindset_or_boltwall(name: &str) -> bool {
+    name == "graphmindset" || name == "boltwall"
 }
 pub fn navfiber_boltwall_shared_host() -> Option<String> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();

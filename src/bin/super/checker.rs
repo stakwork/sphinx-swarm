@@ -80,22 +80,22 @@ pub async fn check_all_swarms() -> Result<()> {
     // loop through all swarms
     for host_details in hosts.iter() {
         // figure out what the correct host is for boltwall
-        match get_boltwall_and_navfiber_url(
+        match get_boltwall_and_graphmindset_url(
             host_details.host.clone(),
             host_details.default_host.clone(),
         ) {
-            Ok((navfiber_url, boltwall_url)) => {
+            Ok((graphmindset_url, boltwall_url)) => {
                 // ping each of the services for their current status
                 let boltwall_status = get_boltwall_or_jarvis_status(boltwall_url.clone()).await?;
                 let jarvis_status =
                     get_boltwall_or_jarvis_status(format!("{}stats", boltwall_url.clone())).await?;
-                let navfiber_status = get_navfiber_status(navfiber_url.clone()).await?;
+                let graphmindset_status = get_graphmindset_status(graphmindset_url.clone()).await?;
 
                 // if any is not responding configure error message
                 let new_message = configure_error_msg(
                     boltwall_status,
                     jarvis_status,
-                    navfiber_status,
+                    graphmindset_status,
                     &host_details.host,
                 );
                 if !new_message.is_empty() {
@@ -108,7 +108,7 @@ pub async fn check_all_swarms() -> Result<()> {
             }
             Err(err) => {
                 log::error!(
-                    "Unable to get boltwall and navfiber url: {}",
+                    "Unable to get boltwall and graphmindset url: {}",
                     err.to_string()
                 )
             }
@@ -122,7 +122,7 @@ pub async fn check_all_swarms() -> Result<()> {
     Ok(())
 }
 
-fn get_boltwall_and_navfiber_url(host: String, default_host: String) -> Result<(String, String)> {
+fn get_boltwall_and_graphmindset_url(host: String, default_host: String) -> Result<(String, String)> {
     if default_host.ends_with(":8800") {
         return Ok((
             format!("https://{}:8000/", host),
@@ -185,7 +185,7 @@ async fn get_boltwall_or_jarvis_status(url: String) -> Result<bool> {
     Ok(status)
 }
 
-async fn get_navfiber_status(url: String) -> Result<bool> {
+async fn get_graphmindset_status(url: String) -> Result<bool> {
     let client = make_client();
     let status;
 
@@ -209,7 +209,7 @@ async fn get_navfiber_status(url: String) -> Result<bool> {
 fn configure_error_msg(
     boltwall_status: bool,
     jarvis_status: bool,
-    navfiber_status: bool,
+    graphmindset_status: bool,
     host: &str,
 ) -> String {
     let mut message = "".to_string();
@@ -222,8 +222,8 @@ fn configure_error_msg(
         message = configure_msg("Jarvis", message, &host);
     }
 
-    if !navfiber_status {
-        message = configure_msg("Navfiber", message, &host);
+    if !graphmindset_status {
+        message = configure_msg("Graphmindset", message, &host);
     }
 
     message

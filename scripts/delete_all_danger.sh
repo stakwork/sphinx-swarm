@@ -30,9 +30,9 @@ docker stop boltwall.sphinx
 docker rm boltwall.sphinx
 docker volume rm boltwall.sphinx
 
-docker stop navfiber.sphinx
-docker rm navfiber.sphinx
-docker volume rm navfiber.sphinx
+docker stop graphmindset.sphinx
+docker rm graphmindset.sphinx
+docker volume rm graphmindset.sphinx
 
 docker stop cache.sphinx
 docker rm cache.sphinx
