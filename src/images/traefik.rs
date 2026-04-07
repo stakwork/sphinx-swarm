@@ -218,31 +218,28 @@ pub fn traefik_labels_port_based_ssl(
     // shared host routing (vanity domain on port 443)
     if shared_host().is_some() && is_shared_host_service(name) {
         let shared_host = shared_host().unwrap();
-        let shared_name = format!("{}-shared", name);
-        def.push(format!("traefik.http.routers.{}.entrypoints=websecure", shared_name));
-        def.push(format!("traefik.http.routers.{}.tls=true", shared_name));
-        def.push(format!(
-            "traefik.http.services.{}.loadbalancer.server.port={}",
-            shared_name, port
-        ));
+        let shared_router = format!("{}-shared", name);
+        def.push(format!("traefik.http.routers.{}.entrypoints=websecure", shared_router));
+        def.push(format!("traefik.http.routers.{}.tls=true", shared_router));
+        def.push(format!("traefik.http.routers.{}.service={}", shared_router, name));
         if name == "graphmindset" {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`)",
-                shared_name, shared_host
+                shared_router, shared_host
             ));
-            def.push(format!("traefik.http.routers.{}.priority=2", shared_name));
+            def.push(format!("traefik.http.routers.{}.priority=2", shared_router));
         } else if name == "navfiber" {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`)",
-                shared_name, shared_host
+                shared_router, shared_host
             ));
-            def.push(format!("traefik.http.routers.{}.priority=1", shared_name));
+            def.push(format!("traefik.http.routers.{}.priority=1", shared_router));
         } else {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
-                shared_name, shared_host
+                shared_router, shared_host
             ));
-            def.push(format!("traefik.http.routers.{}.priority=2", shared_name));
+            def.push(format!("traefik.http.routers.{}.priority=3", shared_router));
         }
     }
 
