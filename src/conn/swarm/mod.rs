@@ -11,9 +11,10 @@ use crate::{
         GetDockerImageTagsDetails, UpdateEnvRequest,
     },
     config::{LightningPeer, Node, State},
+    conn::boltwall::add_admin_pubkey,
     dock::stop_and_remove,
     images::{
-        boltwall::{ExternalLnd, LndCreds},
+        boltwall::{BoltwallImage, ExternalLnd, LndCreds},
         Image,
     },
     utils::{
@@ -658,6 +659,7 @@ pub async fn handle_assign_reserved_swarm_to_active(
 ) -> SwarmResponse {
     let mut error_messages: Vec<String> = Vec::new();
 
+    // Step 1: Change password if provided
     if new_details.new_password.is_some() && new_details.old_password.is_some() {
         let change_password_response = change_swarm_user_password_by_user_admin(
             state,
@@ -676,27 +678,51 @@ pub async fn handle_assign_reserved_swarm_to_active(
         }
     }
 
-    {
-        let mut envs = new_details.env.clone().unwrap_or_default();
-        envs.insert("SWARM_ASSIGNED".to_string(), "true".to_string());
-        let update_env_response = update_env_variables(
-            docker,
-            &mut UpdateEnvRequest {
-                id: Some("boltwall".to_string()),
-                values: envs,
+    // Step 2: Persist env vars to .env file and process env (no container restart)
+    let mut envs = new_details.env.clone().unwrap_or_default();
+    envs.insert("SWARM_ASSIGNED".to_string(), "true".to_string());
+
+    update_boltwall_env(state, &mut envs);
+
+    if let Err(e) = update_or_write_to_env_file(&envs) {
+        error_messages.push(e.to_string());
+    }
+    for (key, value) in &envs {
+        std::env::set_var(key, value);
+    }
+
+    // Step 3: Set OWNER_PUBKEY on running Boltwall via live API (no restart)
+    if let Some(pubkey) = envs.get("OWNER_PUBKEY") {
+        match find_boltwall(&state.stack.nodes) {
+            Some(bw) => match add_admin_pubkey(&bw, pubkey, "admin").await {
+                Ok(_) => log::info!("OWNER_PUBKEY set on boltwall via API"),
+                Err(e) => error_messages.push(format!("add_admin_pubkey failed: {}", e)),
             },
-            state,
-            must_save_stack,
-        )
-        .await;
-        log::info!("Update env response: {:?}", update_env_response);
-        if !update_env_response.success {
-            error_messages.push(update_env_response.message);
+            None => error_messages.push("boltwall not found in stack".to_string()),
         }
     }
+
+    // Step 4: If HOST changed, update Traefik labels and restart containers
+    if let Some(host) = envs.get("HOST") {
+        for node in state.stack.nodes.iter_mut() {
+            if let Node::Internal(img) = node {
+                img.set_host(host);
+            }
+        }
+        for node in state.stack.nodes.iter_mut() {
+            match stop_and_remove(docker, &domain(&node.name())).await {
+                Ok(_) => log::info!("{} stopped and removed", node.name()),
+                Err(e) => {
+                    error_messages
+                        .push(format!("could not stop {}: {}", node.name(), e));
+                }
+            }
+        }
+    }
+
     *must_save_stack = true;
 
-    if error_messages.len() > 0 {
+    if !error_messages.is_empty() {
         return SwarmResponse {
             success: false,
             message: error_messages.join(", "),
@@ -709,4 +735,11 @@ pub async fn handle_assign_reserved_swarm_to_active(
         message: "New Swarm details assigned successfully".to_string(),
         data: None,
     }
+}
+
+fn find_boltwall(nodes: &[Node]) -> Option<BoltwallImage> {
+    nodes.iter().find_map(|n| match n {
+        Node::Internal(Image::BoltWall(bw)) => Some(bw.clone()),
+        _ => None,
+    })
 }
