@@ -428,7 +428,7 @@ pub async fn create_ec2_instance(
     anthropic_api_key: Option<String>,
     testing: Option<bool>,
     enable_cloudwatch_alarms: Option<bool>,
-    workspace_type: Option<String>,
+    _workspace_type: Option<String>,
 ) -> Result<CreateSwarmEc2Instance, Error> {
     let region = getenv("AWS_REGION")?;
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
@@ -491,12 +491,7 @@ pub async fn create_ec2_instance(
 
     let boltwall_api_secret = generate_random_secret(32);
 
-    // workspace type env lines for user data script
-    let workspace_env_lines = if workspace_type.as_deref() == Some("graph_mindset") {
-        r#"echo "GRAPH_MINDSET_ONLY=true" >> .env && \"#.to_string()
-    } else {
-        r#"echo "SECOND_BRAIN_ONLY=true" >> .env && \"#.to_string()
-    };
+    let workspace_env_lines = r#"echo "SECOND_BRAIN_ONLY=true" >> .env && \"#.to_string();
 
     let mut host = format!("swarm{}.sphinx.chat", swarm_number);
 

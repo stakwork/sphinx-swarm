@@ -4,12 +4,9 @@ use crate::{
     cmd::{CreateEc2InstanceInfo, CreateEc2InstanceRes},
     ec2::{add_new_tags_to_instance, Ec2Tags},
     route53::{add_domain_name_to_route53, delete_multiple_route53_records},
-    service::{
-        swarm_reserver::{
-            call_child_swarm::call_child_swarm_to_activate_new_swarm,
-            utils::check_reserve_swarm_flag_set,
-        },
-        update_child_swarm::handle_update_child_swarm,
+    service::swarm_reserver::{
+        call_child_swarm::call_child_swarm_to_activate_new_swarm,
+        utils::check_reserve_swarm_flag_set,
     },
     state::{RemoteStack, Super},
 };
@@ -95,13 +92,6 @@ pub async fn handle_assign_reserved_swarm(
         envs_map.insert("OWNER_PUBKEY".to_string(), pubkey.clone());
     }
 
-    // inject graph_mindset env vars if workspace type is graph_mindset
-    if info.workspace_type.as_deref() == Some("graph_mindset") {
-        let envs_map = envs.get_or_insert_with(HashMap::new);
-        envs_map.insert("GRAPH_MINDSET_ONLY".to_string(), "true".to_string());
-        envs_map.insert("SECOND_BRAIN_ONLY".to_string(), "false".to_string());
-    }
-
     if envs.is_some() && envs.clone().unwrap().is_empty() {
         envs = None;
     }
@@ -157,17 +147,6 @@ pub async fn handle_assign_reserved_swarm(
     }
     let mut host = selected_reserved_instance.host.clone();
     let mut default_host = selected_reserved_instance.default_host.clone();
-
-    // restart main swarm service to pick up new .env vars
-    let _ = match handle_update_child_swarm(&swarm_details).await {
-        Ok(_) => {}
-        Err(e) => {
-            log::error!(
-                "Failed to update child swarm after assigning reserved swarm: {}",
-                e.to_string()
-            );
-        }
-    };
 
     if info.vanity_address.is_some() && selected_reserved_instance.ip_address.is_some() {
         // update route53
