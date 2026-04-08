@@ -9,32 +9,23 @@ use crate::utils::{self, getenv};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rocket::tokio;
-use rocket::tokio::sync::Mutex;
+use rocket::tokio::sync::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU64;
+use std::sync::Arc;
 
-pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
+// === New split globals (RwLock for concurrent access) ===
+pub static STACK: Lazy<RwLock<Stack>> = Lazy::new(|| RwLock::new(Default::default()));
+pub static CLIENTS: Lazy<RwLock<Clients>> = Lazy::new(|| RwLock::new(Default::default()));
+
+
 
 pub static GLOBAL_MEM_LIMIT: AtomicU64 = AtomicU64::new(0);
 
-pub struct State {
-    pub stack: Stack,
-    pub clients: Clients,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            stack: Default::default(),
-            clients: Default::default(),
-        }
-    }
-}
-
 pub struct Clients {
-    pub bitcoind: HashMap<String, BitcoinRPC>,
-    pub lnd: HashMap<String, LndRPC>,
+    pub bitcoind: HashMap<String, Arc<BitcoinRPC>>,
+    pub lnd: HashMap<String, Arc<Mutex<LndRPC>>>,
     pub cln: HashMap<String, ClnRPC>,
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,

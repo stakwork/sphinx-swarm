@@ -14,7 +14,8 @@ pub async fn get_pubkey_cln(clients: &mut Clients, node_id: &str) -> Result<Stri
 }
 
 pub async fn get_pubkey_lnd(clients: &mut Clients, node_id: &str) -> Result<String> {
-    let lnd1 = clients.lnd.get_mut(node_id).unwrap();
+    let lnd_arc = clients.lnd.get(node_id).unwrap().clone();
+    let mut lnd1 = lnd_arc.lock().await;
     let lnd1_info = lnd1.get_info().await?;
     Ok(lnd1_info.identity_pubkey)
 }
@@ -191,7 +192,8 @@ pub async fn lnd_keysend_to(
         ..Default::default()
     };
     log::info!("pk {:?}", &pk);
-    let lnd1 = clients.lnd.get_mut(sender_id).unwrap();
+    let lnd_arc = clients.lnd.get(sender_id).unwrap().clone();
+    let mut lnd1 = lnd_arc.lock().await;
     match lnd1.pay_keysend(pk).await {
         Ok(sent_keysend) => println!(
             "[LND] => sent_keysend to {} {:?}",

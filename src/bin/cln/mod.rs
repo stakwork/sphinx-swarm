@@ -5,11 +5,10 @@ use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::lss::LssImage;
 use sphinx_swarm::images::{btc::BtcImage, cln::ClnImage, lnd::LndImage, proxy::ProxyImage, Image};
-use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::setup::*;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::Mutex;
 
 // docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
 
@@ -33,7 +32,7 @@ pub async fn main() -> Result<()> {
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
     handler::hydrate_stack(stack.clone()).await;
 
-    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
+    let proj = "cln_test";
     let log_txs = logs::new_log_chans();
 
     println!("=> launch rocket");
@@ -41,18 +40,14 @@ pub async fn main() -> Result<()> {
 
     let event_tx = events::new_event_chan();
 
+    let proj_str = proj.to_string();
     tokio::spawn(async move {
-        let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx)
+        let _r = routes::launch_rocket(proj_str, log_txs, event_tx)
             .await
             .unwrap();
         // ctrl-c shuts down rocket
         builder::shutdown_now();
     });
-
-    let proj = "cln_test";
-
-    println!("=> spawn handler");
-    handler::spawn_handler(proj, rx, docker.clone());
 
     let mut clients = builder::build_stack("cln", &docker, &stack).await?;
 

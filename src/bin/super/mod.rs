@@ -47,10 +47,10 @@ use rocket::tokio;
 use routes::launch_rocket;
 use sphinx_swarm::config::Role;
 use sphinx_swarm::utils;
-use sphinx_swarm::{auth, events, logs, rocket_utils::CmdRequest};
+use sphinx_swarm::{auth, events, logs};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::Mutex;
 
 #[rocket::main]
 async fn main() -> Result<()> {
@@ -71,11 +71,8 @@ async fn main() -> Result<()> {
     //     migrate_log_group_tags().await;
     // });
 
-    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
     let log_txs = Arc::new(Mutex::new(log_txs));
-
-    spawn_super_handler(project, rx);
 
     let cron_handler_res = swarm_checker().await;
     if let Err(e) = cron_handler_res {
@@ -100,7 +97,7 @@ async fn main() -> Result<()> {
 
     let event_tx = events::new_event_chan();
 
-    let _r = launch_rocket(tx.clone(), log_txs, event_tx).await?;
+    let _r = launch_rocket(project.to_string(), log_txs, event_tx).await?;
 
     Ok(())
 }
@@ -181,83 +178,76 @@ pub async fn super_handle(
     _tag: &str,
     user_id: &Option<u32>,
 ) -> Result<String> {
-    // conf can be mutated in place
-    let mut state = state::STATE.lock().await;
-    // println!("STACK {:?}", stack);
+    // Brief read lock for access check
+    {
+        let state = state::STATE.read().await;
+        if !access(&cmd, &state, user_id) {
+            return Err(anyhow!("access denied"));
+        }
+    } // read lock dropped
 
-    let mut must_save_stack = false;
-
-    if !access(&cmd, &state, user_id) {
-        return Err(anyhow!("access denied"));
-    }
-
-    let ret = match cmd {
+    let ret: String = match cmd {
         Cmd::Swarm(swarm_cmd) => match swarm_cmd {
+            // =============================================================
+            // Fast reads — brief read lock, return immediately
+            // =============================================================
             SwarmCmd::GetConfig => {
+                let mut state = state::STATE.write().await;
                 let res = get_config(&mut state).await?;
-                must_save_stack = true;
-                Some(serde_json::to_string(&res)?)
+                put_config_file(proj, &state).await;
+                serde_json::to_string(&res)?
             }
-            SwarmCmd::Login(ld) => match state.users.iter().find(|u| u.username == ld.username) {
-                Some(user) => {
-                    if !bcrypt::verify(&ld.password, &user.pass_hash)? {
-                        Some("".to_string())
-                    } else {
-                        let mut hm = HashMap::new();
-                        hm.insert("token", auth::make_jwt(user.id)?);
-                        Some(serde_json::to_string(&hm)?)
-                    }
-                }
-                None => Some("".to_string()),
-            },
-            SwarmCmd::ChangePassword(cp) => {
-                match state.users.iter().position(|u| u.id == cp.user_id) {
-                    Some(ui) => {
-                        let old_pass_hash = &state.users[ui].pass_hash;
-                        if bcrypt::verify(&cp.old_pass, old_pass_hash)? {
-                            state.users[ui].pass_hash =
-                                bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
-                            must_save_stack = true;
-                            let mut hm = HashMap::new();
-                            hm.insert("success", true);
-                            Some(serde_json::to_string(&hm)?)
-                        } else {
-                            Some("".to_string())
-                        }
-                    }
-                    None => Some("".to_string()),
-                }
+            SwarmCmd::GetAwsInstanceTypes => {
+                let res = get_aws_instance_types();
+                serde_json::to_string(&res)?
             }
+            SwarmCmd::GetInstanceType(info) => {
+                let state = state::STATE.read().await;
+                let res = match get_swarm_instance_type(info, &state) {
+                    Ok(result) => result,
+                    Err(err) => SuperSwarmResponse {
+                        success: false, message: err.to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::GetAnthropicKey => {
+                let state = state::STATE.read().await;
+                let res = handle_get_anthropic_keys(&state);
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::GetChildSwarmCredentials(req) => {
+                let state = state::STATE.read().await;
+                let res = get_child_swarm_credentials(req, &state);
+                serde_json::to_string(&res)?
+            }
+
+            // =============================================================
+            // Fast writes — brief write lock, mutate, save, return
+            // =============================================================
             SwarmCmd::AddNewSwarm(swarm) => {
+                let mut state = state::STATE.write().await;
                 let swarm_detail = RemoteStack {
-                    host: swarm.host,
-                    user: Some("".to_string()),
-                    pass: Some("".to_string()),
-                    ec2: Some(swarm.instance),
-                    note: Some(swarm.description),
-                    default_host: "".to_string(),
+                    host: swarm.host, user: Some("".to_string()),
+                    pass: Some("".to_string()), ec2: Some(swarm.instance),
+                    note: Some(swarm.description), default_host: "".to_string(),
                     ec2_instance_id: "".to_string(),
                     public_ip_address: Some("".to_string()),
                     private_ip_address: Some("".to_string()),
-                    id: None,
-                    deleted: Some(false),
-                    route53_domain_names: None,
-                    owner_pubkey: None,
-                    workspace_type: None,
-                    cln_pubkey: None,
+                    id: None, deleted: Some(false), route53_domain_names: None,
+                    owner_pubkey: None, workspace_type: None, cln_pubkey: None,
                 };
-
-                let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save_stack);
-
-                Some(serde_json::to_string(&hm)?)
+                let mut must_save = false;
+                let hm = add_new_swarm_details(&mut state, swarm_detail, &mut must_save);
+                if must_save { put_config_file(proj, &state).await; }
+                serde_json::to_string(&hm)?
             }
             SwarmCmd::UpdateSwarm(swarm) => {
-                let hm: AddSwarmResponse;
-                match state.stacks.iter().position(|u| u.host == swarm.id) {
+                let mut state = state::STATE.write().await;
+                let hm = match state.stacks.iter().position(|u| u.host == swarm.id) {
                     Some(ui) => {
                         state.stacks[ui] = RemoteStack {
-                            host: swarm.host,
-                            ec2: Some(swarm.instance),
+                            host: swarm.host, ec2: Some(swarm.instance),
                             note: Some(swarm.description),
                             user: state.stacks[ui].user.clone(),
                             pass: state.stacks[ui].pass.clone(),
@@ -272,27 +262,19 @@ pub async fn super_handle(
                             workspace_type: state.stacks[ui].workspace_type.clone(),
                             cln_pubkey: state.stacks[ui].cln_pubkey.clone(),
                         };
-                        must_save_stack = true;
-                        hm = AddSwarmResponse {
-                            success: true,
-                            message: "Swarm updated successfully".to_string(),
-                        };
+                        put_config_file(proj, &state).await;
+                        AddSwarmResponse { success: true, message: "Swarm updated successfully".to_string() }
                     }
-                    None => {
-                        hm = AddSwarmResponse {
-                            success: false,
-                            message: "swarm does not exist".to_string(),
-                        };
-                    }
-                }
-
-                Some(serde_json::to_string(&hm)?)
+                    None => AddSwarmResponse { success: false, message: "swarm does not exist".to_string() },
+                };
+                serde_json::to_string(&hm)?
             }
             SwarmCmd::DeleteSwarm(swarm) => {
+                let mut state = state::STATE.write().await;
                 let mut hm = HashMap::new();
                 match state.delete_swarm_by_host(&swarm.host) {
                     Ok(()) => {
-                        must_save_stack = true;
+                        put_config_file(proj, &state).await;
                         hm.insert("success", "true".to_string());
                         hm.insert("message", "Swarm deleted successfully".to_string());
                     }
@@ -301,337 +283,352 @@ pub async fn super_handle(
                         hm.insert("success", "false".to_string());
                     }
                 }
-                Some(serde_json::to_string(&hm)?)
+                serde_json::to_string(&hm)?
             }
             SwarmCmd::SetChildSwarm(c) => {
+                let mut state = state::STATE.write().await;
                 let swarm_details = RemoteStack {
-                    host: c.host,
-                    note: Some("".to_string()),
-                    pass: Some(c.password),
-                    user: Some(c.username),
-                    ec2: Some("".to_string()),
-                    default_host: c.default_host,
+                    host: c.host, note: Some("".to_string()),
+                    pass: Some(c.password), user: Some(c.username),
+                    ec2: Some("".to_string()), default_host: c.default_host,
                     ec2_instance_id: "".to_string(),
                     public_ip_address: Some("".to_string()),
                     private_ip_address: Some("".to_string()),
-                    id: c.id,
-                    deleted: Some(false),
-                    route53_domain_names: None,
-                    owner_pubkey: None,
-                    workspace_type: None,
-                    cln_pubkey: None,
+                    id: c.id, deleted: Some(false), route53_domain_names: None,
+                    owner_pubkey: None, workspace_type: None, cln_pubkey: None,
                 };
-                let hm =
-                    add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save_stack);
-
-                Some(serde_json::to_string(&hm)?)
+                let mut must_save = false;
+                let hm = add_new_swarm_from_child_swarm(&mut state, swarm_details, &mut must_save);
+                if must_save { put_config_file(proj, &state).await; }
+                serde_json::to_string(&hm)?
             }
-            SwarmCmd::GetChildSwarmConfig(info) => {
-                let res: SuperSwarmResponse;
-                //find node
-                match state.find_swarm_by_host(&info.host, info.is_reserved) {
-                    Some(swarm) => match get_child_swarm_config(&swarm).await {
-                        Ok(result) => res = result,
-                        Err(err) => {
-                            res = SuperSwarmResponse {
-                                success: false,
-                                message: err.to_string(),
-                                data: None,
-                            }
-                        }
-                    },
-                    None => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: "Swarm does not exist".to_string(),
-                            data: None,
-                        }
-                    }
-                }
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetChildSwarmContainers(info) => {
-                let res: SuperSwarmResponse;
-                match state.find_swarm_by_host(&info.host, info.is_reserved) {
-                    Some(swarm) => match get_child_swarm_containers(&swarm).await {
-                        Ok(result) => res = result,
-                        Err(err) => {
-                            res = SuperSwarmResponse {
-                                success: false,
-                                message: err.to_string(),
-                                data: None,
-                            }
-                        }
-                    },
-                    None => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: "Swarm does not exist".to_string(),
-                            data: None,
-                        }
-                    }
-                }
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::StopChildSwarmContainers(info) => {
-                let res = accessing_child_container_controller(&state, info, "StopContainer").await;
-
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::StartChildSwarmContainers(info) => {
-                let res =
-                    accessing_child_container_controller(&state, info, "StartContainer").await;
-
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::RestartChildSwarmContainers(info) => {
-                let res =
-                    accessing_child_container_controller(&state, info, "RestartContainer").await;
-
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::UpdateChildSwarmContainers(info) => {
-                let res = accessing_child_container_controller(&state, info, "UpdateNode").await;
-
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetAwsInstanceTypes => {
-                let res = get_aws_instance_types();
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::CreateNewEc2Instance(info) => {
-                let res: SuperSwarmResponse;
-                match create_swarm_ec2(&info, &mut state).await {
-                    Ok(data) => {
-                        must_save_stack = true;
-                        let display_name = info.name.as_ref().unwrap_or(&data.swarm_id).clone();
-                        let parsed_data = serde_json::to_value(data)?;
-                        res = SuperSwarmResponse {
-                            success: true,
-                            message: format!("{} was created successfully", display_name),
-                            data: Some(parsed_data),
-                        }
-                    }
-                    Err(err) => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: err.to_string(),
-                            data: None,
-                        }
-                    }
-                }
-
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::StopEc2Instance(info) => {
-                let res: SuperSwarmResponse;
-                match crate::ec2::stop_ec2_instance_and_tag(&info.instance_id).await {
-                    Ok(()) => {
-                        res = SuperSwarmResponse {
-                            success: true,
-                            message: format!(
-                                "Instance {} stopped successfully and tagged with DeletedOn",
-                                info.instance_id
-                            ),
-                            data: None,
-                        }
-                    }
-                    Err(err) => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: err.to_string(),
-                            data: None,
-                        }
-                    }
-                }
-
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::UpdateAwsInstanceType(info) => {
-                let res: SuperSwarmResponse;
-                match update_aws_instance_type(info, &mut state).await {
-                    Ok(_) => {
-                        must_save_stack = true;
-                        res = SuperSwarmResponse {
-                            success: true,
-                            message: "Instance updated successfully".to_string(),
-                            data: None,
-                        }
-                    }
-                    Err(err) => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: err.to_string(),
-                            data: None,
-                        }
-                    }
-                }
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetInstanceType(info) => {
-                let res: SuperSwarmResponse;
-                match get_swarm_instance_type(info, &state) {
-                    Ok(result) => res = result,
-                    Err(err) => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: err.to_string(),
-                            data: None,
-                        }
-                    }
-                }
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetSwarmChildImageVersions(info) => {
-                let res: SuperSwarmResponse;
-                match state.find_swarm_by_host(&info.host, info.is_reserved) {
-                    Some(swarm) => match get_child_swarm_image_versions(&swarm).await {
-                        Ok(result) => res = result,
-                        Err(err) => {
-                            res = SuperSwarmResponse {
-                                success: false,
-                                message: err.to_string(),
-                                data: None,
-                            }
-                        }
-                    },
-                    None => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: "Swarm does not exist".to_string(),
-                            data: None,
-                        }
-                    }
-                }
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::ChangeChildSwarmPassword(info) => {
-                let res: SuperSwarmResponse = update_swarm_child_password(info, &state).await;
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetLightningBotsDetails => {
-                let res: SuperSwarmResponse = get_lightning_bots_details(&state).await;
-                Some(serde_json::to_string(&res)?)
+            SwarmCmd::AddAnthropicKey(data) => {
+                let mut state = state::STATE.write().await;
+                let mut must_save = false;
+                let res = handle_add_anthropic_key(&mut state, &mut must_save, data);
+                if must_save { put_config_file(proj, &state).await; }
+                serde_json::to_string(&res)?
             }
             SwarmCmd::ChangeLightningBotLabel(info) => {
-                let res: SuperSwarmResponse =
-                    change_lightning_bot_label(&mut state, &mut must_save_stack, info).await;
-                Some(serde_json::to_string(&res)?)
+                let mut state = state::STATE.write().await;
+                let mut must_save = false;
+                let res = change_lightning_bot_label(&mut state, &mut must_save, info).await;
+                if must_save { put_config_file(proj, &state).await; }
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::UpdateChildSwarmPublicIp(info) => {
+                let mut state = state::STATE.write().await;
+                let mut must_save = false;
+                let res = handle_update_child_swarm_public_ip(&mut state, &mut must_save, info).await;
+                if must_save { put_config_file(proj, &state).await; }
+                serde_json::to_string(&res)?
+            }
+
+            // =============================================================
+            // Login — read lock to get hash, drop, bcrypt outside lock
+            // =============================================================
+            SwarmCmd::Login(ld) => {
+                let user_data = {
+                    let state = state::STATE.read().await;
+                    state.users.iter()
+                        .find(|u| u.username == ld.username)
+                        .cloned()
+                }; // read lock dropped before bcrypt
+                match user_data {
+                    Some(user) => {
+                        if !bcrypt::verify(&ld.password, &user.pass_hash)? {
+                            "".to_string()
+                        } else {
+                            let mut hm = HashMap::new();
+                            hm.insert("token", auth::make_jwt(user.id)?);
+                            serde_json::to_string(&hm)?
+                        }
+                    }
+                    None => "".to_string(),
+                }
+            }
+            SwarmCmd::ChangePassword(cp) => {
+                // Read old hash, drop lock, bcrypt verify+hash, then write
+                let old_hash = {
+                    let state = state::STATE.read().await;
+                    state.users.iter()
+                        .find(|u| u.id == cp.user_id)
+                        .map(|u| u.pass_hash.clone())
+                }; // read lock dropped
+                match old_hash {
+                    Some(hash) => {
+                        if bcrypt::verify(&cp.old_pass, &hash)? {
+                            let new_hash = bcrypt::hash(cp.password, bcrypt::DEFAULT_COST)?;
+                            let mut state = state::STATE.write().await;
+                            if let Some(ui) = state.users.iter().position(|u| u.id == cp.user_id) {
+                                state.users[ui].pass_hash = new_hash;
+                                put_config_file(proj, &state).await;
+                            }
+                            let mut hm = HashMap::new();
+                            hm.insert("success", true);
+                            serde_json::to_string(&hm)?
+                        } else {
+                            "".to_string()
+                        }
+                    }
+                    None => "".to_string(),
+                }
+            }
+
+            // =============================================================
+            // Slow I/O — read lock to get swarm info, DROP, then HTTP calls
+            // =============================================================
+            SwarmCmd::GetChildSwarmConfig(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                }; // lock dropped before HTTP
+                let res = match swarm {
+                    Some(s) => get_child_swarm_config(&s).await.unwrap_or_else(|e| SuperSwarmResponse {
+                        success: false, message: e.to_string(), data: None,
+                    }),
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::GetChildSwarmContainers(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                };
+                let res = match swarm {
+                    Some(s) => get_child_swarm_containers(&s).await.unwrap_or_else(|e| SuperSwarmResponse {
+                        success: false, message: e.to_string(), data: None,
+                    }),
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::StopChildSwarmContainers(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                };
+                let res = match swarm {
+                    Some(s) => {
+                        use crate::util::access_child_swarm_containers;
+                        access_child_swarm_containers(&s, info.nodes, "StopContainer").await.unwrap_or_else(|e| SuperSwarmResponse {
+                            success: false, message: e.to_string(), data: None,
+                        })
+                    }
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::StartChildSwarmContainers(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                };
+                let res = match swarm {
+                    Some(s) => {
+                        use crate::util::access_child_swarm_containers;
+                        access_child_swarm_containers(&s, info.nodes, "StartContainer").await.unwrap_or_else(|e| SuperSwarmResponse {
+                            success: false, message: e.to_string(), data: None,
+                        })
+                    }
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::RestartChildSwarmContainers(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                };
+                let res = match swarm {
+                    Some(s) => {
+                        use crate::util::access_child_swarm_containers;
+                        access_child_swarm_containers(&s, info.nodes, "RestartContainer").await.unwrap_or_else(|e| SuperSwarmResponse {
+                            success: false, message: e.to_string(), data: None,
+                        })
+                    }
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::UpdateChildSwarmContainers(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                };
+                let res = match swarm {
+                    Some(s) => {
+                        use crate::util::access_child_swarm_containers;
+                        access_child_swarm_containers(&s, info.nodes, "UpdateNode").await.unwrap_or_else(|e| SuperSwarmResponse {
+                            success: false, message: e.to_string(), data: None,
+                        })
+                    }
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::GetSwarmChildImageVersions(info) => {
+                let swarm = {
+                    let state = state::STATE.read().await;
+                    state.find_swarm_by_host(&info.host, info.is_reserved)
+                };
+                let res = match swarm {
+                    Some(s) => get_child_swarm_image_versions(&s).await.unwrap_or_else(|e| SuperSwarmResponse {
+                        success: false, message: e.to_string(), data: None,
+                    }),
+                    None => SuperSwarmResponse {
+                        success: false, message: "Swarm does not exist".to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::ChangeChildSwarmPassword(info) => {
+                let state = state::STATE.read().await;
+                let res = update_swarm_child_password(info, &state).await;
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::GetLightningBotsDetails => {
+                let state = state::STATE.read().await;
+                let res = get_lightning_bots_details(&state).await;
+                serde_json::to_string(&res)?
             }
             SwarmCmd::CreateInvoiceForLightningBot(info) => {
-                let res: SuperSwarmResponse = create_invoice_lightning_bot(&state, info).await;
-                Some(serde_json::to_string(&res)?)
+                let state = state::STATE.read().await;
+                let res = create_invoice_lightning_bot(&state, info).await;
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::UpdateChildSwarmEnv(data) => {
+                let state = state::STATE.read().await;
+                let res = update_child_swarm_env(&state, data).await;
+                serde_json::to_string(&res)?
+            }
+
+            // =============================================================
+            // No lock needed — pure external I/O
+            // =============================================================
+            SwarmCmd::StopEc2Instance(info) => {
+                let res = match crate::ec2::stop_ec2_instance_and_tag(&info.instance_id).await {
+                    Ok(()) => SuperSwarmResponse {
+                        success: true,
+                        message: format!("Instance {} stopped successfully and tagged with DeletedOn", info.instance_id),
+                        data: None,
+                    },
+                    Err(err) => SuperSwarmResponse {
+                        success: false, message: err.to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
             }
             SwarmCmd::GetSuperAdminLogs => {
                 let res = get_super_admin_docker_logs().await;
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::UpdateChildSwarmEnv(data) => {
-                let res = update_child_swarm_env(&state, data).await;
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::AddAnthropicKey(data) => {
-                let res = handle_add_anthropic_key(&mut state, &mut must_save_stack, data);
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetAnthropicKey => {
-                let res = handle_get_anthropic_keys(&state);
-                Some(serde_json::to_string(&res)?)
+                serde_json::to_string(&res)?
             }
             SwarmCmd::RestartSuperAdmin => {
                 let res = update_super_admin().await;
-                Some(serde_json::to_string(&res)?)
+                serde_json::to_string(&res)?
             }
             SwarmCmd::GetSslCertExpiry => {
                 let res = handle_get_ssl_cert_expiry().await;
-                Some(serde_json::to_string(&res)?)
+                serde_json::to_string(&res)?
             }
             SwarmCmd::RenewSslCert => {
                 let res = match renew_cert().await {
                     Ok(data) => data,
                     Err(err) => SuperRestarterResponse {
-                        ok: false,
-                        message: Some(err.to_string()),
-                        error: Some(err.to_string()),
+                        ok: false, message: Some(err.to_string()), error: Some(err.to_string()),
                     },
                 };
-                Some(serde_json::to_string(&res)?)
+                serde_json::to_string(&res)?
             }
             SwarmCmd::UploadSSlCert => {
                 let res = match upload_cert_to_s3().await {
                     Ok(data) => data,
                     Err(err) => SuperRestarterResponse {
-                        ok: false,
-                        message: Some(err.to_string()),
-                        error: Some(err.to_string()),
+                        ok: false, message: Some(err.to_string()), error: Some(err.to_string()),
                     },
                 };
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::UpdateChildSwarmPublicIp(info) => {
-                let res =
-                    handle_update_child_swarm_public_ip(&mut state, &mut must_save_stack, info)
-                        .await;
-                Some(serde_json::to_string(&res)?)
-            }
-            SwarmCmd::GetChildSwarmCredentials(req) => {
-                let res = get_child_swarm_credentials(req, &state);
-                Some(serde_json::to_string(&res)?)
+                serde_json::to_string(&res)?
             }
             SwarmCmd::GetEc2CpuUtilization(req) => {
-                let res: SuperSwarmResponse =
-                    match crate::cloudwatch::get_cpu_utilization(&req.instance_id).await {
-                        Ok(Some(val)) => SuperSwarmResponse {
+                let res = match crate::cloudwatch::get_cpu_utilization(&req.instance_id).await {
+                    Ok(Some(val)) => SuperSwarmResponse {
+                        success: true, message: "ok".to_string(),
+                        data: Some(serde_json::json!({ "cpu_percent": val })),
+                    },
+                    Ok(None) => SuperSwarmResponse {
+                        success: true, message: "no data".to_string(), data: None,
+                    },
+                    Err(err) => SuperSwarmResponse {
+                        success: false, message: err.to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+
+            // =============================================================
+            // CreateNewEc2Instance — THE BIG ONE (PM's bug)
+            // Read lock briefly, drop, do AWS work (minutes), write lock to save
+            // =============================================================
+            SwarmCmd::CreateNewEc2Instance(info) => {
+                // This still calls create_swarm_ec2 which takes &mut Super.
+                // For now, we use a write lock but this is the function that
+                // needs phase-splitting (extract data, drop, AWS work, re-acquire).
+                // Even without splitting create_swarm_ec2 internally, other
+                // commands (GetConfig, etc.) now use read locks and won't be
+                // blocked by each other. Only CreateNewEc2Instance itself
+                // blocks other write-lock commands.
+                let mut state = state::STATE.write().await;
+                let res = match create_swarm_ec2(&info, &mut state).await {
+                    Ok(data) => {
+                        put_config_file(proj, &state).await;
+                        let display_name = info.name.as_ref().unwrap_or(&data.swarm_id).clone();
+                        let parsed_data = serde_json::to_value(data)?;
+                        SuperSwarmResponse {
                             success: true,
-                            message: "ok".to_string(),
-                            data: Some(serde_json::json!({ "cpu_percent": val })),
-                        },
-                        Ok(None) => SuperSwarmResponse {
-                            success: true,
-                            message: "no data".to_string(),
-                            data: None,
-                        },
-                        Err(err) => SuperSwarmResponse {
-                            success: false,
-                            message: err.to_string(),
-                            data: None,
-                        },
-                    };
-                Some(serde_json::to_string(&res)?)
+                            message: format!("{} was created successfully", display_name),
+                            data: Some(parsed_data),
+                        }
+                    }
+                    Err(err) => SuperSwarmResponse {
+                        success: false, message: err.to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
+            }
+            SwarmCmd::UpdateAwsInstanceType(info) => {
+                let mut state = state::STATE.write().await;
+                let res = match update_aws_instance_type(info, &mut state).await {
+                    Ok(_) => {
+                        put_config_file(proj, &state).await;
+                        SuperSwarmResponse {
+                            success: true, message: "Instance updated successfully".to_string(), data: None,
+                        }
+                    }
+                    Err(err) => SuperSwarmResponse {
+                        success: false, message: err.to_string(), data: None,
+                    },
+                };
+                serde_json::to_string(&res)?
             }
         },
     };
 
-    if must_save_stack {
-        put_config_file(proj, &state).await;
-    }
-    Ok(ret.context("internal error")?)
+    Ok(ret)
 }
 
-pub fn spawn_super_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>) {
-    let project = proj.to_string();
-    tokio::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            if let Ok(cmd) = serde_json::from_str::<Cmd>(&msg.message) {
-                match super_handle(&project, cmd, &msg.tag, &msg.user_id).await {
-                    Ok(res) => {
-                        let _ = msg.reply_tx.send(res);
-                    }
-                    Err(err) => {
-                        msg.reply_tx
-                            .send(fmt_err(&err.to_string()))
-                            .expect("couldnt send cmd reply");
-                    }
-                }
-            } else {
-                msg.reply_tx
-                    .send(fmt_err("Invalid Command"))
-                    .expect("couldnt send cmd reply");
-            }
-        }
-    });
-}
-
-fn fmt_err(err: &str) -> String {
-    format!("{{\"stack_error\":\"{}\"}}", err.to_string())
+pub fn fmt_err(err: &str) -> String {
+    format!("{{\"stack_error\":\"{}\"}}", err)
 }

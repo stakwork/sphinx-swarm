@@ -10,7 +10,7 @@ use crate::{
         AssignSwarmNewDetails, BotBalanceRes, ChangeUserPasswordBySuperAdminInfo,
         GetDockerImageTagsDetails, UpdateEnvRequest,
     },
-    config::{LightningPeer, Node, State},
+    config::{LightningPeer, Node, Stack},
     dock::stop_and_remove,
     images::{
         boltwall::{ExternalLnd, LndCreds},
@@ -125,7 +125,7 @@ pub async fn get_image_tags(image_details: GetDockerImageTagsDetails) -> Result<
 }
 
 pub async fn change_swarm_user_password_by_user_admin(
-    state: &mut State,
+    stack: &mut Stack,
     user_id: Option<u32>,
     password_change_details: ChangeUserPasswordBySuperAdminInfo,
     must_save_stack: &mut bool,
@@ -147,8 +147,7 @@ pub async fn change_swarm_user_password_by_user_admin(
     let current_user_id = user_id.unwrap();
 
     // check if super admin is performing his operation
-    let superadmin_details = state
-        .stack
+    let superadmin_details = stack
         .users
         .iter()
         .find(|user| user.id == current_user_id);
@@ -169,14 +168,13 @@ pub async fn change_swarm_user_password_by_user_admin(
     }
 
     // we should find a way to find users properly and not reply on username, user_id might be a great option
-    match state
-        .stack
+    match stack
         .users
         .iter()
         .position(|u| u.username == password_change_details.username)
     {
         Some(pos) => {
-            let old_pass_hash = &state.stack.users[pos].pass_hash;
+            let old_pass_hash = &stack.users[pos].pass_hash;
             let verify_password =
                 match bcrypt::verify(password_change_details.current_password, old_pass_hash) {
                     Ok(result) => result,
@@ -200,7 +198,7 @@ pub async fn change_swarm_user_password_by_user_admin(
                         }
                     }
                 };
-                state.stack.users[pos].pass_hash = new_password_hash;
+                stack.users[pos].pass_hash = new_password_hash;
                 *must_save_stack = true;
 
                 return ChangePasswordBySuperAdminResponse {
@@ -224,7 +222,7 @@ pub async fn change_swarm_user_password_by_user_admin(
 }
 
 pub fn add_new_lightning_peer(
-    state: &mut State,
+    stack: &mut Stack,
     info: LightningPeer,
     must_save_stack: &mut bool,
 ) -> SwarmResponse {
@@ -236,7 +234,7 @@ pub fn add_new_lightning_peer(
         };
     }
 
-    let lightning_peers_clone = state.stack.lightning_peers.clone();
+    let lightning_peers_clone = stack.lightning_peers.clone();
 
     if let Some(mut lightning_peers) = lightning_peers_clone {
         let peer_exist = lightning_peers
@@ -250,9 +248,9 @@ pub fn add_new_lightning_peer(
             };
         }
         lightning_peers.push(info);
-        state.stack.lightning_peers = Some(lightning_peers);
+        stack.lightning_peers = Some(lightning_peers);
     } else {
-        state.stack.lightning_peers = Some(vec![info]);
+        stack.lightning_peers = Some(vec![info]);
     }
 
     *must_save_stack = true;
@@ -264,7 +262,7 @@ pub fn add_new_lightning_peer(
 }
 
 pub fn update_lightning_peer(
-    state: &mut State,
+    stack: &mut Stack,
     info: LightningPeer,
     must_save_stack: &mut bool,
 ) -> SwarmResponse {
@@ -276,7 +274,7 @@ pub fn update_lightning_peer(
         };
     }
 
-    if state.stack.lightning_peers.is_none() {
+    if stack.lightning_peers.is_none() {
         return SwarmResponse {
             success: false,
             message: "pubkey does not exist".to_string(),
@@ -284,7 +282,7 @@ pub fn update_lightning_peer(
         };
     };
 
-    if let Some(mut clone_lightning_peers) = state.stack.lightning_peers.clone() {
+    if let Some(mut clone_lightning_peers) = stack.lightning_peers.clone() {
         let pos = clone_lightning_peers
             .iter()
             .position(|peer| peer.pubkey == info.pubkey);
@@ -298,7 +296,7 @@ pub fn update_lightning_peer(
         }
 
         clone_lightning_peers[pos.unwrap()] = info;
-        state.stack.lightning_peers = Some(clone_lightning_peers);
+        stack.lightning_peers = Some(clone_lightning_peers);
     }
     *must_save_stack = true;
     SwarmResponse {
@@ -453,13 +451,13 @@ pub async fn create_bot_invoice(nodes: &Vec<Node>, amt_msat: u64) -> SwarmRespon
 pub async fn update_env_variables(
     docker: &Docker,
     update_value: &mut UpdateEnvRequest,
-    state: &mut State,
+    stack: &mut Stack,
     must_save_stack: &mut bool,
 ) -> SwarmResponse {
     let mut error_messages: Vec<String> = Vec::new();
     // write to stack.yml file
     if update_value.id.is_some() && update_value.clone().id.unwrap() == "boltwall" {
-        update_boltwall_env(state, &mut update_value.values);
+        update_boltwall_env(stack, &mut update_value.values);
     }
 
     log::info!(
@@ -487,13 +485,13 @@ pub async fn update_env_variables(
     // stop the expected service(Boltwall and Jarvis)
 
     if let Some(host) = update_value.values.get("HOST") {
-        for node in state.stack.nodes.iter_mut() {
+        for node in stack.nodes.iter_mut() {
             if let Node::Internal(img) = node {
                 img.set_host(host);
             }
         }
     };
-    for node in state.stack.nodes.iter_mut() {
+    for node in stack.nodes.iter_mut() {
         match stop_and_remove(docker, &domain(&node.name())).await {
             Ok(_) => log::info!("{} stopped and removed", node.name()),
             Err(e) => {
@@ -568,10 +566,9 @@ pub struct KeyToBeUpdated {
     pub new_key: String,
 }
 
-fn update_boltwall_env(state: &mut State, env_values: &mut HashMap<String, String>) {
+fn update_boltwall_env(stack: &mut Stack, env_values: &mut HashMap<String, String>) {
     let mut to_be_updated_env: Vec<KeyToBeUpdated> = Vec::new();
-    let nodes: Vec<Node> = state
-        .stack
+    let nodes: Vec<Node> = stack
         .nodes
         .iter()
         .map(|n| match n {
@@ -639,7 +636,7 @@ fn update_boltwall_env(state: &mut State, env_values: &mut HashMap<String, Strin
         })
         .collect();
 
-    state.stack.nodes = nodes;
+    stack.nodes = nodes;
 
     for env in to_be_updated_env {
         if let Some(value) = env_values.get(&env.old_key) {
@@ -653,14 +650,14 @@ pub async fn handle_assign_reserved_swarm_to_active(
     docker: &Docker,
     new_details: &AssignSwarmNewDetails,
     user_id: Option<u32>,
-    state: &mut State,
+    stack: &mut Stack,
     must_save_stack: &mut bool,
 ) -> SwarmResponse {
     let mut error_messages: Vec<String> = Vec::new();
 
     if new_details.new_password.is_some() && new_details.old_password.is_some() {
         let change_password_response = change_swarm_user_password_by_user_admin(
-            state,
+            stack,
             user_id,
             ChangeUserPasswordBySuperAdminInfo {
                 new_password: new_details.new_password.clone().unwrap(),
@@ -685,7 +682,7 @@ pub async fn handle_assign_reserved_swarm_to_active(
                 id: Some("boltwall".to_string()),
                 values: envs,
             },
-            state,
+            stack,
             must_save_stack,
         )
         .await;

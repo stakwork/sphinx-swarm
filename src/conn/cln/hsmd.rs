@@ -4,6 +4,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
+#[derive(Clone)]
 pub struct HsmdClient {
     pub client: reqwest::Client,
     pub url: String,

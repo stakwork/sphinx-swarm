@@ -1,5 +1,5 @@
 use crate::cmd::FeatureFlagUserRoles;
-use crate::config::{Node, Role, State, User};
+use crate::config::{Clients, Node, Role, Stack, User};
 use crate::dock::restart_node_container;
 use crate::images::Image;
 use crate::utils::docker_domain;
@@ -102,7 +102,7 @@ pub async fn add_user(
     pubkey: &str,
     role: u32,
     name: String,
-    state: &mut State,
+    stack: &mut Stack,
     must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
@@ -126,7 +126,7 @@ pub async fn add_user(
 
     if response.status() == 200 || response.status() == 201 {
         // handle add user to swarm user
-        let did_update_user = add_or_edit_user(body.role, body.pubkey, body.name, state);
+        let did_update_user = add_or_edit_user(body.role, body.pubkey, body.name, stack);
         if did_update_user == true {
             *must_save_stack = true
         }
@@ -159,7 +159,7 @@ pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
 pub async fn delete_sub_admin(
     img: &BoltwallImage,
     pubkey: &str,
-    state: &mut State,
+    stack: &mut Stack,
     must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
@@ -176,7 +176,7 @@ pub async fn delete_sub_admin(
         .await?;
 
     if response.status() == 200 {
-        let update_state = delete_swarm_user(state, pubkey.to_string());
+        let update_state = delete_swarm_user(stack, pubkey.to_string());
         if update_state == true {
             *must_save_stack = true
         }
@@ -378,7 +378,7 @@ pub async fn update_user(
     name: String,
     id: u32,
     role: u32,
-    state: &mut State,
+    stack: &mut Stack,
     must_save_stack: &mut bool,
 ) -> Result<String> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
@@ -401,7 +401,7 @@ pub async fn update_user(
         .await?;
 
     if response.status() == 200 {
-        let must_update_state = add_or_edit_user(role, pubkey, name, state);
+        let must_update_state = add_or_edit_user(role, pubkey, name, stack);
         if must_update_state == true {
             *must_save_stack = true
         }
@@ -425,21 +425,20 @@ pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
     Ok(response)
 }
 
-fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) -> bool {
-    return match state
-        .stack
+fn add_or_edit_user(role: u32, pubkey: String, name: String, stack: &mut Stack) -> bool {
+    return match stack
         .users
         .iter()
         .position(|u| u.pubkey == Some(pubkey.clone()))
     {
         Some(user_pos) => {
-            let cloned_user = state.stack.users.clone();
+            let cloned_user = stack.users.clone();
             // check if role is boltwall member
             if role == 3
                 && cloned_user[user_pos].role != Role::Admin
                 && cloned_user[user_pos].role != Role::Super
             {
-                state.stack.users.remove(user_pos);
+                stack.users.remove(user_pos);
                 return true;
             }
             false
@@ -447,11 +446,11 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
         None => {
             // check if role is boltwall subadmin
             if role == 2 {
-                let new_id = match state.stack.users.last() {
+                let new_id = match stack.users.last() {
                     Some(last_user) => last_user.id + 1,
                     None => 1, // This block of code should never execute because one user must exist before you can add a user
                 };
-                state.stack.users.push(User {
+                stack.users.push(User {
                     username: name.to_lowercase(),
                     id: new_id,
                     pubkey: Some(pubkey.clone()),
@@ -466,17 +465,16 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
     };
 }
 
-fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
-    match state
-        .stack
+fn delete_swarm_user(stack: &mut Stack, pubkey: String) -> bool {
+    match stack
         .users
         .iter()
         .position(|user| user.pubkey == Some(pubkey.clone()))
     {
         Some(user_pos) => {
-            let cloned_user = state.stack.users[user_pos].clone();
+            let cloned_user = stack.users[user_pos].clone();
             if cloned_user.role != Role::Admin && cloned_user.role != Role::Super {
-                state.stack.users.remove(user_pos);
+                stack.users.remove(user_pos);
                 return true;
             }
             false
@@ -487,7 +485,8 @@ fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
 
 pub async fn update_request_per_seconds(
     rps: i64,
-    state: &mut State,
+    stack: &mut Stack,
+    clients: &mut Clients,
     must_save_stack: &mut bool,
     docker: &Docker,
     proj: &str,
@@ -502,8 +501,7 @@ pub async fn update_request_per_seconds(
 
     let mut node_name = "".to_string();
 
-    let nodes: Vec<Node> = state
-        .stack
+    let nodes: Vec<Node> = stack
         .nodes
         .iter()
         .map(|n| match n {
@@ -519,10 +517,10 @@ pub async fn update_request_per_seconds(
         })
         .collect();
 
-    state.stack.nodes = nodes;
+    stack.nodes = nodes;
 
     // restart node
-    match restart_node_container(docker, node_name.as_str(), state, proj).await {
+    match restart_node_container(docker, node_name.as_str(), stack, clients, proj).await {
         Ok(_) => {
             *must_save_stack = true;
             SwarmResponse {
@@ -580,7 +578,8 @@ pub fn get_max_request_size(boltwall: &BoltwallImage) -> SwarmResponse {
 
 pub async fn update_max_request_size(
     mrl: &str,
-    state: &mut State,
+    stack: &mut Stack,
+    clients: &mut Clients,
     must_save_stack: &mut bool,
     docker: &Docker,
     proj: &str,
@@ -595,8 +594,7 @@ pub async fn update_max_request_size(
 
     let mut node_name = "".to_string();
 
-    let nodes: Vec<Node> = state
-        .stack
+    let nodes: Vec<Node> = stack
         .nodes
         .iter()
         .map(|n| match n {
@@ -612,10 +610,10 @@ pub async fn update_max_request_size(
         })
         .collect();
 
-    state.stack.nodes = nodes;
+    stack.nodes = nodes;
 
     // restart node
-    match restart_node_container(docker, node_name.as_str(), state, proj).await {
+    match restart_node_container(docker, node_name.as_str(), stack, clients, proj).await {
         Ok(_) => {
             *must_save_stack = true;
             SwarmResponse {

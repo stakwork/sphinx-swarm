@@ -3,9 +3,11 @@ use crate::auth;
 use crate::cmd::SignUpAdminPubkeyDetails;
 use crate::cmd::UpdateAdminPubkeyInfo;
 use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo, Cmd, LoginInfo, SwarmCmd};
+use crate::dock::dockr;
 use crate::events::{get_event_tx, EventChan};
+use crate::handler;
 use crate::logs::{get_log_tx, LogChans, LOGS};
-use crate::rocket_utils::{CmdRequest, Error, Result, CORS};
+use crate::rocket_utils::{Error, Result, CORS};
 use fs::{relative, FileServer};
 use response::stream::{Event, EventStream};
 use rocket::serde::{
@@ -15,10 +17,13 @@ use rocket::serde::{
 use rocket::*;
 use sphinx_auther::secp256k1::PublicKey;
 use std::sync::Arc;
-use tokio::sync::{broadcast::error::RecvError, mpsc, Mutex};
+use tokio::sync::{broadcast::error::RecvError, Mutex};
+
+/// Managed state: the project name (e.g. "stack")
+pub struct ProjectName(pub String);
 
 pub async fn launch_rocket(
-    tx: mpsc::Sender<CmdRequest>,
+    proj: String,
     log_txs: Arc<Mutex<LogChans>>,
     event_tx: Arc<Mutex<EventChan>>,
 ) -> Result<Rocket<Ignite>> {
@@ -45,7 +50,7 @@ pub async fn launch_rocket(
             ],
         )
         .attach(CORS)
-        .manage(tx)
+        .manage(ProjectName(proj))
         .manage(log_txs)
         .manage(event_tx)
         .launch()
@@ -57,17 +62,23 @@ pub fn all_options() {
     /* Intentionally left empty */
 }
 
+fn fmt_err(err: &str) -> String {
+    format!("{{\"stack_error\":\"{}\"}}", err)
+}
+
 #[get("/cmd?<tag>&<txt>")]
 pub async fn cmd(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<ProjectName>,
     tag: &str,
     txt: &str,
     claims: auth::AdminJwtClaims,
 ) -> Result<String> {
-    let (request, reply_rx) = CmdRequest::new(tag, txt, Some(claims.user));
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    Ok(reply)
+    let cmd: Cmd = serde_json::from_str(txt).map_err(|_| Error::Fail)?;
+    let docker = dockr();
+    match handler::handle(&proj.0, cmd, tag, &docker, &Some(claims.user)).await {
+        Ok(res) => Ok(res),
+        Err(err) => Ok(fmt_err(&err.to_string())),
+    }
 }
 
 #[get("/events")]
@@ -163,22 +174,24 @@ pub struct GetChallengeResponse {
 
 #[rocket::post("/login", data = "<body>")]
 pub async fn login(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<ProjectName>,
     body: Json<LoginData>,
 ) -> Result<String> {
     let cmd: Cmd = Cmd::Swarm(SwarmCmd::Login(LoginInfo {
         username: body.username.clone(),
         password: body.password.clone(),
     }));
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    // empty string means unauthorized
-    if reply.len() == 0 {
-        return Err(Error::Unauthorized);
+    let docker = dockr();
+    match handler::handle(&proj.0, cmd, "SWARM", &docker, &None).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                Err(Error::Unauthorized)
+            } else {
+                Ok(reply)
+            }
+        }
+        Err(err) => Ok(fmt_err(&err.to_string())),
     }
-    Ok(reply)
 }
 
 #[rocket::get("/refresh_jwt")]
@@ -197,7 +210,7 @@ pub struct UpdatePasswordData {
 
 #[rocket::put("/admin/password", data = "<body>")]
 pub async fn update_password(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<ProjectName>,
     body: Json<UpdatePasswordData>,
     claims: auth::AdminJwtClaims,
 ) -> Result<String> {
@@ -206,45 +219,17 @@ pub async fn update_password(
         old_pass: body.old_pass.clone(),
         password: body.password.clone(),
     }));
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    // empty string means unauthorized
-    if reply.len() == 0 {
-        return Err(Error::Unauthorized);
+    let docker = dockr();
+    match handler::handle(&proj.0, cmd, "SWARM", &docker, &Some(claims.user)).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                Err(Error::Unauthorized)
+            } else {
+                Ok(reply)
+            }
+        }
+        Err(err) => Ok(fmt_err(&err.to_string())),
     }
-    Ok(reply)
-}
-
-#[derive(Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct UpdateAdminData {
-    pub old_pass: String,
-    pub password: String,
-    pub email: String,
-}
-#[rocket::put("/admin/info", data = "<body>")]
-pub async fn update_admin(
-    sender: &State<mpsc::Sender<CmdRequest>>,
-    body: Json<UpdateAdminData>,
-    claims: auth::AdminJwtClaims,
-) -> Result<String> {
-    let cmd: Cmd = Cmd::Swarm(SwarmCmd::ChangeAdmin(ChangeAdminInfo {
-        user_id: claims.user,
-        old_pass: body.old_pass.clone(),
-        password: body.password.clone(),
-        email: body.email.clone(),
-    }));
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    // empty string means unauthorized
-    if reply.len() == 0 {
-        return Err(Error::Unauthorized);
-    }
-    Ok(reply)
 }
 
 #[get("/challenge")]
@@ -287,7 +272,7 @@ pub struct UpdateAdminPubkeyData {
 
 #[rocket::put("/admin/pubkey", data = "<body>")]
 pub async fn update_admin_pubkey(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<ProjectName>,
     body: Json<UpdateAdminPubkeyData>,
     claims: auth::AdminJwtClaims,
 ) -> Result<String> {
@@ -295,15 +280,17 @@ pub async fn update_admin_pubkey(
         user_id: claims.user,
         pubkey: body.pubkey.clone(),
     }));
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    // empty string means unauthorized
-    if reply.len() == 0 {
-        return Err(Error::Unauthorized);
+    let docker = dockr();
+    match handler::handle(&proj.0, cmd, "SWARM", &docker, &Some(claims.user)).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                Err(Error::Unauthorized)
+            } else {
+                Ok(reply)
+            }
+        }
+        Err(err) => Ok(fmt_err(&err.to_string())),
     }
-    Ok(reply)
 }
 
 #[get("/poll/<challenge>")]
@@ -319,7 +306,7 @@ pub async fn check_challenge(challenge: &str) -> Result<Json<ChallengeStatusResp
 
 #[get("/poll_signup_challenge/<challenge>?<username>")]
 pub async fn check_signup_challenge(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<ProjectName>,
     challenge: &str,
     username: String,
     claims: auth::AdminJwtClaims,
@@ -329,15 +316,17 @@ pub async fn check_signup_challenge(
         challenge: challenge.to_string(),
         username: username.to_string(),
     }));
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, Some(claims.user));
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    // empty string means unauthorized
-    if reply.len() == 0 {
-        return Err(Error::Unauthorized);
+    let docker = dockr();
+    match handler::handle(&proj.0, cmd, "SWARM", &docker, &Some(claims.user)).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                Err(Error::Unauthorized)
+            } else {
+                Ok(reply)
+            }
+        }
+        Err(err) => Ok(fmt_err(&err.to_string())),
     }
-    Ok(reply)
 }
 
 // /health

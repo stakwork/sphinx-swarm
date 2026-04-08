@@ -59,7 +59,7 @@ impl BtcImage {
         let btc_rpc_url = format!("http://{}", docker_domain_127(&self.name));
         match BitcoinRPC::new_and_create_wallet(&self, &btc_rpc_url, RPC_PORT).await {
             Ok(client) => {
-                clients.bitcoind.insert(self.name.clone(), client);
+                clients.bitcoind.insert(self.name.clone(), std::sync::Arc::new(client));
             }
             Err(e) => log::warn!("BitcoinRPC error: {:?}", e),
         };

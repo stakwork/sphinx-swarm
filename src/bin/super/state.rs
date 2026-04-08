@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use rocket::tokio::sync::Mutex;
+use rocket::tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::config::{Role, User};
 use sphinx_swarm::secrets;
@@ -135,11 +135,10 @@ impl Default for Super {
     }
 }
 
-pub static STATE: Lazy<Mutex<Super>> = Lazy::new(|| Mutex::new(Default::default()));
+pub static STATE: Lazy<RwLock<Super>> = Lazy::new(|| RwLock::new(Default::default()));
 
 pub async fn hydrate(sup: Super) {
-    // set into the main state mutex
-    let mut state = STATE.lock().await;
+    let mut state = STATE.write().await;
     *state = sup;
 }
 

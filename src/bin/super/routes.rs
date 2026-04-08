@@ -8,6 +8,8 @@ use crate::events::EventChan;
 use crate::logs::LogChans;
 use crate::service::check_domain::check_domain;
 use crate::util::{get_child_swarm_credentials, get_swarm_details_by_id};
+use crate::cmd::{ChangePasswordInfo, LoginInfo};
+use crate::{fmt_err, super_handle};
 use fs::{relative, FileServer};
 use rocket::http::Status;
 use rocket::response::status::Custom;
@@ -16,15 +18,18 @@ use rocket::*;
 use sphinx_swarm::config::{
     ApiResponse, SendSwarmDetailsBody, SendSwarmDetailsResponse, UpdateChildSwarmPublicIpBody,
 };
-use sphinx_swarm::rocket_utils::{CmdRequest, Error, Result, CORS};
+use sphinx_swarm::rocket_utils::{Error, Result, CORS};
 use sphinx_swarm::routes::{
-    all_options, events, login, logs, logstream, refresh_jwt, update_password,
+    all_options, events, logs, logstream, refresh_jwt, LoginData, UpdatePasswordData,
 };
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::Mutex;
+
+/// Managed state: the project name (e.g. "super")
+pub struct SuperProjectName(pub String);
 
 pub async fn launch_rocket(
-    tx: mpsc::Sender<CmdRequest>,
+    proj: String,
     log_txs: Arc<Mutex<LogChans>>,
     event_tx: Arc<Mutex<EventChan>>,
 ) -> Result<Rocket<Ignite>> {
@@ -36,10 +41,10 @@ pub async fn launch_rocket(
                 cmd,
                 logs,
                 logstream,
-                login,
+                super_login,
                 refresh_jwt,
                 all_options,
-                update_password,
+                super_update_password,
                 events,
                 add_new_swarm,
                 create_new_swarm,
@@ -51,7 +56,7 @@ pub async fn launch_rocket(
             ],
         )
         .attach(CORS)
-        .manage(tx)
+        .manage(SuperProjectName(proj))
         .manage(log_txs)
         .manage(event_tx)
         .launch()
@@ -60,20 +65,67 @@ pub async fn launch_rocket(
 
 #[get("/cmd?<tag>&<txt>")]
 async fn cmd(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<SuperProjectName>,
     tag: &str,
     txt: &str,
     claims: auth::AdminJwtClaims,
 ) -> Result<String> {
-    let (request, reply_rx) = CmdRequest::new(tag, txt, Some(claims.user));
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
-    Ok(reply)
+    let cmd: Cmd = serde_json::from_str(txt).map_err(|_| Error::Fail)?;
+    match super_handle(&proj.0, cmd, tag, &Some(claims.user)).await {
+        Ok(res) => Ok(res),
+        Err(err) => Ok(fmt_err(&err.to_string())),
+    }
+}
+
+// Super's own login route (calls super_handle instead of stack's handle)
+#[rocket::post("/login", data = "<body>")]
+async fn super_login(
+    proj: &State<SuperProjectName>,
+    body: Json<LoginData>,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::Login(LoginInfo {
+        username: body.username.clone(),
+        password: body.password.clone(),
+    }));
+    match super_handle(&proj.0, cmd, "SWARM", &None).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                Err(Error::Unauthorized)
+            } else {
+                Ok(reply)
+            }
+        }
+        Err(err) => Ok(fmt_err(&err.to_string())),
+    }
+}
+
+// Super's own update_password route
+#[rocket::put("/admin/password", data = "<body>")]
+async fn super_update_password(
+    proj: &State<SuperProjectName>,
+    body: Json<UpdatePasswordData>,
+    claims: auth::AdminJwtClaims,
+) -> Result<String> {
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::ChangePassword(ChangePasswordInfo {
+        user_id: claims.user,
+        old_pass: body.old_pass.clone(),
+        password: body.password.clone(),
+    }));
+    match super_handle(&proj.0, cmd, "SWARM", &Some(claims.user)).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                Err(Error::Unauthorized)
+            } else {
+                Ok(reply)
+            }
+        }
+        Err(err) => Ok(fmt_err(&err.to_string())),
+    }
 }
 
 #[rocket::post("/super/add_new_swarm", data = "<body>")]
 async fn add_new_swarm(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<SuperProjectName>,
     body: Json<SendSwarmDetailsBody>,
     verify_super_token: VerifySuperToken,
 ) -> Result<Custom<Json<SendSwarmDetailsResponse>>> {
@@ -95,20 +147,21 @@ async fn add_new_swarm(
         id: body.id.clone(),
     }));
 
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    let reply = match super_handle(&proj.0, cmd, "SWARM", &None).await {
+        Ok(res) => res,
+        Err(err) => return Ok(Custom(
+            Status::InternalServerError,
+            Json(SendSwarmDetailsResponse { message: err.to_string() }),
+        )),
+    };
 
-    // empty string means unauthorized
-    if reply.len() == 0 {
+    if reply.is_empty() {
         return Err(Error::Unauthorized);
     }
 
     let response: AddSwarmResponse = serde::json::from_str(reply.as_str())?;
 
     let mut status = Status::Conflict;
-
     if response.success == true {
         status = Status::Created
     }
@@ -123,7 +176,7 @@ async fn add_new_swarm(
 
 #[rocket::post("/super/new_swarm", data = "<body>")]
 async fn create_new_swarm(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<SuperProjectName>,
     body: Json<CreateEc2InstanceInfo>,
     verify_super_token: VerifySuperToken,
 ) -> Result<Custom<Json<SuperSwarmResponse>>> {
@@ -152,20 +205,25 @@ async fn create_new_swarm(
         owner_pubkey: body.owner_pubkey.clone(),
     }));
 
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    let reply = match super_handle(&proj.0, cmd, "SWARM", &None).await {
+        Ok(res) => res,
+        Err(err) => return Ok(Custom(
+            Status::InternalServerError,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            }),
+        )),
+    };
 
-    // empty string means unauthorized
-    if reply.len() == 0 {
+    if reply.is_empty() {
         return Err(Error::Unauthorized);
     }
 
     let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
 
     let mut status = Status::Conflict;
-
     if response.success == true {
         status = Status::Created
     }
@@ -175,7 +233,7 @@ async fn create_new_swarm(
 
 #[rocket::post("/super/stop_swarm", data = "<body>")]
 async fn stop_swarm(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<SuperProjectName>,
     body: Json<StopEc2InstanceInfo>,
     verify_super_token: VerifySuperToken,
 ) -> Result<Custom<Json<SuperSwarmResponse>>> {
@@ -195,20 +253,25 @@ async fn stop_swarm(
         token: verify_super_token.token.clone(),
     }));
 
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    let reply = match super_handle(&proj.0, cmd, "SWARM", &None).await {
+        Ok(res) => res,
+        Err(err) => return Ok(Custom(
+            Status::InternalServerError,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: err.to_string(),
+                data: None,
+            }),
+        )),
+    };
 
-    // empty string means unauthorized
-    if reply.len() == 0 {
+    if reply.is_empty() {
         return Err(Error::Unauthorized);
     }
 
     let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
 
     let mut status = Status::BadRequest;
-
     if response.success == true {
         status = Status::Ok
     }
@@ -270,7 +333,7 @@ async fn check_duplicate_domain(
 
 #[rocket::post("/super/update_child_public_ip", data = "<body>")]
 async fn update_child_swarm_public_ip(
-    sender: &State<mpsc::Sender<CmdRequest>>,
+    proj: &State<SuperProjectName>,
     body: Json<UpdateChildSwarmPublicIpBody>,
     verify_super_token: VerifySuperToken,
 ) -> Result<Custom<Json<ApiResponse>>> {
@@ -292,20 +355,24 @@ async fn update_child_swarm_public_ip(
         },
     ));
 
-    let txt = serde_json::to_string(&cmd)?;
-    let (request, reply_rx) = CmdRequest::new("SWARM", &txt, None);
-    let _ = sender.send(request).await.map_err(|_| Error::Fail)?;
-    let reply = reply_rx.await.map_err(|_| Error::Fail)?;
+    let reply = match super_handle(&proj.0, cmd, "SWARM", &None).await {
+        Ok(res) => res,
+        Err(err) => return Ok(Custom(
+            Status::InternalServerError,
+            Json(ApiResponse {
+                success: false,
+                message: err.to_string(),
+            }),
+        )),
+    };
 
-    // empty string means unauthorized
-    if reply.len() == 0 {
+    if reply.is_empty() {
         return Err(Error::Unauthorized);
     }
 
     let response: SuperSwarmResponse = serde::json::from_str(reply.as_str())?;
 
     let mut status = Status::BadRequest;
-
     if response.success == true {
         status = Status::Ok
     }
@@ -338,7 +405,7 @@ async fn get_swarm_credentials(
         ));
     }
 
-    let state = crate::state::STATE.lock().await;
+    let state = crate::state::STATE.read().await;
     let req = GetChildSwarmCredentialsReq {
         host,
         id,

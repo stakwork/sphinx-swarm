@@ -76,23 +76,19 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
     // verify token first
     let unsigned = token::Token::from_base64(token)?;
     let pubkey = unsigned.recover()?;
-    let state = config::STATE.lock().await;
-    let res = match state
-        .stack
-        .users
-        .iter()
-        .find(|u| u.pubkey == Some(pubkey.to_string()))
-    {
-        Some(_user) => VerifyResponse {
-            success: true,
-            message: "Successfully verified token".to_string(),
-        },
-        None => VerifyResponse {
-            success: false,
-            message: "invalid token".to_string(),
-        },
-    };
-    drop(state);
+    let res = {
+        let stack = config::STACK.read().await;
+        match stack.users.iter().find(|u| u.pubkey == Some(pubkey.to_string())) {
+            Some(_user) => VerifyResponse {
+                success: true,
+                message: "Successfully verified token".to_string(),
+            },
+            None => VerifyResponse {
+                success: false,
+                message: "invalid token".to_string(),
+            },
+        }
+    }; // read lock dropped
     let mut details = DETAILS.lock().await;
     let detail = details
         .get_mut(challenge)
@@ -124,25 +120,21 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
     }
     drop(details);
 
-    let state = config::STATE.lock().await;
-    let res = match state
-        .stack
-        .users
-        .iter()
-        .find(|u| u.pubkey == Some(pubkey.to_string()))
-    {
-        Some(user) => ChallengeStatus {
-            success: true,
-            token: auth::make_jwt(user.id)?,
-            message: "login successfully".to_string(),
-        },
-        None => ChallengeStatus {
-            success: false,
-            token: "".to_string(),
-            message: "waiting for token".to_string(),
-        },
-    };
-    drop(state);
+    let res = {
+        let stack = config::STACK.read().await;
+        match stack.users.iter().find(|u| u.pubkey == Some(pubkey.to_string())) {
+            Some(user) => ChallengeStatus {
+                success: true,
+                token: auth::make_jwt(user.id)?,
+                message: "login successfully".to_string(),
+            },
+            None => ChallengeStatus {
+                success: false,
+                token: "".to_string(),
+                message: "waiting for token".to_string(),
+            },
+        }
+    }; // read lock dropped
 
     //remove successfully verified challenge from hashmap
     if res.success {
@@ -166,7 +158,7 @@ pub async fn remove_signup_challenge(challenge: &str) -> Option<(u32, Option<Str
 pub async fn sign_up_admin_pubkey(
     body: crate::cmd::SignUpAdminPubkeyDetails,
     must_save_stack: &mut bool,
-    state: &mut crate::config::State,
+    stack: &mut crate::config::Stack,
 ) -> Result<GetSignupChallengeResponse> {
     let res = match find_challenge_from_signup_hashmap(&body.challenge).await {
         Some(user_detail) => {
@@ -189,11 +181,11 @@ pub async fn sign_up_admin_pubkey(
             }
             // safe to unwrap here since "is_none" was checked above
             let pubkey = pubkey.unwrap();
-            match state.stack.users.iter().position(|u| u.id == body.user_id) {
+            match stack.users.iter().position(|u| u.id == body.user_id) {
                 Some(ui) => {
-                    state.stack.users[ui].pubkey = Some(pubkey.clone());
+                    stack.users[ui].pubkey = Some(pubkey.clone());
                     *must_save_stack = true;
-                    let boltwall = crate::handler::find_boltwall(&state.stack.nodes)?;
+                    let boltwall = crate::handler::find_boltwall(&stack.nodes)?;
                     crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &body.username)
                         .await?;
                     remove_signup_challenge(&body.challenge).await;

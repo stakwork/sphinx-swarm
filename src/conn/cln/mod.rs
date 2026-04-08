@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 pub use util::*;
 
+#[derive(Clone)]
 pub struct ClnRPC {
     pub client: pb::node_client::NodeClient<Channel>,
 }

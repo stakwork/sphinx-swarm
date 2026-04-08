@@ -73,7 +73,7 @@ impl LndImage {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let btc = li.find_btc().context("BTC required for LND")?;
         setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
-        clients.lnd.insert(self.name.clone(), client);
+        clients.lnd.insert(self.name.clone(), std::sync::Arc::new(rocket::tokio::sync::Mutex::new(client)));
         Ok(())
     }
 }

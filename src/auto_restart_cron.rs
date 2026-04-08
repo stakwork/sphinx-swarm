@@ -4,7 +4,11 @@ use anyhow::{anyhow, Error, Result};
 use bollard::Docker;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use crate::{config::STATE, dock::restart_node_container, utils::getenv};
+use crate::{
+    config::{CLIENTS, STACK},
+    dock::restart_node_container,
+    utils::getenv,
+};
 
 pub static RESTART_SERVICES: AtomicBool = AtomicBool::new(false);
 
@@ -58,11 +62,12 @@ async fn auto_restart_services_handler(
     docker: &Docker,
     auto_restart_services: Vec<String>,
 ) -> Result<(), Error> {
-    let mut state = STATE.lock().await;
+    let mut stack = STACK.write().await;
+    let mut clients = CLIENTS.write().await;
     let mut err_vec: Vec<String> = Vec::new();
     for service in auto_restart_services {
         log::info!("About to auto restart {}", service);
-        match restart_node_container(docker, &service, &mut state, proj).await {
+        match restart_node_container(docker, &service, &stack, &mut clients, proj).await {
             Ok(()) => {}
             Err(err) => err_vec.push(format!("{}: {}", service, err.to_string())),
         }

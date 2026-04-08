@@ -1,4 +1,4 @@
-use crate::config::{self, Clients, Node, Stack, State, STATE};
+use crate::config::{self, Clients, Node, Stack, CLIENTS, STACK};
 use crate::conn::swarm::update_swarm;
 use crate::dock::*;
 use crate::dock::{
@@ -113,8 +113,9 @@ pub async fn auto_updater(
 }
 
 pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str) -> Result<()> {
-    let mut state = STATE.lock().await;
-    let nodes = state.stack.nodes.clone();
+    let mut stack = STACK.write().await;
+    let mut clients = CLIENTS.write().await;
+    let nodes = stack.nodes.clone();
     let img = find_img(node_name, &nodes)?;
 
     let node_version_response = get_image_version(node_name, &docker, &img.repo().org).await;
@@ -123,17 +124,12 @@ pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str
         return Ok(());
     }
 
-    // drop(state);
-    match update_node(proj, docker, node_name, &nodes, &img, &mut state.clients).await {
+    match update_node(proj, docker, node_name, &nodes, &img, &mut clients).await {
         Ok(()) => {
-            // let mut state = STATE.lock().await;
-            // FIXME if this never returns then STATE will deadlock
-            // for example new CLN does spin up GRPC until remote signer is connected
-            let oy = match make_client(proj, docker, &img, &mut state).await {
+            let oy = match make_client(proj, docker, &img, &stack, &mut clients).await {
                 Ok(_) => Ok(()),
                 Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
             };
-            drop(state);
             oy
         }
         Err(e) => Err(anyhow!("FAILED TO UPDATE NODE {:?}", e)),
@@ -144,21 +140,22 @@ pub async fn update_node_and_make_client(
     proj: &str,
     docker: &Docker,
     node_name: &str,
-    state: &mut State,
+    stack: &Stack,
+    clients: &mut Clients,
 ) -> Result<()> {
-    let img = find_img(node_name, &state.stack.nodes)?;
+    let img = find_img(node_name, &stack.nodes)?;
     match update_node(
         proj,
         docker,
         node_name,
-        &state.stack.nodes,
+        &stack.nodes,
         &img,
-        &mut state.clients,
+        clients,
     )
     .await
     {
         Ok(_) => {
-            let oy = match make_client(proj, docker, &img, state).await {
+            let oy = match make_client(proj, docker, &img, stack, clients).await {
                 Ok(_) => Ok(()),
                 Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
             };
@@ -286,20 +283,21 @@ pub async fn make_client(
     proj: &str,
     docker: &Docker,
     theimg: &Image,
-    state: &mut State,
+    stack: &Stack,
+    clients: &mut Clients,
 ) -> Result<()> {
     // create and connect client
     theimg
         .connect_client(
             proj,
-            &mut state.clients,
+            clients,
             docker,
-            &state.stack.nodes,
+            &stack.nodes,
             is_shutdown,
         )
         .await?;
     // post-client connection steps (BTC load wallet)
-    theimg.post_client(&mut state.clients).await?;
+    theimg.post_client(clients).await?;
     Ok(())
 }
 

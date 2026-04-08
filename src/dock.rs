@@ -27,7 +27,7 @@ use tokio::io::AsyncReadExt;
 
 use crate::backup::bucket_name;
 use crate::builder::{find_img, make_client};
-use crate::config::{Node, State, STATE};
+use crate::config::{Clients, Node, Stack, STACK};
 use crate::conn::swarm::SwarmResponse;
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
@@ -222,22 +222,23 @@ pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
 pub async fn restart_node_container(
     docker: &Docker,
     node_name: &str,
-    state: &mut State,
+    stack: &Stack,
+    clients: &mut Clients,
     proj: &str,
 ) -> Result<()> {
-    let img = find_img(node_name, &state.stack.nodes)?;
+    let img = find_img(node_name, &stack.nodes)?;
     let hostname = domain(&node_name);
 
-    let theconfig = img.make_config(&state.stack.nodes, docker).await?;
+    let theconfig = img.make_config(&stack.nodes, docker).await?;
 
-    img.remove_client(&mut state.clients);
+    img.remove_client(clients);
 
     stop_and_remove(docker, &hostname).await?;
 
     let new_id = create_container(&docker, theconfig).await?;
     log::info!("=> created {}", &hostname);
 
-    if let Err(e) = img.pre_startup(docker, &state.stack.nodes).await {
+    if let Err(e) = img.pre_startup(docker, &stack.nodes).await {
         log::warn!("pre_startup failed {} {:?}", &new_id, e);
     }
 
@@ -246,7 +247,7 @@ pub async fn restart_node_container(
             log::info!("Container started successfully");
             img.post_startup(proj, docker).await?;
 
-            let _ = match make_client(proj, docker, &img, state).await {
+            let _ = match make_client(proj, docker, &img, stack, clients).await {
                 Ok(_) => Ok(()),
                 Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
             };
@@ -1103,17 +1104,15 @@ fn file_exists(path: &str) -> bool {
 }
 
 pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool> {
-    let state = STATE.lock().await;
-
-    let nodes = state.stack.nodes.clone();
-
-    let to_backup = if let Some(services) = state.stack.backup_services.clone() {
-        services
-    } else {
-        return Ok(false);
+    let (nodes, to_backup) = {
+        let stack = STACK.read().await;
+        let nodes = stack.nodes.clone();
+        let to_backup = match stack.backup_services.clone() {
+            Some(services) => services,
+            None => return Ok(false),
+        };
+        (nodes, to_backup)
     };
-
-    drop(state);
 
     //check if backup s3 link is passed
     if to_backup.contains(&name.to_string()) {

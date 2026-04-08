@@ -1565,8 +1565,7 @@ async fn handle_update_swarm_child_password(
 }
 
 pub async fn get_swarm_details_by_id(id: &str) -> SuperSwarmResponse {
-    // conf can be mutated in place
-    let state = state::STATE.lock().await;
+    let state = state::STATE.read().await;
     match state.find_swarm_by_id(id) {
         Some(value) => match handle_get_swarm_details_by_default_id(value).await {
             Ok(result) => result,

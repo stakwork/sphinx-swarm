@@ -10,9 +10,9 @@ use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
 use sphinx_swarm::renew_ssl_cert::upload_new_ssl_cert_cron;
 use sphinx_swarm::routes;
 use sphinx_swarm::utils::is_using_port_based_ssl;
-use sphinx_swarm::{dock::*, events, logs, rocket_utils::CmdRequest};
+use sphinx_swarm::{dock::*, events, logs};
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::Mutex;
 
 #[rocket::main]
 async fn main() -> Result<()> {
@@ -34,28 +34,26 @@ async fn main() -> Result<()> {
 
     // put the jwt key into a var
     sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
-    // hyrate the "stack" without clients
+    // hydrate the "stack" without clients
     handler::hydrate_stack(stack.clone()).await;
 
-    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
     let log_txs = Arc::new(Mutex::new(log_txs));
 
     let event_txs = events::new_event_chan();
 
     println!("=> launch rocket");
+    let proj_str = proj.to_string();
     tokio::spawn(async move {
         // launch rocket
         let port = std::env::var("ROCKET_PORT").unwrap_or("8000".to_string());
         log::info!("🚀 => http://localhost:{}", port);
-        let _r = routes::launch_rocket(tx.clone(), log_txs, event_txs)
+        let _r = routes::launch_rocket(proj_str, log_txs, event_txs)
             .await
             .unwrap();
         // ctrl-c shuts down rocket
         builder::shutdown_now();
     });
-
-    handler::spawn_handler(proj, rx, docker.clone());
 
     let clients = builder::build_stack(proj, &docker, &stack).await?;
     put_config_file(proj, &stack).await;

@@ -1,9 +1,8 @@
 use anyhow::Result;
-use rocket::tokio::sync::{mpsc, Mutex};
+use rocket::tokio::sync::Mutex;
 use sphinx_swarm::config::{ExternalNode, ExternalNodeType, Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::{cln::ClnImage, Image};
-use sphinx_swarm::rocket_utils::CmdRequest;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
 
@@ -25,18 +24,14 @@ pub async fn main() -> Result<()> {
 
     handler::hydrate(stack, clients).await;
 
-    let (tx, rx) = mpsc::channel::<CmdRequest>(1000);
     let log_txs = logs::new_log_chans();
     let log_txs = Arc::new(Mutex::new(log_txs));
-
-    println!("=> spawn handler");
-    handler::spawn_handler(proj, rx, docker.clone());
 
     println!("=> launch rocket");
 
     let event_tx = events::new_event_chan();
 
-    let _r = routes::launch_rocket(tx.clone(), log_txs, event_tx).await?;
+    let _r = routes::launch_rocket(proj.to_string(), log_txs, event_tx).await?;
 
     Ok(())
 }
