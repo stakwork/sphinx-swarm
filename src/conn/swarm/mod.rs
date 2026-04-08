@@ -12,7 +12,7 @@ use crate::{
     },
     config::{LightningPeer, Node, State},
     conn::boltwall::add_admin_pubkey,
-    dock::stop_and_remove,
+    dock::{restart_node_container, stop_and_remove},
     images::{
         boltwall::{BoltwallImage, ExternalLnd, LndCreds},
         Image,
@@ -651,6 +651,7 @@ fn update_boltwall_env(state: &mut State, env_values: &mut HashMap<String, Strin
 }
 
 pub async fn handle_assign_reserved_swarm_to_active(
+    proj: &str,
     docker: &Docker,
     new_details: &AssignSwarmNewDetails,
     user_id: Option<u32>,
@@ -702,19 +703,27 @@ pub async fn handle_assign_reserved_swarm_to_active(
         }
     }
 
-    // Step 4: If HOST changed, update Traefik labels and restart containers
+    // Step 4: If HOST changed, update Traefik labels and recreate containers
     if let Some(host) = envs.get("HOST") {
         for node in state.stack.nodes.iter_mut() {
             if let Node::Internal(img) = node {
                 img.set_host(host);
             }
         }
-        for node in state.stack.nodes.iter_mut() {
-            match stop_and_remove(docker, &domain(&node.name())).await {
-                Ok(_) => log::info!("{} stopped and removed", node.name()),
+        let node_names: Vec<String> = state
+            .stack
+            .nodes
+            .iter()
+            .filter_map(|n| match n {
+                Node::Internal(_) => Some(n.name()),
+                _ => None,
+            })
+            .collect();
+        for name in &node_names {
+            match restart_node_container(docker, name, state, proj).await {
+                Ok(_) => log::info!("{} restarted", name),
                 Err(e) => {
-                    error_messages
-                        .push(format!("could not stop {}: {}", node.name(), e));
+                    error_messages.push(format!("could not restart {}: {}", name, e));
                 }
             }
         }
