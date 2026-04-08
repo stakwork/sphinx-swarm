@@ -573,6 +573,7 @@ pub async fn handle(
             SwarmCmd::ChangeReservedSwarmToActive(details) => {
                 log::info!("About to update reserved swarm to active");
                 let res = handle_assign_reserved_swarm_to_active(
+                    proj,
                     &docker,
                     &details,
                     user_id.clone(),
