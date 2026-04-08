@@ -22,6 +22,7 @@ pub async fn update_child_swarm_env(
                 success: false,
                 message: format!("Unable to find swarm with host: {}", data.host),
                 data: None,
+                status_code: None,
             }
         }
     };
@@ -40,6 +41,7 @@ pub async fn update_child_swarm_env(
             success: false,
             message: err.to_string(),
             data: None,
+            status_code: None,
         },
     }
 }
@@ -61,6 +63,7 @@ async fn handle_update_child_swarm_env(
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             })
         }
     };
@@ -84,5 +87,6 @@ async fn handle_update_child_swarm_env(
         message: "Child swarm environment updated successfully. Restarting server now..."
             .to_string(),
         data: None,
+        status_code: None,
     })
 }

@@ -20,6 +20,7 @@ pub fn handle_get_anthropic_keys(state: &Super) -> SuperSwarmResponse {
                     err.to_string()
                 ),
                 data: None,
+                status_code: None,
             };
         }
     };
@@ -28,5 +29,6 @@ pub fn handle_get_anthropic_keys(state: &Super) -> SuperSwarmResponse {
         success: true,
         message: "Anthropic keys successfully".to_string(),
         data: Some(anthropic_keys),
+        status_code: None,
     }
 }

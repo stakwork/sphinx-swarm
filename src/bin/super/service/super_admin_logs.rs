@@ -12,6 +12,7 @@ pub async fn get_super_admin_docker_logs() -> SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             };
         }
     };
@@ -20,5 +21,6 @@ pub async fn get_super_admin_docker_logs() -> SuperSwarmResponse {
         success: true,
         message: "Super admin docker logs".to_string(),
         data: Some(json_value),
+        status_code: None,
     };
 }

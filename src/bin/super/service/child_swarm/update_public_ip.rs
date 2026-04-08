@@ -12,6 +12,7 @@ pub async fn handle_update_child_swarm_public_ip(
             success: false,
             message: "swarm id is required".to_string(),
             data: None,
+            status_code: None,
         };
     }
     let swarm_id = info.id.clone().unwrap();
@@ -30,6 +31,7 @@ pub async fn handle_update_child_swarm_public_ip(
                         message: "Public IP is the same as the current one, no update needed"
                             .to_string(),
                         data: None,
+                        status_code: None,
                     };
                 }
 
@@ -58,6 +60,7 @@ pub async fn handle_update_child_swarm_public_ip(
                                 success: false,
                                 message,
                                 data: None,
+                                status_code: None,
                             };
                         }
                     }
@@ -77,6 +80,7 @@ pub async fn handle_update_child_swarm_public_ip(
                     success: true,
                     message: "Swarm public IP updated successfully".to_string(),
                     data: None,
+                    status_code: None,
                 };
             }
         }
@@ -91,6 +95,7 @@ pub async fn handle_update_child_swarm_public_ip(
                     message: "Public IP is the same as the current one, no update needed"
                         .to_string(),
                     data: None,
+                    status_code: None,
                 };
             }
 
@@ -118,6 +123,7 @@ pub async fn handle_update_child_swarm_public_ip(
                             success: false,
                             message,
                             data: None,
+                            status_code: None,
                         };
                     }
                 }
@@ -135,6 +141,7 @@ pub async fn handle_update_child_swarm_public_ip(
                 success: true,
                 message: "Swarm public IP updated successfully".to_string(),
                 data: None,
+                status_code: None,
             };
         }
         None => {
@@ -142,6 +149,7 @@ pub async fn handle_update_child_swarm_public_ip(
                 success: false,
                 message: "Swarm not found".to_string(),
                 data: None,
+                status_code: None,
             };
         }
     }

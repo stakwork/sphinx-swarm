@@ -33,6 +33,7 @@ pub async fn call_child_swarm_to_activate_new_swarm(
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             })
         }
     };
@@ -41,5 +42,6 @@ pub async fn call_child_swarm_to_activate_new_swarm(
         success: result.success,
         message: result.message,
         data: None,
+        status_code: None,
     })
 }

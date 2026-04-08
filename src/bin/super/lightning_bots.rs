@@ -123,6 +123,7 @@ pub async fn get_lightning_bots_details(state: &Super) -> SuperSwarmResponse {
                 success: false,
                 message: format!("Error converting vec to Value: {}", err.to_string()),
                 data: None,
+                status_code: None,
             };
         }
     };
@@ -131,6 +132,7 @@ pub async fn get_lightning_bots_details(state: &Super) -> SuperSwarmResponse {
         success: true,
         message: "lightning details".to_string(),
         data: Some(lightning_bots),
+        status_code: None,
     }
 }
 
@@ -172,6 +174,7 @@ pub async fn change_lightning_bot_label(
             success: false,
             message: "Label cannot be empty".to_string(),
             data: None,
+            status_code: None,
         };
     }
     let bot_pos = &state
@@ -184,6 +187,7 @@ pub async fn change_lightning_bot_label(
             success: false,
             message: "Invalid bot".to_string(),
             data: None,
+            status_code: None,
         };
     }
 
@@ -197,6 +201,7 @@ pub async fn change_lightning_bot_label(
         success: true,
         message: "label updated successfully".to_string(),
         data: None,
+        status_code: None,
     }
 }
 
@@ -214,6 +219,7 @@ pub async fn create_invoice_lightning_bot(
             success: false,
             message: "bot does not exist".to_string(),
             data: None,
+            status_code: None,
         };
     }
 
@@ -231,6 +237,7 @@ pub async fn create_invoice_lightning_bot(
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             };
         }
     };
@@ -244,6 +251,7 @@ pub async fn create_invoice_lightning_bot(
             success: false,
             message: format!("Got unexpected status response {}", invoice_res.status()),
             data: None,
+            status_code: None,
         };
     }
 
@@ -255,6 +263,7 @@ pub async fn create_invoice_lightning_bot(
                 success: false,
                 message: format!("Error converting response to value: {}", err.to_string()),
                 data: None,
+                status_code: None,
             };
         }
     };
@@ -264,6 +273,7 @@ pub async fn create_invoice_lightning_bot(
         success: true,
         message: "invoice created".to_string(),
         data: Some(invoice_details),
+        status_code: None,
     }
 }
 

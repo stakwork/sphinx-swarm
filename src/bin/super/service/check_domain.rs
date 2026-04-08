@@ -23,6 +23,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
             success: false,
             message: "please provide valid domain".to_string(),
             data: None,
+            status_code: None,
         };
     }
     let normalize_domain = domain.to_lowercase();
@@ -43,6 +44,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
                     success: false,
                     message: err.to_string(),
                     data: None,
+                    status_code: None,
                 }
             }
         };
@@ -56,6 +58,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
                     success: false,
                     message: err.to_string(),
                     data: None,
+                    status_code: None,
                 };
             }
         };
@@ -69,6 +72,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
                 success: false,
                 message: err.to_string(),
                 data: None,
+                status_code: None,
             };
         }
     };
@@ -77,6 +81,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
         success: true,
         message: "domain and swarm named checked successfully".to_string(),
         data: Some(json_value),
+        status_code: None,
     }
 }
 

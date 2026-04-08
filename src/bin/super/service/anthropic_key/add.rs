@@ -13,6 +13,7 @@ pub fn handle_add_anthropic_key(
             success: false,
             message: "Anthropic key cannot be an empty string".to_string(),
             data: None,
+            status_code: None,
         };
     }
     if let Some(_anthropic_keys) = &state.anthropic_keys {
@@ -27,5 +28,6 @@ pub fn handle_add_anthropic_key(
         success: true,
         message: "Anthropic key added successfully".to_string(),
         data: None,
+        status_code: None,
     }
 }
