@@ -217,7 +217,7 @@ http
           console.log(pullOut);
           console.log("error:", pullErr);
           // Start stack
-          const composeFile = port_based_ssl ? "second-brain.yml" : "second-brain-2.yml";
+          const composeFile = port_based_ssl ? "second-brain-2.yml" : "second-brain.yml";
           const { stdout: upOut, stderr: upErr } = await exec(
             `docker-compose -f ${composeFile} up sphinx-swarm -d`
           );
