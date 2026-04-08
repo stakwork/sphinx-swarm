@@ -1,6 +1,7 @@
 const http = require("http");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
+const fs = require("fs");
 
 async function yo(_req, res) {
   respond(res, { hi: "hello" });
@@ -168,6 +169,62 @@ http
             error: errMsg.join(","),
           });
         } catch (error) {
+          console.log("error:", e);
+          failure(res, e.message);
+        }
+      }
+      if (url === "/nuke") {
+        const body = await readBody(req);
+        if (body.password !== process.env.PASSWORD) {
+          return failure(res, "wrong password");
+        }
+        // Guard: refuse if swarm is already assigned
+        try {
+          const envContents = fs.readFileSync(
+            "/home/admin/sphinx-swarm/.env",
+            "utf8"
+          );
+          if (envContents.split("\n").some((l) => l.trim() === "SWARM_ASSIGNED=true")) {
+            res.writeHead(401, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "swarm is assigned, nuke not permitted" }));
+            return;
+          }
+        } catch (e) {
+          // .env doesn't exist — proceed
+        }
+        const { env_vars, port_based_ssl } = body;
+        const scripts = [
+          `docker ps -aq | xargs -r docker stop`,
+          `docker ps -aq | xargs -r docker rm`,
+          `docker volume ls -q | xargs -r docker volume rm`,
+          `rm -rf /home/admin/sphinx-swarm/vol/stack`,
+        ];
+        try {
+          for (const sc of scripts) {
+            const { stdout, stderr } = await exec(sc);
+            console.log(stdout);
+            console.log("error:", stderr);
+          }
+          // Overwrite .env entirely
+          const envLines = Object.entries(env_vars || {})
+            .map(([k, v]) => `${k}=${v}`)
+            .join("\n");
+          fs.writeFileSync("/home/admin/sphinx-swarm/.env", envLines + "\n", { flag: "w" });
+          // Pull latest image
+          const { stdout: pullOut, stderr: pullErr } = await exec(
+            `docker pull sphinxlightning/sphinx-swarm:latest`
+          );
+          console.log(pullOut);
+          console.log("error:", pullErr);
+          // Start stack
+          const composeFile = port_based_ssl ? "second-brain-2.yml" : "second-brain.yml";
+          const { stdout: upOut, stderr: upErr } = await exec(
+            `docker-compose -f ${composeFile} up sphinx-swarm -d`
+          );
+          console.log(upOut);
+          console.log("error:", upErr);
+          respond(res, { ok: true });
+        } catch (e) {
           console.log("error:", e);
           failure(res, e.message);
         }
