@@ -80,10 +80,10 @@ pub async fn handle_assign_reserved_swarm(
         old_password = Some(selected_reserved_instance.admin_password.clone());
     }
 
-    if info.vanity_address.is_some() {
-        if let Some(envs_map) = envs.as_mut() {
-            envs_map.insert("HOST".to_string(), info.vanity_address.clone().unwrap());
-        }
+    if let Some(vanity) = &info.vanity_address {
+        let envs_map = envs.get_or_insert_with(HashMap::new);
+        envs_map.insert("HOST".to_string(), vanity.clone());
+        envs_map.insert("NAV_BOLTWALL_SHARED_HOST".to_string(), vanity.clone());
     }
 
     // inject owner pubkey if present
