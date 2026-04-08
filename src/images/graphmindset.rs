@@ -49,7 +49,7 @@ impl DockerHubImage for GraphMindsetImage {
             registry: Registry::DockerHub,
             org: "sphinxlightning".to_string(),
             repo: "graphmindset".to_string(),
-            root_volume: "/app/".to_string(),
+            root_volume: "/data/".to_string(),
         }
     }
 }
