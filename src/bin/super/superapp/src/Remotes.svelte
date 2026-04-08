@@ -41,11 +41,19 @@
     restart_child_swarm_containers,
     update_child_swarm_env,
     get_ec2_cpu_usage,
+    nuke_warm_swarm,
+    nuke_all_warm_swarms,
   } from "../../../../../app/src/api/swarm";
 
   let cpuData: Record<string, number | null> = {};
   let cpuLoading: Record<string, boolean> = {};
   let enable_cloudwatch_alarms = false;
+
+  // Nuke state
+  let nukeConfirmHost = "";
+  let nukeConfirmOpen = false;
+  let nukeAllConfirmOpen = false;
+  let nukeLoading = false;
 
   let open_create_ec2 = false;
   let show_notification = false;
@@ -542,6 +550,46 @@
       errorMessage = true;
     }
   }
+
+  function openNukeConfirm(host: string) {
+    nukeConfirmHost = host;
+    nukeConfirmOpen = true;
+  }
+
+  async function handleNukeWarmSwarm() {
+    nukeConfirmOpen = false;
+    nukeLoading = true;
+    try {
+      const result = await nuke_warm_swarm({ host: nukeConfirmHost });
+      message = result?.message ?? "Nuke triggered";
+      errorMessage = !result?.success;
+      show_notification = true;
+    } catch (error) {
+      message = "Error occurred while nuking swarm";
+      errorMessage = true;
+      show_notification = true;
+    } finally {
+      nukeLoading = false;
+      nukeConfirmHost = "";
+    }
+  }
+
+  async function handleNukeAllWarmSwarms() {
+    nukeAllConfirmOpen = false;
+    nukeLoading = true;
+    try {
+      const result = await nuke_all_warm_swarms();
+      message = result?.message ?? "Nuke all triggered";
+      errorMessage = !result?.success;
+      show_notification = true;
+    } catch (error) {
+      message = "Error occurred while nuking all warm swarms";
+      errorMessage = true;
+      show_notification = true;
+    } finally {
+      nukeLoading = false;
+    }
+  }
 </script>
 
 <main>
@@ -689,7 +737,17 @@
     </DataTable>
   </div>
   <div class="reserved_swarm_cocntainer">
-    <h2>Warm Swarms</h2>
+    <div class="warm_swarms_header">
+      <h2>Warm Swarms</h2>
+      <Button
+        kind="danger"
+        size="sm"
+        disabled={nukeLoading || !$reservedRemotes || $reservedRemotes.length === 0}
+        on:click={() => (nukeAllConfirmOpen = true)}
+      >
+        {nukeLoading ? "Nuking..." : "Nuke All Warm Swarms"}
+      </Button>
+    </div>
     <DataTable
       headers={[
         { key: "host", value: "Host" },
@@ -699,6 +757,7 @@
         { key: "update_env", value: "Update Env" },
         { key: "view", value: "View" },
         { key: "health", value: "Health" },
+        { key: "nuke", value: "Nuke" },
       ]}
       rows={$reservedRemotes.map(reserveRemoteRow)}
       selectable
@@ -729,12 +788,57 @@
           >
             View
           </Button>
+        {:else if cell.key === "nuke"}
+          <Button
+            kind="danger"
+            size="sm"
+            disabled={nukeLoading}
+            on:click={() => openNukeConfirm(row.id)}
+          >
+            Nuke
+          </Button>
         {:else}
           {cell.value}
         {/if}
       </svelte:fragment>
     </DataTable>
   </div>
+
+  <!-- Confirm Nuke Single Warm Swarm -->
+  <Modal
+    bind:open={nukeConfirmOpen}
+    modalHeading="Confirm Nuke"
+    primaryButtonText="Nuke"
+    secondaryButtonText="Cancel"
+    primaryButtonDisabled={nukeLoading}
+    danger
+    on:click:button--secondary={() => (nukeConfirmOpen = false)}
+    on:submit={handleNukeWarmSwarm}
+  >
+    <p>
+      This will fully wipe swarm <strong>{nukeConfirmHost}</strong>. All
+      containers, volumes, and config will be destroyed and re-provisioned. Are
+      you sure?
+    </p>
+  </Modal>
+
+  <!-- Confirm Nuke All Warm Swarms -->
+  <Modal
+    bind:open={nukeAllConfirmOpen}
+    modalHeading="Confirm Nuke All Warm Swarms"
+    primaryButtonText="Nuke All"
+    secondaryButtonText="Cancel"
+    primaryButtonDisabled={nukeLoading}
+    danger
+    on:click:button--secondary={() => (nukeAllConfirmOpen = false)}
+    on:submit={handleNukeAllWarmSwarms}
+  >
+    <p>
+      This will fully wipe <strong>all warm swarms</strong>. All containers,
+      volumes, and config will be destroyed and re-provisioned on each warm
+      instance. Are you sure?
+    </p>
+  </Modal>
   <Modal
     bind:open={open_create_ec2}
     modalHeading="Create New Swarm Ec2 Instance"
@@ -969,6 +1073,12 @@
     gap: 1rem;
     margin-top: 3rem;
     padding: 1rem;
+  }
+
+  .warm_swarms_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .checkbox_container {

@@ -5,9 +5,11 @@ use crate::{
     ec2::get_instances_from_aws_by_swarm_tag_and_return_hash_map,
     put_config_file,
     route53::{add_domain_name_to_route53, delete_multiple_route53_records},
-    service::swarm_reserver::utils::generate_random_secret,
-    state::{self, default_reserved_instances, AvailableInstances},
-    util::{create_ec2_instance, get_instance_ip},
+    service::swarm_reserver::{
+        nuke_warm_swarm::nuke_single_warm_swarm, utils::generate_random_secret,
+    },
+    state::{self, default_reserved_instances, AvailableInstances, RemoteStack},
+    util::{create_ec2_instance, get_child_swarm_image_versions, get_instance_ip},
 };
 pub async fn handle_reserve_swarms() -> Result<()> {
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
@@ -52,6 +54,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
             "No need to reserve more instances at the moment, Amount tp reserver: {}",
             amount_to_reserve
         );
+        check_and_auto_nuke_stale_warm_swarms().await;
         return Ok(());
     }
 
@@ -133,5 +136,85 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         drop(state)
     }
 
+    // After provisioning, check for stale images and auto-nuke
+    check_and_auto_nuke_stale_warm_swarms().await;
+
     Ok(())
+}
+
+async fn check_and_auto_nuke_stale_warm_swarms() {
+    let available: Vec<AvailableInstances> = {
+        let state = state::STATE.lock().await;
+        match &state.reserved_instances {
+            Some(ri) => ri.available_instances.clone(),
+            None => return,
+        }
+    };
+
+    for swarm in &available {
+        // Build a minimal RemoteStack so we can call get_child_swarm_image_versions
+        let remote_stack = RemoteStack {
+            host: swarm.host.clone(),
+            default_host: swarm.default_host.clone(),
+            ec2_instance_id: swarm.instance_id.clone(),
+            user: swarm.user.clone(),
+            pass: swarm.pass.clone(),
+            public_ip_address: swarm.ip_address.clone(),
+            ..Default::default()
+        };
+
+        let image_versions = match get_child_swarm_image_versions(&remote_stack).await {
+            Ok(res) => res,
+            Err(e) => {
+                log::error!(
+                    "Auto-nuke check: failed to get image versions for {}: {}",
+                    swarm.host,
+                    e
+                );
+                continue;
+            }
+        };
+
+        // data is Vec<ImageVersion>; look for sphinx-swarm entry
+        let is_stale = image_versions
+            .data
+            .as_ref()
+            .and_then(|d| {
+                if let serde_json::Value::Array(arr) = d {
+                    arr.iter().find(|v| {
+                        v.get("name")
+                            .and_then(|n| n.as_str())
+                            .map(|n| n.contains("sphinx-swarm"))
+                            .unwrap_or(false)
+                    })
+                    .and_then(|v| v.get("is_latest"))
+                    .and_then(|il| il.as_bool())
+                    .map(|is_latest| !is_latest)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(false);
+
+        if is_stale {
+            log::info!(
+                "Auto-nuke: warm swarm {} is running a stale sphinx-swarm image. Nuking...",
+                swarm.host
+            );
+            let state = state::STATE.lock().await;
+            match nuke_single_warm_swarm(swarm, &state).await {
+                Ok(res) => {
+                    if res.success {
+                        log::info!("Auto-nuke succeeded for {}", swarm.host);
+                    } else {
+                        log::error!("Auto-nuke failed for {}: {}", swarm.host, res.message);
+                    }
+                }
+                Err(e) => {
+                    log::error!("Auto-nuke error for {}: {}", swarm.host, e);
+                }
+            }
+            drop(state);
+        }
+    }
 }

@@ -38,6 +38,9 @@ use crate::service::ssl_cert::handle_renew_cert::{
 };
 use crate::service::ssl_cert::renew_cert_cron::ssl_cert_renewal_cron;
 use crate::service::super_admin_logs::get_super_admin_docker_logs;
+use crate::service::swarm_reserver::nuke_warm_swarm::{
+    nuke_all_warm_swarms, nuke_warm_swarm_by_host,
+};
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
 use crate::service::update_super_admin::update_super_admin;
@@ -576,6 +579,14 @@ pub async fn super_handle(
             }
             SwarmCmd::GetChildSwarmCredentials(req) => {
                 let res = get_child_swarm_credentials(req, &state);
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::NukeWarmSwarm(req) => {
+                let res = nuke_warm_swarm_by_host(&req.host, &state).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::NukeAllWarmSwarms => {
+                let res = nuke_all_warm_swarms(&state).await;
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::GetEc2CpuUtilization(req) => {
