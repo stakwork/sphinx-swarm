@@ -703,8 +703,12 @@ pub async fn handle_assign_reserved_swarm_to_active(
         }
     }
 
-    // Step 4: If HOST changed, update Traefik labels and recreate containers
+    // Step 4: If HOST changed, update stack state and recreate containers
     if let Some(host) = envs.get("HOST") {
+        state.stack.host = Some(host.clone());
+        if let Some(shared) = envs.get("NAV_BOLTWALL_SHARED_HOST") {
+            state.stack.custom_2b_domain = Some(shared.clone());
+        }
         for node in state.stack.nodes.iter_mut() {
             if let Node::Internal(img) = node {
                 img.set_host(host);
