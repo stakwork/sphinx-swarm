@@ -1126,74 +1126,66 @@ pub fn is_valid_domain(domain: String) -> String {
     "".to_string()
 }
 
-pub async fn update_aws_instance_type(
-    details: UpdateInstanceDetails,
-    state: &mut Super,
-) -> Result<(), Error> {
+/// Phase 1: Validate and extract data needed for AWS calls (read lock, fast).
+/// Returns (ec2_instance_id, domain_names) needed for the AWS calls.
+pub fn validate_instance_type_update(
+    details: &UpdateInstanceDetails,
+    state: &Super,
+) -> Result<(String, Vec<String>), Error> {
     if details.instance_id.is_empty() {
         return Err(anyhow!("Please provide a valid instance id"));
     }
-
     if details.instance_type.is_empty() {
         return Err(anyhow!("Please provide a instance type"));
     }
-
     if details.is_reserved.is_some() && details.is_reserved.unwrap() == true {
         return Err(anyhow!("Cannot update reserved instance type"));
     }
-
-    // find instance type
-    let instance_types = instance_types();
-    if let None = instance_types
-        .iter()
-        .position(|instance_type| instance_type.value == details.instance_type)
-    {
+    let itypes = instance_types();
+    if itypes.iter().find(|it| it.value == details.instance_type).is_none() {
         return Err(anyhow!("Invalid instance type"));
     }
-
-    let swarm_pos = state
-        .stacks
-        .iter()
-        .position(|swarm| swarm.ec2_instance_id == details.instance_id);
-
-    if let None = swarm_pos {
-        return Err(anyhow!("Instance does not exist"));
-    }
-    let unwrapped_swarm_pos = swarm_pos.unwrap();
-
-    if let Some(current_instance) = &state.stacks[unwrapped_swarm_pos].ec2 {
-        if details.instance_type == current_instance.to_string() {
+    let swarm = state.stacks.iter()
+        .find(|s| s.ec2_instance_id == details.instance_id)
+        .ok_or_else(|| anyhow!("Instance does not exist"))?;
+    if let Some(current) = &swarm.ec2 {
+        if details.instance_type == current.to_string() {
             return Err(anyhow!("Please select a different instance type"));
         }
     }
-
-    let ec2_instance_id = state.stacks[unwrapped_swarm_pos].ec2_instance_id.clone();
-
-    let client = make_aws_client().await?;
-
-    //update ec2 instance type
-    update_ec2_instance_type(&client, &ec2_instance_id, &details.instance_type).await?;
-
-    // get ec2 instance ip
-    let new_ec2_ip_address = get_instance_ip(&details.instance_id).await?;
-
-    let current_swarm: &RemoteStack = &state.stacks[unwrapped_swarm_pos];
-
-    let defailt_domain = format!("*.{}", current_swarm.default_host.clone());
-
-    let mut domain_names = vec![defailt_domain];
-
-    if current_swarm.default_host.clone() != current_swarm.host {
-        domain_names.push(current_swarm.host.clone());
-        domain_names.push(format!("*.{}", current_swarm.host.clone()));
+    let ec2_id = swarm.ec2_instance_id.clone();
+    let default_domain = format!("*.{}", swarm.default_host);
+    let mut domain_names = vec![default_domain];
+    if swarm.default_host != swarm.host {
+        domain_names.push(swarm.host.clone());
+        domain_names.push(format!("*.{}", swarm.host));
     }
+    Ok((ec2_id, domain_names))
+}
 
-    //update route53 record for both host and default_host
-    let _ = add_domain_name_to_route53(domain_names, &new_ec2_ip_address).await?;
-
-    // update stack with current instance type locally
-    state.stacks[unwrapped_swarm_pos].ec2 = Some(details.instance_type);
+/// Phase 2: Do AWS EC2 modify + Route53 update (no lock needed, slow).
+pub async fn do_instance_type_aws_update(
+    ec2_instance_id: &str,
+    new_instance_type: &str,
+    domain_names: Vec<String>,
+) -> Result<(), Error> {
+    let client = make_aws_client().await?;
+    update_ec2_instance_type(&client, ec2_instance_id, new_instance_type).await?;
+    let new_ip = get_instance_ip(ec2_instance_id).await?;
+    let _ = add_domain_name_to_route53(domain_names, &new_ip).await?;
     Ok(())
+}
+
+/// Phase 3: Apply the instance type change to state (write lock, fast).
+/// Re-finds by ec2_instance_id (not index) to avoid stale-index bugs.
+pub fn apply_instance_type_update(
+    state: &mut Super,
+    ec2_instance_id: &str,
+    new_instance_type: String,
+) {
+    if let Some(swarm) = state.stacks.iter_mut().find(|s| s.ec2_instance_id == ec2_instance_id) {
+        swarm.ec2 = Some(new_instance_type);
+    }
 }
 
 pub async fn stop_ec2_instance(client: &Client, instance_id: &str) -> Result<(), Error> {
@@ -1424,9 +1416,17 @@ fn is_live_ec2_state(state: Option<&str>) -> bool {
     matches!(state, Some("running") | Some("pending"))
 }
 
-pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
-    let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
+/// Phase 1 of GetConfig: fetch AWS instance data (no lock needed).
+pub async fn get_config_aws_data(
+) -> Result<HashMap<String, crate::state::InstanceFromAws>, Error> {
+    get_instances_from_aws_by_swarm_tag_and_return_hash_map().await
+}
 
+/// Phase 2 of GetConfig: update state with AWS data (needs write lock, fast).
+pub fn get_config_update_state(
+    state: &mut Super,
+    aws_instances_hashmap: HashMap<String, crate::state::InstanceFromAws>,
+) -> Result<Super, Error> {
     let mut domains_to_delete: Vec<Vec<String>> = Vec::new();
     let mut running_stacks: Vec<RemoteStack> = Vec::new();
     let mut stopped_stacks: Vec<RemoteStack> = Vec::new();

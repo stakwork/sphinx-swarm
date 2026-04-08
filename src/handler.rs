@@ -97,8 +97,8 @@ pub async fn handle(
         Cmd::Swarm(c) => handle_swarm_cmd(proj, c, tag, docker, user_id).await?,
         Cmd::Relay(c) => handle_relay_cmd(proj, c, tag).await?,
         Cmd::Bitcoind(c) => handle_bitcoind_cmd(c, tag).await?,
-        Cmd::Lnd(c) => handle_lnd_cmd(c, tag).await?,
-        Cmd::Cln(c) => handle_cln_cmd(c, tag).await?,
+        Cmd::Lnd(c) => handle_lnd_cmd(proj, c, tag).await?,
+        Cmd::Cln(c) => handle_cln_cmd(proj, c, tag).await?,
         Cmd::Proxy(c) => handle_proxy_cmd(c, tag).await?,
         Cmd::Hsmd(c) => handle_hsmd_cmd(c, tag).await?,
     };
@@ -948,7 +948,7 @@ async fn handle_bitcoind_cmd(c: BitcoindCmd, tag: &str) -> Result<String> {
 
 // ── LND commands ────────────────────────────────────────────────────────────
 
-async fn handle_lnd_cmd(c: LndCmd, tag: &str) -> Result<String> {
+async fn handle_lnd_cmd(proj: &str, c: LndCmd, tag: &str) -> Result<String> {
     let lnd_arc = {
         let clients = CLIENTS.read().await;
         clients.lnd.get(tag).context("no lnd client")?.clone()
@@ -976,10 +976,9 @@ async fn handle_lnd_cmd(c: LndCmd, tag: &str) -> Result<String> {
                         },
                         &mut must_save,
                     );
-                    // Note: no proj available here to save config inline;
-                    // the must_save flag is consumed but config save would
-                    // need the proj param which is not passed to handle_lnd_cmd.
-                    // For now we skip persisting here — the peer is saved in memory.
+                    if must_save {
+                        config::put_config_file(proj, &stack).await;
+                    }
                 }
                 let result = client.add_peer(peer).await?;
                 Ok(serde_json::to_string(&result)?)
@@ -1035,7 +1034,7 @@ async fn handle_lnd_cmd(c: LndCmd, tag: &str) -> Result<String> {
 
 // ── CLN commands ────────────────────────────────────────────────────────────
 
-async fn handle_cln_cmd(c: ClnCmd, tag: &str) -> Result<String> {
+async fn handle_cln_cmd(proj: &str, c: ClnCmd, tag: &str) -> Result<String> {
     let mut client = {
         let clients = CLIENTS.read().await;
         clients.cln.get(tag).context("no cln client")?.clone()
@@ -1084,7 +1083,9 @@ async fn handle_cln_cmd(c: ClnCmd, tag: &str) -> Result<String> {
                         },
                         &mut must_save,
                     );
-                    // Same note as LND AddPeer: no proj param to persist config
+                    if must_save {
+                        config::put_config_file(proj, &stack).await;
+                    }
                 }
                 // Re-clone client since we dropped and re-acquired
                 let mut client = {

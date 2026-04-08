@@ -22,8 +22,9 @@ use state::Super;
 use util::{
     accessing_child_container_controller, add_new_swarm_details, add_new_swarm_from_child_swarm,
     get_aws_instance_types, get_child_swarm_config, get_child_swarm_containers,
-    get_child_swarm_credentials, get_child_swarm_image_versions, get_config,
-    get_swarm_instance_type, update_aws_instance_type, update_swarm_child_password,
+    get_child_swarm_credentials, get_child_swarm_image_versions, get_config_aws_data,
+    get_config_update_state, get_swarm_instance_type, update_swarm_child_password,
+    validate_instance_type_update, do_instance_type_aws_update, apply_instance_type_update,
 };
 
 use crate::checker::swarm_checker;
@@ -31,7 +32,9 @@ use crate::cmd::SuperRestarterResponse;
 use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
 use crate::service::child_swarm::update_env::update_child_swarm_env;
-use crate::service::child_swarm::update_public_ip::handle_update_child_swarm_public_ip;
+use crate::service::child_swarm::update_public_ip::{
+    apply_public_ip_update, get_public_ip_route53_info,
+};
 use crate::service::log_group_migration::migrate_log_group_tags;
 use crate::service::ssl_cert::handle_renew_cert::{
     handle_get_ssl_cert_expiry, renew_cert, upload_cert_to_s3,
@@ -41,6 +44,7 @@ use crate::service::super_admin_logs::get_super_admin_docker_logs;
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
 use crate::service::update_super_admin::update_super_admin;
+use crate::route53::add_domain_name_to_route53;
 use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
 use rocket::tokio;
@@ -192,8 +196,11 @@ pub async fn super_handle(
             // Fast reads — brief read lock, return immediately
             // =============================================================
             SwarmCmd::GetConfig => {
+                // Phase 1: AWS call with NO lock held
+                let aws_data = get_config_aws_data().await?;
+                // Phase 2: brief write lock to update state with AWS data
                 let mut state = state::STATE.write().await;
-                let res = get_config(&mut state).await?;
+                let res = get_config_update_state(&mut state, aws_data)?;
                 put_config_file(proj, &state).await;
                 serde_json::to_string(&res)?
             }
@@ -317,10 +324,30 @@ pub async fn super_handle(
                 serde_json::to_string(&res)?
             }
             SwarmCmd::UpdateChildSwarmPublicIp(info) => {
+                // Extract swarm info, determine if Route53 update is needed
+                let route53_update = {
+                    let state = state::STATE.read().await;
+                    get_public_ip_route53_info(&state, &info)
+                }; // read lock dropped
+
+                // Do Route53 call (if needed) with NO lock held
+                if let Some(ref r53) = route53_update {
+                    if let Err(err) = add_domain_name_to_route53(r53.domains.clone(), &info.public_ip).await {
+                        let message = format!("Failed to update Route53 record: {}", err);
+                        log::error!("{}", message);
+                        let res = SuperSwarmResponse {
+                            success: false, message, data: None,
+                        };
+                        return Ok(serde_json::to_string(&res)?);
+                    }
+                }
+
+                // Brief write lock to update state
                 let mut state = state::STATE.write().await;
-                let mut must_save = false;
-                let res = handle_update_child_swarm_public_ip(&mut state, &mut must_save, info).await;
-                if must_save { put_config_file(proj, &state).await; }
+                let res = apply_public_ip_update(&mut state, &info);
+                if res.success {
+                    put_config_file(proj, &state).await;
+                }
                 serde_json::to_string(&res)?
             }
 
@@ -583,13 +610,13 @@ pub async fn super_handle(
             // Read lock briefly, drop, do AWS work (minutes), write lock to save
             // =============================================================
             SwarmCmd::CreateNewEc2Instance(info) => {
-                // This still calls create_swarm_ec2 which takes &mut Super.
-                // For now, we use a write lock but this is the function that
-                // needs phase-splitting (extract data, drop, AWS work, re-acquire).
-                // Even without splitting create_swarm_ec2 internally, other
-                // commands (GetConfig, etc.) now use read locks and won't be
-                // blocked by each other. Only CreateNewEc2Instance itself
-                // blocks other write-lock commands.
+                // NOTE: create_swarm_ec2 still takes &mut Super and holds
+                // the write lock during the entire EC2 provisioning (including
+                // a 40s sleep). Splitting this function into phases requires
+                // refactoring create_swarm_ec2 itself, which is complex due to
+                // the handle_assign_reserved_swarm path. Read commands (GetConfig,
+                // etc.) no longer block behind this since they use read locks,
+                // but other write commands will wait.
                 let mut state = state::STATE.write().await;
                 let res = match create_swarm_ec2(&info, &mut state).await {
                     Ok(data) => {
@@ -609,17 +636,22 @@ pub async fn super_handle(
                 serde_json::to_string(&res)?
             }
             SwarmCmd::UpdateAwsInstanceType(info) => {
+                // Phase 1: validate + extract under read lock
+                let (ec2_id, domain_names) = {
+                    let state = state::STATE.read().await;
+                    validate_instance_type_update(&info, &state)?
+                }; // read lock dropped
+
+                // Phase 2: AWS calls with NO lock held
+                do_instance_type_aws_update(&ec2_id, &info.instance_type, domain_names).await?;
+
+                // Phase 3: brief write lock — re-finds by ec2_id (not stale index)
                 let mut state = state::STATE.write().await;
-                let res = match update_aws_instance_type(info, &mut state).await {
-                    Ok(_) => {
-                        put_config_file(proj, &state).await;
-                        SuperSwarmResponse {
-                            success: true, message: "Instance updated successfully".to_string(), data: None,
-                        }
-                    }
-                    Err(err) => SuperSwarmResponse {
-                        success: false, message: err.to_string(), data: None,
-                    },
+                apply_instance_type_update(&mut state, &ec2_id, info.instance_type.clone());
+                put_config_file(proj, &state).await;
+
+                let res = SuperSwarmResponse {
+                    success: true, message: "Instance updated successfully".to_string(), data: None,
                 };
                 serde_json::to_string(&res)?
             }
