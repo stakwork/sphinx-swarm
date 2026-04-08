@@ -10,6 +10,7 @@ use crate::{
         AssignSwarmNewDetails, BotBalanceRes, ChangeUserPasswordBySuperAdminInfo,
         GetDockerImageTagsDetails, UpdateEnvRequest,
     },
+    config,
     config::{LightningPeer, Node, State},
     conn::boltwall::add_admin_pubkey,
     dock::{restart_node_container, stop_and_remove},
@@ -703,7 +704,8 @@ pub async fn handle_assign_reserved_swarm_to_active(
         }
     }
 
-    // Step 4: If HOST changed, update stack state and recreate containers
+    // Step 4: If HOST changed, recreate services with new Traefik labels,
+    // then restart the swarm container so it picks up the new domain.
     if let Some(host) = envs.get("HOST") {
         state.stack.host = Some(host.clone());
         if let Some(shared) = envs.get("NAV_BOLTWALL_SHARED_HOST") {
@@ -730,6 +732,13 @@ pub async fn handle_assign_reserved_swarm_to_active(
                     error_messages.push(format!("could not restart {}: {}", name, e));
                 }
             }
+        }
+        // restart the swarm container itself so it boots with the new HOST
+        *must_save_stack = true;
+        config::put_config_file(proj, &state.stack).await;
+        match update_swarm().await {
+            Ok(_) => log::info!("swarm restart triggered for HOST change"),
+            Err(e) => error_messages.push(format!("update_swarm failed: {}", e)),
         }
     }
 
