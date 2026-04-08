@@ -74,6 +74,7 @@ export const allNodeTypes: NodeType[] = [
   "Neo4j",
   "Elastic",
   "NavFiber",
+  "GraphMindset",
   "Jarvis",
   "Bot",
 ];
@@ -88,6 +89,7 @@ export const upgradableNodes: NodeType[] = [
   "Jarvis",
   "BoltWall",
   "Bot",
+  "GraphMindset",
 ];
 
 type Place = "Internal" | "External";
