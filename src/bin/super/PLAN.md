@@ -4,16 +4,72 @@
 
 All super admin commands flow through a single `mpsc` channel processed by `spawn_super_handler`, which runs one command at a time. The global `Mutex<Super>` state is held for the **entire duration** of every command — including multi-minute AWS API calls and a hardcoded 40-second sleep.
 
-When `CreateNewEc2Instance` is running, every other command (including `GetConfig` on page load) queues up and never gets a response. The UI hangs with a loading spinner.
+When `CreateNewEc2Instance` is running, every other command (including `GetConfig` on page load, `check-domain` on the frontend) queues up and never gets a response. The UI hangs with a loading spinner.
 
 If 3 people create swarms simultaneously, the last person waits ~6+ minutes (3x the provisioning time).
 
-## Solution Overview
+## Core Principle
 
-1. **Remove the `mpsc` channel** — routes call `super_handle()` directly
-2. **Replace `Mutex<Super>` with `RwLock<Super>`** — multiple readers proceed in parallel
-3. **Split slow commands into phases** — brief lock → drop → slow I/O → brief lock
-4. **Split `create_swarm_ec2` specifically** — the biggest bottleneck
+Treat state like a database. Short-lived reads and writes — never hold a lock during I/O.
+
+```rust
+// CURRENT: hold the lock for the entire command (minutes)
+let mut state = STATE.lock().await;
+do_aws_stuff(&mut state).await;   // lock held during slow I/O
+state.save();
+
+// NEW: brief lock → slow work → brief lock
+let info = STATE.read(|s| s.get_host("swarm-1").clone());  // milliseconds
+let result = do_aws_stuff(info).await;                       // no lock, takes as long as it wants
+STATE.write(|s| s.set_result("swarm-1", result));            // milliseconds
+```
+
+Every command follows this pattern. No exceptions. The only question per command is whether it needs a read, a write, or a read-then-work-then-write.
+
+## State Access Helpers
+
+Add these to `state.rs` to make the pattern easy to use everywhere:
+
+```rust
+use rocket::tokio::sync::RwLock;
+
+pub static STATE: Lazy<RwLock<Super>> = Lazy::new(|| RwLock::new(Default::default()));
+
+/// Read something from state. Lock held only for the duration of `f`.
+pub async fn state_read<F, T>(f: F) -> T
+where
+    F: FnOnce(&Super) -> T,
+{
+    let state = STATE.read().await;
+    f(&state)
+}
+
+/// Mutate state and save to disk. Lock held only for the duration of `f`.
+pub async fn state_write<F, T>(proj: &str, f: F) -> T
+where
+    F: FnOnce(&mut Super) -> T,
+{
+    let mut state = STATE.write().await;
+    let result = f(&mut state);
+    put_config_file(proj, &state).await;
+    result
+}
+```
+
+Now every command is trivially correct:
+
+```rust
+// Read: multiple readers in parallel, no blocking
+let host = state_read(|s| s.find_swarm_by_host("x").cloned()).await;
+
+// Write: brief exclusive lock, auto-saves
+state_write(proj, |s| s.stacks.push(new_swarm)).await;
+
+// Atomic claim: take a resource so no one else can
+let key = state_write(proj, |s| {
+    s.anthropic_keys.as_mut().and_then(|k| if k.len() > 1 { Some(k.remove(0)) } else { None })
+}).await;
+```
 
 ## Architecture Change
 
@@ -26,90 +82,199 @@ HTTP request → mpsc channel → single handler loop → STATE.lock() (held ent
 ### After
 
 ```
-HTTP request → tokio::spawn(super_handle()) → per-command STATE.read()/write() → response
+HTTP request → tokio::spawn(super_handle()) → state_read()/state_write() as needed → response
 ```
 
-## RwLock Rules
+## Command Patterns
 
-- `STATE.read()` — shared, multiple readers run simultaneously
-- `STATE.write()` — exclusive, blocks everyone until dropped
-- Readers wait for writers; writers wait for all readers + other writers
-- **Goal**: hold write locks for milliseconds (state mutation + YAML save), never during I/O
+Every command falls into one of these patterns:
+
+### Pattern 1: Read and return
+
+```rust
+let result = state_read(|s| s.get_thing().clone()).await;
+Ok(serde_json::to_string(&result)?)
+```
+
+Commands: `GetInstanceType`, `GetAnthropicKey`, `GetChildSwarmCredentials`, `GetAwsInstanceTypes` (no lock needed at all)
+
+### Pattern 2: Mutate and return
+
+```rust
+state_write(proj, |s| s.add_swarm(info)).await;
+Ok(ok_string())
+```
+
+Commands: `AddNewSwarm`, `UpdateSwarm`, `DeleteSwarm`, `SetChildSwarm`, `AddAnthropicKey`, `ChangeLightningBotLabel`
+
+### Pattern 3: Read state, do I/O, return (no write needed)
+
+```rust
+let (host, creds) = state_read(|s| {
+    let sw = s.find_swarm_by_host(&id.host);
+    (sw.host.clone(), sw.credentials.clone())
+}).await;
+let result = http_call(&host, &creds).await?;
+Ok(serde_json::to_string(&result)?)
+```
+
+Commands: `GetChildSwarmConfig`, `GetChildSwarmContainers`, `Stop/Start/Restart/UpdateChildSwarmContainers`, `GetSwarmChildImageVersions`, `ChangeChildSwarmPassword`, `GetLightningBotsDetails`, `CreateInvoiceForLightningBot`, `UpdateChildSwarmEnv`
+
+### Pattern 4: No state needed (pure external I/O)
+
+```rust
+let result = aws_call(instance_id).await?;
+Ok(serde_json::to_string(&result)?)
+```
+
+Commands: `StopEc2Instance`, `GetSuperAdminLogs`, `RestartSuperAdmin`, `GetSslCertExpiry`, `RenewSslCert`, `UploadSSlCert`, `GetEc2CpuUtilization`
+
+### Pattern 5: Read state, do I/O, write result back
+
+```rust
+// read what we need (milliseconds)
+let info = state_read(|s| s.get_swarm_info(&id)).await;
+// slow work (seconds/minutes, no lock)
+let result = aws_call(info).await?;
+// write result back (milliseconds, operates on CURRENT state)
+state_write(proj, |s| {
+    if let Some(sw) = s.find_swarm_mut(&id) {
+        sw.apply_result(result);
+    }
+}).await;
+```
+
+Commands: `GetConfig`, `UpdateAwsInstanceType`, `UpdateChildSwarmPublicIp`
+
+### Pattern 6: Claim resources, do I/O, write result (with rollback)
+
+This is only for `CreateNewEc2Instance` — the one command that needs to reserve shared resources (anthropic key, daily limit slot) before doing slow work.
+
+```rust
+// 1. Claim resources atomically (milliseconds)
+let claimed = state_write(proj, |s| {
+    if s.ec2_limit_exceeded() { return Err("daily limit") }
+    let key = s.anthropic_keys.as_mut()
+        .and_then(|k| if k.len() > 1 { Some(k.remove(0)) } else { None });
+    s.ec2_limit.count += 1;
+    Ok(ClaimedResources { key, .. })
+}).await?;
+
+// 2. Slow work — no lock (minutes)
+let result = create_ec2_and_setup(claimed).await;
+
+// 3a. On success: save the new swarm (milliseconds)
+if let Ok(new_swarm) = result {
+    state_write(proj, |s| s.add_remote_stack(new_swarm)).await;
+}
+// 3b. On failure: return claimed resources (milliseconds)
+if let Err(e) = result {
+    state_write(proj, |s| {
+        if let Some(key) = claimed.key {
+            s.anthropic_keys.as_mut().map(|k| k.insert(0, key));
+        }
+        s.ec2_limit.count -= 1;
+    }).await;
+    return Err(e);
+}
+```
+
+### Login/password (bcrypt outside lock)
+
+```rust
+// Login: read hash, verify outside lock
+let hash = state_read(|s| s.get_user_hash(username).cloned()).await;
+let valid = bcrypt::verify(password, &hash)?;  // CPU-intensive, no lock
+
+// ChangePassword: read hash, verify+hash outside, write new hash
+let hash = state_read(|s| s.get_user_hash(username).cloned()).await;
+bcrypt::verify(old_password, &hash)?;
+let new_hash = bcrypt::hash(new_password)?;
+state_write(proj, |s| s.set_user_hash(username, new_hash)).await;
+```
+
+## Safety Rules
+
+These prevent subtle concurrency bugs. All enforced naturally by the `state_read`/`state_write` helpers.
+
+### 1. Never use stale array indexes across lock boundaries
+
+The current code uses `.position()` + `stacks[pos]` extensively (28 index accesses, 18 position lookups). This is safe today because the lock is held the whole time. After the refactoring, any function that gets split — where the position is found in one lock scope and used in a later lock scope — must switch to ID-based lookup in the write phase.
+
+**Within a single `state_read`/`state_write` closure**, index access is fine — the lock is held, nothing can shift. The danger is only across closure boundaries.
+
+Specific functions that need this fix during splitting:
+- `update_aws_instance_type` (`util.rs`) — uses `unwrapped_swarm_pos` index across what will become separate lock scopes
+- `update_child_swarm_public_ip` (`service/child_swarm/update_public_ip.rs`) — uses `swarm_pos` index
+- `create_swarm_ec2` (`util.rs`) — uses `swarm_pos` in `update_swarm`
+- `UpdateSwarm` handler (`mod.rs:256`) — uses position to index into `stacks[ui]`
+
+```rust
+// BAD: index may shift between read and write
+let pos = state_read(|s| s.stacks.iter().position(|s| s.host == host)).await;
+state_write(proj, |s| s.stacks[pos].field = value).await; // pos might be wrong!
+
+// GOOD: re-find by stable identifier in the write closure
+state_write(proj, |s| {
+    if let Some(sw) = s.stacks.iter_mut().find(|s| s.ec2_instance_id == id) {
+        sw.field = value;
+    }
+}).await;
+```
+
+### 2. Claim resources atomically, don't just read them
+
+```rust
+// BAD: two commands read the same key
+let key = state_read(|s| s.anthropic_keys[0].clone()).await;
+
+// GOOD: claim (remove) under write
+let key = state_write(proj, |s| s.anthropic_keys.as_mut()
+    .and_then(|k| if k.len() > 1 { Some(k.remove(0)) } else { None })
+).await;
+```
+
+### 3. Never snapshot-then-replace
+
+```rust
+// BAD: overwrites all concurrent changes
+let mut snapshot = state_read(|s| s.clone()).await;
+snapshot.stacks.push(new_swarm);
+state_write(proj, |s| *s = snapshot).await; // clobbers everything since the read!
+
+// GOOD: mutate specific fields on current state
+state_write(proj, |s| s.stacks.push(new_swarm)).await;
+```
+
+### 4. Rollbacks should be idempotent
+
+Don't assume state hasn't changed — "remove key X if present" not "insert key at position 0".
 
 ## File Changes
 
-### 1. `state.rs` — Change Mutex to RwLock
+### 1. `state.rs` — RwLock + helpers
 
-```rust
-// Before
-pub static STATE: Lazy<Mutex<Super>> = Lazy::new(|| Mutex::new(Default::default()));
-
-// After
-pub static STATE: Lazy<RwLock<Super>> = Lazy::new(|| RwLock::new(Default::default()));
-```
-
-Update `hydrate()` from `.lock()` to `.write()`.
+- Change `Mutex<Super>` to `RwLock<Super>`
+- Add `state_read()` and `state_write()` helpers
+- Update `hydrate()` from `.lock()` to `.write()`
 
 ### 2. `mod.rs` — Remove channel, rewrite `super_handle()`
 
 **Remove:**
-
 - `spawn_super_handler()` function
 - `mpsc::channel::<CmdRequest>` creation
 - Passing `tx` to `launch_rocket`
 
-**Rewrite `super_handle()`** with per-command locking. Each command arm acquires its own lock(s):
+**Rewrite `super_handle()`**: Remove the single `STATE.lock()` at the top. Each match arm uses `state_read`/`state_write` as needed per the patterns above.
 
-#### Command Categories
+**`access()` check**: Currently reads `state.users` from the already-locked state. After the refactoring, this needs a brief `state_read` at the top of `super_handle()` before dispatching to the command:
 
-**Pure reads (brief `STATE.read()`):**
+```rust
+let allowed = state_read(|s| access(&cmd, s, user_id)).await;
+if !allowed { return Err(anyhow!("access denied")); }
+```
 
-- `GetAwsInstanceTypes` — no lock needed at all
-- `GetInstanceType` — read lock, return
-- `GetAnthropicKey` — read lock, return
-- `GetChildSwarmCredentials` — read lock, return
-
-**Fast writes (brief `STATE.write()`, mutate, save, return):**
-
-- `AddNewSwarm`
-- `UpdateSwarm`
-- `DeleteSwarm`
-- `SetChildSwarm`
-- `AddAnthropicKey`
-- `ChangeLightningBotLabel`
-
-**Login/password (bcrypt outside lock):**
-
-- `Login` — read lock to clone user hash, drop, bcrypt verify (no lock)
-- `ChangePassword` — read lock to get hash, drop, bcrypt verify+hash (no lock), write lock to save new hash
-
-**Read state then HTTP (read lock briefly, drop, HTTP):**
-
-- `GetChildSwarmConfig` — read lock to `find_swarm_by_host()`, drop, HTTP to child
-- `GetChildSwarmContainers` — same pattern
-- `Stop/Start/Restart/UpdateChildSwarmContainers` — same pattern
-- `GetSwarmChildImageVersions` — same pattern
-- `ChangeChildSwarmPassword` — same pattern
-- `GetLightningBotsDetails` — same pattern
-- `CreateInvoiceForLightningBot` — same pattern
-- `UpdateChildSwarmEnv` — same pattern
-
-**No lock needed (pure external I/O):**
-
-- `StopEc2Instance` — AWS call only
-- `GetSuperAdminLogs` — Docker logs only
-- `RestartSuperAdmin` — HTTP call only
-- `GetSslCertExpiry` — cert check only
-- `RenewSslCert` — cert renewal only
-- `UploadSSlCert` — S3 upload only
-- `GetEc2CpuUtilization` — CloudWatch only
-
-**Phase-split commands (see detailed sections below):**
-
-- `GetConfig` — AWS call outside lock, write lock to update
-- `CreateNewEc2Instance` — most complex, see dedicated section
-- `UpdateAwsInstanceType` — validate under read lock, AWS outside, write lock to apply
-- `UpdateChildSwarmPublicIp` — read info, Route53 outside lock, write to save
+**`must_save_stack` pattern**: Currently a boolean flag checked at the end of `super_handle()` to decide whether to call `put_config_file`. This goes away — `state_write()` auto-saves, so commands that mutate state just use `state_write` and the save happens inline.
 
 ### 3. `routes.rs` — Remove channel, call `super_handle()` directly
 
@@ -122,229 +287,58 @@ match super_handle(&proj.0, cmd, tag, &Some(claims.user)).await {
 }
 ```
 
-Create super-specific `login` and `update_password` routes (don't share stack binary's routes, which call the stack handler).
+Create super-specific `login` and `update_password` routes. The shared versions in `src/routes.rs` use `mpsc::Sender<CmdRequest>` and are still used by every other binary (stack, tome, cln, v1, demo) — do NOT modify them. Copy the route signatures into super's `routes.rs` and rewrite them to call `super_handle()` directly. Stop importing `login` and `update_password` from `sphinx_swarm::routes`.
+
+Keep importing `all_options`, `events`, `logs`, `logstream`, `refresh_jwt` from `sphinx_swarm::routes` — these don't use the channel.
 
 Pass project name (`String`) as Rocket managed state instead of the channel sender.
 
-### 4. External STATE consumers — change `.lock()` to `.read()/.write()`
+### 4. `rocket_utils.rs` — Stop importing `CmdRequest` (do NOT delete it)
 
-| File                              | Lock type                           | Reason                                   |
-| --------------------------------- | ----------------------------------- | ---------------------------------------- |
-| `checker.rs` (2 calls)            | `.read()`                           | Read-only — gets hosts, sends messages   |
-| `service/check_domain.rs`         | `.read()`                           | Read-only — checks domain existence      |
-| `service/log_group_migration.rs`  | `.read()`                           | Read-only — reads instance IDs           |
-| `util.rs:get_swarm_details_by_id` | Phase-split: `.read()` → drop → HTTP | Holds lock across HTTP call to child swarm (`handle_get_swarm_details_by_default_id`). Needs split: read lock to extract host/credentials, drop, then HTTP call outside lock. |
-| `reserve_swarm.rs` (3 calls)      | `.write()` / `.read()` / `.write()` | Already has good phase-splitting pattern |
+`CmdRequest` in `src/rocket_utils.rs` is used by every other binary (stack, tome, cln, v1, demo) and the shared `src/routes.rs`. Do not modify it. Super simply stops importing it.
 
-### 5. `rocket_utils.rs` — Remove `CmdRequest`
+### 5. External STATE consumers — use `state_read`/`state_write`
 
-Delete the `CmdRequest` struct and its `new()` method. Keep `CORS`, `Error`, `Result`.
+| File                              | Change                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `checker.rs` (2 calls)            | `state_read()` — already drops lock early, just switch to helper                                             |
+| `service/check_domain.rs`         | `state_read()` — read-only                                                                                   |
+| `service/log_group_migration.rs`  | `state_read()` — read-only                                                                                   |
+| `util.rs:get_swarm_details_by_id` | Split: `state_read()` to get host/creds, drop, HTTP call outside, return. Currently holds lock across HTTP.  |
+| `reserve_swarm.rs` (3 calls)      | Already has good split pattern — just switch `.lock()` to `state_read()`/`state_write()`                     |
 
-## Phase-Split Command Details
+## Functions That Need Splitting
 
-### GetConfig
+These functions currently take `&mut Super` and do I/O. They need to be broken into "extract info" + "do I/O" + "write result" parts:
 
-**Current problem**: `get_config()` calls AWS DescribeInstances while holding write lock.
+| Function                       | Current signature            | What to split out                                                  |
+| ------------------------------ | ---------------------------- | ------------------------------------------------------------------ |
+| `get_config`                   | `&mut Super`                 | AWS `DescribeInstances` call → `get_config_aws_data()` (no state)  |
+| `create_swarm_ec2`             | `&CreateEc2InstanceInfo, &mut Super` | All AWS/HTTP calls → separate functions taking extracted info |
+| `update_aws_instance_type`     | `&mut Super`                 | EC2 modify + Route53 calls → `do_instance_type_aws_update()`       |
+| `update_child_swarm_public_ip` | `&mut Super`                 | Route53 call → separate function                                   |
+| `handle_assign_reserved_swarm` | `&mut Super`                 | HTTP calls to child swarm → separate function                      |
+| `get_swarm_details_by_id`      | (locks STATE internally)     | HTTP call to child swarm → separate function                       |
 
-**Split:**
+## Implementation Order
 
-```
-Phase 1 (no lock):     get_config_aws_data() — AWS API call
-Phase 2 (write lock):  get_config_update_state(&mut state, aws_data) — fast state rebuild
-                        put_config_file()
-```
-
-The `get_config` function needs splitting into two functions:
-
-- `get_config_aws_data()` — returns the AWS instance HashMap
-- `get_config_update_state(state, aws_data)` — processes stacks against AWS data, updates state
-
-### UpdateAwsInstanceType
-
-**Split:**
-
-```
-Phase 1 (read lock):   validate_instance_type_update() — validate inputs, extract ec2_id + domains
-Phase 2 (no lock):     do_instance_type_aws_update() — EC2 modify + Route53
-Phase 3 (write lock):  apply_instance_type_update() — set new instance type, save
-```
-
-**IMPORTANT**: Phase 3 must find the swarm by `ec2_instance_id`, NOT by array index. The index may have changed between phases if another command added/removed swarms.
-
-### UpdateChildSwarmPublicIp
-
-**Split:**
-
-```
-Phase 1 (read lock):   get_public_ip_route53_info() — determine if Route53 update needed
-Phase 2 (no lock):     add_domain_name_to_route53() if needed
-Phase 3 (write lock):  apply_public_ip_update() — set new IP, save
-```
-
-Phase 3 finds by `swarm.id`, not index. Safe.
-
-### CreateNewEc2Instance (THE BIG ONE)
-
-**Current problem**: Holds write lock for entire duration — daily limit check, vanity address validation (Route53), instance name check (AWS), reserved swarm path (HTTP), EC2 creation, 40-second sleep, Route53 DNS setup, state mutation. Total: 1-3 minutes.
-
-**Split into phases:**
-
-```
-Phase 1 — Claim resources (brief write lock):
-  - Check/increment daily limit (MUST be atomic — claim, don't just read)
-  - Remove anthropic_key[0] from pool (claim it, don't just clone it)
-  - Clone reserved_instances info for later use
-  - Clone reserved_domains for vanity validation
-  - Save config (limit incremented, key removed)
-  - Drop lock
-
-  If daily limit exceeded → return error (no resources claimed)
-
-Phase 2 — Validate (no lock):
-  - Validate instance type
-  - Check vanity address format
-  - Check vanity address in Route53 (AWS call)
-  - Check instance name doesn't exist (AWS call)
-
-  If validation fails → need to UNDO resource claims:
-    - Write lock → re-add anthropic key, decrement daily limit → save → drop
-
-Phase 3 — Try reserved swarm path (no lock):
-  - If reserved swarm available, call handle_assign_reserved_swarm_no_lock()
-  - This needs its own splitting (see below)
-  - If reserved path fails, continue to Phase 4
-
-Phase 4 — Create EC2 (no lock, THE SLOW PART):
-  - create_ec2_instance() — AWS API
-  - sleep(40s)
-  - get_instance_ip() — AWS API
-  - add_domain_name_to_route53() — AWS API
-
-Phase 5 — Save result (brief write lock):
-  - Build RemoteStack from EC2 result
-  - state.add_remote_stack(new_swarm)
-  - Save config
-  - Drop lock
-```
-
-**Key insight for Phase 1**: Resources (daily limit slot, anthropic key) must be **claimed** (removed from pool) under the write lock, not just read. This prevents two concurrent commands from claiming the same resource. If the command fails later, we undo the claim.
-
-**Splitting `handle_assign_reserved_swarm`:**
-
-This function currently takes `&mut Super` and does HTTP to the reserved swarm instance. It needs the same treatment:
-
-```
-Phase 3a (no lock): Read reserved instance info (already cloned in Phase 1)
-Phase 3b (no lock): HTTP to child swarm (update password, set env vars)
-Phase 3c (write lock): Remove instance from reserved pool, add to stacks, save
-```
-
-### Error handling and rollback
-
-When a command claims resources in Phase 1 but fails in Phase 2-4:
-
-```rust
-// Phase 1: claim resources
-let (anthropic_key, ..) = {
-    let mut state = STATE.write().await;
-    let key = state.anthropic_keys.as_mut()
-        .and_then(|keys| if keys.len() > 1 { Some(keys.remove(0)) } else { None });
-    state.ec2_limit.count += 1;
-    put_config_file(proj, &state).await;
-    (key, ..)
-}; // lock dropped
-
-// Phase 2-4: slow work
-let result = do_ec2_creation(..).await;
-
-if result.is_err() {
-    // Rollback: return claimed resources
-    let mut state = STATE.write().await;
-    if let Some(key) = anthropic_key {
-        state.anthropic_keys.as_mut().map(|keys| keys.insert(0, key));
-    }
-    state.ec2_limit.count -= 1;
-    put_config_file(proj, &state).await;
-    return Err(result.unwrap_err());
-}
-
-// Phase 5: save result
-let mut state = STATE.write().await;
-state.add_remote_stack(..);
-put_config_file(proj, &state).await;
-```
-
-## Critical Rules for Phase-Split Commands
-
-### 1. Never use stale array indexes across lock boundaries
-
-```rust
-// BAD: index may shift if another command adds/removes items
-let pos = { let s = STATE.read().await; s.stacks.iter().position(|s| s.host == host) };
-// ... slow work ...
-let mut s = STATE.write().await;
-s.stacks[pos].field = value; // pos might be wrong now!
-
-// GOOD: re-find by stable identifier
-let mut s = STATE.write().await;
-if let Some(swarm) = s.stacks.iter_mut().find(|s| s.ec2_instance_id == id) {
-    swarm.field = value;
-}
-```
-
-### 2. Claim resources atomically, don't just read them
-
-```rust
-// BAD: two commands read the same key
-let key = { let s = STATE.read().await; s.anthropic_keys[0].clone() };
-// Both commands now have the same key!
-
-// GOOD: claim (remove) under write lock
-let key = {
-    let mut s = STATE.write().await;
-    s.anthropic_keys.as_mut().and_then(|k| if k.len() > 1 { Some(k.remove(0)) } else { None })
-};
-// Only one command gets the key
-```
-
-### 3. Always operate on current state in write phase
-
-```rust
-// BAD: save stale snapshot
-let snapshot = { let s = STATE.read().await; s.clone() };
-// ... modify snapshot ...
-let mut s = STATE.write().await;
-*s = snapshot; // overwrites all changes made since the read!
-
-// GOOD: mutate specific fields on live state
-let mut s = STATE.write().await;
-s.stacks.push(new_swarm); // pushes to current list
-```
-
-### 4. If rollback needed, do it under a new write lock
-
-Don't assume state hasn't changed — the rollback should be idempotent (e.g., "remove key X if present" rather than "insert key at position 0").
+1. Add `state_read()`/`state_write()` helpers to `state.rs`, change `Mutex` to `RwLock`
+2. Remove channel infrastructure (`spawn_super_handler`, `CmdRequest`, channel creation)
+3. Rewrite routes to call `super_handle()` directly (including super-specific login/password routes)
+4. Update external consumers (`checker`, `check_domain`, `log_group_migration`, `reserve_swarm`, `util`)
+5. Rewrite `super_handle()` — each match arm uses `state_read`/`state_write` per the patterns
+6. Split `get_config` (AWS call outside lock)
+7. Split `update_aws_instance_type` (validate/AWS/apply)
+8. Split `update_child_swarm_public_ip` (read/Route53/apply)
+9. Split `create_swarm_ec2` + `handle_assign_reserved_swarm` (claim/validate/create/save with rollback)
+10. Test everything
 
 ## Testing
 
-Write tests that verify:
+Verify:
 
-1. `GetConfig` responds while `CreateNewEc2Instance` is in progress
+1. `GetConfig` and `check-domain` respond while `CreateNewEc2Instance` is in progress
 2. Multiple concurrent `CreateNewEc2Instance` calls don't claim the same anthropic key
 3. `AddNewSwarm` during `CreateNewEc2Instance` doesn't lose either swarm
 4. Daily limit is correctly enforced under concurrent access
 5. Rollback correctly returns resources on failure
-
-## Implementation Order
-
-1. Change `Mutex` to `RwLock` in `state.rs`
-2. Remove channel infrastructure (`spawn_super_handler`, `CmdRequest`, channel creation)
-3. Rewrite routes to call `super_handle()` directly (including super-specific login/password routes)
-4. Update external consumers (checker, check_domain, log_group_migration, reserve_swarm, util)
-5. Rewrite `super_handle()` with per-command locking
-6. Split `get_config` into `get_config_aws_data()` + `get_config_update_state()`
-7. Split `UpdateAwsInstanceType` into validate/AWS/apply phases
-8. Split `UpdateChildSwarmPublicIp` into read/Route53/apply phases
-9. Split `create_swarm_ec2` into claim/validate/create/save phases (biggest change)
-10. Split `handle_assign_reserved_swarm` for the reserved swarm path
-11. Test everything
