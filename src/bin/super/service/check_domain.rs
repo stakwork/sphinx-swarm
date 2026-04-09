@@ -26,7 +26,7 @@ pub async fn check_domain(domain: &str) -> SuperSwarmResponse {
         };
     }
     let normalize_domain = domain.to_lowercase();
-    let state = state::STATE.lock().await;
+    let state = state::STATE.read().await;
 
     let parsed_domain = if normalize_domain.strip_suffix(".sphinx.chat").is_none() {
         format!("{}.sphinx.chat", normalize_domain.to_string())
