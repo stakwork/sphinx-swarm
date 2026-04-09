@@ -12,7 +12,7 @@ use crate::state;
 pub async fn migrate_log_group_tags() {
     log::info!("Starting log_group tag migration for existing swarms...");
 
-    let state = state::STATE.lock().await;
+    let state = state::STATE.read().await;
 
     // Collect (instance_id, swarm_number) pairs for active swarms
     let mut to_tag: Vec<(String, String)> = Vec::new();

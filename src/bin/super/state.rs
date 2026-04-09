@@ -1,13 +1,14 @@
 use once_cell::sync::Lazy;
-use rocket::tokio::sync::Mutex;
+use rocket::tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
 use sphinx_swarm::config::{Role, User};
 use sphinx_swarm::secrets;
 use sphinx_swarm::utils::getenv;
 
+use crate::put_config_file;
 use crate::util::{get_descriptive_instance_type, get_today_dash_date};
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct Super {
     pub stacks: Vec<RemoteStack>,
     /// Swarms whose EC2 instance is stopped (not terminated); shown in "Stopped Swarms" section.
@@ -100,7 +101,7 @@ pub struct InstanceFromAws {
     pub state: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct LightningBot {
     pub url: String,
     pub token: String,
@@ -135,11 +136,30 @@ impl Default for Super {
     }
 }
 
-pub static STATE: Lazy<Mutex<Super>> = Lazy::new(|| Mutex::new(Default::default()));
+pub static STATE: Lazy<RwLock<Super>> = Lazy::new(|| RwLock::new(Default::default()));
+
+/// Read something from state. Lock held only for the duration of `f`.
+pub async fn state_read<F, T>(f: F) -> T
+where
+    F: FnOnce(&Super) -> T,
+{
+    let state = STATE.read().await;
+    f(&state)
+}
+
+/// Mutate state and save to disk. Lock held only for the duration of `f`.
+pub async fn state_write<F, T>(proj: &str, f: F) -> T
+where
+    F: FnOnce(&mut Super) -> T,
+{
+    let mut state = STATE.write().await;
+    let result = f(&mut state);
+    put_config_file(proj, &state).await;
+    result
+}
 
 pub async fn hydrate(sup: Super) {
-    // set into the main state mutex
-    let mut state = STATE.lock().await;
+    let mut state = STATE.write().await;
     *state = sup;
 }
 
