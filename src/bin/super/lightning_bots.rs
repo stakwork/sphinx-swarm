@@ -3,16 +3,16 @@ use crate::{
         ChangeLightningBotLabel, CreateInvoiceLightningBotReq, LightningBotAccountRes,
         LightningBotBalanceRes, LightningBotCreateInvoiceReq, SuperSwarmResponse,
     },
-    state::{LightningBotsDetails, Super},
+    state::{LightningBot, LightningBotsDetails, Super},
 };
 use anyhow::Error;
 use reqwest::{Response, StatusCode};
 use serde_json::Value;
 use sphinx_swarm::utils::make_reqwest_client;
 
-pub async fn get_lightning_bots_details(state: &Super) -> SuperSwarmResponse {
+pub async fn get_lightning_bots_details(bots: Vec<LightningBot>) -> SuperSwarmResponse {
     let mut lightning_bots_details: Vec<LightningBotsDetails> = Vec::new();
-    for bot in &state.lightning_bots {
+    for bot in &bots {
         // get bot details
         let bot_details_res = match make_get_request_to_bot(&bot.url, &bot.token, "account").await {
             Ok(res) => res,
@@ -162,9 +162,8 @@ fn make_err_response(err_msg: String, label: String, id: String) -> LightningBot
     }
 }
 
-pub async fn change_lightning_bot_label(
+pub fn change_lightning_bot_label(
     state: &mut Super,
-    must_save_stack: &mut bool,
     info: ChangeLightningBotLabel,
 ) -> SuperSwarmResponse {
     if info.new_label.is_empty() {
@@ -191,8 +190,6 @@ pub async fn change_lightning_bot_label(
 
     state.lightning_bots[actual_bot_pos].label = info.new_label;
 
-    *must_save_stack = true;
-
     SuperSwarmResponse {
         success: true,
         message: "label updated successfully".to_string(),
@@ -201,23 +198,19 @@ pub async fn change_lightning_bot_label(
 }
 
 pub async fn create_invoice_lightning_bot(
-    state: &Super,
+    bot: Option<LightningBot>,
     info: CreateInvoiceLightningBotReq,
 ) -> SuperSwarmResponse {
-    // find bot
-    let bot_option = state
-        .lightning_bots
-        .iter()
-        .find(|lightning_bot| lightning_bot.url == info.id);
-    if bot_option.is_none() {
-        return SuperSwarmResponse {
-            success: false,
-            message: "bot does not exist".to_string(),
-            data: None,
-        };
-    }
-
-    let bot = bot_option.unwrap();
+    let bot = match bot {
+        Some(b) => b,
+        None => {
+            return SuperSwarmResponse {
+                success: false,
+                message: "bot does not exist".to_string(),
+                data: None,
+            }
+        }
+    };
 
     // make request to bot server
     let invoice_res = match create_invoice_request(&bot.url, &bot.token, info.amt_msat).await {

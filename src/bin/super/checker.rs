@@ -61,7 +61,7 @@ pub async fn swarm_checker() -> Result<JobScheduler> {
 
 pub async fn check_all_swarms() -> Result<()> {
     // get all current swarms
-    let state = state::STATE.lock().await;
+    let state = state::STATE.read().await;
 
     let mut hosts: Vec<HostDetails> = vec![];
     let mut message = "".to_string();
@@ -241,7 +241,7 @@ fn configure_msg(service: &str, mut message: String, host: &str) -> String {
 }
 
 async fn send_message_to_tribe(message: String) -> Result<()> {
-    let state = state::STATE.lock().await;
+    let state = state::STATE.read().await;
 
     let bots: Vec<BotCred> = state
         .bots

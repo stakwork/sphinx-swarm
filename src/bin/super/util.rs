@@ -25,7 +25,7 @@ use sphinx_swarm::utils::{getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
-    AccessNodesInfo, AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
+    AddSwarmResponse, ChangeUserPasswordBySuperAdminRequest,
     ChildSwarmCredentials, CreateEc2InstanceInfo, CreateEc2InstanceRes, CreateSwarmEc2Instance,
     GetChildSwarmCredentialsReq, GetInstanceTypeByInstanceId, GetInstanceTypeRes,
     GetSwarmDetailsByDefaultHost, LoginResponse, SuperSwarmResponse, UpdateInstanceDetails,
@@ -38,7 +38,7 @@ use crate::route53::{
 };
 use crate::service::swarm_reserver::assign_reserved_swarm::handle_assign_reserved_swarm;
 use crate::service::swarm_reserver::utils::{check_reserve_swarm_flag_set, generate_random_secret};
-use crate::state::{self, AwsInstanceType, RemoteStack, Super};
+use crate::state::{state_read, state_write, AwsInstanceType, RemoteStack, Super};
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_ec2::types::IamInstanceProfileSpecification;
 use rand::distributions::Alphanumeric;
@@ -48,7 +48,6 @@ use tokio::time::{sleep, Duration};
 pub fn add_new_swarm_details(
     state: &mut Super,
     swarm_details: RemoteStack,
-    must_save_stack: &mut bool,
 ) -> AddSwarmResponse {
     match state.find_swarm_by_host(&swarm_details.host, None) {
         Some(_swarm) => {
@@ -59,7 +58,6 @@ pub fn add_new_swarm_details(
         }
         None => {
             state.add_remote_stack(swarm_details);
-            *must_save_stack = true;
             return AddSwarmResponse {
                 success: true,
                 message: "Swarm added successfully".to_string(),
@@ -71,7 +69,6 @@ pub fn add_new_swarm_details(
 pub fn add_new_swarm_from_child_swarm(
     state: &mut Super,
     swarm_details: RemoteStack,
-    must_save_stack: &mut bool,
 ) -> AddSwarmResponse {
     if state.reserved_instances.is_some() && swarm_details.id.is_some() {
         if let Some(reserved_instances) = &mut state.reserved_instances {
@@ -95,7 +92,6 @@ pub fn add_new_swarm_from_child_swarm(
 
                 reserved_instances.available_instances[pos] = selected_instance;
 
-                *must_save_stack = true;
                 return AddSwarmResponse {
                     success: true,
                     message: "Swarm added successfully".to_string(),
@@ -122,7 +118,6 @@ pub fn add_new_swarm_from_child_swarm(
             state.stacks[swarm_pos].pass = swarm_details.pass;
             state.stacks[swarm_pos].user = swarm_details.user;
 
-            *must_save_stack = true;
             return AddSwarmResponse {
                 success: true,
                 message: "Swarm added successfully".to_string(),
@@ -130,7 +125,6 @@ pub fn add_new_swarm_from_child_swarm(
         }
         None => {
             state.add_remote_stack(swarm_details);
-            *must_save_stack = true;
             return AddSwarmResponse {
                 success: true,
                 message: "Swarm added successfully".to_string(),
@@ -337,31 +331,25 @@ pub async fn access_child_swarm_containers(
 }
 
 pub async fn accessing_child_container_controller(
-    state: &Super,
-    info: AccessNodesInfo,
+    swarm: Option<RemoteStack>,
+    nodes: Vec<String>,
     cmd: &str,
 ) -> SuperSwarmResponse {
-    let res: SuperSwarmResponse;
-    match state.find_swarm_by_host(&info.host, info.is_reserved) {
-        Some(swarm) => match access_child_swarm_containers(&swarm, info.nodes, cmd).await {
-            Ok(result) => res = result,
-            Err(err) => {
-                res = SuperSwarmResponse {
-                    success: false,
-                    message: err.to_string(),
-                    data: None,
-                }
-            }
-        },
-        None => {
-            res = SuperSwarmResponse {
+    match swarm {
+        Some(swarm) => match access_child_swarm_containers(&swarm, nodes, cmd).await {
+            Ok(result) => result,
+            Err(err) => SuperSwarmResponse {
                 success: false,
-                message: "Swarm does not exist".to_string(),
+                message: err.to_string(),
                 data: None,
-            }
-        }
+            },
+        },
+        None => SuperSwarmResponse {
+            success: false,
+            message: "Swarm does not exist".to_string(),
+            data: None,
+        },
     }
-    res
 }
 
 fn instance_types() -> Vec<AwsInstanceType> {
@@ -882,49 +870,32 @@ pub async fn get_instance_ip(instance_id: &str) -> Result<String, Error> {
     }
 }
 
-//Sample execution function
+// Pattern 6: Claim resources, do I/O, write result (with rollback)
 pub async fn create_swarm_ec2(
     info: &CreateEc2InstanceInfo,
-    state: &mut Super,
+    proj: &str,
 ) -> Result<CreateEc2InstanceRes, Error> {
-    let daily_limit = getenv("EC2_DAILY_LIMIT")
-        .unwrap_or("5".to_string())
-        .parse()
-        .unwrap_or(5);
-
-    let today_date = get_today_dash_date();
-    if today_date == state.ec2_limit.date {
-        if &state.ec2_limit.count < &daily_limit {
-            state.ec2_limit.count = state.ec2_limit.count + 1;
-        } else {
-            return Err(anyhow!("Daily limit for creating Ec2 Instance exceeded"));
-        }
-    } else {
-        state.ec2_limit.date = today_date;
-        state.ec2_limit.count = 1;
-    }
-    let mut actual_vanity_address: Option<String> = None;
-
-    let instance_type = get_instance(&info.instance_type);
-
-    if instance_type.is_none() {
+    let instance_type_check = get_instance(&info.instance_type);
+    if instance_type_check.is_none() {
         return Err(anyhow!("Invalid instance type"));
     }
 
+    // Validate vanity address (requires I/O — no lock)
+    let mut actual_vanity_address: Option<String> = None;
     if let Some(vanity_address) = &info.vanity_address {
         if !vanity_address.is_empty() {
             if let Some(subdomain) = vanity_address.strip_suffix(".sphinx.chat") {
                 if subdomain.is_empty() {
                     return Err(anyhow!("Provide a valid vanity address"));
                 }
-
                 let domain_status = is_valid_domain(subdomain.to_string());
                 if !domain_status.is_empty() {
                     return Err(anyhow!(domain_status));
                 }
+                let reserved_domains =
+                    state_read(|s| s.reserved_domains.clone()).await;
                 let vanity_address_exist =
-                    domain_exists_in_route53(&vanity_address, state.reserved_domains.clone())
-                        .await?;
+                    domain_exists_in_route53(&vanity_address, reserved_domains).await?;
                 if vanity_address_exist {
                     return Err(anyhow!(
                         "Sorry another Service is using this vanity address"
@@ -939,39 +910,54 @@ pub async fn create_swarm_ec2(
 
     if let Some(name) = &info.name {
         let swarm_exist = instance_with_swarm_name_exists(name).await?;
-
         if swarm_exist {
             return Err(anyhow!("Another Swarm with name: {} already exist!", name));
         }
     }
 
-    let mut potential_swarm_to_be_used = None;
-    if state.reserved_instances.clone().is_some()
-        && state
+    // Step 1: Claim resources atomically (brief write lock)
+    let claimed = state_write(proj, |state| {
+        let daily_limit: i32 = getenv("EC2_DAILY_LIMIT")
+            .unwrap_or("5".to_string())
+            .parse()
+            .unwrap_or(5);
+
+        let today_date = get_today_dash_date();
+        if today_date == state.ec2_limit.date {
+            if state.ec2_limit.count >= daily_limit {
+                return Err(anyhow!("Daily limit for creating Ec2 Instance exceeded"));
+            }
+            state.ec2_limit.count += 1;
+        } else {
+            state.ec2_limit.date = today_date;
+            state.ec2_limit.count = 1;
+        }
+
+        let anthropic_api_key = state
+            .anthropic_keys
+            .as_ref()
+            .and_then(|k| if !k.is_empty() { Some(k[0].clone()) } else { None });
+
+        // Check if we can use a reserved swarm
+        let potential_swarm = state
             .reserved_instances
-            .clone()
-            .unwrap()
-            .available_instances
-            .len()
-            > 0
-    {
-        potential_swarm_to_be_used = Some(
-            state
-                .reserved_instances
-                .clone()
-                .unwrap()
-                .available_instances[0]
-                .clone(),
-        )
-    }
+            .as_ref()
+            .and_then(|ri| ri.available_instances.first().cloned());
+
+        Ok((anthropic_api_key, potential_swarm))
+    })
+    .await?;
+
+    let (anthropic_api_key, potential_swarm) = claimed;
+
+    // Try reserved swarm assignment first
     if check_reserve_swarm_flag_set()
-        && state.reserved_instances.clone().is_some()
-        && potential_swarm_to_be_used.is_some()
-        && potential_swarm_to_be_used.clone().unwrap().pass.is_some()
-        && potential_swarm_to_be_used.unwrap().user.is_some()
+        && potential_swarm.is_some()
+        && potential_swarm.as_ref().unwrap().pass.is_some()
+        && potential_swarm.as_ref().unwrap().user.is_some()
         && (info.subdomain_ssl.is_none() || info.subdomain_ssl == Some(false))
     {
-        match handle_assign_reserved_swarm(info, state).await {
+        match handle_assign_reserved_swarm(info, proj).await {
             Ok(result) => {
                 return Ok(result);
             }
@@ -981,14 +967,7 @@ pub async fn create_swarm_ec2(
         };
     }
 
-    let mut anthropic_api_key: Option<String> = None;
-
-    if let Some(anthropic_keys) = &state.anthropic_keys {
-        if anthropic_keys.len() > 0 {
-            anthropic_api_key = Some(anthropic_keys[0].clone());
-        }
-    }
-
+    // Step 2: Slow work — no lock (minutes)
     let mut ec2_env = info.env.clone();
     if let Some(pubkey) = &info.owner_pubkey {
         ec2_env
@@ -996,7 +975,7 @@ pub async fn create_swarm_ec2(
             .insert("OWNER_PUBKEY".to_string(), pubkey.clone());
     }
 
-    let ec2_intance = create_ec2_instance(
+    let ec2_result = create_ec2_instance(
         info.name.clone(),
         actual_vanity_address.clone(),
         info.instance_type.clone(),
@@ -1008,18 +987,33 @@ pub async fn create_swarm_ec2(
         info.enable_cloudwatch_alarms.clone(),
         info.workspace_type.clone(),
     )
-    .await?;
+    .await;
+
+    let ec2_intance = match ec2_result {
+        Ok(instance) => instance,
+        Err(e) => {
+            // Step 3b: Rollback on failure — return claimed resources
+            state_write(proj, |state| {
+                state.ec2_limit.count -= 1;
+            })
+            .await;
+            return Err(e);
+        }
+    };
 
     sleep(Duration::from_secs(40)).await;
 
-    if let Some(used_anthropic_key) = anthropic_api_key {
-        if state.anthropic_keys.clone().unwrap().len() > 1 {
-            state
-                .anthropic_keys
-                .as_mut()
-                .unwrap()
-                .retain(|key| key != &used_anthropic_key);
-        }
+    // Remove used anthropic key
+    if let Some(used_key) = &anthropic_api_key {
+        let key_to_remove = used_key.clone();
+        state_write(proj, |state| {
+            if let Some(keys) = &mut state.anthropic_keys {
+                if keys.len() > 1 {
+                    keys.retain(|key| key != &key_to_remove);
+                }
+            }
+        })
+        .await;
     }
 
     let mut domain_names: Vec<String> = Vec::new();
@@ -1066,7 +1060,7 @@ pub async fn create_swarm_ec2(
 
     let swarm_id = format!("swarm{}", ec2_intance.swarm_number);
 
-    // add new ec2 to list of swarms
+    // Step 3a: On success — save the new swarm (brief write lock)
     let new_swarm = RemoteStack {
         host: host.clone(),
         ec2: Some(info.instance_type.clone()),
@@ -1085,7 +1079,10 @@ pub async fn create_swarm_ec2(
         cln_pubkey: None,
     };
 
-    state.add_remote_stack(new_swarm);
+    state_write(proj, |state| {
+        state.add_remote_stack(new_swarm);
+    })
+    .await;
 
     log::info!("New Swarm added to stack");
     Ok(CreateEc2InstanceRes {
@@ -1123,7 +1120,7 @@ pub fn is_valid_domain(domain: String) -> String {
 
 pub async fn update_aws_instance_type(
     details: UpdateInstanceDetails,
-    state: &mut Super,
+    proj: &str,
 ) -> Result<(), Error> {
     if details.instance_id.is_empty() {
         return Err(anyhow!("Please provide a valid instance id"));
@@ -1146,48 +1143,56 @@ pub async fn update_aws_instance_type(
         return Err(anyhow!("Invalid instance type"));
     }
 
-    let swarm_pos = state
-        .stacks
-        .iter()
-        .position(|swarm| swarm.ec2_instance_id == details.instance_id);
+    // Read: validate and extract info from state (brief read lock)
+    let (ec2_instance_id, default_host, host) = state_read(|state| {
+        let swarm = state
+            .stacks
+            .iter()
+            .find(|swarm| swarm.ec2_instance_id == details.instance_id);
 
-    if let None = swarm_pos {
-        return Err(anyhow!("Instance does not exist"));
-    }
-    let unwrapped_swarm_pos = swarm_pos.unwrap();
-
-    if let Some(current_instance) = &state.stacks[unwrapped_swarm_pos].ec2 {
-        if details.instance_type == current_instance.to_string() {
-            return Err(anyhow!("Please select a different instance type"));
+        match swarm {
+            Some(s) => {
+                if let Some(current_instance) = &s.ec2 {
+                    if details.instance_type == current_instance.to_string() {
+                        return Err(anyhow!("Please select a different instance type"));
+                    }
+                }
+                Ok((
+                    s.ec2_instance_id.clone(),
+                    s.default_host.clone(),
+                    s.host.clone(),
+                ))
+            }
+            None => Err(anyhow!("Instance does not exist")),
         }
-    }
+    })
+    .await?;
 
-    let ec2_instance_id = state.stacks[unwrapped_swarm_pos].ec2_instance_id.clone();
-
+    // Slow I/O: no lock held
     let client = make_aws_client().await?;
-
-    //update ec2 instance type
     update_ec2_instance_type(&client, &ec2_instance_id, &details.instance_type).await?;
-
-    // get ec2 instance ip
     let new_ec2_ip_address = get_instance_ip(&details.instance_id).await?;
 
-    let current_swarm: &RemoteStack = &state.stacks[unwrapped_swarm_pos];
-
-    let defailt_domain = format!("*.{}", current_swarm.default_host.clone());
-
+    let defailt_domain = format!("*.{}", default_host);
     let mut domain_names = vec![defailt_domain];
-
-    if current_swarm.default_host.clone() != current_swarm.host {
-        domain_names.push(current_swarm.host.clone());
-        domain_names.push(format!("*.{}", current_swarm.host.clone()));
+    if default_host != host {
+        domain_names.push(host.clone());
+        domain_names.push(format!("*.{}", host));
     }
-
-    //update route53 record for both host and default_host
     let _ = add_domain_name_to_route53(domain_names, &new_ec2_ip_address).await?;
 
-    // update stack with current instance type locally
-    state.stacks[unwrapped_swarm_pos].ec2 = Some(details.instance_type);
+    // Write: apply result (brief write lock, re-find by stable ID)
+    state_write(proj, |state| {
+        if let Some(s) = state
+            .stacks
+            .iter_mut()
+            .find(|s| s.ec2_instance_id == details.instance_id)
+        {
+            s.ec2 = Some(details.instance_type.clone());
+        }
+    })
+    .await;
+
     Ok(())
 }
 
@@ -1419,56 +1424,64 @@ fn is_live_ec2_state(state: Option<&str>) -> bool {
     matches!(state, Some("running") | Some("pending"))
 }
 
-pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
+pub async fn get_config(proj: &str) -> Result<Super, Error> {
+    // Pattern 5: AWS call outside lock, then brief write lock to reconcile
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
 
-    let mut domains_to_delete: Vec<Vec<String>> = Vec::new();
-    let mut running_stacks: Vec<RemoteStack> = Vec::new();
-    let mut stopped_stacks: Vec<RemoteStack> = Vec::new();
+    let (res, domains_to_delete) = state_write(proj, |state| {
+        let mut domains_to_delete: Vec<Vec<String>> = Vec::new();
+        let mut running_stacks: Vec<RemoteStack> = Vec::new();
+        let mut stopped_stacks: Vec<RemoteStack> = Vec::new();
 
-    // Re-evaluate all known stacks (both live and previously stopped) so we don't lose
-    // stopped_stacks on subsequent get_config calls (we only drain stacks otherwise).
-    let all_stacks: Vec<RemoteStack> = state
-        .stacks
-        .drain(..)
-        .chain(state.stopped_stacks.take().unwrap_or_default())
-        .collect();
+        // Re-evaluate all known stacks (both live and previously stopped) so we don't lose
+        // stopped_stacks on subsequent get_config calls (we only drain stacks otherwise).
+        let all_stacks: Vec<RemoteStack> = state
+            .stacks
+            .drain(..)
+            .chain(state.stopped_stacks.take().unwrap_or_default())
+            .collect();
 
-    for mut stack in all_stacks {
-        if let Some(aws_instance) = aws_instances_hashmap.get(&stack.ec2_instance_id) {
-            stack.public_ip_address = Some(aws_instance.public_ip_address.clone());
-            stack.private_ip_address = Some(aws_instance.private_ip_address.clone());
-            if stack.ec2.is_none() {
-                stack.ec2 = Some(aws_instance.instance_type.clone());
-            } else if aws_instance.instance_type != stack.ec2.clone().unwrap_or_default() {
-                stack.ec2 = Some(aws_instance.instance_type.clone());
-            }
-
-            if is_live_ec2_state(aws_instance.state.as_deref()) {
-                stack.deleted = Some(false);
-                running_stacks.push(stack);
-            } else {
-                // stopped, stopping, shutting-down, terminated
-                stopped_stacks.push(stack);
-            }
-        } else {
-            // Instance not in AWS (terminated or never existed)
-            if stack.deleted.is_some() && stack.deleted.unwrap() == true {
-                continue;
-            }
-            stack.deleted = Some(true);
-            if let Some(route53_domain_names) = &stack.route53_domain_names {
-                if !route53_domain_names.is_empty() {
-                    domains_to_delete.push(route53_domain_names.clone());
+        for mut stack in all_stacks {
+            if let Some(aws_instance) = aws_instances_hashmap.get(&stack.ec2_instance_id) {
+                stack.public_ip_address = Some(aws_instance.public_ip_address.clone());
+                stack.private_ip_address = Some(aws_instance.private_ip_address.clone());
+                if stack.ec2.is_none() {
+                    stack.ec2 = Some(aws_instance.instance_type.clone());
+                } else if aws_instance.instance_type != stack.ec2.clone().unwrap_or_default() {
+                    stack.ec2 = Some(aws_instance.instance_type.clone());
                 }
+
+                if is_live_ec2_state(aws_instance.state.as_deref()) {
+                    stack.deleted = Some(false);
+                    running_stacks.push(stack);
+                } else {
+                    // stopped, stopping, shutting-down, terminated
+                    stopped_stacks.push(stack);
+                }
+            } else {
+                // Instance not in AWS (terminated or never existed)
+                if stack.deleted.is_some() && stack.deleted.unwrap() == true {
+                    continue;
+                }
+                stack.deleted = Some(true);
+                if let Some(route53_domain_names) = &stack.route53_domain_names {
+                    if !route53_domain_names.is_empty() {
+                        domains_to_delete.push(route53_domain_names.clone());
+                    }
+                }
+                running_stacks.push(stack);
             }
-            running_stacks.push(stack);
         }
-    }
 
-    state.stacks = running_stacks;
-    state.stopped_stacks = Some(stopped_stacks);
+        state.stacks = running_stacks;
+        state.stopped_stacks = Some(stopped_stacks);
 
+        let res = state.remove_tokens();
+        (res, domains_to_delete)
+    })
+    .await;
+
+    // Fire-and-forget Route53 cleanup — no lock
     if !domains_to_delete.is_empty() {
         tokio::spawn(async move {
             for domain_set in domains_to_delete {
@@ -1491,7 +1504,6 @@ pub async fn get_config(state: &mut Super) -> Result<Super, Error> {
         });
     }
 
-    let res = state.remove_tokens();
     Ok(res)
 }
 
@@ -1501,29 +1513,23 @@ pub fn get_today_dash_date() -> String {
 
 pub async fn update_swarm_child_password(
     info: ChangeUserPasswordBySuperAdminRequest,
-    state: &Super,
+    swarm: Option<RemoteStack>,
 ) -> SuperSwarmResponse {
-    let res: SuperSwarmResponse;
-    match state.find_swarm_by_host(&info.host, info.is_reserved) {
+    match swarm {
         Some(swarm) => match handle_update_swarm_child_password(&swarm, info).await {
-            Ok(result) => res = result,
-            Err(err) => {
-                res = SuperSwarmResponse {
-                    success: false,
-                    message: err.to_string(),
-                    data: None,
-                }
-            }
-        },
-        None => {
-            res = SuperSwarmResponse {
+            Ok(result) => result,
+            Err(err) => SuperSwarmResponse {
                 success: false,
-                message: "Swarm does not exist".to_string(),
+                message: err.to_string(),
                 data: None,
-            }
-        }
+            },
+        },
+        None => SuperSwarmResponse {
+            success: false,
+            message: "Swarm does not exist".to_string(),
+            data: None,
+        },
     }
-    res
 }
 
 async fn handle_update_swarm_child_password(
@@ -1560,10 +1566,10 @@ async fn handle_update_swarm_child_password(
 }
 
 pub async fn get_swarm_details_by_id(id: &str) -> SuperSwarmResponse {
-    // conf can be mutated in place
-    let state = state::STATE.lock().await;
-    match state.find_swarm_by_id(id) {
-        Some(value) => match handle_get_swarm_details_by_default_id(value).await {
+    // Read swarm info, then drop lock before HTTP call
+    let swarm = state_read(|s| s.find_swarm_by_id(id).cloned()).await;
+    match swarm {
+        Some(value) => match handle_get_swarm_details_by_default_id(&value).await {
             Ok(result) => result,
             Err(err) => SuperSwarmResponse {
                 success: false,

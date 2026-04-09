@@ -5,7 +5,6 @@ use crate::{
 
 pub fn handle_add_anthropic_key(
     state: &mut Super,
-    must_save_stack: &mut bool,
     data: AddAnthropicKeyReq,
 ) -> SuperSwarmResponse {
     if data.key.is_empty() {
@@ -20,8 +19,6 @@ pub fn handle_add_anthropic_key(
     } else {
         state.anthropic_keys = Some(vec![data.key])
     }
-
-    *must_save_stack = true;
 
     SuperSwarmResponse {
         success: true,

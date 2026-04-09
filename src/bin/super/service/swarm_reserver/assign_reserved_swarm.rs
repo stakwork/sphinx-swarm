@@ -8,14 +8,24 @@ use crate::{
         call_child_swarm::call_child_swarm_to_activate_new_swarm,
         utils::check_reserve_swarm_flag_set,
     },
-    state::{RemoteStack, Super},
+    state::{state_write, AvailableInstances, RemoteStack},
 };
 use anyhow::{anyhow, Error};
 use sphinx_swarm::cmd::AssignSwarmNewDetails;
 
+/// Restore a claimed reserved instance back to the pool on failure.
+async fn rollback_reserved_instance(proj: &str, instance: AvailableInstances) {
+    state_write(proj, |state| {
+        if let Some(ri) = &mut state.reserved_instances {
+            ri.available_instances.push(instance);
+        }
+    })
+    .await;
+}
+
 pub async fn handle_assign_reserved_swarm(
     info: &CreateEc2InstanceInfo,
-    state: &mut Super,
+    proj: &str,
 ) -> Result<CreateEc2InstanceRes, Error> {
     if !check_reserve_swarm_flag_set() {
         return Err(anyhow!(
@@ -23,27 +33,25 @@ pub async fn handle_assign_reserved_swarm(
         ));
     }
 
-    if state.reserved_instances.is_none() {
-        return Err(anyhow!("No reserved instances available at the moment"));
-    }
+    // Claim the first available reserved instance atomically (remove from pool)
+    let selected_reserved_instance = state_write(proj, |state| {
+        state
+            .reserved_instances
+            .as_mut()
+            .and_then(|ri| {
+                if ri.available_instances.is_empty() {
+                    None
+                } else {
+                    Some(ri.available_instances.remove(0))
+                }
+            })
+    })
+    .await;
 
-    if state
-        .reserved_instances
-        .clone()
-        .unwrap()
-        .available_instances
-        .len()
-        <= 0
-    {
-        return Err(anyhow!("No reserved instances available at the moment"));
-    }
-
-    let selected_reserved_instance = state
-        .reserved_instances
-        .clone()
-        .unwrap()
-        .available_instances[0]
-        .clone();
+    let selected_reserved_instance = match selected_reserved_instance {
+        Some(i) => i,
+        None => return Err(anyhow!("No reserved instances available at the moment")),
+    };
 
     let mut tags = vec![
         Ec2Tags {
@@ -66,8 +74,12 @@ pub async fn handle_assign_reserved_swarm(
         });
     }
 
-    // update tag name on AWS
-    add_new_tags_to_instance(&selected_reserved_instance.instance_id, tags).await?;
+    // update tag name on AWS (I/O — no lock)
+    if let Err(e) = add_new_tags_to_instance(&selected_reserved_instance.instance_id, tags).await {
+        rollback_reserved_instance(proj, selected_reserved_instance).await;
+        return Err(e);
+    }
+
     let mut envs: Option<HashMap<String, String>> = info.env.clone();
     if envs.is_none() {
         envs = Some(HashMap::new());
@@ -96,11 +108,6 @@ pub async fn handle_assign_reserved_swarm(
         envs = None;
     }
 
-    // if password passed update child swarm password
-    // if env passed update child swarm env
-    // if vanity address passed update HOST in .env
-    // if vanity address passed update route53 record with vanity address and delete old record
-    // stop all child services
     let swarm_details = RemoteStack {
         host: "".to_string(),
         note: None,
@@ -118,6 +125,8 @@ pub async fn handle_assign_reserved_swarm(
         workspace_type: info.workspace_type.clone(),
         cln_pubkey: None,
     };
+
+    // Call child swarm to activate (I/O — no lock)
     let set_value_res = match call_child_swarm_to_activate_new_swarm(
         &swarm_details,
         AssignSwarmNewDetails {
@@ -130,7 +139,7 @@ pub async fn handle_assign_reserved_swarm(
     {
         Ok(res) => res,
         Err(err) => {
-            // TODO: send error message via a bot to a tribe
+            rollback_reserved_instance(proj, selected_reserved_instance).await;
             return Err(anyhow!(
                 "Failed to call child swarm to activate new swarm: {}",
                 err
@@ -139,19 +148,19 @@ pub async fn handle_assign_reserved_swarm(
     };
 
     if !set_value_res.success {
-        // TODO: send error message via a bot to a tribe
         log::error!(
             "Failed to set new password/env on child swarm: {}",
             set_value_res.message
         );
     }
+
     let mut host = selected_reserved_instance.host.clone();
     let mut default_host = selected_reserved_instance.default_host.clone();
 
     if info.vanity_address.is_some() && selected_reserved_instance.ip_address.is_some() {
-        // update route53
+        // update route53 (I/O — no lock)
         let vanity_address = info.vanity_address.clone().unwrap();
-        let _ = match add_domain_name_to_route53(
+        match add_domain_name_to_route53(
             vec![vanity_address.clone()],
             &selected_reserved_instance.ip_address.clone().unwrap(),
         )
@@ -159,6 +168,7 @@ pub async fn handle_assign_reserved_swarm(
         {
             Ok(_) => {}
             Err(err) => {
+                rollback_reserved_instance(proj, selected_reserved_instance).await;
                 return Err(anyhow!(
                     "Failed to add domain name to route53: {}",
                     err.to_string()
@@ -180,9 +190,10 @@ pub async fn handle_assign_reserved_swarm(
         };
     }
 
-    // move reserved swarm from reserved to normal swarm list
+    // Write: add to active stacks (brief write lock)
+    // Already removed from reserved pool in the claim step above.
     let swarm_id = format!("swarm{}", selected_reserved_instance.swarm_number);
-    state.stacks.push(RemoteStack {
+    let new_stack = RemoteStack {
         host: host.clone(),
         note: None,
         ec2: Some(selected_reserved_instance.instance_type.clone()),
@@ -198,16 +209,14 @@ pub async fn handle_assign_reserved_swarm(
         owner_pubkey: info.owner_pubkey.clone(),
         workspace_type: info.workspace_type.clone(),
         cln_pubkey: None,
-    });
+    };
     let x_api_key = selected_reserved_instance.x_api_key.clone();
     let ec2_id = selected_reserved_instance.instance_id.clone();
 
-    state
-        .reserved_instances
-        .as_mut()
-        .unwrap()
-        .available_instances
-        .remove(0);
+    state_write(proj, |state| {
+        state.stacks.push(new_stack);
+    })
+    .await;
 
     Ok(CreateEc2InstanceRes {
         swarm_id: swarm_id,
