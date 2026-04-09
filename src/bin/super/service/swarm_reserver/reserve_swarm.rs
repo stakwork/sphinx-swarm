@@ -11,7 +11,7 @@ use crate::{
 };
 pub async fn handle_reserve_swarms() -> Result<()> {
     let aws_instances_hashmap = get_instances_from_aws_by_swarm_tag_and_return_hash_map().await?;
-    let mut state = state::STATE.lock().await;
+    let mut state = state::STATE.write().await;
     let mut save_state = false;
 
     let mut domain_names_to_delete: Vec<String> = vec![];
@@ -61,16 +61,16 @@ pub async fn handle_reserve_swarms() -> Result<()> {
         // TODO: decide what we want to be the default instance type: ASK GONZALO
         let instance_type = "m6i.xlarge".to_string();
         let admin_password = generate_random_secret(16);
-        let state = state::STATE.lock().await;
+        let rd = state::STATE.read().await;
         let mut anthropic_api_key: Option<String> = None;
 
-        if let Some(anthropic_keys) = &state.anthropic_keys {
+        if let Some(anthropic_keys) = &rd.anthropic_keys {
             if anthropic_keys.len() > 0 {
                 anthropic_api_key = Some(anthropic_keys[0].clone());
             }
         }
 
-        drop(state);
+        drop(rd);
 
         let ec2_instance = create_ec2_instance(
             None,
@@ -96,7 +96,7 @@ pub async fn handle_reserve_swarms() -> Result<()> {
 
         let _ = add_domain_name_to_route53(domain_names.clone(), &ec2_ip_address).await?;
 
-        let mut state = state::STATE.lock().await;
+        let mut state = state::STATE.write().await;
 
         if let Some(used_anthropic_key) = anthropic_api_key {
             if state.anthropic_keys.clone().unwrap().len() > 1 {

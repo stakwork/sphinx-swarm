@@ -7,15 +7,15 @@ use sphinx_swarm::{
 use crate::{
     cmd::{SuperSwarmResponse, UpdateChildSwarmEnvReq},
     service::update_child_swarm::handle_update_child_swarm,
-    state::{RemoteStack, Super},
+    state::RemoteStack,
     util::{login_to_child_swarm, swarm_cmd},
 };
 
 pub async fn update_child_swarm_env(
-    state: &Super,
+    swarm: Option<RemoteStack>,
     data: UpdateChildSwarmEnvReq,
 ) -> SuperSwarmResponse {
-    let child_swarm = match state.find_swarm_by_host(&data.host, data.is_reserved) {
+    let child_swarm = match swarm {
         Some(res) => res,
         None => {
             return SuperSwarmResponse {
