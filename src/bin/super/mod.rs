@@ -290,9 +290,35 @@ pub async fn super_handle(
             }
             SwarmCmd::DeleteSwarm(swarm) => {
                 let mut hm = HashMap::new();
+                // Capture domain names before removing from state
+                let domain_names_to_delete = state
+                    .find_swarm_by_host(&swarm.host, None)
+                    .and_then(|s| s.route53_domain_names)
+                    .filter(|d| !d.is_empty());
+
                 match state.delete_swarm_by_host(&swarm.host) {
                     Ok(()) => {
                         must_save_stack = true;
+                        // Best-effort Route53 cleanup
+                        if let Some(domain_names) = domain_names_to_delete {
+                            tokio::spawn(async move {
+                                match route53::delete_multiple_route53_records(
+                                    domain_names.clone(),
+                                )
+                                .await
+                                {
+                                    Ok(_) => log::info!(
+                                        "Deleted route53 records for deleted swarm: {:#?}",
+                                        domain_names
+                                    ),
+                                    Err(err) => log::error!(
+                                        "Error deleting route53 records for swarm {:#?}: {}",
+                                        domain_names,
+                                        err
+                                    ),
+                                }
+                            });
+                        }
                         hm.insert("success", "true".to_string());
                         hm.insert("message", "Swarm deleted successfully".to_string());
                     }
