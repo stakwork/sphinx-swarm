@@ -305,6 +305,14 @@ pub async fn super_handle(
             }
             // Pattern 2: Mutate and return
             SwarmCmd::DeleteSwarm(swarm) => {
+                // Capture domain names before removing from state
+                let domain_names_to_delete = state_read(|s| {
+                    s.find_swarm_by_host(&swarm.host, None)
+                        .and_then(|rs| rs.route53_domain_names)
+                        .filter(|d| !d.is_empty())
+                })
+                .await;
+
                 let hm = state_write(proj, |s| {
                     let mut hm = HashMap::new();
                     match s.delete_swarm_by_host(&swarm.host) {
@@ -320,6 +328,28 @@ pub async fn super_handle(
                     hm
                 })
                 .await;
+
+                // Best-effort Route53 cleanup after successful deletion
+                if hm.get("success").map(|v| v == "true").unwrap_or(false) {
+                    if let Some(domain_names) = domain_names_to_delete {
+                        tokio::spawn(async move {
+                            match route53::delete_multiple_route53_records(domain_names.clone())
+                                .await
+                            {
+                                Ok(_) => log::info!(
+                                    "Deleted route53 records for deleted swarm: {:#?}",
+                                    domain_names
+                                ),
+                                Err(err) => log::error!(
+                                    "Error deleting route53 records for swarm {:#?}: {}",
+                                    domain_names,
+                                    err
+                                ),
+                            }
+                        });
+                    }
+                }
+
                 Some(serde_json::to_string(&hm)?)
             }
             // Pattern 2: Mutate and return
