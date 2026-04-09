@@ -83,7 +83,7 @@ pub struct AwsInstanceType {
     pub value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct BotCred {
     pub bot_id: String,
     pub bot_secret: String,
