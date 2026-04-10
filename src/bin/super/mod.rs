@@ -717,12 +717,32 @@ pub async fn super_handle(
             // Pattern 3: Read state, do I/O, return
             SwarmCmd::NukeWarmSwarm(req) => {
                 let state = state_read(|s| s.clone()).await;
-                let res = nuke_warm_swarm_by_host(&req.host, &state).await;
+                let (res, used_key) = nuke_warm_swarm_by_host(&req.host, &state).await;
+                if let Some(key) = used_key {
+                    state_write(proj, |s| {
+                        if let Some(keys) = &mut s.anthropic_keys {
+                            if keys.len() > 1 {
+                                keys.retain(|k| k != &key);
+                            }
+                        }
+                    })
+                    .await;
+                }
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::NukeAllWarmSwarms => {
                 let state = state_read(|s| s.clone()).await;
-                let res = nuke_all_warm_swarms(&state).await;
+                let (res, used_keys) = nuke_all_warm_swarms(&state).await;
+                if !used_keys.is_empty() {
+                    state_write(proj, |s| {
+                        if let Some(keys) = &mut s.anthropic_keys {
+                            if keys.len() > 1 {
+                                keys.retain(|k| !used_keys.contains(k));
+                            }
+                        }
+                    })
+                    .await;
+                }
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 4: No state needed (pure external I/O)
