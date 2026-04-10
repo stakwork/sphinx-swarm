@@ -7,6 +7,7 @@ use crate::cmd::{
 use crate::events::EventChan;
 use crate::logs::LogChans;
 use crate::service::check_domain::check_domain;
+use crate::service::update_super_admin::update_super_admin;
 use crate::state::state_read;
 use crate::util::get_child_swarm_credentials;
 use crate::{fmt_err, super_handle};
@@ -49,7 +50,8 @@ pub async fn launch_rocket(
                 get_swarm_details,
                 check_duplicate_domain,
                 update_child_swarm_public_ip,
-                get_swarm_credentials
+                get_swarm_credentials,
+                update_superadmin
             ],
         )
         .attach(CORS)
@@ -426,4 +428,24 @@ async fn get_swarm_credentials(
         Status::BadRequest
     };
     return Ok(Custom(status, Json(response)));
+}
+
+#[rocket::post("/super/update_superadmin")]
+async fn update_superadmin(
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<SuperSwarmResponse>>> {
+    if let None = verify_super_token.token {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(SuperSwarmResponse {
+                success: false,
+                message: "unauthorized, invalid token".to_string(),
+                data: None,
+            }),
+        ));
+    }
+
+    let response = update_super_admin().await;
+    let status = if response.success { Status::Ok } else { Status::BadRequest };
+    Ok(Custom(status, Json(response)))
 }
