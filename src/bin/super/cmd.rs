@@ -120,6 +120,13 @@ pub enum SwarmCmd {
     UpdateChildSwarmPublicIp(UpdateChildSwarmPublicIpBody),
     GetEc2CpuUtilization(GetEc2CpuUtilizationReq),
     GetChildSwarmCredentials(GetChildSwarmCredentialsReq),
+    NukeWarmSwarm(NukeWarmSwarmReq),
+    NukeAllWarmSwarms,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NukeWarmSwarmReq {
+    pub host: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
