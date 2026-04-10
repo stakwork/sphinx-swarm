@@ -1,6 +1,6 @@
 use crate::cmd::FeatureFlagUserRoles;
 use crate::config::{Node, Role, Stack, User};
-use crate::dock::restart_node_container_global;
+
 use crate::images::Image;
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
