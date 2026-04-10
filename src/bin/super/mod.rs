@@ -467,28 +467,91 @@ pub async fn super_handle(
                 };
                 Some(serde_json::to_string(&res)?)
             }
-            // Pattern 4: No state needed (pure external I/O)
+            // Pattern 3: Read state, do I/O, return
             SwarmCmd::StopEc2Instance(info) => {
-                let res: SuperSwarmResponse;
-                match crate::ec2::stop_ec2_instance_and_tag(&info.instance_id).await {
-                    Ok(()) => {
-                        res = SuperSwarmResponse {
-                            success: true,
-                            message: format!(
-                                "Instance {} stopped successfully and tagged with DeletedOn",
+                let domains = state_read(|s| {
+                    let mut all = s
+                        .stacks
+                        .iter()
+                        .chain(s.stopped_stacks.as_deref().unwrap_or(&[]));
+                    all.find(|stack| stack.ec2_instance_id == info.instance_id)
+                        .and_then(|stack| stack.route53_domain_names.clone())
+                })
+                .await;
+
+                log::info!(
+                    "[stop_swarm] Initiating stop for instance: {}",
+                    info.instance_id
+                );
+                log::info!(
+                    "[stop_swarm] Route53 domains found for instance {}: {:?}",
+                    info.instance_id,
+                    domains
+                );
+
+                let res: SuperSwarmResponse =
+                    match crate::ec2::stop_ec2_instance_and_tag(&info.instance_id).await {
+                        Ok(()) => {
+                            log::info!(
+                                "[stop_swarm] EC2 instance {} stopped and tagged successfully",
                                 info.instance_id
-                            ),
-                            data: None,
+                            );
+                            if let Some(domain_names) = domains {
+                                if !domain_names.is_empty() {
+                                    log::info!(
+                                        "[stop_swarm] Attempting Route53 deletion for {} domain(s): {:?}",
+                                        domain_names.len(),
+                                        domain_names
+                                    );
+                                    match route53::delete_multiple_route53_records(
+                                        domain_names.clone(),
+                                    )
+                                    .await
+                                    {
+                                        Ok(_) => log::info!(
+                                            "[stop_swarm] Route53 records deleted successfully for: {:?}",
+                                            domain_names
+                                        ),
+                                        Err(e) => log::warn!(
+                                            "[stop_swarm] Route53 deletion failed for {:?} (non-fatal): {}",
+                                            domain_names,
+                                            e
+                                        ),
+                                    }
+                                } else {
+                                    log::info!(
+                                        "[stop_swarm] No Route53 domains configured for instance {}, skipping DNS cleanup",
+                                        info.instance_id
+                                    );
+                                }
+                            } else {
+                                log::warn!(
+                                    "[stop_swarm] Instance {} not found in state — no Route53 cleanup performed",
+                                    info.instance_id
+                                );
+                            }
+                            SuperSwarmResponse {
+                                success: true,
+                                message: format!(
+                                    "Instance {} stopped successfully and tagged with DeletedOn",
+                                    info.instance_id
+                                ),
+                                data: None,
+                            }
                         }
-                    }
-                    Err(err) => {
-                        res = SuperSwarmResponse {
-                            success: false,
-                            message: err.to_string(),
-                            data: None,
+                        Err(err) => {
+                            log::error!(
+                                "[stop_swarm] Failed to stop EC2 instance {}: {}",
+                                info.instance_id,
+                                err
+                            );
+                            SuperSwarmResponse {
+                                success: false,
+                                message: err.to_string(),
+                                data: None,
+                            }
                         }
-                    }
-                }
+                    };
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 5: Read state, do I/O, write result back
