@@ -538,6 +538,10 @@ export async function get_super_admin_logs() {
   return await swarmCmd("GetSuperAdminLogs");
 }
 
+export async function get_super_admin_version() {
+  return await swarmCmd("GetSuperAdminVersion");
+}
+
 export async function change_lightning_bot_label({
   id,
   new_label,

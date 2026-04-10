@@ -120,6 +120,7 @@ pub enum SwarmCmd {
     UpdateChildSwarmPublicIp(UpdateChildSwarmPublicIpBody),
     GetEc2CpuUtilization(GetEc2CpuUtilizationReq),
     GetChildSwarmCredentials(GetChildSwarmCredentialsReq),
+    GetSuperAdminVersion,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -111,6 +111,7 @@ export type Cmd =
   | "UpdateBoltwallMaxRequestLimit"
   | "UpdateEvn"
   | "GetSuperAdminLogs"
+  | "GetSuperAdminVersion"
   | "UpdateChildSwarmEnv"
   | "AddAnthropicKey"
   | "GetAnthropicKey"

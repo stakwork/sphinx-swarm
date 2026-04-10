@@ -19,15 +19,24 @@
   import LightningBot from "./LightningBot.svelte";
   import Logs from "./logs.svelte";
   import AnthropicKeys from "./AnthropicKeys.svelte";
-  import { update_super_admin } from "../../../../../app/src/api/swarm";
+  import { update_super_admin, get_super_admin_version } from "../../../../../app/src/api/swarm";
+  import { onMount } from "svelte";
   import SslCert from "./SslCert.svelte";
 
   let page = "main";
   let showRestartModal = false;
   let isRestarting = false;
+  let superAdminVersion = "—";
   let showNotification = false;
   let notificationMessage = "";
   let notificationKind: "success" | "error" = "success";
+
+  onMount(async () => {
+    const res = await get_super_admin_version();
+    if (res?.success && res?.data?.version) {
+      superAdminVersion = res.data.version;
+    }
+  });
 
   async function backToMain() {
     page = "main";
@@ -76,6 +85,7 @@
       <div class="lefty logo-wrap">
         <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
         <span class="stack-title">Sphinx Superadmin</span>
+        <span class="version-tag">v{superAdminVersion}</span>
       </div>
       <section class="menu-btn">
         <Button
@@ -190,6 +200,12 @@
     color: white;
     margin-left: 0.5rem;
     font-size: 1.2rem;
+  }
+  .version-tag {
+    color: #8a9ba8;
+    font-size: 0.75rem;
+    margin-left: 0.4rem;
+    vertical-align: middle;
   }
   .menu-btn {
     margin-right: 2rem;

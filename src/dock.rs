@@ -695,6 +695,40 @@ pub async fn get_image_version(node_name: &str, docker: &Docker, org: &str) -> I
     };
 }
 
+pub async fn get_super_admin_image_version() -> ImageVersion {
+    let fallback = ImageVersion {
+        name: "superadmin".to_string(),
+        version: "—".to_string(),
+        is_latest: false,
+        latest_version: "—".to_string(),
+    };
+    let docker = match Docker::connect_with_local_defaults() {
+        Ok(d) => d,
+        Err(_) => return fallback,
+    };
+    let image_id = get_image_id(&docker, "sphinx-swarm-superadmin").await;
+    if image_id.is_empty() {
+        return fallback;
+    }
+    let digest = get_image_digest_from_image_id(&docker, &image_id).await;
+    if digest.is_empty() {
+        return fallback;
+    }
+    let digest_parts: Vec<&str> = digest.split('@').collect();
+    if digest_parts.len() < 2 {
+        return fallback;
+    }
+    let image_name = digest_parts[0].to_string();
+    let checksum = digest_parts[1];
+    let res = get_image_version_from_digest(&image_name, checksum).await;
+    ImageVersion {
+        name: "superadmin".to_string(),
+        version: res.current_version,
+        is_latest: res.is_latest,
+        latest_version: res.latest_version,
+    }
+}
+
 async fn get_image_id(docker: &Docker, container_name: &str) -> String {
     match docker.inspect_container(container_name, None).await {
         Ok(container_info) => {

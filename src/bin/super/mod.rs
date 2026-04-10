@@ -639,6 +639,11 @@ pub async fn super_handle(
                 let res = state_read(|s| get_child_swarm_credentials(req, s)).await;
                 Some(serde_json::to_string(&res)?)
             }
+            // Pattern 4: No state needed
+            SwarmCmd::GetSuperAdminVersion => {
+                let res = sphinx_swarm::dock::get_super_admin_image_version().await;
+                Some(serde_json::to_string(&res)?)
+            }
             // Pattern 4: No state needed (pure external I/O)
             SwarmCmd::GetEc2CpuUtilization(req) => {
                 let res: SuperSwarmResponse =
