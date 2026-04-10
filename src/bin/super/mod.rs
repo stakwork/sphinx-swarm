@@ -644,7 +644,12 @@ pub async fn super_handle(
             // Pattern 4: No state needed
             SwarmCmd::GetSuperAdminVersion => {
                 let res = sphinx_swarm::dock::get_super_admin_image_version().await;
-                Some(serde_json::to_string(&res)?)
+                let wrapped = SuperSwarmResponse {
+                    success: true,
+                    message: "superadmin version".to_string(),
+                    data: Some(serde_json::to_value(&res)?),
+                };
+                Some(serde_json::to_string(&wrapped)?)
             }
             // Pattern 3: Read state, do I/O, return
             SwarmCmd::NukeWarmSwarm(req) => {
