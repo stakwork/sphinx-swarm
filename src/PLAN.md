@@ -598,7 +598,7 @@ Currently `Lnd::AddPeer` and `Cln::AddPeer` call `add_new_lightning_peer(&mut st
 
 ## Implementation Order
 
-1. **Phase 0:** Write integration test (bitcoind handler flow)
+1. ~~**Phase 0:** Write integration test (bitcoind handler flow)~~ **DONE** — `tests/handler_test.rs` created. Tests GetConfig, access denied, and full bitcoind GetInfo through a real container. Run: `cargo test --test handler_test -- --nocapture`. Note: requires `RUST_ENV=local` (set automatically in test) to avoid awslogs Docker driver.
 2. **Phase 1a:** Make clients cloneable where trivial (derive Clone on Proxy/Relay/Hsmd/Cln, relax ClnRPC `&mut self` → `&self`)
 3. **Phase 1b:** Define `ClientMap` (`Arc` for BitcoinRPC, `Arc<Mutex>` for LndRPC, plain Clone for rest), add `CLIENTS` static
 4. **Phase 1c:** Change `STACK` from `Mutex<State>` to `RwLock<Stack>`, add helpers
@@ -607,7 +607,7 @@ Currently `Lnd::AddPeer` and `Cln::AddPeer` call `add_new_lightning_peer(&mut st
 7. **Phase 1f:** Update all external STATE consumers (crons, app_login, backup, etc.)
 8. **Phase 2:** Remove channel infrastructure, routes call `handle()` directly
 9. **Phase 3:** Split cron jobs (auto_restart, renew_ssl_cert, auto_updater)
-9. Run integration test, verify everything works
+10. Run integration test, verify everything works
 
 ## Testing
 

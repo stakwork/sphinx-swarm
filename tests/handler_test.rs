@@ -5,25 +5,37 @@
 //!
 //! Requires Docker running locally.
 //! Run with: `cargo test --test handler_test -- --nocapture`
+//!
+//! Tests run sequentially (not in parallel) because they share the global STATE mutex.
 
 use anyhow::Result;
 use bollard::Docker;
 use sphinx_swarm::cmd::{BitcoindCmd, Cmd, SwarmCmd};
 use sphinx_swarm::config::{Clients, Node, Role, Stack, User};
 use sphinx_swarm::dock::{
-    create_and_init, create_network, remove_network, remove_volume, start_container,
-    stop_and_remove,
+    create_and_init, create_network, remove_volume, start_container, stop_and_remove,
 };
 use sphinx_swarm::handler::{handle, hydrate};
 use sphinx_swarm::images::btc::BtcImage;
 use sphinx_swarm::images::{DockerConfig, Image};
+use std::sync::Once;
 
 const TEST_PROJECT: &str = "test-handler";
-const TEST_NETWORK: &str = "test-handler-net";
 const BTC_NAME: &str = "test-btc";
 const BTC_VERSION: &str = "v23.0";
 const BTC_USER: &str = "testuser";
 const BTC_PASS: &str = "testpass";
+
+static INIT: Once = Once::new();
+
+/// One-time setup: logger + env vars needed for local Docker.
+fn init() {
+    INIT.call_once(|| {
+        let _ = simple_logger::init_with_level(log::Level::Info);
+        // Use local log driver (not awslogs) so containers start without AWS credentials
+        std::env::set_var("RUST_ENV", "local");
+    });
+}
 
 /// Build a minimal Stack with just one bitcoind node and an admin user.
 fn make_test_stack() -> (Stack, BtcImage) {
@@ -64,36 +76,57 @@ fn make_test_stack() -> (Stack, BtcImage) {
 
 /// Clean up Docker resources created during the test.
 /// Best-effort — logs warnings but doesn't fail.
-async fn cleanup(docker: &Docker, btc: &BtcImage) {
-    let hostname = sphinx_swarm::utils::domain(&btc.name);
+async fn cleanup(docker: &Docker) {
+    let hostname = sphinx_swarm::utils::domain(BTC_NAME);
     if let Err(e) = stop_and_remove(docker, &hostname).await {
         eprintln!("[cleanup] stop_and_remove {}: {:?}", hostname, e);
     }
     if let Err(e) = remove_volume(docker, &hostname).await {
         eprintln!("[cleanup] remove_volume {}: {:?}", hostname, e);
     }
-    if let Err(e) = remove_network(docker, Some(TEST_NETWORK)).await {
-        eprintln!("[cleanup] remove_network: {:?}", e);
-    }
 }
 
+/// Single sequential test entrypoint.
+///
+/// All handler tests share the global `STATE` mutex, so they must not
+/// run concurrently. We use one `#[tokio::test]` that calls each
+/// sub-test in order.
 #[tokio::test]
-async fn test_handler_get_config() -> Result<()> {
-    let _ = simple_logger::init_with_level(log::Level::Info);
+async fn test_handler_flow() -> Result<()> {
+    init();
 
     let docker = Docker::connect_with_unix_defaults()?;
-    let (stack, btc) = make_test_stack();
+
+    // Clean up from any prior failed run
+    cleanup(&docker).await;
+
+    // --- Test 1: GetConfig ---
+    eprintln!("\n=== test_get_config ===");
+    test_get_config(&docker).await?;
+
+    // --- Test 2: Access denied without user ---
+    eprintln!("\n=== test_access_denied ===");
+    test_access_denied(&docker).await?;
+
+    // --- Test 3: Bitcoind GetInfo (needs real container) ---
+    eprintln!("\n=== test_bitcoind_get_info ===");
+    test_bitcoind_get_info(&docker).await?;
+
+    Ok(())
+}
+
+/// GetConfig returns valid stack data for an admin user.
+async fn test_get_config(docker: &Docker) -> Result<()> {
+    let (stack, _btc) = make_test_stack();
 
     // Hydrate STATE with our test stack (no clients needed for GetConfig)
-    let clients = Clients::default();
-    hydrate(stack, clients).await;
+    hydrate(stack, Clients::default()).await;
 
-    // GetConfig should work — it's allowed before ready and for admin users
     let res = handle(
         TEST_PROJECT,
         Cmd::Swarm(SwarmCmd::GetConfig),
         "SWARM",
-        &docker,
+        docker,
         &Some(1),
     )
     .await;
@@ -101,7 +134,6 @@ async fn test_handler_get_config() -> Result<()> {
     assert!(res.is_ok(), "GetConfig failed: {:?}", res.err());
 
     let json = res.unwrap();
-    // The response should be a valid JSON representation of the Stack
     let parsed: serde_json::Value = serde_json::from_str(&json)?;
     assert_eq!(parsed["network"], "regtest");
     assert_eq!(parsed["ready"], true); // hydrate sets ready=true
@@ -112,104 +144,20 @@ async fn test_handler_get_config() -> Result<()> {
     assert_eq!(nodes[0]["type"], "Btc");
     assert_eq!(nodes[0]["name"], BTC_NAME);
 
-    // No Docker cleanup needed — we didn't start any containers
-    // But reset STATE so the next test starts clean
-    cleanup(&docker, &btc).await;
-
+    eprintln!("[pass] GetConfig returned valid stack with {} node(s)", nodes.len());
     Ok(())
 }
 
-#[tokio::test]
-async fn test_handler_bitcoind_get_info() -> Result<()> {
-    let _ = simple_logger::init_with_level(log::Level::Info);
-
-    // Use local log driver (not awslogs) so containers can start without AWS credentials
-    std::env::set_var("RUST_ENV", "local");
-
-    let docker = Docker::connect_with_unix_defaults()?;
-    let (stack, btc) = make_test_stack();
-
-    // Ensure cleanup from any prior failed run
-    cleanup(&docker, &btc).await;
-
-    // 1. Create the Docker network (uses default "sphinx-swarm" network
-    //    because the container's host_config hardcodes it)
-    create_network(&docker, None).await?;
-
-    // 2. Build the bitcoind container config and create/start it
-    let nodes = stack.nodes.clone();
-    let img = Image::Btc(btc.clone());
-    let node_config = img.make_config(&nodes, &docker).await?;
-
-    let (id_opt, need_to_start, _created_new_volume) =
-        create_and_init(&docker, node_config, false).await?;
-    assert!(id_opt.is_some(), "container should have been created");
-
-    if need_to_start {
-        let id = id_opt.as_ref().unwrap();
-        start_container(&docker, id).await?;
-        eprintln!("[test] started container {}", id);
-    }
-
-    // 3. Connect the bitcoind RPC client
-    let mut clients = Clients::default();
-    btc.connect_client(&mut clients).await;
-    assert!(
-        clients.bitcoind.contains_key(BTC_NAME),
-        "bitcoind client should be registered"
-    );
-
-    // 4. Hydrate STATE
-    hydrate(stack, clients).await;
-
-    // 5. Call handle() with Bitcoind::GetInfo
-    let res = handle(
-        TEST_PROJECT,
-        Cmd::Bitcoind(BitcoindCmd::GetInfo),
-        BTC_NAME,
-        &docker,
-        &Some(1),
-    )
-    .await;
-
-    assert!(res.is_ok(), "Bitcoind GetInfo failed: {:?}", res.err());
-
-    let json = res.unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&json)?;
-
-    // Verify we got blockchain info back
-    assert_eq!(parsed["chain"], "regtest", "should be regtest chain");
-    // Block count should be >= 0 (freshly started node)
-    assert!(
-        parsed["blocks"].as_u64().is_some(),
-        "should have a blocks field"
-    );
-    eprintln!(
-        "[test] bitcoind chain={}, blocks={}",
-        parsed["chain"], parsed["blocks"]
-    );
-
-    // 6. Cleanup
-    cleanup(&docker, &btc).await;
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_handler_access_denied_without_user() -> Result<()> {
-    let _ = simple_logger::init_with_level(log::Level::Info);
-
-    let docker = Docker::connect_with_unix_defaults()?;
+/// GetConfig with no user_id is rejected.
+async fn test_access_denied(docker: &Docker) -> Result<()> {
     let (stack, _btc) = make_test_stack();
-
     hydrate(stack, Clients::default()).await;
 
-    // Calling GetConfig with no user_id should fail (access denied)
     let res = handle(
         TEST_PROJECT,
         Cmd::Swarm(SwarmCmd::GetConfig),
         "SWARM",
-        &docker,
+        docker,
         &None,
     )
     .await;
@@ -221,6 +169,72 @@ async fn test_handler_access_denied_without_user() -> Result<()> {
         "error should mention access denied, got: {}",
         err_msg
     );
+
+    eprintln!("[pass] access denied for unauthenticated request");
+    Ok(())
+}
+
+/// Full end-to-end: start a real bitcoind container, connect RPC, call GetInfo through handler.
+async fn test_bitcoind_get_info(docker: &Docker) -> Result<()> {
+    let (stack, btc) = make_test_stack();
+
+    // 1. Create the Docker network (uses default "sphinx-swarm" because host_config hardcodes it)
+    create_network(docker, None).await?;
+
+    // 2. Build the bitcoind container config and create/start it
+    let nodes = stack.nodes.clone();
+    let img = Image::Btc(btc.clone());
+    let node_config = img.make_config(&nodes, docker).await?;
+
+    let (id_opt, need_to_start, _created_new_volume) =
+        create_and_init(docker, node_config, false).await?;
+    assert!(id_opt.is_some(), "container should have been created");
+
+    if need_to_start {
+        let id = id_opt.as_ref().unwrap();
+        start_container(docker, id).await?;
+        eprintln!("[test] started container {}", id);
+    }
+
+    // 3. Connect the bitcoind RPC client
+    let mut clients = Clients::default();
+    btc.connect_client(&mut clients).await;
+    assert!(
+        clients.bitcoind.contains_key(BTC_NAME),
+        "bitcoind client should be registered after connect_client"
+    );
+
+    // 4. Hydrate STATE with stack + live clients
+    hydrate(stack, clients).await;
+
+    // 5. Call handle() with Bitcoind::GetInfo
+    let res = handle(
+        TEST_PROJECT,
+        Cmd::Bitcoind(BitcoindCmd::GetInfo),
+        BTC_NAME,
+        docker,
+        &Some(1),
+    )
+    .await;
+
+    assert!(res.is_ok(), "Bitcoind GetInfo failed: {:?}", res.err());
+
+    let json = res.unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&json)?;
+
+    // Verify we got blockchain info back
+    assert_eq!(parsed["chain"], "regtest", "should be regtest chain");
+    assert!(
+        parsed["blocks"].as_u64().is_some(),
+        "should have a blocks field"
+    );
+    eprintln!(
+        "[pass] bitcoind chain={}, blocks={}",
+        parsed["chain"], parsed["blocks"]
+    );
+
+    // 6. Cleanup
+    cleanup(docker).await;
 
     Ok(())
 }
