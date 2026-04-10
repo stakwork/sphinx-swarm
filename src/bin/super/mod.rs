@@ -308,42 +308,41 @@ pub async fn super_handle(
             }
             // Pattern 2: Mutate and return
             SwarmCmd::DeleteSwarm(swarm) => {
-                let (hm, domain_names_to_delete) = state_write(proj, |s| {
+                // Step 1: Read domain names from state without mutating
+                let domain_names = state_read(|s| {
+                    s.find_swarm_by_host(&swarm.host, None)
+                        .and_then(|s| s.route53_domain_names.clone())
+                        .filter(|d| !d.is_empty())
+                })
+                .await;
+                // Step 2: Await Route53 deletion before touching state
+                if let Some(ref names) = domain_names {
+                    if let Err(err) =
+                        route53::delete_multiple_route53_records(names.clone()).await
+                    {
+                        let mut hm = HashMap::new();
+                        hm.insert("success", "false".to_string());
+                        hm.insert("message", format!("Route53 deletion failed: {}", err));
+                        return Ok(serde_json::to_string(&hm)?);
+                    }
+                    log::info!("Deleted route53 records for swarm: {:?}", names);
+                }
+                // Step 3: Remove swarm from state only after Route53 succeeded
+                let hm = state_write(proj, |s| {
                     let mut hm = HashMap::new();
-                    // Capture domain names before removing from state
-                    let domain_names = s
-                        .find_swarm_by_host(&swarm.host, None)
-                        .and_then(|s| s.route53_domain_names)
-                        .filter(|d| !d.is_empty());
                     match s.delete_swarm_by_host(&swarm.host) {
                         Ok(()) => {
                             hm.insert("success", "true".to_string());
                             hm.insert("message", "Swarm deleted successfully".to_string());
                         }
                         Err(msg) => {
-                            hm.insert("message", msg.clone());
                             hm.insert("success", "false".to_string());
+                            hm.insert("message", msg);
                         }
                     }
-                    (hm, domain_names)
+                    hm
                 })
                 .await;
-                // Best-effort Route53 cleanup after state is saved
-                if let Some(domain_names) = domain_names_to_delete {
-                    tokio::spawn(async move {
-                        match route53::delete_multiple_route53_records(domain_names.clone()).await {
-                            Ok(_) => log::info!(
-                                "Deleted route53 records for deleted swarm: {:?}",
-                                domain_names
-                            ),
-                            Err(err) => log::error!(
-                                "Error deleting route53 records for swarm {:?}: {}",
-                                domain_names,
-                                err
-                            ),
-                        }
-                    });
-                }
                 Some(serde_json::to_string(&hm)?)
             }
             // Pattern 2: Mutate and return
