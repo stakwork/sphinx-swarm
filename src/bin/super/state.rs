@@ -8,7 +8,7 @@ use sphinx_swarm::utils::getenv;
 use crate::put_config_file;
 use crate::util::{get_descriptive_instance_type, get_today_dash_date};
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct Super {
     pub stacks: Vec<RemoteStack>,
     /// Swarms whose EC2 instance is stopped (not terminated); shown in "Stopped Swarms" section.
@@ -83,7 +83,7 @@ pub struct AwsInstanceType {
     pub value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
 pub struct BotCred {
     pub bot_id: String,
     pub bot_secret: String,

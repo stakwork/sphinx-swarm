@@ -623,3 +623,11 @@ export async function get_bot_balance() {
 export async function create_bot_invoice(amt_msat: number) {
   return await swarmCmd("CreateBotInvoice", { amt_msat });
 }
+
+export async function nuke_warm_swarm({ host }: { host: string }) {
+  return await swarmCmd("NukeWarmSwarm", { host });
+}
+
+export async function nuke_all_warm_swarms() {
+  return await swarmCmd("NukeAllWarmSwarms");
+}
