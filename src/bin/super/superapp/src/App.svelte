@@ -85,7 +85,7 @@
       <div class="lefty logo-wrap">
         <img class="logo" alt="Sphinx icon" src="favicon.jpeg" />
         <span class="stack-title">Sphinx Superadmin</span>
-        <span class="version-tag">v{superAdminVersion}</span>
+        <span class="version-tag">{superAdminVersion}</span>
       </div>
       <section class="menu-btn">
         <Button
