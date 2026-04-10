@@ -109,7 +109,7 @@ pub enum SwarmCmd {
     GetLightningBotsDetails,
     ChangeLightningBotLabel(ChangeLightningBotLabel),
     CreateInvoiceForLightningBot(CreateInvoiceLightningBotReq),
-    GetSuperAdminLogs,
+    GetSuperAdminLogs(SuperAdminLogsRequest),
     UpdateChildSwarmEnv(UpdateChildSwarmEnvReq),
     AddAnthropicKey(AddAnthropicKeyReq),
     GetAnthropicKey,
@@ -292,6 +292,12 @@ pub struct CreateSwarmEc2Instance {
     pub ec2_instance_id: String,
     pub swarm_number: String,
     pub x_api_key: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SuperAdminLogsRequest {
+    pub before_timestamp: Option<String>,
+    pub since_timestamp: Option<String>,
 }
 
 impl Cmd {

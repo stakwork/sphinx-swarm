@@ -147,8 +147,17 @@ pub async fn handle(
                 must_save_stack = true;
                 Some(serde_json::to_string("{}")?)
             }
-            SwarmCmd::GetContainerLogs(container_name) => {
-                let logs = container_logs(docker, &container_name).await;
+            SwarmCmd::GetContainerLogs(req) => {
+                let logs = container_logs(
+                    docker,
+                    &req.name,
+                    ContainerLogsOptions {
+                        tail: ContainerLogsOptions::default().tail,
+                        before_timestamp: req.before_timestamp,
+                        since_timestamp: req.since_timestamp,
+                    },
+                )
+                .await;
                 Some(serde_json::to_string(&logs)?)
             }
             SwarmCmd::ListVersions(req) => {

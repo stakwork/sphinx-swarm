@@ -11,7 +11,7 @@ pub async fn main() -> Result<()> {
     let btc1 = images::btc::btc(&btc_node);
     let _id = create_and_start(&docker, btc1, false).await?;
     log::info!("created bitcoind");
-    let logs = container_logs(&docker, "bitcoind").await;
+    let logs = container_logs(&docker, "bitcoind", ContainerLogsOptions::default()).await;
     log::info!("LOGS {:?}", logs);
     Ok(())
 }

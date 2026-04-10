@@ -1,10 +1,15 @@
-use sphinx_swarm::dock::{container_logs, dockr};
+use sphinx_swarm::dock::{container_logs, dockr, ContainerLogsOptions};
 
-use crate::cmd::SuperSwarmResponse;
+use crate::cmd::{SuperAdminLogsRequest, SuperSwarmResponse};
 
-pub async fn get_super_admin_docker_logs() -> SuperSwarmResponse {
+pub async fn get_super_admin_docker_logs(req: SuperAdminLogsRequest) -> SuperSwarmResponse {
     let docker = dockr();
-    let logs = container_logs(&docker, "sphinx-swarm-superadmin").await;
+    let opts = ContainerLogsOptions {
+        before_timestamp: req.before_timestamp,
+        since_timestamp: req.since_timestamp,
+        ..ContainerLogsOptions::default()
+    };
+    let logs = container_logs(&docker, "sphinx-swarm-superadmin", opts).await;
     let json_value = match serde_json::to_value(logs) {
         Ok(data) => data,
         Err(err) => {

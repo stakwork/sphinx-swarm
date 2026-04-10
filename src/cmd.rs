@@ -162,11 +162,18 @@ pub struct AssignSwarmNewDetails {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ContainerLogsRequest {
+    pub name: String,
+    pub before_timestamp: Option<String>,
+    pub since_timestamp: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
     GetConfig,
     AddNode(Image),
-    GetContainerLogs(String),
+    GetContainerLogs(ContainerLogsRequest),
     ListVersions(ImageRequest),
     Login(LoginInfo),
     ChangePassword(ChangePasswordInfo),
