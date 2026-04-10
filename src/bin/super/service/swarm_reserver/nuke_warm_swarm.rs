@@ -8,7 +8,7 @@ use crate::state::{AvailableInstances, Super};
 pub async fn nuke_single_warm_swarm(
     swarm: &AvailableInstances,
     state: &Super,
-) -> Result<SuperSwarmResponse> {
+) -> Result<(SuperSwarmResponse, Option<String>)> {
     let swarm_updater_password = getenv("SWARM_UPDATER_PASSWORD")?;
 
     // Build env var map — same keys written by create_ec2_instance() user-data
@@ -42,28 +42,51 @@ pub async fn nuke_single_warm_swarm(
         "BOLTWALL_API_SECRET",
         "JARVIS_FEATURE_FLAG_WFA_SCHEMAS",
         "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS",
+        "BACKUP_KEY",
     ];
 
     for key in &env_keys {
         if let Ok(val) = getenv(key) {
             env_vars.insert(key.to_string(), val);
+        } else if *key == "BACKUP_KEY" {
+            // Always include BACKUP_KEY even if empty, matching create_ec2_instance behaviour
+            env_vars.insert(key.to_string(), String::new());
         }
     }
 
     // PASSWORD comes from admin_password on the instance
     env_vars.insert("PASSWORD".to_string(), swarm.admin_password.clone());
 
-    // Check port_based_ssl
-    let port_based_ssl = getenv("PORT_BASED_SSL").ok().map(|v| v == "true");
+    // Check port_based_ssl — broaden to accept "true" or "1"
+    let port_based_ssl = getenv("PORT_BASED_SSL")
+        .ok()
+        .map(|v| v == "true" || v == "1");
+
+    if port_based_ssl == Some(true) {
+        env_vars.insert("PORT_BASED_SSL".to_string(), "true".to_string());
+    }
+
+    // Pull ANTHROPIC_API_KEY from the state pool (first key, same as reserve_swarm)
+    let anthropic_api_key: Option<String> = state
+        .anthropic_keys
+        .as_ref()
+        .and_then(|keys| keys.first().cloned());
+
+    if let Some(ref key) = anthropic_api_key {
+        env_vars.insert("ANTHROPIC_API_KEY".to_string(), key.clone());
+    }
 
     let ip_address = match &swarm.ip_address {
         Some(ip) => ip.clone(),
         None => {
-            return Ok(SuperSwarmResponse {
-                success: false,
-                message: format!("No IP address for swarm {}", swarm.host),
-                data: None,
-            });
+            return Ok((
+                SuperSwarmResponse {
+                    success: false,
+                    message: format!("No IP address for swarm {}", swarm.host),
+                    data: None,
+                },
+                None,
+            ));
         }
     };
 
@@ -88,11 +111,14 @@ pub async fn nuke_single_warm_swarm(
 
     if status.is_success() {
         log::info!("Nuke succeeded for swarm {}: {}", swarm.host, text);
-        Ok(SuperSwarmResponse {
-            success: true,
-            message: format!("Nuke triggered for swarm {}", swarm.host),
-            data: None,
-        })
+        Ok((
+            SuperSwarmResponse {
+                success: true,
+                message: format!("Nuke triggered for swarm {}", swarm.host),
+                data: None,
+            },
+            anthropic_api_key,
+        ))
     } else {
         log::error!(
             "Nuke failed for swarm {} (status {}): {}",
@@ -100,18 +126,21 @@ pub async fn nuke_single_warm_swarm(
             status,
             text
         );
-        Ok(SuperSwarmResponse {
-            success: false,
-            message: format!(
-                "Nuke failed for swarm {} (status {}): {}",
-                swarm.host, status, text
-            ),
-            data: None,
-        })
+        Ok((
+            SuperSwarmResponse {
+                success: false,
+                message: format!(
+                    "Nuke failed for swarm {} (status {}): {}",
+                    swarm.host, status, text
+                ),
+                data: None,
+            },
+            None,
+        ))
     }
 }
 
-pub async fn nuke_warm_swarm_by_host(host: &str, state: &Super) -> SuperSwarmResponse {
+pub async fn nuke_warm_swarm_by_host(host: &str, state: &Super) -> (SuperSwarmResponse, Option<String>) {
     // Guard: must be in available_instances (not in state.stacks)
     let available = match &state.reserved_instances {
         Some(ri) => ri
@@ -125,55 +154,71 @@ pub async fn nuke_warm_swarm_by_host(host: &str, state: &Super) -> SuperSwarmRes
     let swarm = match available {
         Some(s) => s,
         None => {
-            return SuperSwarmResponse {
-                success: false,
-                message: format!(
-                    "Host '{}' is not in the warm pool. Nuke rejected.",
-                    host
-                ),
-                data: None,
-            };
+            return (
+                SuperSwarmResponse {
+                    success: false,
+                    message: format!(
+                        "Host '{}' is not in the warm pool. Nuke rejected.",
+                        host
+                    ),
+                    data: None,
+                },
+                None,
+            );
         }
     };
 
     match nuke_single_warm_swarm(&swarm, state).await {
-        Ok(res) => res,
-        Err(e) => SuperSwarmResponse {
-            success: false,
-            message: format!("Nuke error for {}: {}", host, e),
-            data: None,
-        },
+        Ok((res, used_key)) => (res, used_key),
+        Err(e) => (
+            SuperSwarmResponse {
+                success: false,
+                message: format!("Nuke error for {}: {}", host, e),
+                data: None,
+            },
+            None,
+        ),
     }
 }
 
-pub async fn nuke_all_warm_swarms(state: &Super) -> SuperSwarmResponse {
+pub async fn nuke_all_warm_swarms(state: &Super) -> (SuperSwarmResponse, Vec<String>) {
     let available = match &state.reserved_instances {
         Some(ri) => ri.available_instances.clone(),
         None => {
-            return SuperSwarmResponse {
-                success: false,
-                message: "No reserved instances configured".to_string(),
-                data: None,
-            };
+            return (
+                SuperSwarmResponse {
+                    success: false,
+                    message: "No reserved instances configured".to_string(),
+                    data: None,
+                },
+                vec![],
+            );
         }
     };
 
     if available.is_empty() {
-        return SuperSwarmResponse {
-            success: true,
-            message: "No warm swarms to nuke".to_string(),
-            data: None,
-        };
+        return (
+            SuperSwarmResponse {
+                success: true,
+                message: "No warm swarms to nuke".to_string(),
+                data: None,
+            },
+            vec![],
+        );
     }
 
     let mut errors: Vec<String> = Vec::new();
     let mut success_count = 0u32;
+    let mut used_keys: Vec<String> = Vec::new();
 
     for swarm in &available {
         match nuke_single_warm_swarm(swarm, state).await {
-            Ok(res) => {
+            Ok((res, used_key)) => {
                 if res.success {
                     success_count += 1;
+                    if let Some(key) = used_key {
+                        used_keys.push(key);
+                    }
                 } else {
                     errors.push(format!("{}: {}", swarm.host, res.message));
                 }
@@ -186,21 +231,27 @@ pub async fn nuke_all_warm_swarms(state: &Super) -> SuperSwarmResponse {
     }
 
     if errors.is_empty() {
-        SuperSwarmResponse {
-            success: true,
-            message: format!("Nuked {} warm swarm(s) successfully", success_count),
-            data: None,
-        }
+        (
+            SuperSwarmResponse {
+                success: true,
+                message: format!("Nuked {} warm swarm(s) successfully", success_count),
+                data: None,
+            },
+            used_keys,
+        )
     } else {
-        SuperSwarmResponse {
-            success: false,
-            message: format!(
-                "Nuked {}/{} warm swarms. Errors: {}",
-                success_count,
-                available.len(),
-                errors.join("; ")
-            ),
-            data: None,
-        }
+        (
+            SuperSwarmResponse {
+                success: false,
+                message: format!(
+                    "Nuked {}/{} warm swarms. Errors: {}",
+                    success_count,
+                    available.len(),
+                    errors.join("; ")
+                ),
+                data: None,
+            },
+            used_keys,
+        )
     }
 }
