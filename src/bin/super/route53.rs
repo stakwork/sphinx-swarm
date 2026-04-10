@@ -152,6 +152,11 @@ pub async fn domain_exists_in_route53(
 }
 
 pub async fn delete_multiple_route53_records(domain_names: Vec<String>) -> Result<(), Error> {
+    log::info!(
+        "[route53] Starting batch delete for {} domain(s): {:?}",
+        domain_names.len(),
+        domain_names
+    );
     let hosted_zone_id = getenv("ROUTE53_ZONE_ID")?;
 
     let client = make_route_53_client().await?;
@@ -181,16 +186,16 @@ pub async fn delete_multiple_route53_records(domain_names: Vec<String>) -> Resul
                             .map_err(|e| anyhow!("Failed to build delete change: {}", e))?,
                     );
                 } else {
-                    println!("No exact match for {}", domain_name);
+                    log::warn!("[route53] No exact A record match for domain: {}", domain_name);
                 }
             }
         } else {
-            log::info!("Record {}  not found", domain_name,);
+            log::info!("[route53] Record {} not found in hosted zone", domain_name);
         }
     }
 
     if changes.is_empty() {
-        log::info!("No matching records to delete.");
+        log::info!("[route53] No matching A records to delete for submitted domains");
         return Ok(());
     }
 
@@ -209,7 +214,7 @@ pub async fn delete_multiple_route53_records(domain_names: Vec<String>) -> Resul
     {
         Ok(response) => {
             log::info!(
-                "Batch delete submitted. Status: {:?}",
+                "[route53] Batch delete submitted successfully. Status: {:?}",
                 response.change_info()
             );
             Ok(())
