@@ -1,6 +1,6 @@
 use crate::cmd::FeatureFlagUserRoles;
-use crate::config::{Node, Role, State, User};
-use crate::dock::restart_node_container;
+use crate::config::{Node, Role, Stack, User};
+use crate::dock::restart_node_container_global;
 use crate::images::Image;
 use crate::utils::docker_domain;
 use crate::{cmd::UpdateSecondBrainAboutRequest, images::boltwall::BoltwallImage};
@@ -97,44 +97,27 @@ pub async fn get_super_admin(img: &BoltwallImage) -> Result<String> {
     Ok(response_text)
 }
 
-pub async fn add_user(
+/// Returns (response_text, http_status). Caller handles stack mutation.
+pub async fn add_user_http(
     img: &BoltwallImage,
     pubkey: &str,
     role: u32,
-    name: String,
-    state: &mut State,
-    must_save_stack: &mut bool,
-) -> Result<String> {
+    name: &str,
+) -> Result<(String, u16)> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
-
     let client = make_client();
     let host = docker_domain(&img.name);
-
     let route = format!("http://{}:{}/set_user_role", host, img.port);
-
-    let body = AddUserBody {
-        pubkey: pubkey.to_string(),
-        role: role,
-        name: name.to_string(),
-    };
-    let response = client
-        .post(route.as_str())
-        .header("x-admin-token", admin_token)
-        .json(&body)
-        .send()
-        .await?;
-
-    if response.status() == 200 || response.status() == 201 {
-        // handle add user to swarm user
-        let did_update_user = add_or_edit_user(body.role, body.pubkey, body.name, state);
-        if did_update_user == true {
-            *must_save_stack = true
-        }
-    }
-
+    let body = AddUserBody { pubkey: pubkey.to_string(), role, name: name.to_string() };
+    let response = client.post(route.as_str()).header("x-admin-token", admin_token).json(&body).send().await?;
+    let status = response.status().as_u16();
     let response_text = response.text().await?;
+    Ok((response_text, status))
+}
 
-    Ok(response_text)
+/// Sync stack mutation after successful HTTP call
+pub fn add_user_to_stack(role: u32, pubkey: String, name: String, stack: &mut Stack) -> bool {
+    add_or_edit_user(role, pubkey, name, stack)
 }
 
 pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
@@ -156,35 +139,22 @@ pub async fn list_admins(img: &BoltwallImage) -> Result<String> {
     Ok(response_text)
 }
 
-pub async fn delete_sub_admin(
+pub async fn delete_sub_admin_http(
     img: &BoltwallImage,
     pubkey: &str,
-    state: &mut State,
-    must_save_stack: &mut bool,
-) -> Result<String> {
+) -> Result<(String, u16)> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
-
     let client = make_client();
     let host = docker_domain(&img.name);
-
     let route = format!("http://{}:{}/user/{}", host, img.port, pubkey);
-
-    let response = client
-        .delete(route.as_str())
-        .header("x-admin-token", admin_token)
-        .send()
-        .await?;
-
-    if response.status() == 200 {
-        let update_state = delete_swarm_user(state, pubkey.to_string());
-        if update_state == true {
-            *must_save_stack = true
-        }
-    }
-
+    let response = client.delete(route.as_str()).header("x-admin-token", admin_token).send().await?;
+    let status = response.status().as_u16();
     let response_text = response.text().await?;
+    Ok((response_text, status))
+}
 
-    Ok(response_text)
+pub fn delete_sub_admin_from_stack(pubkey: String, stack: &mut Stack) -> bool {
+    delete_swarm_user(stack, pubkey)
 }
 
 pub async fn list_paid_endpoint(img: &BoltwallImage) -> Result<String> {
@@ -372,44 +342,22 @@ pub async fn update_second_brain_about(
     Ok(response_text)
 }
 
-pub async fn update_user(
+pub async fn update_user_http(
     img: &BoltwallImage,
-    pubkey: String,
-    name: String,
+    pubkey: &str,
+    name: &str,
     id: u32,
     role: u32,
-    state: &mut State,
-    must_save_stack: &mut bool,
-) -> Result<String> {
+) -> Result<(String, u16)> {
     let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
-
     let client = make_client();
     let host = docker_domain(&img.name);
-
     let route = format!("http://{}:{}/user/{}", host, img.port, id);
-
-    let body = AddUserBody {
-        pubkey: pubkey.to_string(),
-        name: name.to_string(),
-        role: role,
-    };
-    let response = client
-        .put(route.as_str())
-        .header("x-admin-token", admin_token)
-        .json(&body)
-        .send()
-        .await?;
-
-    if response.status() == 200 {
-        let must_update_state = add_or_edit_user(role, pubkey, name, state);
-        if must_update_state == true {
-            *must_save_stack = true
-        }
-    }
-
+    let body = AddUserBody { pubkey: pubkey.to_string(), name: name.to_string(), role };
+    let response = client.put(route.as_str()).header("x-admin-token", admin_token).json(&body).send().await?;
+    let status = response.status().as_u16();
     let response_text = response.text().await?;
-
-    Ok(response_text)
+    Ok((response_text, status))
 }
 
 pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
@@ -425,21 +373,20 @@ pub async fn get_api_token(boltwall: &BoltwallImage) -> Result<ApiToken> {
     Ok(response)
 }
 
-fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) -> bool {
-    return match state
-        .stack
+fn add_or_edit_user(role: u32, pubkey: String, name: String, stack: &mut Stack) -> bool {
+    return match stack
         .users
         .iter()
         .position(|u| u.pubkey == Some(pubkey.clone()))
     {
         Some(user_pos) => {
-            let cloned_user = state.stack.users.clone();
+            let cloned_user = stack.users.clone();
             // check if role is boltwall member
             if role == 3
                 && cloned_user[user_pos].role != Role::Admin
                 && cloned_user[user_pos].role != Role::Super
             {
-                state.stack.users.remove(user_pos);
+                stack.users.remove(user_pos);
                 return true;
             }
             false
@@ -447,11 +394,11 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
         None => {
             // check if role is boltwall subadmin
             if role == 2 {
-                let new_id = match state.stack.users.last() {
+                let new_id = match stack.users.last() {
                     Some(last_user) => last_user.id + 1,
                     None => 1, // This block of code should never execute because one user must exist before you can add a user
                 };
-                state.stack.users.push(User {
+                stack.users.push(User {
                     username: name.to_lowercase(),
                     id: new_id,
                     pubkey: Some(pubkey.clone()),
@@ -466,17 +413,16 @@ fn add_or_edit_user(role: u32, pubkey: String, name: String, state: &mut State) 
     };
 }
 
-fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
-    match state
-        .stack
+fn delete_swarm_user(stack: &mut Stack, pubkey: String) -> bool {
+    match stack
         .users
         .iter()
         .position(|user| user.pubkey == Some(pubkey.clone()))
     {
         Some(user_pos) => {
-            let cloned_user = state.stack.users[user_pos].clone();
+            let cloned_user = stack.users[user_pos].clone();
             if cloned_user.role != Role::Admin && cloned_user.role != Role::Super {
-                state.stack.users.remove(user_pos);
+                stack.users.remove(user_pos);
                 return true;
             }
             false
@@ -485,67 +431,36 @@ fn delete_swarm_user(state: &mut State, pubkey: String) -> bool {
     }
 }
 
-pub async fn update_request_per_seconds(
-    rps: i64,
-    state: &mut State,
-    must_save_stack: &mut bool,
-    docker: &Docker,
-    proj: &str,
-) -> SwarmResponse {
+/// Sync config-only mutation — updates stack nodes, no Docker restart
+pub fn update_request_per_seconds_config(rps: i64, stack: &mut Stack) -> SwarmResponse {
     if rps < 1 {
-        return SwarmResponse {
-            success: false,
-            message: "request per seconds cannot be less than 1".to_string(),
-            data: None,
-        };
+        return SwarmResponse { success: false, message: "request per seconds cannot be less than 1".to_string(), data: None };
     }
+    let nodes: Vec<Node> = stack.nodes.iter().map(|n| match n {
+        Node::External(e) => Node::External(e.clone()),
+        Node::Internal(i) => match i.clone() {
+            Image::BoltWall(mut b) => { b.set_request_per_seconds(rps); Node::Internal(Image::BoltWall(b)) }
+            _ => Node::Internal(i.clone()),
+        },
+    }).collect();
+    stack.nodes = nodes;
+    SwarmResponse { success: true, message: "Request per Seconds updated successfully".to_string(), data: None }
+}
 
-    let mut node_name = "".to_string();
-
-    let nodes: Vec<Node> = state
-        .stack
-        .nodes
-        .iter()
-        .map(|n| match n {
-            Node::External(e) => Node::External(e.clone()),
-            Node::Internal(i) => match i.clone() {
-                Image::BoltWall(mut b) => {
-                    b.set_request_per_seconds(rps);
-                    node_name = b.name.clone();
-                    Node::Internal(Image::BoltWall(b))
-                }
-                _ => Node::Internal(i.clone()),
-            },
-        })
-        .collect();
-
-    state.stack.nodes = nodes;
-
-    // restart node
-    match restart_node_container(docker, node_name.as_str(), state, proj).await {
-        Ok(_) => {
-            *must_save_stack = true;
-            SwarmResponse {
-                success: true,
-                message: "Request per Seconds updated successfully".to_string(),
-                data: None,
-            }
-        }
-        Err(err) => {
-            log::error!(
-                "Error updating boltwall request per seconds: {}",
-                err.to_string()
-            );
-            SwarmResponse {
-                success: false,
-                message: format!(
-                    "Error updating boltwall request per seconds: {}",
-                    err.to_string()
-                ),
-                data: None,
-            }
-        }
+/// Sync config-only mutation — updates stack nodes, no Docker restart
+pub fn update_max_request_size_config(mrl: &str, stack: &mut Stack) -> SwarmResponse {
+    if mrl.is_empty() {
+        return SwarmResponse { success: false, message: "max request limit cannot be empty".to_string(), data: None };
     }
+    let nodes: Vec<Node> = stack.nodes.iter().map(|n| match n {
+        Node::External(e) => Node::External(e.clone()),
+        Node::Internal(i) => match i.clone() {
+            Image::BoltWall(mut b) => { b.set_max_request_limit(mrl); Node::Internal(Image::BoltWall(b)) }
+            _ => Node::Internal(i.clone()),
+        },
+    }).collect();
+    stack.nodes = nodes;
+    SwarmResponse { success: true, message: "Max request limit updated successfully".to_string(), data: None }
 }
 
 pub fn get_request_per_seconds(boltwall: &BoltwallImage) -> SwarmResponse {
@@ -578,65 +493,4 @@ pub fn get_max_request_size(boltwall: &BoltwallImage) -> SwarmResponse {
     }
 }
 
-pub async fn update_max_request_size(
-    mrl: &str,
-    state: &mut State,
-    must_save_stack: &mut bool,
-    docker: &Docker,
-    proj: &str,
-) -> SwarmResponse {
-    if mrl.is_empty() {
-        return SwarmResponse {
-            success: false,
-            message: "max request limit cannot be empty".to_string(),
-            data: None,
-        };
-    }
 
-    let mut node_name = "".to_string();
-
-    let nodes: Vec<Node> = state
-        .stack
-        .nodes
-        .iter()
-        .map(|n| match n {
-            Node::External(e) => Node::External(e.clone()),
-            Node::Internal(i) => match i.clone() {
-                Image::BoltWall(mut b) => {
-                    b.set_max_request_limit(mrl);
-                    node_name = b.name.clone();
-                    Node::Internal(Image::BoltWall(b))
-                }
-                _ => Node::Internal(i.clone()),
-            },
-        })
-        .collect();
-
-    state.stack.nodes = nodes;
-
-    // restart node
-    match restart_node_container(docker, node_name.as_str(), state, proj).await {
-        Ok(_) => {
-            *must_save_stack = true;
-            SwarmResponse {
-                success: true,
-                message: "Max request limit updated successfully".to_string(),
-                data: None,
-            }
-        }
-        Err(err) => {
-            log::error!(
-                "Error updating boltwall max request limit: {}",
-                err.to_string()
-            );
-            SwarmResponse {
-                success: false,
-                message: format!(
-                    "Error updating boltwall max request limit: {}",
-                    err.to_string()
-                ),
-                data: None,
-            }
-        }
-    }
-}
