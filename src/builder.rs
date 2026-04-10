@@ -1,4 +1,4 @@
-use crate::config::{self, Clients, Node, Stack, State, STATE};
+use crate::config::{self, ClientMap, Node, Stack, State, CLIENTS};
 use crate::conn::swarm::update_swarm;
 use crate::dock::*;
 use crate::dock::{
@@ -26,7 +26,7 @@ pub fn shutdown_now() {
 }
 
 // return a map of name:docker_id
-pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<Clients> {
+pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<ClientMap> {
     // set global mem limit if it exists
     if let Some(limit) = &stack.global_mem_limit {
         use std::sync::atomic::Ordering;
@@ -35,7 +35,7 @@ pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<C
     // first create the default network
     create_network(docker, None).await?;
     // then add the containers
-    let mut clients: Clients = Default::default();
+    let mut clients: ClientMap = Default::default();
     let nodes = stack.nodes.clone();
     let mut only_node = std::env::var("ONLY_NODE").ok();
     if only_node == Some("".to_string()) {
@@ -113,9 +113,14 @@ pub async fn auto_updater(
 }
 
 pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str) -> Result<()> {
-    let mut state = STATE.lock().await;
-    let nodes = state.stack.nodes.clone();
-    let img = find_img(node_name, &nodes)?;
+    // 1. Read node info (brief STACK read lock)
+    let (nodes, img) = config::stack_read(|s| {
+        let nodes = s.nodes.clone();
+        let img = find_img(node_name, &nodes);
+        (nodes, img)
+    })
+    .await;
+    let img = img?;
 
     let node_version_response = get_image_version(node_name, &docker, &img.repo().org).await;
     if node_version_response.is_latest {
@@ -123,21 +128,24 @@ pub async fn update_node_from_state(proj: &str, docker: &Docker, node_name: &str
         return Ok(());
     }
 
-    // drop(state);
-    match update_node(proj, docker, node_name, &nodes, &img, &mut state.clients).await {
-        Ok(()) => {
-            // let mut state = STATE.lock().await;
-            // FIXME if this never returns then STATE will deadlock
-            // for example new CLN does spin up GRPC until remote signer is connected
-            let oy = match make_client(proj, docker, &img, &mut state).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
-            };
-            drop(state);
-            oy
-        }
-        Err(e) => Err(anyhow!("FAILED TO UPDATE NODE {:?}", e)),
-    }
+    // 2. Remove client (brief CLIENTS write lock)
+    config::clients_write(|c| img.remove_client(c)).await;
+
+    // 3. Docker work (no locks held)
+    update_node(proj, docker, node_name, &nodes, &img).await?;
+
+    // 4. Reconnect client (brief CLIENTS write lock)
+    let nodes = config::stack_read(|s| s.nodes.clone()).await;
+    let mut cm = CLIENTS.write().await;
+    img.connect_client(proj, &mut cm, docker, &nodes, is_shutdown)
+        .await
+        .map_err(|e| anyhow!("FAILED TO MAKE CLIENT {:?}", e))?;
+    img.post_client(&cm)
+        .await
+        .map_err(|e| anyhow!("FAILED POST CLIENT {:?}", e))?;
+    drop(cm);
+
+    Ok(())
 }
 
 pub async fn update_node_and_make_client(
@@ -147,16 +155,7 @@ pub async fn update_node_and_make_client(
     state: &mut State,
 ) -> Result<()> {
     let img = find_img(node_name, &state.stack.nodes)?;
-    match update_node(
-        proj,
-        docker,
-        node_name,
-        &state.stack.nodes,
-        &img,
-        &mut state.clients,
-    )
-    .await
-    {
+    match update_node(proj, docker, node_name, &state.stack.nodes, &img).await {
         Ok(_) => {
             let oy = match make_client(proj, docker, &img, state).await {
                 Ok(_) => Ok(()),
@@ -173,7 +172,7 @@ pub async fn add_node(
     node: &Node,
     nodes: &Vec<Node>,
     docker: &Docker,
-    clients: &mut Clients,
+    clients: &mut ClientMap,
     skip: bool,
 ) -> Result<()> {
     if let Node::External(n) = node {
@@ -245,7 +244,6 @@ pub async fn update_node(
     node_name: &str,
     nodes: &Vec<Node>,
     theimg: &Image,
-    clients: &mut config::Clients,
 ) -> Result<()> {
     let hostname = domain(&node_name);
 
@@ -257,9 +255,6 @@ pub async fn update_node(
     let need_to_start = pull_image(docker, theconfig.clone()).await?;
 
     if need_to_start {
-        //remove clinet
-        theimg.remove_client(clients);
-
         // stop the node
         stop_and_remove(docker, &hostname).await?;
 
@@ -270,14 +265,11 @@ pub async fn update_node(
             log::warn!("pre_startup failed {} {:?}", &id, e);
         }
 
-        //remove client
         start_container(&docker, &id).await?;
 
         // post-startup steps (LND unlock)
         theimg.post_startup(proj, docker).await?;
     }
-
-    // nodes[pos].set_version(&un.version)?;
 
     Ok(())
 }

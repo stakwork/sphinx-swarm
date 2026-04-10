@@ -27,7 +27,7 @@ use tokio::io::AsyncReadExt;
 
 use crate::backup::bucket_name;
 use crate::builder::{find_img, make_client};
-use crate::config::{Node, State, STATE};
+use crate::config::{Node, State};
 use crate::conn::swarm::SwarmResponse;
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
@@ -250,6 +250,63 @@ pub async fn restart_node_container(
                 Ok(_) => Ok(()),
                 Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
             };
+        }
+        Err(err) => log::error!("Error starting container: {}", err.to_string()),
+    }
+
+    Ok(())
+}
+
+/// Restart a node container using STACK/CLIENTS globals (no State param needed).
+pub async fn restart_node_container_global(
+    docker: &Docker,
+    node_name: &str,
+    proj: &str,
+) -> Result<()> {
+    use crate::builder::is_shutdown;
+    use crate::config::{clients_write, stack_read, CLIENTS};
+
+    // 1. Read node info (brief STACK read)
+    let (nodes, img) = stack_read(|s| {
+        let nodes = s.nodes.clone();
+        let img = find_img(node_name, &nodes);
+        (nodes, img)
+    })
+    .await;
+    let img = img?;
+
+    let theconfig = img.make_config(&nodes, docker).await?;
+
+    // 2. Remove old client (brief CLIENTS write)
+    clients_write(|c| img.remove_client(c)).await;
+
+    // 3. Docker work (no locks)
+    let hostname = domain(node_name);
+    stop_and_remove(docker, &hostname).await?;
+    let new_id = create_container(docker, theconfig).await?;
+    log::info!("=> created {}", &hostname);
+
+    if let Err(e) = img.pre_startup(docker, &nodes).await {
+        log::warn!("pre_startup failed {} {:?}", &new_id, e);
+    }
+
+    match start_container(docker, &new_id).await {
+        Ok(()) => {
+            log::info!("Container started successfully");
+            img.post_startup(proj, docker).await?;
+
+            // 4. Reconnect client (brief CLIENTS write)
+            let nodes = stack_read(|s| s.nodes.clone()).await;
+            let mut cm = CLIENTS.write().await;
+            if let Err(e) = img
+                .connect_client(proj, &mut cm, docker, &nodes, is_shutdown)
+                .await
+            {
+                log::error!("FAILED TO MAKE CLIENT {:?}", e);
+            }
+            if let Err(e) = img.post_client(&cm).await {
+                log::error!("FAILED POST CLIENT {:?}", e);
+            }
         }
         Err(err) => log::error!("Error starting container: {}", err.to_string()),
     }
@@ -1137,17 +1194,15 @@ fn file_exists(path: &str) -> bool {
 }
 
 pub async fn restore_backup_if_exist(docker: &Docker, name: &str) -> Result<bool> {
-    let state = STATE.lock().await;
+    let (nodes, to_backup) = crate::config::stack_read(|s| {
+        (s.nodes.clone(), s.backup_services.clone())
+    })
+    .await;
 
-    let nodes = state.stack.nodes.clone();
-
-    let to_backup = if let Some(services) = state.stack.backup_services.clone() {
-        services
-    } else {
-        return Ok(false);
+    let to_backup = match to_backup {
+        Some(services) => services,
+        None => return Ok(false),
     };
-
-    drop(state);
 
     //check if backup s3 link is passed
     if to_backup.contains(&name.to_string()) {

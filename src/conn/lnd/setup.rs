@@ -1,4 +1,4 @@
-use crate::config::Clients;
+use crate::config::ClientMap;
 use crate::conn::lnd::lndrpc::LndRPC;
 use crate::conn::lnd::utils::{dl_cert, dl_macaroon};
 use crate::images;
@@ -27,7 +27,7 @@ pub async fn lnd_clients(docker: &Docker, lnd_node: &LndImage) -> Result<(LndRPC
     Ok((client, Some(addy.address)))
 }
 
-pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut Clients) {
+pub fn test_mine_if_needed(test_mine_addy: Option<String>, btc_name: &str, clients: &mut ClientMap) {
     if let Some(addy) = test_mine_addy {
         log::info!("mining 101 blocks to onchain address {}", addy);
         if let Some(btcrpc) = clients.bitcoind.get(btc_name) {

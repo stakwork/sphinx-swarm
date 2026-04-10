@@ -15,7 +15,7 @@ where
     let creds = collect_creds(docker, &node.name, &node.network).await?;
 
     let seconds_in_30_days = 2592000;
-    let mut client = ClnRPC::try_new(&node, &creds, seconds_in_30_days, canceller).await?;
+    let client = ClnRPC::try_new(&node, &creds, seconds_in_30_days, canceller).await?;
 
     if &node.network != "regtest" {
         return Ok((client, None));
