@@ -1,6 +1,6 @@
 use super::traefik::{cln_traefik_labels, traefik_labels};
 use super::*;
-use crate::config::{Clients, ExternalNodeType, Node};
+use crate::config::{ClientMap, ExternalNodeType, Node};
 use crate::conn::cln::hsmd::HsmdClient;
 use crate::conn::cln::setup as setup_cln;
 use crate::conn::lnd::setup::test_mine_if_needed;
@@ -82,12 +82,12 @@ impl ClnImage {
     pub fn set_rescan(&mut self, rescan: i32) {
         self.rescan = Some(rescan);
     }
-    pub fn remove_client(&self, clients: &mut Clients) {
+    pub fn remove_client(&self, clients: &mut ClientMap) {
         clients.cln.remove(&self.name);
     }
     pub async fn connect_client<Canceller>(
         &self,
-        clients: &mut Clients,
+        clients: &mut ClientMap,
         docker: &Docker,
         nodes: &Vec<Node>,
         canceller: Canceller,

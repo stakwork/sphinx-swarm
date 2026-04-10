@@ -76,23 +76,19 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
     // verify token first
     let unsigned = token::Token::from_base64(token)?;
     let pubkey = unsigned.recover()?;
-    let state = config::STATE.lock().await;
-    let res = match state
-        .stack
-        .users
-        .iter()
-        .find(|u| u.pubkey == Some(pubkey.to_string()))
-    {
-        Some(_user) => VerifyResponse {
-            success: true,
-            message: "Successfully verified token".to_string(),
-        },
-        None => VerifyResponse {
-            success: false,
-            message: "invalid token".to_string(),
-        },
-    };
-    drop(state);
+    let res = config::stack_read(|s| {
+        match s.users.iter().find(|u| u.pubkey == Some(pubkey.to_string())) {
+            Some(_user) => VerifyResponse {
+                success: true,
+                message: "Successfully verified token".to_string(),
+            },
+            None => VerifyResponse {
+                success: false,
+                message: "invalid token".to_string(),
+            },
+        }
+    })
+    .await;
     let mut details = DETAILS.lock().await;
     let detail = details
         .get_mut(challenge)
@@ -124,25 +120,28 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
     }
     drop(details);
 
-    let state = config::STATE.lock().await;
-    let res = match state
-        .stack
-        .users
-        .iter()
-        .find(|u| u.pubkey == Some(pubkey.to_string()))
-    {
-        Some(user) => ChallengeStatus {
-            success: true,
-            token: auth::make_jwt(user.id)?,
-            message: "login successfully".to_string(),
-        },
-        None => ChallengeStatus {
-            success: false,
-            token: "".to_string(),
-            message: "waiting for token".to_string(),
-        },
-    };
-    drop(state);
+    let res = config::stack_read(|s| {
+        match s.users.iter().find(|u| u.pubkey == Some(pubkey.to_string())) {
+            Some(user) => match auth::make_jwt(user.id) {
+                Ok(token) => ChallengeStatus {
+                    success: true,
+                    token,
+                    message: "login successfully".to_string(),
+                },
+                Err(_) => ChallengeStatus {
+                    success: false,
+                    token: "".to_string(),
+                    message: "failed to create token".to_string(),
+                },
+            },
+            None => ChallengeStatus {
+                success: false,
+                token: "".to_string(),
+                message: "waiting for token".to_string(),
+            },
+        }
+    })
+    .await;
 
     //remove successfully verified challenge from hashmap
     if res.success {
@@ -164,13 +163,11 @@ pub async fn remove_signup_challenge(challenge: &str) -> Option<(u32, Option<Str
 }
 
 pub async fn sign_up_admin_pubkey(
+    proj: &str,
     body: crate::cmd::SignUpAdminPubkeyDetails,
-    must_save_stack: &mut bool,
-    state: &mut crate::config::State,
 ) -> Result<GetSignupChallengeResponse> {
     let res = match find_challenge_from_signup_hashmap(&body.challenge).await {
         Some(user_detail) => {
-            // check user id matches
             if body.user_id != user_detail.0 {
                 return Ok(GetSignupChallengeResponse {
                     success: false,
@@ -178,36 +175,44 @@ pub async fn sign_up_admin_pubkey(
                     message: "you are not unauthorized to access this challenge".to_string(),
                 });
             }
-            let pubkey = user_detail.1;
-            // check if verified
-            if pubkey.is_none() {
+            let pubkey = match user_detail.1 {
+                Some(pk) => pk,
+                None => {
+                    return Ok(GetSignupChallengeResponse {
+                        success: false,
+                        pubkey: "".to_string(),
+                        message: "not yet verified".to_string(),
+                    });
+                }
+            };
+            // Check user exists (brief read lock)
+            let user_exists = crate::config::stack_read(|s| {
+                s.users.iter().any(|u| u.id == body.user_id)
+            }).await;
+            if !user_exists {
                 return Ok(GetSignupChallengeResponse {
                     success: false,
                     pubkey: "".to_string(),
-                    message: "not yet verified".to_string(),
+                    message: "you are not unauthorized to access this challenge".to_string(),
                 });
             }
-            // safe to unwrap here since "is_none" was checked above
-            let pubkey = pubkey.unwrap();
-            match state.stack.users.iter().position(|u| u.id == body.user_id) {
-                Some(ui) => {
-                    state.stack.users[ui].pubkey = Some(pubkey.clone());
-                    *must_save_stack = true;
-                    let boltwall = crate::handler::find_boltwall(&state.stack.nodes)?;
-                    crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &body.username)
-                        .await?;
-                    remove_signup_challenge(&body.challenge).await;
-                    GetSignupChallengeResponse {
-                        success: true,
-                        pubkey: pubkey.to_string(),
-                        message: "signup successful".to_string(),
-                    }
+            // Get boltwall info (brief read lock)
+            let boltwall = crate::config::stack_read(|s| {
+                crate::handler::find_boltwall(&s.nodes)
+            }).await?;
+            // HTTP call (no lock)
+            crate::conn::boltwall::add_admin_pubkey(&boltwall, &pubkey, &body.username).await?;
+            // Persist pubkey (brief write lock + save)
+            crate::config::stack_write(proj, |s| {
+                if let Some(u) = s.users.iter_mut().find(|u| u.id == body.user_id) {
+                    u.pubkey = Some(pubkey.clone());
                 }
-                None => GetSignupChallengeResponse {
-                    success: false,
-                    pubkey: "".to_string(),
-                    message: "you are not unauthorized to access this challenge".to_string(),
-                },
+            }).await;
+            remove_signup_challenge(&body.challenge).await;
+            GetSignupChallengeResponse {
+                success: true,
+                pubkey: pubkey.to_string(),
+                message: "signup successful".to_string(),
             }
         }
         None => GetSignupChallengeResponse {

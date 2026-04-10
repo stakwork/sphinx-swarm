@@ -2,22 +2,16 @@ use anyhow::{anyhow, Context, Error, Result};
 use reqwest::Client;
 
 use crate::{
-    config::{self, UpdateChildSwarmPublicIpBody, STATE},
+    config::{self, UpdateChildSwarmPublicIpBody},
     utils::{getenv, make_reqwest_client},
 };
 
 pub async fn handle_check_public_ip_via_cron(proj: &str) -> Result<(), Error> {
     let current_ip = get_public_ip().await?;
-    let state = STATE.lock().await;
-    let mut alert_super_admin = false;
-    if state.stack.ip.is_none() {
-        alert_super_admin = true;
-    } else {
-        if state.stack.ip.clone().unwrap() != current_ip {
-            alert_super_admin = true;
-        }
-    }
-    drop(state);
+    let alert_super_admin = config::stack_read(|s| {
+        s.ip.is_none() || s.ip.as_deref() != Some(&current_ip)
+    })
+    .await;
 
     if alert_super_admin {
         log::info!("Public IP has changed to {}", current_ip);
@@ -26,9 +20,10 @@ pub async fn handle_check_public_ip_via_cron(proj: &str) -> Result<(), Error> {
             log::error!("Failed to notify super admin of IP change: {:?}", e);
         } else {
             log::info!("Successfully notified super admin of IP change");
-            let mut state = STATE.lock().await;
-            state.stack.ip = Some(current_ip);
-            config::put_config_file(proj, &state.stack).await;
+            config::stack_write(proj, |s| {
+                s.ip = Some(current_ip);
+            })
+            .await;
         }
     }
     Ok(())

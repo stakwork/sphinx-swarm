@@ -7,15 +7,15 @@ use anyhow::Result;
 const LND_TLV_LEN: usize = 1944;
 
 pub async fn get_pubkey_cln(clients: &mut Clients, node_id: &str) -> Result<String> {
-    let client = clients.cln.get_mut(node_id).unwrap();
+    let client = clients.cln.get(node_id).unwrap();
     let info = client.get_info().await?;
     let pubkey = hex::encode(info.id);
     Ok(pubkey)
 }
 
 pub async fn get_pubkey_lnd(clients: &mut Clients, node_id: &str) -> Result<String> {
-    let lnd1 = clients.lnd.get_mut(node_id).unwrap();
-    let lnd1_info = lnd1.get_info().await?;
+    let lnd1 = clients.lnd.get(node_id).unwrap().clone();
+    let lnd1_info = lnd1.lock().await.get_info().await?;
     Ok(lnd1_info.identity_pubkey)
 }
 
@@ -88,7 +88,7 @@ pub async fn new_chan_from_cln1(
     peer_port: &str,
     btc_name: &str,
 ) -> Result<()> {
-    let cln1 = clients.cln.get_mut(sender_name).unwrap();
+    let cln1 = clients.cln.get(sender_name).unwrap();
 
     // skip if already have a chan
     let peers = cln1.list_peers().await?;
@@ -153,7 +153,7 @@ pub async fn cln_keysend_to(
         None
     };
 
-    let cln1 = clients.cln.get_mut(sender_id).unwrap();
+    let cln1 = clients.cln.get(sender_id).unwrap();
     match cln1
         .keysend(recip_pubkey, amt, None, None, None, tlv_opt)
         .await
@@ -191,8 +191,8 @@ pub async fn lnd_keysend_to(
         ..Default::default()
     };
     log::info!("pk {:?}", &pk);
-    let lnd1 = clients.lnd.get_mut(sender_id).unwrap();
-    match lnd1.pay_keysend(pk).await {
+    let lnd1 = clients.lnd.get(sender_id).unwrap().clone();
+    match lnd1.lock().await.pay_keysend(pk).await {
         Ok(sent_keysend) => println!(
             "[LND] => sent_keysend to {} {:?}",
             recip_pubkey, sent_keysend
