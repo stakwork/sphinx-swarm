@@ -605,8 +605,8 @@ Currently `Lnd::AddPeer` and `Cln::AddPeer` call `add_new_lightning_peer(&mut st
 5. ~~**Phase 1d:** Update `handler.rs` — transitional take/put pattern with STACK+CLIENTS~~ **DONE**
 6. ~~**Phase 1e:** Update builder, dock, images to work with `ClientMap`~~ **DONE**
 7. ~~**Phase 1f:** Update all external STATE consumers (crons, app_login, backup, etc.)~~ **DONE**
-8. **Phase 2:** Remove channel infrastructure, routes call `handle()` directly
-9. **Phase 3:** Split cron jobs (auto_restart, renew_ssl_cert, auto_updater)
+8. ~~**Phase 2:** Remove channel infrastructure, routes call `handle()` directly~~ **DONE** — `launch_rocket_direct()` added, stack binary routes call `handle()` directly via `call_handle()` with timeout. Legacy channel-based routes preserved at rank 2 for other binaries. `Docker` and `ProjectName` passed as Rocket managed state.
+9. ~~**Phase 3:** Split cron jobs (auto_restart, renew_ssl_cert, auto_updater)~~ **DONE** — `auto_restart_cron` uses `restart_node_container_global` (split pattern). `renew_ssl_cert` uses `stack_read`/`stack_write` around S3/HTTP. `update_node_from_state` uses `stack_read` → Docker work → `clients_write`.
 10. Run integration test, verify everything works
 
 ## Testing
