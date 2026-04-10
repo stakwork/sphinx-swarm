@@ -9,39 +9,50 @@ use crate::utils::{self, getenv};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rocket::tokio;
-use rocket::tokio::sync::Mutex;
+use rocket::tokio::sync::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU64;
+use std::sync::Arc;
 
-pub static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(Default::default()));
+// ── Stack (config/user data) ────────────────────────────────────────
 
-pub static GLOBAL_MEM_LIMIT: AtomicU64 = AtomicU64::new(0);
+pub static STACK: Lazy<RwLock<Stack>> = Lazy::new(|| RwLock::new(Default::default()));
 
-pub struct State {
-    pub stack: Stack,
-    pub clients: Clients,
+/// Read something from stack config. Lock held only for the duration of `f`.
+pub async fn stack_read<F, T>(f: F) -> T
+where
+    F: FnOnce(&Stack) -> T,
+{
+    let stack = STACK.read().await;
+    f(&stack)
 }
 
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            stack: Default::default(),
-            clients: Default::default(),
-        }
-    }
+/// Mutate stack config and save to disk. Lock held only for the duration of `f`.
+pub async fn stack_write<F, T>(proj: &str, f: F) -> T
+where
+    F: FnOnce(&mut Stack) -> T,
+{
+    let mut stack = STACK.write().await;
+    let result = f(&mut stack);
+    put_config_file(proj, &stack).await;
+    result
 }
 
-pub struct Clients {
-    pub bitcoind: HashMap<String, BitcoinRPC>,
-    pub lnd: HashMap<String, LndRPC>,
+// ── ClientMap (live RPC connections) ────────────────────────────────
+
+pub static CLIENTS: Lazy<RwLock<ClientMap>> = Lazy::new(|| RwLock::new(Default::default()));
+
+pub struct ClientMap {
+    pub bitcoind: HashMap<String, Arc<BitcoinRPC>>,
+    pub lnd: HashMap<String, Arc<Mutex<LndRPC>>>,
     pub cln: HashMap<String, ClnRPC>,
     pub proxy: HashMap<String, ProxyAPI>,
     pub relay: HashMap<String, RelayAPI>,
     pub hsmd: HashMap<String, HsmdClient>,
 }
 
-impl Default for Clients {
+impl Default for ClientMap {
     fn default() -> Self {
         Self {
             bitcoind: HashMap::new(),
@@ -53,6 +64,46 @@ impl Default for Clients {
         }
     }
 }
+
+/// Read/clone something from the client map. Brief read lock on CLIENTS.
+pub async fn clients_read<F, T>(f: F) -> T
+where
+    F: FnOnce(&ClientMap) -> T,
+{
+    let clients = CLIENTS.read().await;
+    f(&clients)
+}
+
+/// Insert or remove a client. Brief write lock on CLIENTS.
+pub async fn clients_write<F, T>(f: F) -> T
+where
+    F: FnOnce(&mut ClientMap) -> T,
+{
+    let mut clients = CLIENTS.write().await;
+    f(&mut clients)
+}
+
+pub static GLOBAL_MEM_LIMIT: AtomicU64 = AtomicU64::new(0);
+
+// ── Backwards-compat aliases (used during migration, remove in Phase 2) ─
+
+/// Legacy State struct — wraps Stack + ClientMap for callers not yet migrated.
+pub struct State {
+    pub stack: Stack,
+    pub clients: ClientMap,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            stack: Default::default(),
+            clients: Default::default(),
+        }
+    }
+}
+
+/// Legacy alias so existing code that says `Clients` still compiles.
+pub type Clients = ClientMap;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Stack {

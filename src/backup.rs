@@ -1,4 +1,4 @@
-use crate::config::STATE;
+use crate::config;
 use crate::images::DockerHubImage;
 use crate::utils::{domain, getenv};
 use anyhow::{Context, Result};
@@ -50,9 +50,7 @@ fn backup_retention_days() -> i64 {
 }
 
 pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
-    let state = STATE.lock().await;
-    let nodes = state.stack.nodes.clone();
-    drop(state);
+    let nodes = config::stack_read(|s| s.nodes.clone()).await;
 
     let mut containers: Vec<(String, String, String)> = Vec::new();
 

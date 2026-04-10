@@ -1,5 +1,5 @@
 use crate::{
-    config::{self, State},
+    config,
     conn::swarm::{SwarmRestarterRes, UpdateSslCertSwarmBody},
     utils::{getenv, is_using_port_based_ssl},
 };
@@ -34,7 +34,7 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
         loop {
             let go = CHECK_SSL_CERT.load(Ordering::Relaxed);
             if go {
-                if let Err(e) = cron_update_ssl_cert_handler().await {
+                if let Err(e) = handle_update_ssl_cert("stack").await {
                     log::error!("Checking for SSL CERT: {:?}", e);
                 }
 
@@ -47,34 +47,23 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
     Ok(sched)
 }
 
-async fn cron_update_ssl_cert_handler() -> Result<(), Error> {
-    let mut state = config::STATE.lock().await;
-    let mut save = false;
-
-    handle_update_ssl_cert(&mut state, &mut save).await?;
-    if save == true {
-        config::put_config_file("stack", &state.stack).await;
-    }
-    Ok(())
-}
-
-pub async fn handle_update_ssl_cert(
-    state: &mut State,
-    must_save_stack: &mut bool,
-) -> Result<(), Error> {
-    // check if it's port based ssl
+/// Check S3 for updated SSL cert, download if newer, persist timestamp via stack_write.
+pub async fn handle_update_ssl_cert(proj: &str) -> Result<(), Error> {
     if !is_using_port_based_ssl() {
         return Err(anyhow!("Current swarm does not support port based ssl"));
     }
 
     let region = getenv("AWS_REGION")?;
     let bucket = getenv("CERT_BUCKET").unwrap_or("sphinx-swarm-superadmin".to_string());
-    let key = "data.zip"; // we can move this to env at will
+    let key = "data.zip";
 
+    // 1. Read current timestamp (brief read lock)
+    let current_last_modified = config::stack_read(|s| s.ssl_cert_last_modified).await;
+
+    // 2. S3 check (no lock held)
     let region_provider = RegionProviderChain::first_try(Some(Region::new(region)));
-
-    let config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&config);
+    let aws_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&aws_config);
 
     let resp = client
         .head_object()
@@ -83,36 +72,32 @@ pub async fn handle_update_ssl_cert(
         .send()
         .await?;
 
-    // get last date modified
-    if let None = resp.last_modified() {
-        return Err(anyhow!("Unable to get last date modified from s3 bucket"));
+    let last_modified = resp
+        .last_modified()
+        .ok_or_else(|| anyhow!("Unable to get last date modified from s3 bucket"))?
+        .secs();
+
+    if current_last_modified == Some(last_modified) {
+        return Err(anyhow!("cert is upto date!"));
     }
 
-    let last_modified = resp.last_modified.unwrap().secs();
-
-    if let Some(cert_last_modified) = state.stack.ssl_cert_last_modified {
-        if cert_last_modified == last_modified {
-            return Err(anyhow!("cert is upto date!"));
-        }
-    }
-
+    // 3. Download + apply cert (no lock held)
     let res = update_ssl_cert(bucket.clone()).await?;
 
     if let Some(err) = res.error {
         return Err(anyhow!(err));
     }
-
-    if let Some(success) = res.ok {
-        if success == false {
-            return Err(anyhow!(
-                "An unexpected error occured while trying to update ssl certificate"
-            ));
-        }
+    if let Some(false) = res.ok {
+        return Err(anyhow!(
+            "An unexpected error occured while trying to update ssl certificate"
+        ));
     }
 
-    state.stack.ssl_cert_last_modified = Some(last_modified);
-
-    *must_save_stack = true;
+    // 4. Persist new timestamp (brief write lock + disk save)
+    config::stack_write(proj, |s| {
+        s.ssl_cert_last_modified = Some(last_modified);
+    })
+    .await;
 
     Ok(())
 }

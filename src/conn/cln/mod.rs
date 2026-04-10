@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 pub use util::*;
 
+#[derive(Clone)]
 pub struct ClnRPC {
     pub client: pb::node_client::NodeClient<Channel>,
 }
@@ -64,14 +65,14 @@ impl ClnRPC {
             .await?;
         let client = pb::node_client::NodeClient::new(channel);
 
-        let mut s = Self { client };
+        let s = Self { client };
         s.get_info().await?;
 
         Ok(s)
     }
 
-    pub async fn get_info(&mut self) -> Result<pb::GetinfoResponse> {
-        let response = match self.client.getinfo(pb::GetinfoRequest {}).await {
+    pub async fn get_info(&self) -> Result<pb::GetinfoResponse> {
+        let response = match self.client.clone().getinfo(pb::GetinfoRequest {}).await {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Error getting node info: {:?}", err.message());
@@ -81,9 +82,10 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn list_funds(&mut self) -> Result<pb::ListfundsResponse> {
+    pub async fn list_funds(&self) -> Result<pb::ListfundsResponse> {
         let response = match self
             .client
+            .clone()
             .list_funds(pb::ListfundsRequest {
                 ..Default::default()
             })
@@ -98,9 +100,10 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn new_addr(&mut self) -> Result<pb::NewaddrResponse> {
+    pub async fn new_addr(&self) -> Result<pb::NewaddrResponse> {
         let response = match self
             .client
+            .clone()
             .new_addr(pb::NewaddrRequest {
                 ..Default::default()
             })
@@ -116,7 +119,7 @@ impl ClnRPC {
     }
 
     pub async fn connect_peer(
-        &mut self,
+        &self,
         id: &str,
         host: &str,
         port: &str,
@@ -124,6 +127,7 @@ impl ClnRPC {
         let p = str::parse::<u32>(port)?;
         let response = match self
             .client
+            .clone()
             .connect_peer(pb::ConnectRequest {
                 id: id.to_string(),
                 host: Some(host.to_string()),
@@ -140,9 +144,10 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn list_peers(&mut self) -> Result<pb::ListpeersResponse> {
+    pub async fn list_peers(&self) -> Result<pb::ListpeersResponse> {
         let response = match self
             .client
+            .clone()
             .list_peers(pb::ListpeersRequest {
                 ..Default::default()
             })
@@ -158,14 +163,14 @@ impl ClnRPC {
     }
 
     pub async fn list_peer_channels(
-        &mut self,
+        &self,
         peer_id: Option<Vec<u8>>,
     ) -> Result<pb::ListpeerchannelsResponse> {
         let mut req = pb::ListpeerchannelsRequest::default();
         if let Some(peer_id) = peer_id {
             req.id = Some(peer_id);
         }
-        let response = match self.client.list_peer_channels(req).await {
+        let response = match self.client.clone().list_peer_channels(req).await {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Error listing peer channels: {:?}", err.message());
@@ -176,7 +181,7 @@ impl ClnRPC {
     }
 
     pub async fn try_fund_channel(
-        &mut self,
+        &self,
         id: &str,
         amt: u64,
         satsperbyte: Option<u32>,
@@ -192,7 +197,7 @@ impl ClnRPC {
     }
 
     pub async fn fund_channel(
-        &mut self,
+        &self,
         id: &str,
         amt: u64,
         satsperbyte: Option<u32>,
@@ -211,7 +216,7 @@ impl ClnRPC {
                 });
             }
         }
-        let response = match self.client.fund_channel(req).await {
+        let response = match self.client.clone().fund_channel(req).await {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Error funcding channel: {:?}", err.message());
@@ -222,7 +227,7 @@ impl ClnRPC {
     }
 
     pub async fn keysend(
-        &mut self,
+        &self,
         id: &str,
         amt: u64,
         route_hint: Option<String>,
@@ -269,7 +274,7 @@ impl ClnRPC {
             }
         }
         log::info!("=======> CLN KEYSEND REQ: {:?}", req);
-        let response = match self.client.key_send(req).await {
+        let response = match self.client.clone().key_send(req).await {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Error executing keysend: {:?}", err.message());
@@ -281,9 +286,10 @@ impl ClnRPC {
         Ok(res)
     }
 
-    pub async fn create_invoice(&mut self, amt: u64) -> Result<pb::InvoiceResponse> {
+    pub async fn create_invoice(&self, amt: u64) -> Result<pb::InvoiceResponse> {
         let response = match self
             .client
+            .clone()
             .invoice(pb::InvoiceRequest {
                 amount_msat: amount_or_any(amt),
                 label: hex_secret(),
@@ -300,9 +306,10 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn pay(&mut self, bolt11: &str) -> Result<pb::PayResponse> {
+    pub async fn pay(&self, bolt11: &str) -> Result<pb::PayResponse> {
         let response = match self
             .client
+            .clone()
             .pay(pb::PayRequest {
                 bolt11: bolt11.to_string(),
                 ..Default::default()
@@ -318,9 +325,10 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn close(&mut self, id: &str, out_addy: &str) -> Result<pb::CloseResponse> {
+    pub async fn close(&self, id: &str, out_addy: &str) -> Result<pb::CloseResponse> {
         let response = match self
             .client
+            .clone()
             .close(pb::CloseRequest {
                 id: id.to_string(),
                 destination: Some(out_addy.to_string()),
@@ -339,13 +347,14 @@ impl ClnRPC {
     }
 
     pub async fn list_invoices(
-        &mut self,
+        &self,
         payment_hash: Option<String>,
     ) -> Result<pb::ListinvoicesResponse> {
         match payment_hash {
             Some(hash) => {
                 let response = match self
                     .client
+                    .clone()
                     .list_invoices(pb::ListinvoicesRequest {
                         payment_hash: Some(hex::decode(hash)?),
                         ..Default::default()
@@ -363,6 +372,7 @@ impl ClnRPC {
             None => {
                 let response = match self
                     .client
+                    .clone()
                     .list_invoices(pb::ListinvoicesRequest {
                         ..Default::default()
                     })
@@ -380,13 +390,14 @@ impl ClnRPC {
     }
 
     pub async fn list_pays(
-        &mut self,
+        &self,
         payment_hash: Option<String>,
     ) -> Result<pb::ListsendpaysResponse> {
         match payment_hash {
             Some(hash) => {
                 let response = match self
                     .client
+                    .clone()
                     .list_send_pays(pb::ListsendpaysRequest {
                         payment_hash: Some(hex::decode(hash)?),
                         ..Default::default()
@@ -404,6 +415,7 @@ impl ClnRPC {
             None => {
                 let response = match self
                     .client
+                    .clone()
                     .list_send_pays(pb::ListsendpaysRequest {
                         ..Default::default()
                     })
@@ -420,14 +432,14 @@ impl ClnRPC {
         }
     }
 
-    pub async fn get_route(&mut self, dest: &str, amt_msat: u64) -> Result<pb::GetrouteResponse> {
+    pub async fn get_route(&self, dest: &str, amt_msat: u64) -> Result<pb::GetrouteResponse> {
         let req = pb::GetrouteRequest {
             id: hex::decode(dest)?,
             amount_msat: Some(pb::Amount { msat: amt_msat }),
             riskfactor: 10,
             ..Default::default()
         };
-        let response = match self.client.get_route(req).await {
+        let response = match self.client.clone().get_route(req).await {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Error getting route: {:?}", err.message());

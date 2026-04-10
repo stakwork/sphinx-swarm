@@ -1,6 +1,8 @@
 use super::traefik::traefik_labels;
 use super::*;
-use crate::config::{Clients, Node};
+use crate::config::{ClientMap, Node};
+use rocket::tokio::sync::Mutex;
+use std::sync::Arc;
 use crate::conn::lnd::setup;
 use crate::conn::lnd::utils::{dl_cert, try_unlock_lnd};
 use crate::secrets;
@@ -59,12 +61,12 @@ impl LndImage {
         try_unlock_lnd(&cert, proj, &self).await?;
         Ok(())
     }
-    pub fn remove_client(&self, clients: &mut Clients) {
+    pub fn remove_client(&self, clients: &mut ClientMap) {
         clients.lnd.remove(&self.name);
     }
     pub async fn connect_client(
         &self,
-        clients: &mut Clients,
+        clients: &mut ClientMap,
         docker: &Docker,
         nodes: &Vec<Node>,
     ) -> Result<()> {
@@ -73,7 +75,7 @@ impl LndImage {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let btc = li.find_btc().context("BTC required for LND")?;
         setup::test_mine_if_needed(test_mine_addy, &btc.name, clients);
-        clients.lnd.insert(self.name.clone(), client);
+        clients.lnd.insert(self.name.clone(), Arc::new(Mutex::new(client)));
         Ok(())
     }
 }

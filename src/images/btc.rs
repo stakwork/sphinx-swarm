@@ -1,6 +1,6 @@
 use super::traefik::traefik_labels;
 use super::{DockerConfig, DockerHubImage, Registry, Repository};
-use crate::config::{Clients, Node};
+use crate::config::{ClientMap, Node};
 use crate::conn::bitcoin::bitcoinrpc::BitcoinRPC;
 use crate::utils::{docker_domain_127, domain, host_config};
 use anyhow::{Context, Result};
@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::Docker;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 const RPC_PORT: &str = "18443";
 
@@ -41,7 +42,7 @@ impl BtcImage {
         self.user = Some(user.to_string());
         self.pass = Some(password.to_string());
     }
-    pub async fn post_client(&self, clients: &Clients) -> Result<()> {
+    pub async fn post_client(&self, clients: &ClientMap) -> Result<()> {
         let client = clients
             .bitcoind
             .get(&self.name)
@@ -52,14 +53,14 @@ impl BtcImage {
         sleep(1).await;
         Ok(())
     }
-    pub fn remove_client(&self, clients: &mut Clients) {
+    pub fn remove_client(&self, clients: &mut ClientMap) {
         clients.bitcoind.remove(&self.name);
     }
-    pub async fn connect_client(&self, clients: &mut Clients) {
+    pub async fn connect_client(&self, clients: &mut ClientMap) {
         let btc_rpc_url = format!("http://{}", docker_domain_127(&self.name));
         match BitcoinRPC::new_and_create_wallet(&self, &btc_rpc_url, RPC_PORT).await {
             Ok(client) => {
-                clients.bitcoind.insert(self.name.clone(), client);
+                clients.bitcoind.insert(self.name.clone(), Arc::new(client));
             }
             Err(e) => log::warn!("BitcoinRPC error: {:?}", e),
         };
