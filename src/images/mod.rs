@@ -332,7 +332,7 @@ impl Image {
             _ => (),
         })
     }
-    pub fn remove_client(&self, clients: &mut config::Clients) {
+    pub fn remove_client(&self, clients: &mut config::ClientMap) {
         match self {
             Image::Btc(n) => n.remove_client(clients),
             Image::Lnd(n) => n.remove_client(clients),
@@ -345,7 +345,7 @@ impl Image {
     pub async fn connect_client<Canceller>(
         &self,
         proj: &str,
-        clients: &mut config::Clients,
+        clients: &mut config::ClientMap,
         docker: &Docker,
         nodes: &Vec<config::Node>,
         canceller: Canceller,
@@ -362,7 +362,7 @@ impl Image {
             _ => (),
         })
     }
-    pub async fn post_client(&self, clients: &config::Clients) -> Result<()> {
+    pub async fn post_client(&self, clients: &config::ClientMap) -> Result<()> {
         Ok(match self {
             // load btc wallet
             Image::Btc(n) => n.post_client(clients).await?,

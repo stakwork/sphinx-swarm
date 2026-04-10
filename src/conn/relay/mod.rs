@@ -7,6 +7,7 @@ use rocket::tokio;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct RelayAPI {
     pub client: reqwest::Client,
     pub url: String,

@@ -1,5 +1,5 @@
 use crate::{
-    config::{self, State},
+    config::{self, Stack, State},
     conn::swarm::{SwarmRestarterRes, UpdateSslCertSwarmBody},
     utils::{getenv, is_using_port_based_ssl},
 };
@@ -48,18 +48,27 @@ pub async fn upload_new_ssl_cert_cron() -> Result<JobScheduler> {
 }
 
 async fn cron_update_ssl_cert_handler() -> Result<(), Error> {
-    let mut state = config::STATE.lock().await;
+    let mut stack = config::STACK.write().await;
     let mut save = false;
 
-    handle_update_ssl_cert(&mut state, &mut save).await?;
-    if save == true {
-        config::put_config_file("stack", &state.stack).await;
+    handle_update_ssl_cert_stack(&mut stack, &mut save).await?;
+    if save {
+        config::put_config_file("stack", &stack).await;
     }
     Ok(())
 }
 
+/// Called from handler.rs (legacy State wrapper)
 pub async fn handle_update_ssl_cert(
     state: &mut State,
+    must_save_stack: &mut bool,
+) -> Result<(), Error> {
+    handle_update_ssl_cert_stack(&mut state.stack, must_save_stack).await
+}
+
+/// Core implementation operating on Stack directly
+pub async fn handle_update_ssl_cert_stack(
+    stack: &mut Stack,
     must_save_stack: &mut bool,
 ) -> Result<(), Error> {
     // check if it's port based ssl
@@ -90,7 +99,7 @@ pub async fn handle_update_ssl_cert(
 
     let last_modified = resp.last_modified.unwrap().secs();
 
-    if let Some(cert_last_modified) = state.stack.ssl_cert_last_modified {
+    if let Some(cert_last_modified) = stack.ssl_cert_last_modified {
         if cert_last_modified == last_modified {
             return Err(anyhow!("cert is upto date!"));
         }
@@ -110,7 +119,7 @@ pub async fn handle_update_ssl_cert(
         }
     }
 
-    state.stack.ssl_cert_last_modified = Some(last_modified);
+    stack.ssl_cert_last_modified = Some(last_modified);
 
     *must_save_stack = true;
 

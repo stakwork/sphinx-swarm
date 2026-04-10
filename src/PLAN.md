@@ -599,12 +599,12 @@ Currently `Lnd::AddPeer` and `Cln::AddPeer` call `add_new_lightning_peer(&mut st
 ## Implementation Order
 
 1. ~~**Phase 0:** Write integration test (bitcoind handler flow)~~ **DONE** — `tests/handler_test.rs` created. Tests GetConfig, access denied, and full bitcoind GetInfo through a real container. Run: `cargo test --test handler_test -- --nocapture`. Note: requires `RUST_ENV=local` (set automatically in test) to avoid awslogs Docker driver.
-2. **Phase 1a:** Make clients cloneable where trivial (derive Clone on Proxy/Relay/Hsmd/Cln, relax ClnRPC `&mut self` → `&self`)
-3. **Phase 1b:** Define `ClientMap` (`Arc` for BitcoinRPC, `Arc<Mutex>` for LndRPC, plain Clone for rest), add `CLIENTS` static
-4. **Phase 1c:** Change `STACK` from `Mutex<State>` to `RwLock<Stack>`, add helpers
-5. **Phase 1d:** Update `handler.rs` — each match arm uses targeted `stack_read`/`stack_write`/`CLIENTS` access
-6. **Phase 1e:** Update builder, dock, images to work with `ClientMap`
-7. **Phase 1f:** Update all external STATE consumers (crons, app_login, backup, etc.)
+2. ~~**Phase 1a:** Make clients cloneable where trivial (derive Clone on Proxy/Relay/Hsmd/Cln, relax ClnRPC `&mut self` → `&self`)~~ **DONE**
+3. ~~**Phase 1b:** Define `ClientMap` (`Arc` for BitcoinRPC, `Arc<Mutex>` for LndRPC, plain Clone for rest), add `CLIENTS` static~~ **DONE**
+4. ~~**Phase 1c:** Change `STACK` from `Mutex<State>` to `RwLock<Stack>`, add helpers~~ **DONE**
+5. ~~**Phase 1d:** Update `handler.rs` — transitional take/put pattern with STACK+CLIENTS~~ **DONE**
+6. ~~**Phase 1e:** Update builder, dock, images to work with `ClientMap`~~ **DONE**
+7. ~~**Phase 1f:** Update all external STATE consumers (crons, app_login, backup, etc.)~~ **DONE**
 8. **Phase 2:** Remove channel infrastructure, routes call `handle()` directly
 9. **Phase 3:** Split cron jobs (auto_restart, renew_ssl_cert, auto_updater)
 10. Run integration test, verify everything works

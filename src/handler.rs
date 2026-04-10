@@ -8,7 +8,7 @@ use crate::config;
 use crate::config::LightningPeer;
 use crate::config::Role;
 use crate::config::User;
-use crate::config::{Clients, Node, Stack, State, STATE};
+use crate::config::{ClientMap, Node, Stack, State, CLIENTS, STACK};
 use crate::conn::boltwall::{
     get_api_token, get_max_request_size, get_request_per_seconds, update_max_request_size,
     update_request_per_seconds, update_user,
@@ -34,7 +34,7 @@ use rocket::tokio::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
+fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
     // login needs no auth
     if let Cmd::Swarm(c) = cmd {
         if let SwarmCmd::Login(_) = c {
@@ -46,7 +46,7 @@ fn access(cmd: &Cmd, state: &State, user_id: &Option<u32>) -> bool {
         return false;
     }
     let user_id = user_id.unwrap();
-    let user = state.stack.users.iter().find(|u| u.id == user_id);
+    let user = stack.users.iter().find(|u| u.id == user_id);
     // user required
     if user.is_none() {
         return false;
@@ -85,11 +85,40 @@ pub async fn handle(
     docker: &Docker,
     user_id: &Option<u32>,
 ) -> Result<String> {
-    // conf can be mutated in place
-    let mut state = config::STATE.lock().await;
-    // println!("STACK {:?}", stack);
+    // Transitional: acquire both locks to build a State, same serialization as before.
+    // Phase 2 will make each arm use targeted reads/writes.
+    let mut stack_guard = STACK.write().await;
+    let mut clients_guard = CLIENTS.write().await;
+    let mut state = State {
+        stack: std::mem::take(&mut *stack_guard),
+        clients: std::mem::take(&mut *clients_guard),
+    };
+    // Release the guards — we own the data now
+    drop(stack_guard);
+    drop(clients_guard);
 
-    if !access(&cmd, &state, user_id) {
+    let result = handle_inner(proj, cmd, tag, docker, user_id, &mut state).await;
+
+    // Put data back into globals
+    let mut stack_guard = STACK.write().await;
+    let mut clients_guard = CLIENTS.write().await;
+    *stack_guard = state.stack;
+    *clients_guard = state.clients;
+    drop(stack_guard);
+    drop(clients_guard);
+
+    result
+}
+
+async fn handle_inner(
+    proj: &str,
+    cmd: Cmd,
+    tag: &str,
+    docker: &Docker,
+    user_id: &Option<u32>,
+    mut state: &mut State,
+) -> Result<String> {
+    if !access(&cmd, &state.stack, user_id) {
         return Err(anyhow!("access denied"));
     }
 
@@ -687,14 +716,14 @@ pub async fn handle(
             }
         }
         Cmd::Lnd(c) => {
-            let client = state.clients.lnd.get_mut(tag).context("no lnd client")?;
+            let client = state.clients.lnd.get(tag).context("no lnd client")?.clone();
             match c {
                 LndCmd::GetInfo => {
-                    let info = client.get_info().await?;
+                    let info = client.lock().await.get_info().await?;
                     Some(serde_json::to_string(&info)?)
                 }
                 LndCmd::ListChannels => {
-                    let channel_list = client.list_channels().await?;
+                    let channel_list = client.lock().await.list_channels().await?;
                     Some(serde_json::to_string(&channel_list.channels)?)
                 }
                 LndCmd::AddPeer(peer) => {
@@ -707,52 +736,49 @@ pub async fn handle(
                             },
                             &mut must_save_stack,
                         );
-                        let client = state.clients.lnd.get_mut(tag).context("no lnd client")?;
-                        let result = client.add_peer(peer).await?;
-                        Some(serde_json::to_string(&result)?)
-                    } else {
-                        let result = client.add_peer(peer).await?;
-                        Some(serde_json::to_string(&result)?)
                     }
+                    let result = client.lock().await.add_peer(peer).await?;
+                    Some(serde_json::to_string(&result)?)
                 }
                 LndCmd::ListPeers => {
-                    let result = client.list_peers().await?;
+                    let result = client.lock().await.list_peers().await?;
                     Some(serde_json::to_string(&result)?)
                 }
                 LndCmd::AddChannel(channel) => {
-                    let channel = client.create_channel(channel).await?;
+                    let channel = client.lock().await.create_channel(channel).await?;
                     Some(serde_json::to_string(&channel)?)
                 }
                 LndCmd::NewAddress => {
-                    let address = client.new_address().await?;
+                    let address = client.lock().await.new_address().await?;
                     Some(serde_json::to_string(&address.address)?)
                 }
                 LndCmd::GetBalance => {
-                    let bal = client.get_balance().await?;
+                    let bal = client.lock().await.get_balance().await?;
                     Some(serde_json::to_string(&bal)?)
                 }
                 LndCmd::AddInvoice(invoice) => {
-                    let invoice = client.add_invoice(invoice).await?;
+                    let invoice = client.lock().await.add_invoice(invoice).await?;
                     Some(serde_json::to_string(&invoice)?)
                 }
                 LndCmd::PayInvoice(invoice) => {
-                    let invoice = client.pay_invoice(invoice).await?;
+                    let invoice = client.lock().await.pay_invoice(invoice).await?;
                     Some(serde_json::to_string(&invoice)?)
                 }
                 LndCmd::PayKeysend(keysend) => {
-                    let invoice = client.pay_keysend(keysend).await?;
+                    let invoice = client.lock().await.pay_keysend(keysend).await?;
                     Some(serde_json::to_string(&invoice)?)
                 }
                 LndCmd::ListPayments => {
-                    let payments = client.list_payments().await?;
+                    let payments = client.lock().await.list_payments().await?;
                     Some(serde_json::to_string(&payments)?)
                 }
                 LndCmd::ListInvoices => {
-                    let invoices = client.list_invoices().await?;
+                    let invoices = client.lock().await.list_invoices().await?;
                     Some(serde_json::to_string(&invoices)?)
                 }
                 LndCmd::ListPendingChannels => {
-                    let pending_channel_list = client.list_pending_channels().await?;
+                    let pending_channel_list =
+                        client.lock().await.list_pending_channels().await?;
                     Some(serde_json::to_string(
                         &pending_channel_list.pending_open_channels,
                     )?)
@@ -760,7 +786,7 @@ pub async fn handle(
             }
         }
         Cmd::Cln(c) => {
-            let client = state.clients.cln.get_mut(tag).context("no cln client")?;
+            let client = state.clients.cln.get(tag).cloned().context("no cln client")?;
             match c {
                 ClnCmd::GetInfo => {
                     let info = client.get_info().await?;
@@ -802,13 +828,9 @@ pub async fn handle(
                             },
                             &mut must_save_stack,
                         );
-                        let client = state.clients.cln.get_mut(tag).context("no cln client")?;
-                        let result = client.connect_peer(&peer.pubkey, &host, port).await?;
-                        Some(serde_json::to_string(&result)?)
-                    } else {
-                        let result = client.connect_peer(&peer.pubkey, &host, port).await?;
-                        Some(serde_json::to_string(&result)?)
                     }
+                    let result = client.connect_peer(&peer.pubkey, &host, port).await?;
+                    Some(serde_json::to_string(&result)?)
                 }
                 ClnCmd::AddChannel(channel) => {
                     let channel = client
@@ -884,7 +906,7 @@ pub async fn handle(
             let client = state
                 .clients
                 .hsmd
-                .get_mut(tag)
+                .get(tag)
                 .context("no cln for hsmd client")?;
             match c {
                 HsmdCmd::GetClients => {
@@ -914,22 +936,27 @@ pub fn find_boltwall(nodes: &Vec<Node>) -> Result<BoltwallImage> {
     Ok(boltwall_opt.context(anyhow!("no boltwall image"))?)
 }
 
-pub async fn hydrate(mut stack: Stack, clients: Clients) {
-    // set into the main state mutex
+pub async fn hydrate(mut stack: Stack, clients: ClientMap) {
+    // set into the globals
     stack.ready = true;
-    let mut state = STATE.lock().await;
-    *state = State { stack, clients };
+    let mut sg = STACK.write().await;
+    *sg = stack;
+    drop(sg);
+    let mut cg = CLIENTS.write().await;
+    *cg = clients;
 }
 
 pub async fn hydrate_stack(stack: Stack) {
-    let mut state = STATE.lock().await;
-    state.stack = stack
+    let mut sg = STACK.write().await;
+    *sg = stack;
 }
 
-pub async fn hydrate_clients(clients: Clients) {
-    let mut state = STATE.lock().await;
-    state.clients = clients;
-    state.stack.ready = true;
+pub async fn hydrate_clients(clients: ClientMap) {
+    let mut cg = CLIENTS.write().await;
+    *cg = clients;
+    drop(cg);
+    let mut sg = STACK.write().await;
+    sg.ready = true;
 }
 
 pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Docker) {

@@ -1,6 +1,6 @@
 use super::traefik::traefik_labels;
 use super::*;
-use crate::config::{Clients, Node};
+use crate::config::{ClientMap, Node};
 use crate::conn::relay::setup::relay_client;
 use crate::images::lnd::to_lnd_network;
 use crate::utils::{domain, exposed_ports, host_config, volume_string};
@@ -55,10 +55,10 @@ impl RelayImage {
     pub fn dont_ping_hub(&mut self) {
         self.dont_ping_hub = Some(true);
     }
-    pub fn remove_client(&self, clients: &mut Clients) {
+    pub fn remove_client(&self, clients: &mut ClientMap) {
         clients.relay.remove(&self.name);
     }
-    pub async fn connect_client(&self, proj: &str, clients: &mut Clients) -> Result<()> {
+    pub async fn connect_client(&self, proj: &str, clients: &mut ClientMap) -> Result<()> {
         match relay_client(proj, self).await {
             Ok(client) => {
                 clients.relay.insert(self.name.clone(), client);

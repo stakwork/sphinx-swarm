@@ -76,23 +76,19 @@ pub async fn verify_signed_token(challenge: &str, token: &str) -> Result<VerifyR
     // verify token first
     let unsigned = token::Token::from_base64(token)?;
     let pubkey = unsigned.recover()?;
-    let state = config::STATE.lock().await;
-    let res = match state
-        .stack
-        .users
-        .iter()
-        .find(|u| u.pubkey == Some(pubkey.to_string()))
-    {
-        Some(_user) => VerifyResponse {
-            success: true,
-            message: "Successfully verified token".to_string(),
-        },
-        None => VerifyResponse {
-            success: false,
-            message: "invalid token".to_string(),
-        },
-    };
-    drop(state);
+    let res = config::stack_read(|s| {
+        match s.users.iter().find(|u| u.pubkey == Some(pubkey.to_string())) {
+            Some(_user) => VerifyResponse {
+                success: true,
+                message: "Successfully verified token".to_string(),
+            },
+            None => VerifyResponse {
+                success: false,
+                message: "invalid token".to_string(),
+            },
+        }
+    })
+    .await;
     let mut details = DETAILS.lock().await;
     let detail = details
         .get_mut(challenge)
@@ -124,25 +120,28 @@ pub async fn check_challenge_status(challenge: &str) -> Result<ChallengeStatus> 
     }
     drop(details);
 
-    let state = config::STATE.lock().await;
-    let res = match state
-        .stack
-        .users
-        .iter()
-        .find(|u| u.pubkey == Some(pubkey.to_string()))
-    {
-        Some(user) => ChallengeStatus {
-            success: true,
-            token: auth::make_jwt(user.id)?,
-            message: "login successfully".to_string(),
-        },
-        None => ChallengeStatus {
-            success: false,
-            token: "".to_string(),
-            message: "waiting for token".to_string(),
-        },
-    };
-    drop(state);
+    let res = config::stack_read(|s| {
+        match s.users.iter().find(|u| u.pubkey == Some(pubkey.to_string())) {
+            Some(user) => match auth::make_jwt(user.id) {
+                Ok(token) => ChallengeStatus {
+                    success: true,
+                    token,
+                    message: "login successfully".to_string(),
+                },
+                Err(_) => ChallengeStatus {
+                    success: false,
+                    token: "".to_string(),
+                    message: "failed to create token".to_string(),
+                },
+            },
+            None => ChallengeStatus {
+                success: false,
+                token: "".to_string(),
+                message: "waiting for token".to_string(),
+            },
+        }
+    })
+    .await;
 
     //remove successfully verified challenge from hashmap
     if res.success {

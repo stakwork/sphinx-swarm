@@ -1,5 +1,5 @@
 use super::*;
-use crate::config::{Clients, Node};
+use crate::config::{ClientMap, Node};
 use crate::conn::proxy::ProxyAPI;
 use crate::images::lnd::to_lnd_network;
 use crate::secrets;
@@ -47,10 +47,10 @@ impl ProxyImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
-    pub fn remove_client(&self, clients: &mut Clients) {
+    pub fn remove_client(&self, clients: &mut ClientMap) {
         clients.proxy.remove(&self.name);
     }
-    pub async fn connect_client(&self, clients: &mut Clients) -> Result<()> {
+    pub async fn connect_client(&self, clients: &mut ClientMap) -> Result<()> {
         match ProxyAPI::new(self).await {
             Ok(client) => {
                 clients.proxy.insert(self.name.clone(), client);
