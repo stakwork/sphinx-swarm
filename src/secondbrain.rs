@@ -133,6 +133,9 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         let mut bot = BotImage::new("bot", "latest", "3000");
         bot.set_external_broker("broker.v2.sphinx.chat");
         bot.links(vec!["boltwall"]);
+        if let Some(router_url) = env_no_empty("ROUTER_URL") {
+            bot.set_router_url(&router_url);
+        }
         imgs.push(Image::Bot(bot));
     }
 
