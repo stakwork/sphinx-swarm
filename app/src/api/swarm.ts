@@ -663,3 +663,7 @@ export async function nuke_warm_swarm({ host }: { host: string }) {
 export async function nuke_all_warm_swarms() {
   return await swarmCmd("NukeAllWarmSwarms");
 }
+
+export async function get_boltwall_db_table(table: string) {
+  return await swarmCmd("GetBoltwallDbTable", table);
+}

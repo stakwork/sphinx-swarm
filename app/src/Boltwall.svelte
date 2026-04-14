@@ -11,6 +11,8 @@
     Tab,
     TabContent,
     TextInput,
+    DataTable,
+    Pagination,
   } from "carbon-components-svelte";
   import { getImageVersion, handleGetImageTags } from "./helpers/swarm";
   import { selectedNode, stack } from "./store";
@@ -20,6 +22,7 @@
     update_boltwall_max_request_limit,
     update_boltwall_request_per_seconds,
     update_node,
+    get_boltwall_db_table,
   } from "./api/swarm";
   import EnvContainer from "./components/envContainer/index.svelte";
   import { formatEnv } from "./helpers/env";
@@ -37,6 +40,24 @@
   let envs = [];
   let maxRequestLimit = "";
   let storedMaxRequestLimit = "";
+
+  const BOLTWALL_TABLES = [
+    "sphinx_lsat",
+    "dynamic_lsat",
+    "transaction",
+    "top_up",
+    "paid_endpoint",
+    "sphinx_users",
+    "sphinx_feature_flag",
+    "about",
+  ];
+  let selectedTable = "sphinx_lsat";
+  let dbRows: any[] = [];
+  let dbHeaders: { key: string; value: string }[] = [];
+  let dbLoading = false;
+  let dbPage = 1;
+  let dbPageSize = 20;
+  let activeTab = 0;
 
   onMount(async () => {
     await handleGetRequestPerSeconds();
@@ -133,6 +154,22 @@
     }
   }
 
+  async function fetchDbTable() {
+    dbLoading = true;
+    dbRows = [];
+    dbHeaders = [];
+    try {
+      const res = await get_boltwall_db_table(selectedTable);
+      if (Array.isArray(res) && res.length > 0) {
+        dbHeaders = Object.keys(res[0]).map((k) => ({ key: k, value: k }));
+        dbRows = res.map((row: any, i: number) => ({ id: i, ...row }));
+      }
+    } catch (e) {
+      console.error("fetchDbTable error:", e);
+    }
+    dbLoading = false;
+  }
+
   function validateMaxRequestLimit(size: string) {
     const transaformedSize = size.toLocaleLowerCase();
     if (/^(?!0)(\d+)(kb|mb)$/i.test(transaformedSize)) {
@@ -164,9 +201,10 @@
     <Loading />
   {/if}
   <div class="tabContainer">
-    <Tabs>
+    <Tabs bind:selected={activeTab}>
       <Tab label="General" />
       <Tab label="Advance" />
+      <Tab label="Database" on:click={() => { dbPage = 1; fetchDbTable(); }} />
       <svelte:fragment slot="content">
         <TabContent>
           <div class="update_container">
@@ -215,6 +253,39 @@
         <TabContent>
           <EnvContainer />
         </TabContent>
+        <TabContent>
+          <div class="db-container">
+            <Select
+              labelText="Select Table"
+              bind:selected={selectedTable}
+              on:change={() => { dbPage = 1; fetchDbTable(); }}
+            >
+              {#each BOLTWALL_TABLES as tbl}
+                <SelectItem value={tbl} text={tbl} />
+              {/each}
+            </Select>
+            {#if dbLoading}
+              <Loading small />
+            {:else if dbRows.length === 0}
+              <p class="empty-state">No rows found.</p>
+            {:else}
+              <div class="table-wrap">
+                <DataTable
+                  headers={dbHeaders}
+                  rows={dbRows}
+                  pageSize={dbPageSize}
+                  page={dbPage}
+                />
+                <Pagination
+                  bind:pageSize={dbPageSize}
+                  bind:page={dbPage}
+                  totalItems={dbRows.length}
+                  pageSizeInputDisabled
+                />
+              </div>
+            {/if}
+          </div>
+        </TabContent>
       </svelte:fragment>
     </Tabs>
   </div>
@@ -254,5 +325,21 @@
     display: flex;
     flex-direction: column;
     row-gap: 0.5rem;
+  }
+
+  .db-container {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .empty-state {
+    color: #888;
+    margin-top: 1rem;
   }
 </style>

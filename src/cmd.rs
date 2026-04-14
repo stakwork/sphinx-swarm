@@ -168,6 +168,17 @@ pub struct ContainerLogsRequest {
     pub since_timestamp: Option<String>,
 }
 
+pub const BOLTWALL_TABLES: &[&str] = &[
+    "sphinx_lsat",
+    "dynamic_lsat",
+    "transaction",
+    "top_up",
+    "paid_endpoint",
+    "sphinx_users",
+    "sphinx_feature_flag",
+    "about",
+];
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum SwarmCmd {
@@ -218,6 +229,7 @@ pub enum SwarmCmd {
     CreateBotInvoice(CreateBotInvoiceRequest),
     GetL402Stats,
     GetAdminTransactions(AdminTransactionsRequest),
+    GetBoltwallDbTable(String),
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
     GetBoltwallMaxRequestLimit,

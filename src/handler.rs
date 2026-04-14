@@ -507,6 +507,46 @@ pub async fn handle(
                 let res = crate::conn::boltwall::get_admin_transactions(&boltwall, &params).await?;
                 Some(res)
             }
+            SwarmCmd::GetBoltwallDbTable(table) => {
+                log::info!("Get Boltwall DB Table: {}", &table);
+                if !crate::cmd::BOLTWALL_TABLES.contains(&table.as_str()) {
+                    return Err(anyhow::anyhow!("invalid table: {}", table));
+                }
+                let bytes = crate::dock::download_from_container(
+                    docker,
+                    "boltwall.sphinx",
+                    "/boltwall/sphinx_lsat.db",
+                )
+                .await?;
+                std::fs::write("/tmp/sphinx_swarm_boltwall_qa.db", &bytes)?;
+                let conn = rusqlite::Connection::open("/tmp/sphinx_swarm_boltwall_qa.db")?;
+                let mut stmt = conn.prepare(&format!("SELECT * FROM {}", table))?;
+                let col_names: Vec<String> =
+                    stmt.column_names().iter().map(|s| s.to_string()).collect();
+                let rows: Vec<serde_json::Map<String, serde_json::Value>> = stmt
+                    .query_map([], |row| {
+                        let mut map = serde_json::Map::new();
+                        for (i, col) in col_names.iter().enumerate() {
+                            let val: rusqlite::types::Value = row.get(i)?;
+                            let json_val = match val {
+                                rusqlite::types::Value::Null => serde_json::Value::Null,
+                                rusqlite::types::Value::Integer(n) => {
+                                    serde_json::Value::Number(n.into())
+                                }
+                                rusqlite::types::Value::Real(f) => serde_json::json!(f),
+                                rusqlite::types::Value::Text(s) => serde_json::Value::String(s),
+                                rusqlite::types::Value::Blob(b) => {
+                                    serde_json::Value::String(hex::encode(b))
+                                }
+                            };
+                            map.insert(col.clone(), json_val);
+                        }
+                        Ok(map)
+                    })?
+                    .filter_map(|r| r.ok())
+                    .collect();
+                Some(serde_json::to_string(&rows)?)
+            }
             SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
                 log::info!("Update Boltwall Request per seconds to: {}", &info.request_per_seconds);
                 let res = config::stack_write(proj, |s| {
