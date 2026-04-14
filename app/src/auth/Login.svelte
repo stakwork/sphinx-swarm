@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { ToastNotification } from "carbon-components-svelte";
   import * as api from "../api";
   import { onMount, onDestroy } from "svelte";
   import { contructQrString } from "../helpers";
-  // import { saveUserToStore } from "../store";
   import Input from "../components/input/input.svelte";
   import Password from "../components/input/password.svelte";
 
@@ -13,32 +11,36 @@
   $: password = "";
   $: qrString = "";
   $: challenge = "";
-  $: message = "";
+  $: errorMessage = "";
 
   $: addDisabled = !username || !password;
 
   let loading = false;
   let sphinx_app_loading = false;
-  let sphinxSignError = false;
   let interval;
 
   async function login() {
     try {
       loading = true;
+      errorMessage = "";
       const result = await api.swarm.login(username, password);
 
       if (result) {
         saveUserToStore(result.token);
         username = "";
         password = "";
+      } else {
+        errorMessage = "Invalid username or password";
       }
       loading = false;
     } catch (_) {
       loading = false;
+      errorMessage = "Invalid username or password";
     }
   }
 
   async function startPolling() {
+    if (interval) clearInterval(interval);
     let i = 0;
     interval = setInterval(async () => {
       try {
@@ -53,23 +55,15 @@
         if (!response.success && response.message === "unauthorized") {
           challenge = "";
           sphinx_app_loading = false;
-          sphinxSignError = true;
-          message = "You are not the authorized admin";
+          errorMessage = "You are not the authorized admin";
           if (interval) clearInterval(interval);
-          setTimeout(() => {
-            sphinxSignError = false;
-          }, 20000);
         }
 
         i++;
         if (i > 100) {
           sphinx_app_loading = false;
-          sphinxSignError = true;
-          message = "Timeout, please try again";
+          errorMessage = "Timeout, please try again";
           if (interval) clearInterval(interval);
-          setTimeout(() => {
-            sphinxSignError = false;
-          }, 20000);
         }
       } catch (e) {
         sphinx_app_loading = false;
@@ -80,15 +74,18 @@
 
   function handleUsernameInput(value) {
     username = value;
+    errorMessage = "";
   }
 
   function handlePasswordInput(value) {
     password = value;
+    errorMessage = "";
   }
 
   async function loginWithSphinx(e) {
     try {
       sphinx_app_loading = true;
+      errorMessage = "";
       startPolling();
     } catch (error) {
       sphinx_app_loading = false;
@@ -119,41 +116,41 @@
   </div>
   <div class="sign_contianer">
     <div class="login_inner_container">
-      {#if sphinxSignError}
-        <div class="toast_container">
-          <ToastNotification fullWidth title="Error" subtitle={message} />
-        </div>
-      {/if}
       <h2 class="login_text">Login</h2>
       <div class="form_container">
-        <div class="inputs_container">
-          <Input
-            label="Username"
-            placeholder="Enter Username ..."
-            bind:value={username}
-            onInput={handleUsernameInput}
-          />
+        <form on:submit|preventDefault={login}>
+          <div class="inputs_container">
+            <Input
+              label="Username"
+              placeholder="Enter Username ..."
+              bind:value={username}
+              onInput={handleUsernameInput}
+            />
 
-          <Password
-            label="Password"
-            placeholder="Enter Password ..."
-            bind:value={password}
-            onInput={handlePasswordInput}
-          />
-        </div>
-        <div class="submit_btn_container">
-          <button
-            disabled={loading || addDisabled || sphinx_app_loading}
-            on:click={login}
-            class="submit_btn"
-          >
-            {#if loading === true}
-              <div class="loading-spinner"></div>
-            {:else}
-              Login
-            {/if}</button
-          >
-        </div>
+            <Password
+              label="Password"
+              placeholder="Enter Password ..."
+              bind:value={password}
+              onInput={handlePasswordInput}
+            />
+          </div>
+          {#if errorMessage && !sphinx_app_loading}
+            <p class="error_text">{errorMessage}</p>
+          {/if}
+          <div class="submit_btn_container">
+            <button
+              type="submit"
+              disabled={loading || addDisabled || sphinx_app_loading}
+              class="submit_btn"
+            >
+              {#if loading === true}
+                <div class="loading-spinner"></div>
+              {:else}
+                Login
+              {/if}
+            </button>
+          </div>
+        </form>
         <div class="alt_info">
           <div class="line"></div>
           <p class="or">OR</p>
@@ -168,9 +165,13 @@
             {#if sphinx_app_loading}
               <div class="sphinx_loading-spinner_container">
                 <div class="sphinx-loading-spinner"></div>
+                <span>Waiting for approval…</span>
               </div>
             {:else}
-              <a href={qrString} class="sphinx_link">
+              <a
+                href={challenge && qrString ? qrString : undefined}
+                class="sphinx_link"
+              >
                 <img
                   src="swarm/sphinx_logo.svg"
                   alt="sphinx"
@@ -191,10 +192,6 @@
     width: 100vw;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .toast_container {
-    margin-bottom: 2rem;
   }
 
   .image_container {
@@ -256,11 +253,11 @@
     flex-direction: column;
     gap: 0.75rem;
   }
+
   .submit_btn_container {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 2.12rem;
     margin-top: 2rem;
   }
 
@@ -271,7 +268,7 @@
     font-size: 0.875rem;
     font-style: normal;
     font-weight: 600;
-    line-height: 1.1875rem; /* 135.714% */
+    line-height: 1.1875rem;
     padding: 0.75rem 1rem;
     border-radius: 0.375rem;
     background: #fff;
@@ -326,7 +323,7 @@
     font-size: 0.875rem;
     font-style: normal;
     font-weight: 500;
-    line-height: 1.1875rem; /* 135.714% */
+    line-height: 1.1875rem;
   }
 
   .sphinx_btn_container {
@@ -349,7 +346,7 @@
     font-size: 1rem;
     font-style: normal;
     font-weight: 600;
-    line-height: 1.1875rem; /* 135.714% */
+    line-height: 1.1875rem;
     width: 100%;
     border: none;
     cursor: pointer;
@@ -362,6 +359,7 @@
     width: 1.125rem;
     height: 1.125rem;
     animation: spin 1s linear infinite;
+    flex-shrink: 0;
   }
 
   .sphinx_loading-spinner_container {
@@ -370,14 +368,22 @@
     width: 100%;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
   }
 
   .sphinx_link {
     display: flex;
     align-items: center;
+    justify-content: center;
     text-decoration: none;
     color: #fff;
     padding: 0.8125rem;
+    width: 100%;
+  }
+
+  .sphinx_btn:disabled .sphinx_link {
+    pointer-events: none;
+    cursor: not-allowed;
   }
 
   .sphinx_btn:disabled {
@@ -387,6 +393,25 @@
   .sphinx_logo {
     width: 1.371rem;
     height: 1.3125rem;
-    margin-right: 3.945rem;
+    margin-right: 0.75rem;
+  }
+
+  .error_text {
+    color: #ff4d4f;
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
+    font-family: "Barlow";
+  }
+
+  @media (max-width: 768px) {
+    main {
+      grid-template-columns: 1fr;
+    }
+    .image_container {
+      display: none;
+    }
+    .sign_contianer {
+      min-height: 100vh;
+    }
   }
 </style>

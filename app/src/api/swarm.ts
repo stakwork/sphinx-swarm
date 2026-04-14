@@ -242,6 +242,7 @@ export async function login(username, password) {
     }),
   });
 
+  if (!r.ok) return null;
   const result = await r.json();
   return result;
 }
