@@ -486,6 +486,18 @@ pub async fn handle(
                 let res = create_bot_invoice(&nodes, body.amt_msat).await;
                 Some(serde_json::to_string(&res)?)
             }
+            SwarmCmd::GetL402Stats => {
+                log::info!("Get L402 Stats");
+                let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
+                let res = crate::conn::boltwall::get_l402_stats(&boltwall).await?;
+                Some(res)
+            }
+            SwarmCmd::GetAdminTransactions(params) => {
+                log::info!("Get Admin Transactions");
+                let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
+                let res = crate::conn::boltwall::get_admin_transactions(&boltwall, &params).await?;
+                Some(res)
+            }
             SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
                 log::info!("Update Boltwall Request per seconds to: {}", &info.request_per_seconds);
                 let res = config::stack_write(proj, |s| {

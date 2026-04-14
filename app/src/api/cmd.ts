@@ -124,7 +124,9 @@ export type Cmd =
   | "GetEc2CpuUtilization"
   | "GetBotToken"
   | "GetBotBalance"
-  | "CreateBotInvoice";
+  | "CreateBotInvoice"
+  | "GetL402Stats"
+  | "GetAdminTransactions";
 interface CmdData {
   cmd: Cmd;
   content?: any;
