@@ -1,4 +1,4 @@
-use crate::cmd::FeatureFlagUserRoles;
+use crate::cmd::{AdminTransactionsRequest, FeatureFlagUserRoles};
 use crate::config::{Node, Role, Stack, User};
 
 use crate::images::Image;
@@ -491,6 +491,56 @@ pub fn get_max_request_size(boltwall: &BoltwallImage) -> SwarmResponse {
         message: "boltwall max request limit".to_string(),
         data: Some(serde_json::Value::String(settled_mrl)),
     }
+}
+
+pub async fn get_l402_stats(img: &BoltwallImage) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+    let client = make_client();
+    let host = docker_domain(&img.name);
+    let route = format!("http://{}:{}/admin/l402/stats", host, img.port);
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
+    Ok(response.text().await?)
+}
+
+pub async fn get_admin_transactions(
+    img: &BoltwallImage,
+    params: &AdminTransactionsRequest,
+) -> Result<String> {
+    let admin_token = img.admin_token.clone().context(anyhow!("No admin token"))?;
+    let client = make_client();
+    let host = docker_domain(&img.name);
+    let mut query: Vec<String> = Vec::new();
+    if let Some(page) = params.page {
+        query.push(format!("page={}", page));
+    }
+    if let Some(limit) = params.limit {
+        query.push(format!("limit={}", limit));
+    }
+    if let Some(ref sort_by) = params.sort_by {
+        query.push(format!("sort_by={}", sort_by));
+    }
+    if let Some(ref order) = params.order {
+        query.push(format!("order={}", order));
+    }
+    if let Some(ref endpoint) = params.endpoint {
+        query.push(format!("endpoint={}", endpoint));
+    }
+    let qs = if query.is_empty() {
+        String::new()
+    } else {
+        format!("?{}", query.join("&"))
+    };
+    let route = format!("http://{}:{}/admin/transactions{}", host, img.port, qs);
+    let response = client
+        .get(route.as_str())
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
+    Ok(response.text().await?)
 }
 
 

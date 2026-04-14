@@ -641,6 +641,20 @@ export async function create_bot_invoice(amt_msat: number) {
   return await swarmCmd("CreateBotInvoice", { amt_msat });
 }
 
+export async function get_l402_stats() {
+  return await swarmCmd("GetL402Stats");
+}
+
+export async function get_admin_transactions(params: {
+  page?: number;
+  limit?: number;
+  sort_by?: string;
+  order?: string;
+  endpoint?: string;
+}) {
+  return await swarmCmd("GetAdminTransactions", params);
+}
+
 export async function nuke_warm_swarm({ host }: { host: string }) {
   return await swarmCmd("NukeWarmSwarm", { host });
 }

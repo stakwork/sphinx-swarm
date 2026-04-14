@@ -216,6 +216,8 @@ pub enum SwarmCmd {
     GetBotToken,
     GetBotBalance,
     CreateBotInvoice(CreateBotInvoiceRequest),
+    GetL402Stats,
+    GetAdminTransactions(AdminTransactionsRequest),
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
     GetBoltwallMaxRequestLimit,
@@ -268,6 +270,19 @@ pub struct AddInvoice {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateBotInvoiceRequest {
     pub amt_msat: u64,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AdminTransactionsRequest {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+    pub sort_by: Option<String>,
+    pub order: Option<String>,
+    pub endpoint: Option<String>,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct L402StatsResponse {
+    pub total_l402s: u64,
+    pub total_remaining_balance: u64,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BotBalanceRes {
