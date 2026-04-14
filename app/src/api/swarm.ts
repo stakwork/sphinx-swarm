@@ -25,8 +25,16 @@ export async function get_image_digest(image_name: string) {
   return await swarmCmd("GetImageDigest", image_name);
 }
 
-export async function get_logs(name) {
-  return await swarmCmd("GetContainerLogs", name);
+export async function get_logs(
+  name: string,
+  before_timestamp?: string,
+  since_timestamp?: string
+) {
+  return await swarmCmd("GetContainerLogs", {
+    name,
+    before_timestamp: before_timestamp || null,
+    since_timestamp: since_timestamp || null,
+  });
 }
 
 export async function get_node_images(name, page) {
@@ -534,8 +542,14 @@ export async function add_anthropic_key({ key }: { key: string }) {
   return await swarmCmd("AddAnthropicKey", { key });
 }
 
-export async function get_super_admin_logs() {
-  return await swarmCmd("GetSuperAdminLogs");
+export async function get_super_admin_logs(
+  before_timestamp?: string,
+  since_timestamp?: string
+) {
+  return await swarmCmd("GetSuperAdminLogs", {
+    before_timestamp: before_timestamp || null,
+    since_timestamp: since_timestamp || null,
+  });
 }
 
 export async function get_super_admin_version() {

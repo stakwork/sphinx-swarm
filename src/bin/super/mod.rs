@@ -639,8 +639,8 @@ pub async fn super_handle(
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 4: No state needed
-            SwarmCmd::GetSuperAdminLogs => {
-                let res = get_super_admin_docker_logs().await;
+            SwarmCmd::GetSuperAdminLogs(req) => {
+                let res = get_super_admin_docker_logs(req).await;
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 3: Read state, do I/O, return

@@ -1,3 +1,4 @@
+use chrono::DateTime;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
@@ -386,14 +387,56 @@ fn unzip_tar_single_file(bytes: Vec<u8>) -> Result<Vec<u8>> {
     Err(anyhow::anyhow!("no tar file found"))
 }
 
-pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
-    let tail_name = "LOG_TAIL_LENGTH";
-    let tail = env::var(tail_name).unwrap_or(100.to_string());
+pub struct ContainerLogsOptions {
+    pub tail: u32,
+    pub before_timestamp: Option<String>,
+    pub since_timestamp: Option<String>,
+}
+
+impl Default for ContainerLogsOptions {
+    fn default() -> Self {
+        let tail_env = env::var("LOG_TAIL_LENGTH")
+            .ok()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(200);
+        ContainerLogsOptions {
+            tail: tail_env,
+            before_timestamp: None,
+            since_timestamp: None,
+        }
+    }
+}
+
+fn rfc3339_to_unix(ts: &str) -> i64 {
+    DateTime::parse_from_rfc3339(ts)
+        .map(|dt| dt.timestamp())
+        .unwrap_or(0)
+}
+
+pub async fn container_logs(
+    docker: &Docker,
+    name: &str,
+    opts: ContainerLogsOptions,
+) -> Vec<String> {
+    let tail = opts.tail.to_string();
+    let until = opts
+        .before_timestamp
+        .as_deref()
+        .map(rfc3339_to_unix)
+        .unwrap_or(0);
+    let since = opts
+        .since_timestamp
+        .as_deref()
+        .map(rfc3339_to_unix)
+        .unwrap_or(0);
 
     let options = Some(LogsOptions::<String> {
         stdout: true,
         stderr: true,
+        timestamps: true,
         tail,
+        until,
+        since,
         ..Default::default()
     });
 
@@ -407,7 +450,16 @@ pub async fn container_logs(docker: &Docker, name: &str) -> Vec<String> {
                 LogOutput::Console { message } => message,
                 LogOutput::StdIn { message } => message,
             };
-            ret.push(String::from_utf8_lossy(&msg).to_string());
+            let s = String::from_utf8_lossy(&msg);
+            // Skip lines with replacement characters (garbage bytes)
+            if s.contains('\u{FFFD}') {
+                continue;
+            }
+            let trimmed = s.trim().to_string();
+            if trimmed.is_empty() {
+                continue;
+            }
+            ret.push(trimmed);
         }
     }
     ret

@@ -147,8 +147,17 @@ pub async fn handle(
                 builder::update_node_from_state(proj, docker, &un.id).await?;
                 Some(serde_json::to_string("{}")?)
             }
-            SwarmCmd::GetContainerLogs(container_name) => {
-                let logs = container_logs(docker, &container_name).await;
+            SwarmCmd::GetContainerLogs(req) => {
+                let logs = container_logs(
+                    docker,
+                    &req.name,
+                    ContainerLogsOptions {
+                        tail: ContainerLogsOptions::default().tail,
+                        before_timestamp: req.before_timestamp,
+                        since_timestamp: req.since_timestamp,
+                    },
+                )
+                .await;
                 Some(serde_json::to_string(&logs)?)
             }
             SwarmCmd::ListVersions(req) => {
