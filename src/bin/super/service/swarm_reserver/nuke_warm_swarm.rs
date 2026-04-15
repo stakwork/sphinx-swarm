@@ -33,7 +33,6 @@ pub async fn nuke_single_warm_swarm(
         "SWARM_UPDATER_PASSWORD",
         "JARVIS_FEATURE_FLAG_SCHEMA",
         "FEATURE_FLAG_TEXT_EMBEDDINGS",
-        "TWITTER_BEARER",
         "SUPER_TOKEN",
         "SUPER_URL",
         "NAV_BOLTWALL_SHARED_HOST",
