@@ -58,6 +58,7 @@
   let dbPage = 1;
   let dbPageSize = 20;
   let activeTab = 0;
+  let dbFullscreen = false;
 
   onMount(async () => {
     await handleGetRequestPerSeconds();
@@ -180,6 +181,49 @@
   }
 </script>
 
+{#if dbFullscreen}
+  <div class="db-fullscreen-overlay">
+    <div class="db-fullscreen-header">
+      <h3>{selectedTable}</h3>
+      <div class="db-fullscreen-controls">
+        <Select
+          size="sm"
+          bind:selected={selectedTable}
+          on:change={() => { dbPage = 1; fetchDbTable(); }}
+        >
+          {#each BOLTWALL_TABLES as tbl}
+            <SelectItem value={tbl} text={tbl} />
+          {/each}
+        </Select>
+        <Button size="small" kind="secondary" on:click={() => (dbFullscreen = false)}>
+          Close
+        </Button>
+      </div>
+    </div>
+    <div class="db-fullscreen-body">
+      {#if dbLoading}
+        <Loading small />
+      {:else if dbRows.length === 0}
+        <p class="empty-state">No rows found.</p>
+      {:else}
+        <div class="table-wrap">
+          <DataTable
+            headers={dbHeaders}
+            rows={dbRows}
+            pageSize={dbPageSize}
+            page={dbPage}
+          />
+          <Pagination
+            bind:pageSize={dbPageSize}
+            bind:page={dbPage}
+            totalItems={dbRows.length}
+            pageSizeInputDisabled
+          />
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
 <div class="nav-wrapper">
   {#if show_notification}
     <InlineNotification
@@ -255,15 +299,26 @@
         </TabContent>
         <TabContent>
           <div class="db-container">
-            <Select
-              labelText="Select Table"
-              bind:selected={selectedTable}
-              on:change={() => { dbPage = 1; fetchDbTable(); }}
-            >
-              {#each BOLTWALL_TABLES as tbl}
-                <SelectItem value={tbl} text={tbl} />
-              {/each}
-            </Select>
+            <div class="db-toolbar">
+              <Select
+                labelText="Select Table"
+                bind:selected={selectedTable}
+                on:change={() => { dbPage = 1; fetchDbTable(); }}
+              >
+                {#each BOLTWALL_TABLES as tbl}
+                  <SelectItem value={tbl} text={tbl} />
+                {/each}
+              </Select>
+              {#if dbRows.length > 0}
+                <Button
+                  size="small"
+                  kind="ghost"
+                  on:click={() => (dbFullscreen = !dbFullscreen)}
+                >
+                  {dbFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                </Button>
+              {/if}
+            </div>
             {#if dbLoading}
               <Loading small />
             {:else if dbRows.length === 0}
@@ -334,6 +389,12 @@
     gap: 1rem;
   }
 
+  .db-toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
   .table-wrap {
     overflow-x: auto;
   }
@@ -341,5 +402,46 @@
   .empty-state {
     color: #888;
     margin-top: 1rem;
+  }
+
+  .db-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .db-fullscreen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #393939;
+    flex-shrink: 0;
+  }
+
+  .db-fullscreen-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #f4f4f4;
+    margin: 0;
+  }
+
+  .db-fullscreen-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  .db-fullscreen-body {
+    flex: 1;
+    overflow: auto;
+    padding: 1rem 1.5rem;
   }
 </style>
