@@ -431,8 +431,6 @@ pub async fn create_ec2_instance(
 
     let youtube_token = getenv("YOUTUBE_API_TOKEN")?;
 
-    let twitter_token = getenv("TWITTER_BEARER")?;
-
     let super_url = getenv("SUPER_URL")?;
 
     let super_token = getenv("SUPER_TOKEN")?;
@@ -598,7 +596,6 @@ pub async fn create_ec2_instance(
           echo "JARVIS_FEATURE_FLAG_SCHEMA=true" >> .env && \
           echo "BACKUP_KEY=" >> .env && \
           echo "FEATURE_FLAG_TEXT_EMBEDDINGS=true" >> .env && \
-          echo "TWITTER_BEARER={twitter_token}" >> .env && \
           echo "SUPER_TOKEN={super_token}" >> .env && \
           echo "SUPER_URL={super_url}" >> .env && \
           echo "NAV_BOLTWALL_SHARED_HOST={custom_domain}" >> .env && \

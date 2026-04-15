@@ -157,9 +157,6 @@ fn jarvis(
     if let Ok(tbawid) = getenv("TWEET_BY_AUTOR_WORKFLOW_ID") {
         env.push(format!("TWEET_BY_AUTOR_WORKFLOW_ID={}", tbawid));
     }
-    if let Ok(twitter_bearer) = getenv("TWITTER_BEARER") {
-        env.push(format!("TWITTER_BEARER={}", twitter_bearer));
-    }
     if let Ok(youtube_api_token) = getenv("YOUTUBE_API_TOKEN") {
         env.push(format!("YOUTUBE_API_TOKEN={}", youtube_api_token));
     }
