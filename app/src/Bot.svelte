@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, PasswordInput, Loading, InlineNotification } from "carbon-components-svelte";
   import { get_bot_balance, create_bot_invoice, get_bot_token, get_l402_stats, get_admin_transactions } from "./api/swarm";
-  import { formatMillisatsToSats, convertSatsToMilliSats } from "./helpers";
+  import { formatMillisatsToSats, formatSatsNumbers, convertSatsToMilliSats } from "./helpers";
   import QrCode from "svelte-qrcode";
   import { onMount } from "svelte";
 
@@ -58,7 +58,7 @@
       const res = await get_l402_stats();
       if (res?.success) {
         totalL402s = res.total_l402s ?? 0;
-        totalRemainingBalance = formatMillisatsToSats(res.total_remaining_balance ?? 0);
+        totalRemainingBalance = formatSatsNumbers(res.total_remaining_balance ?? 0);
       } else {
         totalL402s = "—";
         totalRemainingBalance = "—";
@@ -260,7 +260,7 @@
                 <tr>
                   <td>{tx.id}</td>
                   <td class="endpoint-cell">{tx.endpoint ?? "—"}</td>
-                  <td>{formatMillisatsToSats(tx.amount)}</td>
+                  <td>{formatSatsNumbers(tx.amount)}</td>
                   <td>{formatDate(tx.created_at)}</td>
                 </tr>
               {/each}
