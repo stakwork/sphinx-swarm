@@ -520,7 +520,7 @@ pub async fn handle(
                 .await?;
                 std::fs::write("/tmp/sphinx_swarm_boltwall_qa.db", &bytes)?;
                 let conn = rusqlite::Connection::open("/tmp/sphinx_swarm_boltwall_qa.db")?;
-                let mut stmt = conn.prepare(&format!("SELECT * FROM {}", table))?;
+                let mut stmt = conn.prepare(&format!("SELECT * FROM \"{}\"", table))?;
                 let col_names: Vec<String> =
                     stmt.column_names().iter().map(|s| s.to_string()).collect();
                 let rows: Vec<serde_json::Map<String, serde_json::Value>> = stmt
