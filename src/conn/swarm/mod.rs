@@ -396,6 +396,47 @@ pub async fn get_bot_balance(nodes: &Vec<Node>) -> SwarmResponse {
     }
 }
 
+pub async fn get_bot_payments(nodes: &Vec<Node>) -> SwarmResponse {
+    let bot = match find_img("bot", nodes).and_then(|i| i.as_bot()) {
+        Ok(b) => b,
+        Err(e) => {
+            return SwarmResponse {
+                success: false,
+                message: e.to_string(),
+                data: None,
+            }
+        }
+    };
+    let boltwall = find_boltwall_opt(nodes);
+    let admin_token = bot.actual_admin_token(&boltwall);
+    let url = format!("http://{}:{}/payments", docker_domain(&bot.name), bot.port);
+    let client = make_reqwest_client();
+    match client
+        .get(&url)
+        .header("x-admin-token", &admin_token)
+        .send()
+        .await
+    {
+        Ok(res) => match res.json::<Value>().await {
+            Ok(data) => SwarmResponse {
+                success: true,
+                message: "bot payments retrieved".to_string(),
+                data: Some(data),
+            },
+            Err(e) => SwarmResponse {
+                success: false,
+                message: e.to_string(),
+                data: None,
+            },
+        },
+        Err(e) => SwarmResponse {
+            success: false,
+            message: e.to_string(),
+            data: None,
+        },
+    }
+}
+
 pub async fn create_bot_invoice(nodes: &Vec<Node>, amt_msat: u64) -> SwarmResponse {
     let bot = match find_img("bot", nodes).and_then(|i| i.as_bot()) {
         Ok(b) => b,

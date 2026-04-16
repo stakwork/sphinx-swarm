@@ -638,6 +638,10 @@ export async function get_bot_balance() {
   return await swarmCmd("GetBotBalance");
 }
 
+export async function get_bot_payments() {
+  return await swarmCmd("GetBotPayments");
+}
+
 export async function create_bot_invoice(amt_msat: number) {
   return await swarmCmd("CreateBotInvoice", { amt_msat });
 }

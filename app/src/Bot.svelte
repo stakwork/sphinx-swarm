@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, PasswordInput, Loading, InlineNotification } from "carbon-components-svelte";
-  import { get_bot_balance, create_bot_invoice, get_bot_token, get_l402_stats, get_admin_transactions } from "./api/swarm";
+  import { get_bot_balance, create_bot_invoice, get_bot_token, get_l402_stats, get_bot_payments } from "./api/swarm";
   import { formatMillisatsToSats, formatSatsNumbers, convertSatsToMilliSats } from "./helpers";
   import QrCode from "svelte-qrcode";
   import { onMount } from "svelte";
@@ -24,18 +24,10 @@
   let totalRemainingBalance: number | string = "—";
 
   // Transactions
-  let txPage = 1;
-  let txLimit = 20;
-  let txTotal = 0;
-  let txSortBy = "created_at";
-  let txOrder = "desc";
-  let txEndpointFilter = "";
   let transactions: any[] = [];
   let txLoading = false;
-  let debounceTimer: ReturnType<typeof setTimeout>;
 
   $: invDisabled = !amount || amount <= 0 || invoiceLoading;
-  $: txTotalPages = Math.max(1, Math.ceil(txTotal / txLimit));
 
   async function fetchBalance() {
     balanceLoading = true;
@@ -70,65 +62,23 @@
     l402Loading = false;
   }
 
-  async function fetchTransactions() {
+  async function fetchBotPayments() {
     txLoading = true;
     try {
-      const res = await get_admin_transactions({
-        page: txPage,
-        limit: txLimit,
-        sort_by: txSortBy,
-        order: txOrder,
-        endpoint: txEndpointFilter || undefined,
-      });
-      if (res?.success) {
-        transactions = res.transactions ?? [];
-        txTotal = res.total ?? 0;
+      const res = await get_bot_payments();
+      if (res?.success && res?.data) {
+        transactions = Array.isArray(res.data) ? res.data : (res.data.payments ?? []);
       } else {
         transactions = [];
-        txTotal = 0;
       }
     } catch (e) {
       transactions = [];
-      txTotal = 0;
     }
     txLoading = false;
   }
 
   async function refreshAll() {
-    await Promise.all([fetchBalance(), fetchL402Stats(), fetchTransactions()]);
-  }
-
-  function onSortByChange() {
-    txPage = 1;
-    fetchTransactions();
-  }
-
-  function toggleOrder() {
-    txOrder = txOrder === "desc" ? "asc" : "desc";
-    txPage = 1;
-    fetchTransactions();
-  }
-
-  function onEndpointFilterInput() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      txPage = 1;
-      fetchTransactions();
-    }, 400);
-  }
-
-  function prevPage() {
-    if (txPage > 1) {
-      txPage -= 1;
-      fetchTransactions();
-    }
-  }
-
-  function nextPage() {
-    if (txPage < txTotalPages) {
-      txPage += 1;
-      fetchTransactions();
-    }
+    await Promise.all([fetchBalance(), fetchL402Stats(), fetchBotPayments()]);
   }
 
   async function createInvoice() {
@@ -174,7 +124,7 @@
       adminToken = res.data;
     }
     isLoading = false;
-    await Promise.all([fetchBalance(), fetchL402Stats(), fetchTransactions()]);
+    await Promise.all([fetchBalance(), fetchL402Stats(), fetchBotPayments()]);
   });
 </script>
 
@@ -223,57 +173,34 @@
     <div class="section">
       <div class="section-title">Transactions</div>
 
-      <div class="tx-controls">
-        <select class="tx-select" bind:value={txSortBy} on:change={onSortByChange}>
-          <option value="created_at">Date</option>
-          <option value="amount">Amount</option>
-        </select>
-        <button class="tx-order-btn" on:click={toggleOrder}>
-          {txOrder === "desc" ? "↓ Desc" : "↑ Asc"}
-        </button>
-        <input
-          class="tx-filter-input"
-          type="text"
-          placeholder="Filter by endpoint…"
-          bind:value={txEndpointFilter}
-          on:input={onEndpointFilterInput}
-        />
-      </div>
-
       {#if txLoading}
         <div class="balance-loading"><Loading small /></div>
       {:else if transactions.length === 0}
-        <div class="empty-state">No transactions found.</div>
+        <div class="empty-state">No payments found.</div>
       {:else}
         <div class="tx-table-wrapper">
           <table class="tx-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Endpoint</th>
+                <th>Type</th>
                 <th>Amount (sats)</th>
+                <th>Pubkey</th>
                 <th>Date</th>
               </tr>
             </thead>
             <tbody>
               {#each transactions as tx}
                 <tr>
-                  <td>{tx.id}</td>
-                  <td class="endpoint-cell">{tx.endpoint ?? "—"}</td>
-                  <td>{formatSatsNumbers(tx.amount)}</td>
-                  <td>{formatDate(tx.created_at)}</td>
+                  <td class="type-cell">{tx.type ?? tx.payment_type ?? "—"}</td>
+                  <td>{tx.amt_msat != null ? formatMillisatsToSats(tx.amt_msat) : (tx.amount != null ? formatSatsNumbers(tx.amount) : "—")}</td>
+                  <td class="pubkey-cell">{tx.pubkey ?? tx.destination ?? "—"}</td>
+                  <td>{tx.date ? formatDate(tx.date) : (tx.created_at ? formatDate(tx.created_at) : "—")}</td>
                 </tr>
               {/each}
             </tbody>
           </table>
         </div>
       {/if}
-
-      <div class="pagination">
-        <button class="page-btn" on:click={prevPage} disabled={txPage <= 1}>← Prev</button>
-        <span class="page-label">Page {txPage} of {txTotalPages}</span>
-        <button class="page-btn" on:click={nextPage} disabled={txPage >= txTotalPages}>Next →</button>
-      </div>
     </div>
 
     <!-- Receive Invoice Section -->
@@ -380,48 +307,6 @@
     font-weight: 600;
     color: #f4f4f4;
   }
-  .tx-controls {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .tx-select {
-    height: 2rem;
-    padding: 0 0.5rem;
-    background: #262626;
-    border: 1px solid #525252;
-    color: #f4f4f4;
-    font-size: 0.875rem;
-    outline: none;
-    cursor: pointer;
-  }
-  .tx-order-btn {
-    height: 2rem;
-    padding: 0 0.75rem;
-    background: #262626;
-    border: 1px solid #525252;
-    color: #f4f4f4;
-    font-size: 0.875rem;
-    cursor: pointer;
-  }
-  .tx-order-btn:hover {
-    background: #393939;
-  }
-  .tx-filter-input {
-    flex: 1;
-    min-width: 140px;
-    height: 2rem;
-    padding: 0 0.75rem;
-    background: #262626;
-    border: 1px solid #525252;
-    color: #f4f4f4;
-    font-size: 0.875rem;
-    outline: none;
-  }
-  .tx-filter-input:focus {
-    border-color: #0f62fe;
-  }
   .tx-table-wrapper {
     overflow-x: auto;
   }
@@ -448,42 +333,21 @@
   .tx-table tr:hover td {
     background: #262626;
   }
-  .endpoint-cell {
+  .pubkey-cell {
     max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-family: monospace;
+    font-size: 0.75rem;
+  }
+  .type-cell {
+    text-transform: capitalize;
   }
   .empty-state {
     font-size: 0.875rem;
     color: #8d8d8d;
     padding: 1rem 0;
-  }
-  .pagination {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 0.25rem;
-  }
-  .page-btn {
-    height: 2rem;
-    padding: 0 0.75rem;
-    background: #262626;
-    border: 1px solid #525252;
-    color: #f4f4f4;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-  .page-btn:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .page-btn:not(:disabled):hover {
-    background: #393939;
-  }
-  .page-label {
-    font-size: 0.8rem;
-    color: #8d8d8d;
   }
   .invoice-row {
     display: flex;
