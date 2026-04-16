@@ -20,7 +20,7 @@ use crate::conn::swarm::SwarmResponse;
 use crate::conn::swarm::{
     change_swarm_user_password_by_user_admin, get_image_tags, update_env_variables,
 };
-use crate::conn::swarm::{create_bot_invoice, get_bot_balance, get_bot_token, get_neo4j_password};
+use crate::conn::swarm::{create_bot_invoice, get_bot_balance, get_bot_payments, get_bot_token, get_neo4j_password};
 use crate::dock::*;
 use crate::dock::restart_node_container_global;
 use crate::images::DockerHubImage;
@@ -487,6 +487,12 @@ pub async fn handle(
                 log::info!("Get Bot Balance");
                 let nodes = config::stack_read(|s| s.nodes.clone()).await;
                 let res = get_bot_balance(&nodes).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            SwarmCmd::GetBotPayments => {
+                log::info!("Get Bot Payments");
+                let nodes = config::stack_read(|s| s.nodes.clone()).await;
+                let res = get_bot_payments(&nodes).await;
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::CreateBotInvoice(body) => {

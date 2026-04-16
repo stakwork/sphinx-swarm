@@ -226,6 +226,7 @@ pub enum SwarmCmd {
     GetNeo4jPassword,
     GetBotToken,
     GetBotBalance,
+    GetBotPayments,
     CreateBotInvoice(CreateBotInvoiceRequest),
     GetL402Stats,
     GetAdminTransactions(AdminTransactionsRequest),
