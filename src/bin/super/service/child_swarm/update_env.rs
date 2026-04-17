@@ -26,7 +26,7 @@ pub async fn update_child_swarm_env(
         }
     };
 
-    match handle_update_child_swarm_env(
+    match handle_update_child_swarm_env_direct(
         &child_swarm,
         UpdateEnvRequest {
             id: data.node_name,
@@ -44,7 +44,7 @@ pub async fn update_child_swarm_env(
     }
 }
 
-async fn handle_update_child_swarm_env(
+pub async fn handle_update_child_swarm_env_direct(
     child_swarm: &RemoteStack,
     data: UpdateEnvRequest,
 ) -> Result<SuperSwarmResponse, Error> {

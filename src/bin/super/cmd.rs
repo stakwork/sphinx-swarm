@@ -123,6 +123,13 @@ pub enum SwarmCmd {
     GetSuperAdminVersion,
     NukeWarmSwarm(NukeWarmSwarmReq),
     NukeAllWarmSwarms,
+    UpdateSwarmVanityAddress(UpdateSwarmVanityAddressInfo),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UpdateSwarmVanityAddressInfo {
+    pub host: String,
+    pub vanity_address: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
