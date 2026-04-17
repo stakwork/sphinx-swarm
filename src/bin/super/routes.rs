@@ -2,7 +2,7 @@ use crate::auth;
 use crate::auth_token::VerifySuperToken;
 use crate::cmd::{
     AddSwarmResponse, ChildSwarm, Cmd, CreateEc2InstanceInfo, GetChildSwarmCredentialsReq,
-    StopEc2InstanceInfo, SuperSwarmResponse, SwarmCmd,
+    StopEc2InstanceInfo, SuperSwarmResponse, SwarmCmd, UpdateSwarmVanityAddressInfo,
 };
 use crate::events::EventChan;
 use crate::logs::LogChans;
@@ -51,7 +51,8 @@ pub async fn launch_rocket(
                 check_duplicate_domain,
                 update_child_swarm_public_ip,
                 get_swarm_credentials,
-                update_superadmin
+                update_superadmin,
+                update_swarm_vanity_address
             ],
         )
         .attach(CORS)
@@ -448,4 +449,57 @@ async fn update_superadmin(
     let response = update_super_admin().await;
     let status = if response.success { Status::Ok } else { Status::BadRequest };
     Ok(Custom(status, Json(response)))
+}
+
+
+#[rocket::post("/super/update_swarm_vanity_address", data = "<body>")]
+async fn update_swarm_vanity_address(
+    proj: &State<String>,
+    body: Json<UpdateSwarmVanityAddressInfo>,
+    verify_super_token: VerifySuperToken,
+) -> Result<Custom<Json<ApiResponse>>> {
+    if let None = verify_super_token.token {
+        return Ok(Custom(
+            Status::Unauthorized,
+            Json(ApiResponse {
+                success: false,
+                message: "unauthorized, invalid token".to_string(),
+            }),
+        ));
+    }
+
+    let cmd: Cmd = Cmd::Swarm(SwarmCmd::UpdateSwarmVanityAddress(
+        UpdateSwarmVanityAddressInfo {
+            host: body.host.clone(),
+            vanity_address: body.vanity_address.clone(),
+        },
+    ));
+
+    match super_handle(&proj, cmd, "SWARM", &None).await {
+        Ok(reply) => {
+            if reply.is_empty() {
+                return Err(Error::Unauthorized);
+            }
+            let response: SuperSwarmResponse = serde_json::from_str(&reply)?;
+            let status = if response.success {
+                Status::Ok
+            } else {
+                Status::BadRequest
+            };
+            Ok(Custom(
+                status,
+                Json(ApiResponse {
+                    success: response.success,
+                    message: response.message,
+                }),
+            ))
+        }
+        Err(err) => Ok(Custom(
+            Status::InternalServerError,
+            Json(ApiResponse {
+                success: false,
+                message: err.to_string(),
+            }),
+        )),
+    }
 }

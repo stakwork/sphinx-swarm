@@ -33,6 +33,7 @@ use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
 use crate::service::child_swarm::update_env::update_child_swarm_env;
 use crate::service::child_swarm::update_public_ip::handle_update_child_swarm_public_ip;
+use crate::service::child_swarm::handle_update_swarm_vanity_address;
 #[allow(unused_imports)]
 use crate::service::log_group_migration::migrate_log_group_tags;
 use crate::service::ssl_cert::handle_renew_cert::{
@@ -697,6 +698,11 @@ pub async fn super_handle(
             // Pattern 5: Read state, do I/O, write result back
             SwarmCmd::UpdateChildSwarmPublicIp(info) => {
                 let res = handle_update_child_swarm_public_ip(proj, info).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            // Pattern 5: Read state, do I/O, write result back
+            SwarmCmd::UpdateSwarmVanityAddress(info) => {
+                let res = handle_update_swarm_vanity_address(proj, info).await;
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 1: Read and return
