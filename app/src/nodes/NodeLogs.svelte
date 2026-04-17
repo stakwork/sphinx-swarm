@@ -14,10 +14,7 @@
     open = true;
     const theLogs = await api.swarm.get_logs(`${nodeName}.sphinx`);
     if (theLogs) {
-      logs = "";
-      for (let i = 0; i < theLogs.length; i++) {
-        logs = `${logs}${cleanLog(theLogs[i])}`;
-      }
+      logs = theLogs.map((l) => cleanLog(l)).join("\n");
     }
   }
 
