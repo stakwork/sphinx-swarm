@@ -269,13 +269,13 @@ pub async fn handle(
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let name = admin.name.unwrap_or("".to_string());
                 let response = crate::conn::boltwall::add_admin_pubkey(&boltwall, &admin.pubkey, &name).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::GetBoltwallSuperAdmin => {
                 log::info!("GetBoltwallSuperAdmin");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::get_super_admin(&boltwall).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::AddBoltwallUser(user) => {
                 log::info!("AddBoltwallUser -> pubkey {}-> role {} -> name {:?} ", user.pubkey, user.role, user.name);
@@ -290,13 +290,13 @@ pub async fn handle(
                     }).await;
                     let _ = changed; // save already happened in stack_write
                 }
-                Some(serde_json::to_string(&response_text)?)
+                Some(response_text)
             }
             SwarmCmd::ListAdmins => {
                 log::info!("ListAdmins ==> ");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::list_admins(&boltwall).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::DeleteSubAdmin(apk) => {
                 log::info!("DeleteSubAdmin -> {}", apk);
@@ -309,42 +309,42 @@ pub async fn handle(
                     }).await;
                     let _ = changed;
                 }
-                Some(serde_json::to_string(&response_text)?)
+                Some(response_text)
             }
             SwarmCmd::ListPaidEndpoint => {
                 log::info!("ListPaidEndpoint ===> ");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::list_paid_endpoint(&boltwall).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdateSwarm => {
                 log::info!("Updating Swarm ===>");
                 let response = crate::conn::swarm::update_swarm().await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdatePaidEndpoint(details) => {
                 log::info!("UpdatePaidEndpoint -> Status:{} ID:{}", details.status, details.id);
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::update_paid_endpoint(&boltwall, details.id, details.status).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdateEndpointPrice(details) => {
                 log::info!("UpdateEndpointPrice -> ID:{} Price:{}", details.id, details.price);
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::update_endpoint_price(&boltwall, details.id, details.price).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdateBoltwallAccessibility(is_public) => {
                 log::info!("UpdateBoltwallAccessibility -> Status:{} ", is_public);
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::update_boltwall_accessibility(&boltwall, is_public).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::GetBoltwallAccessibility => {
                 log::info!("Get Boltwall Accessibility ===>");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::get_boltwall_accessibility(&boltwall).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdateAdminPubkey(details) => {
                 let res = config::stack_write(proj, |s| {
@@ -364,25 +364,25 @@ pub async fn handle(
                 log::info!("Get Boltwall Feature Flags ===>");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::get_feature_flags(&boltwall).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::GetSecondBrainAboutDetails => {
                 log::info!("Get Second Brain About Details ===>");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::get_second_brain_about_details(&boltwall).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdateSecondBrainAbout(about) => {
                 log::info!("Update Second Brain Title: {:?}", about.title);
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::update_second_brain_about(&boltwall, about).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::UpdateFeatureFlags(body) => {
                 log::info!("Update Feature Flags ===> {:?}", body);
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::update_feature_flags(&boltwall, body).await?;
-                Some(serde_json::to_string(&response)?)
+                Some(response)
             }
             SwarmCmd::SignUpAdminPubkey(body) => {
                 log::info!("Signup Admin Pubkey ===> {:?}", body);
@@ -396,7 +396,7 @@ pub async fn handle(
             SwarmCmd::GetDockerImageTags(image_details) => {
                 log::info!("Get Docker Image Tags ===> {:?}", image_details);
                 let tags = get_image_tags(image_details).await?;
-                return Ok(serde_json::to_string(&tags)?);
+                return Ok(tags);
             }
             SwarmCmd::GetAllImageActualVersion => {
                 log::info!("Get all Image actual version");
@@ -414,7 +414,7 @@ pub async fn handle(
                         crate::conn::boltwall::add_user_to_stack(body.role, body.pubkey.clone(), body.name.clone(), s);
                     }).await;
                 }
-                Some(serde_json::to_string(&response_text)?)
+                Some(response_text)
             }
             SwarmCmd::GetApiToken => {
                 log::info!("Get API TOKEN");
