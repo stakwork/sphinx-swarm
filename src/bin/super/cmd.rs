@@ -121,6 +121,7 @@ pub enum SwarmCmd {
     GetEc2CpuUtilization(GetEc2CpuUtilizationReq),
     GetChildSwarmCredentials(GetChildSwarmCredentialsReq),
     GetSuperAdminVersion,
+    RestartSuperAdminOnly,
     NukeWarmSwarm(NukeWarmSwarmReq),
     NukeAllWarmSwarms,
     UpdateSwarmVanityAddress(UpdateSwarmVanityAddressInfo),
