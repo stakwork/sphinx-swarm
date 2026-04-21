@@ -127,7 +127,8 @@ export type Cmd =
   | "CreateBotInvoice"
   | "GetL402Stats"
   | "GetAdminTransactions"
-  | "GetBoltwallDbTable";
+  | "GetBoltwallDbTable"
+  | "GetBoltwallUsers";
 interface CmdData {
   cmd: Cmd;
   content?: any;

@@ -553,6 +553,39 @@ pub async fn handle(
                     .collect();
                 Some(serde_json::to_string(&rows)?)
             }
+            SwarmCmd::GetBoltwallUsers => {
+                log::info!("GetBoltwallUsers");
+                let bytes = crate::dock::download_from_container(
+                    docker,
+                    "boltwall.sphinx",
+                    "/boltwall/sphinx_lsat.db",
+                )
+                .await?;
+                std::fs::write("/tmp/sphinx_swarm_boltwall_qa.db", &bytes)?;
+                let conn = rusqlite::Connection::open("/tmp/sphinx_swarm_boltwall_qa.db")?;
+                let mut stmt = conn.prepare("SELECT id, pubkey, name, role FROM sphinx_users")?;
+                let users: Vec<crate::cmd::BoltwallUser> = stmt
+                    .query_map([], |row| {
+                        let role_int: i64 = row.get(3)?;
+                        let role = match role_int {
+                            1 => "admin",
+                            2 => "sub_admin",
+                            3 => "member",
+                            _ => "unknown",
+                        }
+                        .to_string();
+                        Ok(crate::cmd::BoltwallUser {
+                            id: row.get(0)?,
+                            pubkey: row.get(1)?,
+                            name: row.get(2)?,
+                            role,
+                        })
+                    })?
+                    .filter_map(|r| r.ok())
+                    .collect();
+                let response = crate::cmd::GetBoltwallUsersResponse { users };
+                Some(serde_json::to_string(&response)?)
+            }
             SwarmCmd::UpdateBoltwallRequestPerSeconds(info) => {
                 log::info!("Update Boltwall Request per seconds to: {}", &info.request_per_seconds);
                 let res = config::stack_write(proj, |s| {
