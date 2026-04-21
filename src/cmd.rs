@@ -129,6 +129,19 @@ pub struct ChangeUserPasswordBySuperAdminInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BoltwallUser {
+    pub id: i64,
+    pub pubkey: String,
+    pub name: String,
+    pub role: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetBoltwallUsersResponse {
+    pub users: Vec<BoltwallUser>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RequestPerSecondsInfo {
     pub request_per_seconds: i64,
 }
@@ -231,6 +244,7 @@ pub enum SwarmCmd {
     GetL402Stats,
     GetAdminTransactions(AdminTransactionsRequest),
     GetBoltwallDbTable(String),
+    GetBoltwallUsers,
     UpdateBoltwallRequestPerSeconds(RequestPerSecondsInfo),
     GetBoltwallRequestPerSeconds,
     GetBoltwallMaxRequestLimit,
