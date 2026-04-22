@@ -10,6 +10,7 @@ pub mod config_server;
 pub mod dufs;
 pub mod elastic;
 pub mod graphmindset;
+pub mod hive_relay;
 pub mod jamie;
 pub mod jarvis;
 pub mod llama;
@@ -79,6 +80,7 @@ pub enum Image {
     Stakgraph(stakgraph::StakgraphImage),
     Quickwit(quickwit::QuickwitImage),
     Vector(vector::VectorImage),
+    HiveRelay(hive_relay::HiveRelayImage),
 }
 
 pub enum Registry {
@@ -158,6 +160,7 @@ impl Image {
             Image::Stakgraph(n) => n.name.clone(),
             Image::Quickwit(n) => n.name.clone(),
             Image::Vector(n) => n.name.clone(),
+            Image::HiveRelay(n) => n.name.clone(),
         }
     }
 
@@ -197,6 +200,7 @@ impl Image {
             Image::Stakgraph(n) => n.host.clone(),
             Image::Quickwit(n) => n.host.clone(),
             Image::Vector(n) => n.host.clone(),
+            Image::HiveRelay(n) => n.host.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -235,6 +239,7 @@ impl Image {
             Image::Stakgraph(_n) => "Stakgraph",
             Image::Quickwit(_n) => "Quickwit",
             Image::Vector(_n) => "Vector",
+            Image::HiveRelay(_n) => "HiveRelay",
         }
         .to_string()
     }
@@ -274,6 +279,7 @@ impl Image {
             Image::Stakgraph(n) => n.version = version.to_string(),
             Image::Quickwit(n) => n.version = version.to_string(),
             Image::Vector(n) => n.version = version.to_string(),
+            Image::HiveRelay(n) => n.version = version.to_string(),
         }
     }
 
@@ -313,6 +319,7 @@ impl Image {
             Image::Stakgraph(n) => n.host(Some(host.to_string())),
             Image::Quickwit(n) => n.host(Some(host.to_string())),
             Image::Vector(n) => n.host(Some(host.to_string())),
+            Image::HiveRelay(n) => n.host(Some(host.to_string())),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -413,6 +420,7 @@ impl DockerConfig for Image {
             Image::Stakgraph(n) => n.make_config(nodes, docker).await,
             Image::Quickwit(n) => n.make_config(nodes, docker).await,
             Image::Vector(n) => n.make_config(nodes, docker).await,
+            Image::HiveRelay(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -454,6 +462,7 @@ impl DockerHubImage for Image {
             Image::Stakgraph(n) => n.repo(),
             Image::Quickwit(n) => n.repo(),
             Image::Vector(n) => n.repo(),
+            Image::HiveRelay(n) => n.repo(),
         }
     }
 }
@@ -633,6 +642,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_hive_relay(&self) -> Option<hive_relay::HiveRelayImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_hive_relay() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -772,6 +789,12 @@ impl Image {
         match self {
             Image::Vector(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Vector".to_string())),
+        }
+    }
+    pub fn as_hive_relay(&self) -> anyhow::Result<hive_relay::HiveRelayImage> {
+        match self {
+            Image::HiveRelay(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not HiveRelay".to_string())),
         }
     }
 }
