@@ -156,6 +156,13 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
                     return true;
                 }
             }
+            SwarmCmd::UpdateSwarmVanityAddress(info) => {
+                let token = getenv("SUPER_TOKEN").unwrap_or("".to_string());
+                if info.token.is_some() && !token.is_empty() && token == info.token.clone().unwrap()
+                {
+                    return true;
+                }
+            }
             _ => {}
         },
     }
