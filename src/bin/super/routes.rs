@@ -472,6 +472,7 @@ async fn update_swarm_vanity_address(
         UpdateSwarmVanityAddressInfo {
             host: body.host.clone(),
             vanity_address: body.vanity_address.clone(),
+            token: verify_super_token.token.clone(),
         },
     ));
 

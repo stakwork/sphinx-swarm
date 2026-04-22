@@ -444,6 +444,7 @@ impl Stack {
                 Image::Stakgraph(p) => Node::Internal(Image::Stakgraph(p)),
                 Image::Quickwit(q) => Node::Internal(Image::Quickwit(q)),
                 Image::Vector(v) => Node::Internal(Image::Vector(v)),
+                Image::HiveRelay(h) => Node::Internal(Image::HiveRelay(h)),
             },
         });
         Stack {

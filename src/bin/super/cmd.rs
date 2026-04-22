@@ -130,6 +130,7 @@ pub enum SwarmCmd {
 pub struct UpdateSwarmVanityAddressInfo {
     pub host: String,
     pub vanity_address: String,
+    pub token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
