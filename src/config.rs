@@ -339,17 +339,19 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
 }
 
 /// Migrate an existing Stack config to include new required nodes.
-/// Currently adds Quickwit and Vector to second-brain stacks that lack them.
+/// Currently adds Quickwit, Vector, and HiveRelay to second-brain stacks that lack them.
 /// This is safe to call on every startup — it's a no-op if the nodes already exist.
 pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
+    use crate::images::hive_relay::HiveRelayImage;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
 
     let has_quickwit = stack.nodes.iter().any(|n| n.name() == "quickwit");
     let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
+    let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
 
-    if has_quickwit && has_vector {
+    if has_quickwit && has_vector && has_hive_relay {
         return;
     }
 
@@ -359,7 +361,7 @@ pub fn migrate_stack(stack: &mut Stack) {
         return;
     }
 
-    log::info!("=> migrating stack: adding quickwit and vector nodes");
+    log::info!("=> migrating stack: adding missing second-brain nodes");
 
     if !has_quickwit {
         let quickwit = QuickwitImage::new("quickwit", "latest");
@@ -373,6 +375,14 @@ pub fn migrate_stack(stack: &mut Stack) {
         vector.links(vec!["quickwit", "boltwall"]);
         stack.nodes.push(Node::Internal(Image::Vector(vector)));
         log::info!("=> added vector node");
+    }
+
+    if !has_hive_relay {
+        let mut hive_relay = HiveRelayImage::new("hive-relay", "latest");
+        hive_relay.host(stack.host.clone());
+        hive_relay.links(vec!["boltwall"]);
+        stack.nodes.push(Node::Internal(Image::HiveRelay(hive_relay)));
+        log::info!("=> added hive-relay node");
     }
 }
 
