@@ -18,6 +18,7 @@
   import Neo4j from "../Neo4j.svelte";
   import Stakgraph from "../Stakgraph.svelte";
   import Repo2Graph from "../Repo2Graph.svelte";
+  import HiveRelay from "../HiveRelay.svelte";
   import Bot from "../Bot.svelte";
 
   export let updateBody = () => {};
@@ -113,6 +114,8 @@
         <Stakgraph {updateBody} />
       {:else if type === "Repo2Graph"}
         <Repo2Graph {updateBody} />
+      {:else if type === "HiveRelay"}
+        <HiveRelay {updateBody} />
       {:else if type === "Bot"}
         <Bot />
       {:else}
