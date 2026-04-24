@@ -3,6 +3,7 @@ use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
 use crate::images::bot::BotImage;
 use crate::images::graphmindset::GraphMindsetImage;
+use crate::images::hive_relay::HiveRelayImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
@@ -36,6 +37,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "stakgraph".to_string(),
             "quickwit".to_string(),
             "vector".to_string(),
+            "hive-relay".to_string(),
             "bot".to_string(),
         ]),
         auto_restart: None,
@@ -116,6 +118,11 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     vector.host(host.clone());
     vector.links(vec!["quickwit", "boltwall"]);
 
+    // hive-relay
+    let mut hive_relay = HiveRelayImage::new("hive-relay", "latest");
+    hive_relay.host(host.clone());
+    hive_relay.links(vec!["boltwall"]);
+
     let mut imgs = vec![
         Image::NavFiber(nav),
         Image::GraphMindset(gm),
@@ -127,6 +134,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Stakgraph(stakgraph),
         Image::Quickwit(quickwit),
         Image::Vector(vector),
+        Image::HiveRelay(hive_relay),
     ];
 
     if lightning_provider == "bot" {
