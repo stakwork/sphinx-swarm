@@ -46,6 +46,7 @@ use crate::service::swarm_reserver::nuke_warm_swarm::{
 };
 use crate::service::swarm_reserver::setup_cron::swarm_reserver_cron;
 use crate::service::swarm_reserver::utils::check_reserve_swarm_flag_set;
+use crate::service::restart_super_admin_only::restart_super_admin_only;
 use crate::service::update_super_admin::update_super_admin;
 use crate::util::create_swarm_ec2;
 use anyhow::{anyhow, Context, Result};
@@ -708,6 +709,11 @@ pub async fn super_handle(
             // Pattern 1: Read and return
             SwarmCmd::GetChildSwarmCredentials(req) => {
                 let res = state_read(|s| get_child_swarm_credentials(req, s)).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            // Pattern 4: No state needed
+            SwarmCmd::RestartSuperAdminOnly => {
+                let res = restart_super_admin_only().await;
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 4: No state needed
