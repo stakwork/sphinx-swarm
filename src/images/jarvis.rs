@@ -88,7 +88,8 @@ fn jarvis(
         format!("PUBLIC_GRAPH_RESULT_LIMIT=10"),
         format!("AWS_S3_BUCKET_PATH=https://stakwork-uploads.s3.amazonaws.com/knowledge-graph-joe/content-images"),
         format!("FEATURE_FLAG_ADD_NODE_KEY=true"),
-        format!("AWS_S3_PRESIGN_URL_EXPIRY=3600")
+        format!("AWS_S3_PRESIGN_URL_EXPIRY=3600"),
+        format!("RADAR_SCHEDULER_JOB=true"),
     ];
     if let Some(elastic) = elastic {
         env.push(format!(
@@ -160,24 +161,6 @@ fn jarvis(
     if let Ok(youtube_api_token) = getenv("YOUTUBE_API_TOKEN") {
         env.push(format!("YOUTUBE_API_TOKEN={}", youtube_api_token));
     }
-    if let Ok(radar_scheduler_time_in_sec) = getenv("RADAR_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!(
-            "RADAR_SCHEDULER_TIME_IN_SEC={}",
-            radar_scheduler_time_in_sec
-        ));
-    }
-    if let Ok(radar_youtube_scheduler_time_in_sec) = getenv("RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!(
-            "RADAR_YOUTUBE_SCHEDULER_TIME_IN_SEC={}",
-            radar_youtube_scheduler_time_in_sec
-        ));
-    }
-    if let Ok(radar_twitter_scheduler_time_in_sec) = getenv("RADAR_TWITTER_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!(
-            "RADAR_TWITTER_SCHEDULER_TIME_IN_SEC={}",
-            radar_twitter_scheduler_time_in_sec
-        ));
-    }
     if let Ok(jarvis_feature_flag_schema) = getenv("JARVIS_FEATURE_FLAG_SCHEMA") {
         env.push(format!(
             "FEATURE_FLAG_SCHEMA={}",
@@ -202,33 +185,6 @@ fn jarvis(
         env.push(format!(
             "FEATURE_FLAG_CODEGRAPH_SCHEMAS={}",
             jarvis_feature_flag_codegraph_schemas
-        ));
-    }
-    if let Ok(radar_rss_scheduler_time_in_sec) = getenv("RADAR_RSS_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!(
-            "RADAR_RSS_SCHEDULER_TIME_IN_SEC={}",
-            radar_rss_scheduler_time_in_sec
-        ));
-    }
-    if let Ok(radar_youtube_scheduler_job) = getenv("RADAR_YOUTUBE_SCHEDULER_JOB") {
-        env.push(format!(
-            "RADAR_YOUTUBE_SCHEDULER_JOB={}",
-            radar_youtube_scheduler_job
-        ));
-    }
-    if let Ok(radar_twitter_scheduler_job) = getenv("RADAR_TWITTER_SCHEDULER_JOB") {
-        env.push(format!(
-            "RADAR_TWITTER_SCHEDULER_JOB={}",
-            radar_twitter_scheduler_job
-        ));
-    }
-    if let Ok(radar_scheduler_job) = getenv("RADAR_SCHEDULER_JOB") {
-        env.push(format!("RADAR_SCHEDULER_JOB={}", radar_scheduler_job));
-    }
-    if let Ok(radar_topic_scheduler_job) = getenv("RADAR_TOPIC_SCHEDULER_JOB") {
-        env.push(format!(
-            "RADAR_TOPIC_SCHEDULER_JOB={}",
-            radar_topic_scheduler_job
         ));
     }
     if let Ok(max_payment_hierarcy_depth) = getenv("MAX_PAYMENT_HIERARCY_DEPTH") {
@@ -298,13 +254,6 @@ fn jarvis(
             single_tweet_workflow_id
         ));
     }
-    if let Ok(radar_topic_scheduler_time_in_sec) = getenv("RADAR_TOPIC_SCHEDULER_TIME_IN_SEC") {
-        env.push(format!(
-            "RADAR_TOPIC_SCHEDULER_TIME_IN_SEC={}",
-            radar_topic_scheduler_time_in_sec
-        ));
-    }
-
     if let Ok(stakwork_env) = getenv("JARVIS_STAKWORK_URL") {
         env.push(format!("JARVIS_STAKWORK_URL={}", stakwork_env));
         env.push(format!(
