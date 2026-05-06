@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { splitPubkey } from "../../helpers/swarm";
-
   export let value = "";
   export let placeholder = "Enter text";
   export let onInput;
@@ -10,10 +8,6 @@
 
   function handleInput(event) {
     let value = event.target.value;
-    if (isPubkey && value.length > 66) {
-      value = splitPubkey(value);
-    }
-
     onInput(value);
   }
 </script>
