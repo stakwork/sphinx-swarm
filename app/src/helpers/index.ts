@@ -65,7 +65,7 @@ export function shortTransactionId(id: string): string {
 }
 
 export function shortPubkey(id: string): string {
-  return `${id.substring(0, 15)}...`;
+  return `${id.substring(0, 30)}...`;
 }
 
 export function contructQrString(challenge: string) {
