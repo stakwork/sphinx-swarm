@@ -1,6 +1,7 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
+use crate::images::bifrost::BifrostImage;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::traefik::shared_host;
@@ -67,7 +68,8 @@ impl DockerConfig for StakgraphImage {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let neo4j = li.find_neo4j().context("Stakgraph: No Neo4j")?;
         let boltwall = li.find_boltwall();
-        Ok(stakgraph(self, &neo4j, &boltwall)?)
+        let bifrost = li.find_bifrost();
+        Ok(stakgraph(self, &neo4j, &boltwall, &bifrost)?)
     }
 }
 
@@ -86,6 +88,7 @@ fn stakgraph(
     img: &StakgraphImage,
     neo4j: &Neo4jImage,
     boltwall: &Option<BoltwallImage>,
+    bifrost: &Option<BifrostImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -112,6 +115,15 @@ fn stakgraph(
             env.push(format!("WEBHOOK_SECRET={}", api_token));
         }
     }
+    if let Some(bf) = bifrost {
+        let base = format!("http://{}:{}", domain(&bf.name), bf.port);
+        env.push(format!("OPENAI_BASE_URL={}/openai", base));
+        env.push(format!("ANTHROPIC_BASE_URL={}/anthropic", base));
+        env.push(format!("OPENROUTER_BASE_URL={}/openrouter", base));
+        env.push("OPENAI_API_KEY=bifrost-managed".to_string());
+        env.push("ANTHROPIC_API_KEY=bifrost-managed".to_string());
+    }
+
     if let Some(rust_log) = &img.rust_log {
         env.push(format!("RUST_LOG={}", rust_log));
         if rust_log == "debug" || rust_log == "trace" {

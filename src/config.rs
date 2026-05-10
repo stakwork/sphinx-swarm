@@ -343,6 +343,7 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
 /// This is safe to call on every startup — it's a no-op if the nodes already exist.
 pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
+    use crate::images::bifrost::BifrostImage;
     use crate::images::hive_relay::HiveRelayImage;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
@@ -350,8 +351,9 @@ pub fn migrate_stack(stack: &mut Stack) {
     let has_quickwit = stack.nodes.iter().any(|n| n.name() == "quickwit");
     let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
     let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
+    let has_bifrost = stack.nodes.iter().any(|n| n.name() == "bifrost");
 
-    if has_quickwit && has_vector && has_hive_relay {
+    if has_quickwit && has_vector && has_hive_relay && has_bifrost {
         return;
     }
 
@@ -383,6 +385,30 @@ pub fn migrate_stack(stack: &mut Stack) {
         hive_relay.links(vec!["boltwall"]);
         stack.nodes.push(Node::Internal(Image::HiveRelay(hive_relay)));
         log::info!("=> added hive-relay node");
+    }
+
+    if !has_bifrost {
+        let mut bifrost = BifrostImage::new("bifrost", "latest");
+        bifrost.host(stack.host.clone());
+        stack.nodes.push(Node::Internal(Image::Bifrost(bifrost)));
+        log::info!("=> added bifrost node");
+    }
+
+    // Update existing Repo2Graph and Stakgraph links to include bifrost
+    for node in &mut stack.nodes {
+        match node {
+            Node::Internal(Image::Repo2Graph(ref mut img)) => {
+                if !img.links.contains(&"bifrost".to_string()) {
+                    img.links.push("bifrost".to_string());
+                }
+            }
+            Node::Internal(Image::Stakgraph(ref mut img)) => {
+                if !img.links.contains(&"bifrost".to_string()) {
+                    img.links.push("bifrost".to_string());
+                }
+            }
+            _ => {}
+        }
     }
 }
 
