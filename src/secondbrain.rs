@@ -3,6 +3,7 @@ use crate::defaults::*;
 use crate::images::boltwall::{BoltwallImage, ExternalLnd};
 use crate::images::bot::BotImage;
 use crate::images::graphmindset::GraphMindsetImage;
+use crate::images::bifrost::BifrostImage;
 use crate::images::hive_relay::HiveRelayImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
@@ -39,6 +40,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "vector".to_string(),
             "hive-relay".to_string(),
             "bot".to_string(),
+            "bifrost".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -75,13 +77,13 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall"]);
+    repo2graph.links(vec!["neo4j", "boltwall", "bifrost"]);
 
     // stakgraph
     v = "latest";
     let mut stakgraph = StakgraphImage::new("stakgraph", v, "7799");
     stakgraph.host(host.clone());
-    stakgraph.links(vec!["neo4j", "boltwall"]);
+    stakgraph.links(vec!["neo4j", "boltwall", "bifrost"]);
 
     // boltwall
     v = "latest";
@@ -123,6 +125,10 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     hive_relay.host(host.clone());
     hive_relay.links(vec!["boltwall"]);
 
+    // bifrost - LLM gateway
+    let mut bifrost = BifrostImage::new("bifrost", "latest");
+    bifrost.host(host.clone());
+
     let mut imgs = vec![
         Image::NavFiber(nav),
         Image::GraphMindset(gm),
@@ -135,6 +141,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Quickwit(quickwit),
         Image::Vector(vector),
         Image::HiveRelay(hive_relay),
+        Image::Bifrost(bifrost),
     ];
 
     if lightning_provider == "bot" {
