@@ -1,7 +1,6 @@
 use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::BoltwallImage;
-use crate::images::bifrost::BifrostImage;
 use crate::images::bot::BotImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::graphmindset::GraphMindsetImage;
@@ -35,7 +34,6 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
             "repo2graph".to_string(),
             "stakgraph".to_string(),
             "bot".to_string(),
-            "bifrost".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -90,17 +88,13 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall", "bifrost"]);
+    repo2graph.links(vec!["neo4j", "boltwall"]);
 
     // stakgraph
     v = "latest";
     let mut stakgraph = StakgraphImage::new("stakgraph", v, "7799");
     stakgraph.host(host.clone());
-    stakgraph.links(vec!["neo4j", "boltwall", "bifrost"]);
-
-    // bifrost - LLM gateway
-    let mut bifrost = BifrostImage::new("bifrost", "latest");
-    bifrost.host(host.clone());
+    stakgraph.links(vec!["neo4j", "boltwall"]);
 
     vec![
         Image::Bot(bot),
@@ -112,6 +106,5 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
         Image::Stakgraph(stakgraph),
-        Image::Bifrost(bifrost),
     ]
 }

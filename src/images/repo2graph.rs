@@ -1,7 +1,6 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
-use crate::images::bifrost::BifrostImage;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::traefik::shared_host;
@@ -54,8 +53,7 @@ impl DockerConfig for Repo2GraphImage {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let neo4j = li.find_neo4j().context("Repo2Graph: No Neo4j")?;
         let boltwall = li.find_boltwall();
-        let bifrost = li.find_bifrost();
-        Ok(repo2graph(self, &neo4j, &boltwall, &bifrost)?)
+        Ok(repo2graph(self, &neo4j, &boltwall)?)
     }
 }
 
@@ -74,7 +72,6 @@ fn repo2graph(
     img: &Repo2GraphImage,
     neo4j: &Neo4jImage,
     boltwall: &Option<BoltwallImage>,
-    bifrost: &Option<BifrostImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -102,20 +99,11 @@ fn repo2graph(
         }
     }
 
-    if let Some(bf) = bifrost {
-        let base = format!("http://{}:{}", domain(&bf.name), bf.port);
-        env.push(format!("OPENAI_BASE_URL={}/openai", base));
-        env.push(format!("ANTHROPIC_BASE_URL={}/anthropic", base));
-        env.push(format!("OPENROUTER_BASE_URL={}/openrouter", base));
-        env.push("OPENAI_API_KEY=bifrost-managed".to_string());
-        env.push("ANTHROPIC_API_KEY=bifrost-managed".to_string());
-    } else {
-        if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
-            env.push(format!("OPENAI_API_KEY={}", openai_api_key));
-        }
-        if let Ok(anthropic_api_key) = getenv("ANTHROPIC_API_KEY") {
-            env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
-        }
+    if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
+        env.push(format!("OPENAI_API_KEY={}", openai_api_key));
+    }
+    if let Ok(anthropic_api_key) = getenv("ANTHROPIC_API_KEY") {
+        env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
 
     let sessions_dir = "/usr/src/app/sessions";
