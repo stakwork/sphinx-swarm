@@ -284,6 +284,11 @@ pub struct TestMine {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetTransactionStatus {
+    pub txid: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddPeer {
     pub pubkey: String,
     pub host: String,
@@ -350,6 +355,7 @@ pub enum BitcoindCmd {
     GetInfo,
     TestMine(TestMine),
     GetBalance,
+    GetTransactionStatus(GetTransactionStatus),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
