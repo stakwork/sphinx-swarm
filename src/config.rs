@@ -455,6 +455,7 @@ impl Stack {
                 Image::Quickwit(q) => Node::Internal(Image::Quickwit(q)),
                 Image::Vector(v) => Node::Internal(Image::Vector(v)),
                 Image::HiveRelay(h) => Node::Internal(Image::HiveRelay(h)),
+                Image::Bifrost(b) => Node::Internal(Image::Bifrost(b)),
             },
         });
         Stack {
