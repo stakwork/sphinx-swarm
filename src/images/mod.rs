@@ -1,3 +1,4 @@
+pub mod bifrost;
 pub mod boltwall;
 pub mod bot;
 pub mod broker;
@@ -81,6 +82,7 @@ pub enum Image {
     Quickwit(quickwit::QuickwitImage),
     Vector(vector::VectorImage),
     HiveRelay(hive_relay::HiveRelayImage),
+    Bifrost(bifrost::BifrostImage),
 }
 
 pub enum Registry {
@@ -161,6 +163,7 @@ impl Image {
             Image::Quickwit(n) => n.name.clone(),
             Image::Vector(n) => n.name.clone(),
             Image::HiveRelay(n) => n.name.clone(),
+            Image::Bifrost(n) => n.name.clone(),
         }
     }
 
@@ -201,6 +204,7 @@ impl Image {
             Image::Quickwit(n) => n.host.clone(),
             Image::Vector(n) => n.host.clone(),
             Image::HiveRelay(n) => n.host.clone(),
+            Image::Bifrost(n) => n.host.clone(),
         }
     }
     pub fn typ(&self) -> String {
@@ -240,6 +244,7 @@ impl Image {
             Image::Quickwit(_n) => "Quickwit",
             Image::Vector(_n) => "Vector",
             Image::HiveRelay(_n) => "HiveRelay",
+            Image::Bifrost(_n) => "Bifrost",
         }
         .to_string()
     }
@@ -280,6 +285,7 @@ impl Image {
             Image::Quickwit(n) => n.version = version.to_string(),
             Image::Vector(n) => n.version = version.to_string(),
             Image::HiveRelay(n) => n.version = version.to_string(),
+            Image::Bifrost(n) => n.version = version.to_string(),
         }
     }
 
@@ -320,6 +326,7 @@ impl Image {
             Image::Quickwit(n) => n.host(Some(host.to_string())),
             Image::Vector(n) => n.host(Some(host.to_string())),
             Image::HiveRelay(n) => n.host(Some(host.to_string())),
+            Image::Bifrost(n) => n.host(Some(host.to_string())),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -421,6 +428,7 @@ impl DockerConfig for Image {
             Image::Quickwit(n) => n.make_config(nodes, docker).await,
             Image::Vector(n) => n.make_config(nodes, docker).await,
             Image::HiveRelay(n) => n.make_config(nodes, docker).await,
+            Image::Bifrost(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -463,6 +471,7 @@ impl DockerHubImage for Image {
             Image::Quickwit(n) => n.repo(),
             Image::Vector(n) => n.repo(),
             Image::HiveRelay(n) => n.repo(),
+            Image::Bifrost(n) => n.repo(),
         }
     }
 }
@@ -650,6 +659,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_bifrost(&self) -> Option<bifrost::BifrostImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_bifrost() {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 impl Image {
@@ -795,6 +812,12 @@ impl Image {
         match self {
             Image::HiveRelay(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not HiveRelay".to_string())),
+        }
+    }
+    pub fn as_bifrost(&self) -> anyhow::Result<bifrost::BifrostImage> {
+        match self {
+            Image::Bifrost(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Bifrost".to_string())),
         }
     }
 }
