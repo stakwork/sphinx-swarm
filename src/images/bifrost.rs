@@ -61,8 +61,15 @@ pub fn bifrost(img: &BifrostImage) -> Config<String> {
     let root_vol = repo.root_volume.clone();
     let ports = vec![img.port.clone()];
 
-    let mut env = vec![format!("PORT={}", img.port)];
+    // Bifrost looks for APP_PORT / APP_HOST, NOT PORT. Without these it
+    // listens on localhost:8080 inside the container, which makes the host
+    // port binding useless.
+    let mut env = vec![
+        format!("APP_PORT={}", img.port),
+        "APP_HOST=0.0.0.0".to_string(),
+    ];
 
+    // Provider API keys referenced by Bifrost's config.json via env.<NAME>.
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
         env.push(format!("OPENAI_API_KEY={}", openai_api_key));
     }
@@ -71,6 +78,9 @@ pub fn bifrost(img: &BifrostImage) -> Config<String> {
     }
     if let Ok(openrouter_api_key) = getenv("OPENROUTER_API_KEY") {
         env.push(format!("OPENROUTER_API_KEY={}", openrouter_api_key));
+    }
+    if let Ok(google_api_key) = getenv("GOOGLE_API_KEY") {
+        env.push(format!("GOOGLE_API_KEY={}", google_api_key));
     }
 
     let data_vol = volume_string(&format!("{}-data", name), &root_vol);
@@ -114,19 +124,23 @@ mod tests {
         std::env::set_var("OPENAI_API_KEY", "test-openai-key");
         std::env::set_var("ANTHROPIC_API_KEY", "test-anthropic-key");
         std::env::set_var("OPENROUTER_API_KEY", "test-openrouter-key");
+        std::env::set_var("GOOGLE_API_KEY", "test-google-key");
 
         let img = test_bifrost_image();
         let config = bifrost(&img);
         let env = config.env.unwrap();
 
-        assert!(env.contains(&"PORT=8181".to_string()));
+        assert!(env.contains(&"APP_PORT=8181".to_string()));
+        assert!(env.contains(&"APP_HOST=0.0.0.0".to_string()));
         assert!(env.contains(&"OPENAI_API_KEY=test-openai-key".to_string()));
         assert!(env.contains(&"ANTHROPIC_API_KEY=test-anthropic-key".to_string()));
         assert!(env.contains(&"OPENROUTER_API_KEY=test-openrouter-key".to_string()));
+        assert!(env.contains(&"GOOGLE_API_KEY=test-google-key".to_string()));
 
         std::env::remove_var("OPENAI_API_KEY");
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
     }
 
     #[test]
@@ -136,11 +150,18 @@ mod tests {
         std::env::remove_var("OPENAI_API_KEY");
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
 
         let img = test_bifrost_image();
         let config = bifrost(&img);
         let env = config.env.unwrap();
 
-        assert_eq!(env, vec!["PORT=8181".to_string()]);
+        assert_eq!(
+            env,
+            vec![
+                "APP_PORT=8181".to_string(),
+                "APP_HOST=0.0.0.0".to_string(),
+            ]
+        );
     }
 }
