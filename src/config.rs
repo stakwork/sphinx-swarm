@@ -383,13 +383,16 @@ pub fn migrate_stack(stack: &mut Stack) {
         let mut hive_relay = HiveRelayImage::new("hive-relay", "latest");
         hive_relay.host(stack.host.clone());
         hive_relay.links(vec!["boltwall"]);
-        stack.nodes.push(Node::Internal(Image::HiveRelay(hive_relay)));
+        stack
+            .nodes
+            .push(Node::Internal(Image::HiveRelay(hive_relay)));
         log::info!("=> added hive-relay node");
     }
 
     if !has_bifrost {
         let mut bifrost = BifrostImage::new("bifrost", "latest");
         bifrost.host(stack.host.clone());
+        bifrost.links(vec!["boltwall"]);
         stack.nodes.push(Node::Internal(Image::Bifrost(bifrost)));
         log::info!("=> added bifrost node");
     }
@@ -405,6 +408,11 @@ pub fn migrate_stack(stack: &mut Stack) {
             Node::Internal(Image::Stakgraph(ref mut img)) => {
                 if !img.links.contains(&"bifrost".to_string()) {
                     img.links.push("bifrost".to_string());
+                }
+            }
+            Node::Internal(Image::Bifrost(ref mut img)) => {
+                if !img.links.contains(&"boltwall".to_string()) {
+                    img.links.push("boltwall".to_string());
                 }
             }
             _ => {}

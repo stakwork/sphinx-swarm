@@ -128,6 +128,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     // bifrost - LLM gateway
     let mut bifrost = BifrostImage::new("bifrost", "latest");
     bifrost.host(host.clone());
+    bifrost.links(vec!["boltwall"]);
 
     let mut imgs = vec![
         Image::NavFiber(nav),
