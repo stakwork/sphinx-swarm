@@ -57,6 +57,9 @@ pub struct SwarmResponse {
 
 pub async fn update_swarm() -> Result<String> {
     let password = std::env::var("SWARM_UPDATER_PASSWORD").unwrap_or(String::new());
+    if password.is_empty() {
+        log::warn!("update_swarm: SWARM_UPDATER_PASSWORD is empty");
+    }
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
@@ -70,9 +73,21 @@ pub async fn update_swarm() -> Result<String> {
         password: password.to_string(),
         port_based_ssl: is_using_port_based_ssl(),
     };
+
+    log::info!("update_swarm: POST {}", route);
     let response = client.post(route.as_str()).json(&body).send().await?;
 
+    let status = response.status();
     let response_text = response.text().await?;
+    log::info!("update_swarm: status={} body={}", status, response_text);
+
+    if !status.is_success() {
+        return Err(anyhow::anyhow!(
+            "swarm-updater returned non-success status {}: {}",
+            status,
+            response_text
+        ));
+    }
 
     Ok(response_text)
 }
@@ -764,10 +779,16 @@ pub async fn handle_assign_reserved_swarm_to_active(
                 }
             }
         }
+        log::info!("all containers restarted; about to call update_swarm() to restart swarm itself");
         match update_swarm().await {
-            Ok(_) => log::info!("swarm restart triggered for HOST change"),
-            Err(e) => error_messages.push(format!("update_swarm failed: {}", e)),
+            Ok(resp) => log::info!("swarm restart triggered for HOST change: {}", resp),
+            Err(e) => {
+                log::error!("update_swarm failed: {}", e);
+                error_messages.push(format!("update_swarm failed: {}", e));
+            }
         }
+    } else {
+        log::warn!("HOST env not provided; skipping container restarts and self-restart");
     }
 
     if !error_messages.is_empty() {
