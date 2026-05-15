@@ -40,6 +40,11 @@ impl BifrostImage {
         Self {
             name: name.to_string(),
             version: version.to_string(),
+            // Public port on the stakgraph-gateway container: the
+            // wrapper binary (PID 1) listens here and reverse-proxies
+            // to bifrost-http and the plugin admin API on internal
+            // loopback ports. 8181 matches Hive's DEFAULT_BIFROST_PORT
+            // and the historical port the MCP tests use.
             port: "8181".to_string(),
             links: vec![],
             host: None,
@@ -87,13 +92,13 @@ pub fn bifrost(img: &BifrostImage, boltwall: &Option<BoltwallImage>) -> Config<S
     let root_vol = repo.root_volume.clone();
     let ports = vec![img.port.clone()];
 
-    // Bifrost looks for APP_PORT / APP_HOST, NOT PORT. Without these it
-    // listens on localhost:8080 inside the container, which makes the host
-    // port binding useless.
-    let mut env = vec![
-        format!("APP_PORT={}", img.port),
-        "APP_HOST=0.0.0.0".to_string(),
-    ];
+    // NB: do NOT set APP_PORT / APP_HOST here. The stakgraph-gateway
+    // image's wrapper binary (PID 1) is the public listener — it
+    // passes `-host 127.0.0.1 -port 8080` as flags to bifrost-http,
+    // which take precedence over APP_HOST/APP_PORT. The Dockerfile
+    // bakes in `APP_PORT=8080` / `APP_HOST=127.0.0.1` already; setting
+    // APP_PORT=8181 here would be ignored but misleading.
+    let mut env: Vec<String> = vec![];
 
     // Admin credentials for Bifrost's auth_config (config.json references
     // env.BIFROST_ADMIN_USER / env.BIFROST_ADMIN_PASS). Bifrost bcrypts
@@ -181,7 +186,10 @@ mod tests {
         assert_eq!(img.admin_user, "admin");
         // 16 chars from [A-Za-z0-9]
         assert_eq!(img.admin_password.len(), 16);
-        assert!(img.admin_password.chars().all(|c| c.is_ascii_alphanumeric()));
+        assert!(img
+            .admin_password
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric()));
 
         // Each construction generates a fresh password.
         let img2 = test_bifrost_image();
@@ -201,8 +209,6 @@ mod tests {
         let config = bifrost(&img, &None);
         let env = config.env.unwrap();
 
-        assert!(env.contains(&"APP_PORT=8181".to_string()));
-        assert!(env.contains(&"APP_HOST=0.0.0.0".to_string()));
         assert!(env.contains(&format!("BIFROST_ADMIN_USER={}", img.admin_user)));
         assert!(env.contains(&format!("BIFROST_ADMIN_PASS={}", img.admin_password)));
         assert!(env.contains(&"OPENAI_API_KEY=test-openai-key".to_string()));
@@ -232,8 +238,6 @@ mod tests {
         assert_eq!(
             env,
             vec![
-                "APP_PORT=8181".to_string(),
-                "APP_HOST=0.0.0.0".to_string(),
                 format!("BIFROST_ADMIN_USER={}", img.admin_user),
                 format!("BIFROST_ADMIN_PASS={}", img.admin_password),
             ]
@@ -254,9 +258,7 @@ mod tests {
         let config = bifrost(&img, &boltwall);
         let env = config.env.unwrap();
 
-        assert!(env.contains(
-            &"BIFROST_PROVISIONING_TOKEN=stakwork-shared-secret".to_string()
-        ));
+        assert!(env.contains(&"BIFROST_PROVISIONING_TOKEN=stakwork-shared-secret".to_string()));
     }
 
     #[test]
@@ -272,6 +274,8 @@ mod tests {
         let config = bifrost(&img, &None);
         let env = config.env.unwrap();
 
-        assert!(!env.iter().any(|e| e.starts_with("BIFROST_PROVISIONING_TOKEN=")));
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("BIFROST_PROVISIONING_TOKEN=")));
     }
 }
