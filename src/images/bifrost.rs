@@ -3,7 +3,7 @@ use super::*;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
+use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -131,14 +131,15 @@ pub fn bifrost(img: &BifrostImage, boltwall: &Option<BoltwallImage>) -> Config<S
         env.push(format!("GOOGLE_API_KEY={}", google_api_key));
     }
 
-    let data_vol = volume_string(&format!("{}-data", name), &root_vol);
-    let extra_vols = vec![data_vol];
-
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, &root_vol, Some(extra_vols), None),
+        // `host_config` already mounts `<name>:/app/data` (the repo's
+        // root_volume) as the first bind, which persists Bifrost's
+        // config + state. Don't pass an extra `bifrost-data:/app/data`
+        // bind — Docker rejects duplicate mount points with HTTP 400.
+        host_config: host_config(&name, ports, &root_vol, None, None),
         env: Some(env),
         ..Default::default()
     };
