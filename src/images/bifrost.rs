@@ -77,8 +77,12 @@ impl DockerConfig for BifrostImage {
 impl DockerHubImage for BifrostImage {
     fn repo(&self) -> Repository {
         Repository {
-            registry: Registry::DockerHub,
-            org: "sphinxlightning".to_string(),
+            // Published from stakwork/stakgraph CI to GHCR (same org as
+            // repo2graph's stakgraph-mcp image). The Docker Hub mirror
+            // `sphinxlightning/stakgraph-gateway` does not exist, so
+            // pinning to GHCR is required.
+            registry: Registry::Ghcr,
+            org: "stakwork".to_string(),
             repo: "stakgraph-gateway".to_string(),
             root_volume: "/app/data".to_string(),
         }
@@ -176,7 +180,8 @@ mod tests {
     fn test_bifrost_image_uses_stakgraph_gateway_repo() {
         let img = test_bifrost_image();
         let repo = img.repo();
-        assert_eq!(repo.org, "sphinxlightning");
+        assert!(matches!(repo.registry, Registry::Ghcr));
+        assert_eq!(repo.org, "stakwork");
         assert_eq!(repo.repo, "stakgraph-gateway");
         assert_eq!(repo.root_volume, "/app/data");
     }
