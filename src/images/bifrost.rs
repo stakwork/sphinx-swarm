@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
+use crate::images::redis::RedisImage;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::Result;
@@ -70,7 +71,13 @@ impl DockerConfig for BifrostImage {
     async fn make_config(&self, nodes: &Vec<Node>, _docker: &Docker) -> Result<Config<String>> {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let boltwall = li.find_boltwall();
-        Ok(bifrost(self, &boltwall))
+        // Redis is optional from a typing standpoint but required for
+        // macaroon enforcement to run in anything beyond observability
+        // mode (see gateway/plans/phases/phase-6-plugin-enforcement.md).
+        // If a stack ships Bifrost without a redis link, the plugin
+        // logs revocation/budget checks but does not enforce them.
+        let redis = li.find_redis();
+        Ok(bifrost(self, &boltwall, &redis))
     }
 }
 
@@ -89,7 +96,11 @@ impl DockerHubImage for BifrostImage {
     }
 }
 
-pub fn bifrost(img: &BifrostImage, boltwall: &Option<BoltwallImage>) -> Config<String> {
+pub fn bifrost(
+    img: &BifrostImage,
+    boltwall: &Option<BoltwallImage>,
+    redis: &Option<RedisImage>,
+) -> Config<String> {
     let name = img.name.clone();
     let repo = img.repo();
     let image = img.image();
@@ -119,6 +130,30 @@ pub fn bifrost(img: &BifrostImage, boltwall: &Option<BoltwallImage>) -> Config<S
         if let Some(api_token) = &boltwall.stakwork_secret {
             env.push(format!("BIFROST_PROVISIONING_TOKEN={}", api_token));
         }
+    }
+
+    // Plugin's Redis connection for macaroon enforcement: revocation
+    // checks, per-run cost accumulators, kill switches, tool-loop
+    // history. The plugin shares the swarm's redis.sphinx instance
+    // with Jarvis; keys are namespaced with the fixed `bifrost:`
+    // prefix (see gateway/plans/phases/phase-6-plugin-enforcement.md
+    // "Namespace") so the two consumers' keyspaces don't collide.
+    //
+    // Logical DB 0 is shared with Jarvis intentionally — the prefix
+    // is the partitioning mechanism, not the DB number. This keeps
+    // the plugin's keyspace inspectable with `SCAN MATCH bifrost:*`
+    // from any redis-cli pointed at the standard instance.
+    //
+    // Absent redis link ⇒ no env var ⇒ plugin runs in observability
+    // mode (verifies signatures, skips Redis-backed enforcement).
+    // This matches the phase-5 "trust registry wired but enforcement
+    // off" stance and keeps stacks without redis bootable.
+    if let Some(redis) = redis {
+        env.push(format!(
+            "BIFROST_PLUGIN_REDIS_URL=redis://{}:{}/0",
+            domain(&redis.name),
+            redis.http_port,
+        ));
     }
 
     // Provider API keys referenced by Bifrost's config.json via env.<NAME>.
@@ -176,6 +211,10 @@ mod tests {
         bw
     }
 
+    fn test_redis() -> RedisImage {
+        RedisImage::new("redis", "latest")
+    }
+
     #[test]
     fn test_bifrost_image_uses_stakgraph_gateway_repo() {
         let img = test_bifrost_image();
@@ -212,7 +251,7 @@ mod tests {
         std::env::set_var("GOOGLE_API_KEY", "test-google-key");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None);
+        let config = bifrost(&img, &None, &None);
         let env = config.env.unwrap();
 
         assert!(env.contains(&format!("BIFROST_ADMIN_USER={}", img.admin_user)));
@@ -238,7 +277,7 @@ mod tests {
         std::env::remove_var("GOOGLE_API_KEY");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None);
+        let config = bifrost(&img, &None, &None);
         let env = config.env.unwrap();
 
         assert_eq!(
@@ -261,7 +300,7 @@ mod tests {
 
         let img = test_bifrost_image();
         let boltwall = Some(test_boltwall_with_secret("stakwork-shared-secret"));
-        let config = bifrost(&img, &boltwall);
+        let config = bifrost(&img, &boltwall, &None);
         let env = config.env.unwrap();
 
         assert!(env.contains(&"BIFROST_PROVISIONING_TOKEN=stakwork-shared-secret".to_string()));
@@ -277,11 +316,53 @@ mod tests {
         std::env::remove_var("GOOGLE_API_KEY");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None);
+        let config = bifrost(&img, &None, &None);
         let env = config.env.unwrap();
 
         assert!(!env
             .iter()
             .any(|e| e.starts_with("BIFROST_PROVISIONING_TOKEN=")));
+    }
+
+    #[test]
+    fn test_bifrost_redis_url_emitted_when_linked() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+
+        let img = test_bifrost_image();
+        let redis = Some(test_redis());
+        let config = bifrost(&img, &None, &redis);
+        let env = config.env.unwrap();
+
+        // Shape comes from images/redis.rs: name="redis", http_port="6379".
+        // domain() resolves to the container hostname inside the
+        // swarm's docker network. Logical DB 0 is shared with Jarvis;
+        // the bifrost: key prefix (phase-6 "Namespace") is what
+        // partitions the keyspace.
+        assert!(env.contains(&"BIFROST_PLUGIN_REDIS_URL=redis://redis.sphinx:6379/0".to_string()));
+    }
+
+    #[test]
+    fn test_bifrost_no_redis_url_without_link() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+
+        let img = test_bifrost_image();
+        let config = bifrost(&img, &None, &None);
+        let env = config.env.unwrap();
+
+        // Absent redis link ⇒ plugin runs in observability mode (no
+        // Redis-backed revocation / budget enforcement).
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("BIFROST_PLUGIN_REDIS_URL=")));
     }
 }
