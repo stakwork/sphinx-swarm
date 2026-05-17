@@ -348,22 +348,18 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
 
-    let has_quickwit = stack.nodes.iter().any(|n| n.name() == "quickwit");
-    let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
-    let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
-    let has_bifrost = stack.nodes.iter().any(|n| n.name() == "bifrost");
-
-    if has_quickwit && has_vector && has_hive_relay && has_bifrost {
-        return;
-    }
-
     // Only migrate second-brain stacks
     let has_boltwall = stack.nodes.iter().any(|n| n.name() == "boltwall");
     if !env_is_true("SECOND_BRAIN_ONLY") && !has_boltwall {
         return;
     }
 
-    log::info!("=> migrating stack: adding missing second-brain nodes");
+    let has_quickwit = stack.nodes.iter().any(|n| n.name() == "quickwit");
+    let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
+    let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
+    let has_bifrost = stack.nodes.iter().any(|n| n.name() == "bifrost");
+
+    log::info!("=> migrating stack: ensuring second-brain nodes and links");
 
     if !has_quickwit {
         let quickwit = QuickwitImage::new("quickwit", "latest");
@@ -390,9 +386,12 @@ pub fn migrate_stack(stack: &mut Stack) {
     }
 
     if !has_bifrost {
+        // Links: boltwall (for the shared provisioning token) and
+        // redis (for the plugin's macaroon-enforcement state — see
+        // gateway/plans/phases/phase-6-plugin-enforcement.md).
         let mut bifrost = BifrostImage::new("bifrost", "latest");
         bifrost.host(stack.host.clone());
-        bifrost.links(vec!["boltwall"]);
+        bifrost.links(vec!["boltwall", "redis"]);
         stack.nodes.push(Node::Internal(Image::Bifrost(bifrost)));
         log::info!("=> added bifrost node");
     }
@@ -413,6 +412,13 @@ pub fn migrate_stack(stack: &mut Stack) {
             Node::Internal(Image::Bifrost(ref mut img)) => {
                 if !img.links.contains(&"boltwall".to_string()) {
                     img.links.push("boltwall".to_string());
+                }
+                // Existing swarms predate the bifrost↔redis link; add
+                // it on migration so the plugin can do Redis-backed
+                // macaroon enforcement (phase 6). Idempotent: only
+                // pushed if absent.
+                if !img.links.contains(&"redis".to_string()) {
+                    img.links.push("redis".to_string());
                 }
             }
             _ => {}

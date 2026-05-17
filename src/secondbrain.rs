@@ -126,9 +126,16 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     hive_relay.links(vec!["boltwall"]);
 
     // bifrost - LLM gateway
+    //
+    // Links to redis so the plugin can run Redis-backed enforcement
+    // (revocation tombstones, per-run cost accumulators, kill
+    // switches). The plugin namespaces every key it owns with
+    // `bifrost:` so it can share redis.sphinx with Jarvis without
+    // colliding (see gateway/plans/phases/phase-6-plugin-enforcement.md
+    // "Namespace" and gateway/images/bifrost.rs for the wiring).
     let mut bifrost = BifrostImage::new("bifrost", "latest");
     bifrost.host(host.clone());
-    bifrost.links(vec!["boltwall"]);
+    bifrost.links(vec!["boltwall", "redis"]);
 
     let mut imgs = vec![
         Image::NavFiber(nav),
