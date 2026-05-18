@@ -421,6 +421,11 @@ pub fn migrate_stack(stack: &mut Stack) {
                     img.links.push("redis".to_string());
                 }
             }
+            Node::Internal(Image::BoltWall(ref mut img)) => {
+                if !img.links.contains(&"stakgraph".to_string()) {
+                    img.links.push("stakgraph".to_string());
+                }
+            }
             _ => {}
         }
     }
