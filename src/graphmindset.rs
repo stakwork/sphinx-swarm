@@ -69,7 +69,7 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     // boltwall - linked to bot for v2 lightning
     v = "latest";
     let mut bolt = BoltwallImage::new("boltwall", v, "8444");
-    bolt.links(vec!["jarvis", "bot"]);
+    bolt.links(vec!["jarvis", "bot", "stakgraph"]);
     bolt.host(host.clone());
 
     // navfiber (existing frontend)

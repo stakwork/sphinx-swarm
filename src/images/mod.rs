@@ -555,6 +555,14 @@ impl LinkedImages {
         }
         None
     }
+    pub fn find_stakgraph(&self) -> Option<stakgraph::StakgraphImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_stakgraph() {
+                return Some(i);
+            }
+        }
+        None
+    }
     pub fn find_lss(&self) -> Option<lss::LssImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_lss() {
@@ -716,6 +724,12 @@ impl Image {
         match self {
             Image::BoltWall(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Boltwall".to_string())),
+        }
+    }
+    pub fn as_stakgraph(&self) -> anyhow::Result<stakgraph::StakgraphImage> {
+        match self {
+            Image::Stakgraph(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Stakgraph".to_string())),
         }
     }
     pub fn as_jarvis(&self) -> anyhow::Result<jarvis::JarvisImage> {

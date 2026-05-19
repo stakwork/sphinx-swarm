@@ -91,12 +91,12 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     if lightning_provider != "bot" {
         if let Some(ext) = external_lnd() {
             bolt.external_lnd(ext);
-            bolt.links(vec!["jarvis"]);
+            bolt.links(vec!["jarvis", "stakgraph"]);
         } else {
-            bolt.links(vec!["jarvis", lightning_provider]);
+            bolt.links(vec!["jarvis", "stakgraph", lightning_provider]);
         }
     } else {
-        bolt.links(vec!["jarvis", "bot"]);
+        bolt.links(vec!["jarvis", "stakgraph", "bot"]);
     }
     bolt.host(host.clone());
 
