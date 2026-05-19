@@ -425,6 +425,9 @@ pub fn migrate_stack(stack: &mut Stack) {
                 if !img.links.contains(&"stakgraph".to_string()) {
                     img.links.push("stakgraph".to_string());
                 }
+                if !img.links.contains(&"repo2graph".to_string()) {
+                    img.links.push("repo2graph".to_string());
+                }
             }
             _ => {}
         }
