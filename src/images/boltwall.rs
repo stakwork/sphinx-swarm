@@ -92,7 +92,7 @@ impl DockerConfig for BoltwallImage {
 
         let jarvis_node = li.find_jarvis().context("Boltwall: No Jarvis")?;
 
-        let stakgraph_node = li.find_stakgraph();
+        let repo2graph_node = li.find_repo2graph();
 
         if let Some(ext) = self.external_lnd.clone() {
             return Ok(boltwall(
@@ -103,7 +103,7 @@ impl DockerConfig for BoltwallImage {
                 None,
                 &jarvis_node,
                 Some(ext.address),
-                stakgraph_node,
+                repo2graph_node,
             ));
         }
 
@@ -132,7 +132,7 @@ impl DockerConfig for BoltwallImage {
             bot_node,
             &jarvis_node,
             None,
-            stakgraph_node,
+            repo2graph_node,
         ))
     }
 }
@@ -194,7 +194,7 @@ fn boltwall(
     bot_node: Option<bot::BotImage>,
     jarvis: &jarvis::JarvisImage,
     external_lnd_address: Option<String>,
-    stakgraph_node: Option<stakgraph::StakgraphImage>,
+    repo2graph_node: Option<repo2graph::Repo2GraphImage>,
 ) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
@@ -319,7 +319,7 @@ fn boltwall(
         }
     }
 
-    if let Some(sg) = stakgraph_node {
+    if let Some(sg) = repo2graph_node {
         env.push(format!(
             "STAKGRAPH_URL=http://{}:{}",
             domain(&sg.name),
