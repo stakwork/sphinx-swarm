@@ -19,6 +19,7 @@
   import Stakgraph from "../Stakgraph.svelte";
   import Repo2Graph from "../Repo2Graph.svelte";
   import Bot from "../Bot.svelte";
+  import DefaultNode from "../nodes/DefaultNode.svelte";
 
   export let updateBody = () => {};
 
@@ -52,7 +53,7 @@
     <div style="height:2rem;width:1px;" />
     <FirstConnect />
   </div>
-{:else if ctrls}
+{:else if $selectedNode}
   <div
     class="main"
     style={`width: ${type === "Lnd" || "Cln" ? "35rem" : "23rem"}`}
@@ -115,8 +116,10 @@
         <Repo2Graph {updateBody} />
       {:else if type === "Bot"}
         <Bot />
-      {:else}
+      {:else if ctrls}
         <Controls {ctrls} {tag} />
+      {:else}
+        <DefaultNode />
       {/if}
     </div>
     {#if $node_state === "exited"}
