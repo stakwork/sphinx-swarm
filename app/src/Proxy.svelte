@@ -3,6 +3,8 @@
   import { formatMillisatsToSats } from "./helpers";
   import { get_proxy_balances } from "./api/proxy";
   import { proxy } from "./store";
+  import { Tabs, Tab, TabContent } from "carbon-components-svelte";
+  import EnvContainer from "./components/envContainer/index.svelte";
 
   export let tag = "";
 
@@ -17,23 +19,32 @@
   });
 </script>
 
-<div class="proxy-wrapper">
-  <h5 class="info">Proxy Stats</h5>
-  <div class="spacer" />
-  {#if $proxy}
-    <section class="value-wrap">
-      <h3 class="title">TOTAL USERS</h3>
-      <!--
-        ?? Added to prevent undefined when proxy node is stopped
-      -->
-      <h3 class="value">{$proxy.user_count ?? 0}</h3>
-    </section>
-    <section class="value-wrap">
-      <h3 class="title">TOTAL SATS BALANCE</h3>
-      <h3 class="value">{formatMillisatsToSats($proxy.total)}</h3>
-    </section>
-  {/if}
-</div>
+<Tabs>
+  <Tab label="General" />
+  <Tab label="Advance" />
+  <svelte:fragment slot="content">
+    <TabContent>
+      <div class="proxy-wrapper">
+        <h5 class="info">Proxy Stats</h5>
+        <div class="spacer" />
+        {#if $proxy}
+          <section class="value-wrap">
+            <h3 class="title">TOTAL USERS</h3>
+            <!--
+              ?? Added to prevent undefined when proxy node is stopped
+            -->
+            <h3 class="value">{$proxy.user_count ?? 0}</h3>
+          </section>
+          <section class="value-wrap">
+            <h3 class="title">TOTAL SATS BALANCE</h3>
+            <h3 class="value">{formatMillisatsToSats($proxy.total)}</h3>
+          </section>
+        {/if}
+      </div>
+    </TabContent>
+    <TabContent><EnvContainer /></TabContent>
+  </svelte:fragment>
+</Tabs>
 
 <style>
   .proxy-wrapper {

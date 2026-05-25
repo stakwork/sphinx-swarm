@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Button, PasswordInput, Loading, InlineNotification } from "carbon-components-svelte";
+  import { Button, PasswordInput, Loading, InlineNotification, Tabs, Tab, TabContent } from "carbon-components-svelte";
+  import EnvContainer from "./components/envContainer/index.svelte";
   import { get_bot_balance, create_bot_invoice, get_bot_token, get_l402_stats, get_bot_payments } from "./api/swarm";
   import { formatMillisatsToSats, formatSatsNumbers, convertSatsToMilliSats } from "./helpers";
   import QrCode from "svelte-qrcode";
@@ -128,6 +129,11 @@
   });
 </script>
 
+<Tabs>
+  <Tab label="General" />
+  <Tab label="Advance" />
+  <svelte:fragment slot="content">
+    <TabContent>
 <div class="bot-wrapper">
   {#if isLoading}<Loading />{/if}
 
@@ -249,6 +255,10 @@
     </div>
   </div>
 </div>
+    </TabContent>
+    <TabContent><EnvContainer /></TabContent>
+  </svelte:fragment>
+</Tabs>
 
 <style>
   .bot-wrapper {
