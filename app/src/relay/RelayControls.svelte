@@ -3,6 +3,7 @@
   import { Tabs, Tab, TabContent } from "carbon-components-svelte";
   import Admin from "./Admin.svelte";
   import { finishedOnboarding, isOnboarding } from "../store";
+  import EnvContainer from "../components/envContainer/index.svelte";
 
   export let tag = "";
 
@@ -27,10 +28,12 @@
 <Tabs bind:selected>
   <Tab label="Users" />
   <Tab label="Configuration" />
+  <Tab label="Advance" />
   <svelte:fragment slot="content">
     <TabContent><Users {tag} /></TabContent>
     <TabContent>
       <Admin {tag} />
     </TabContent>
+    <TabContent><EnvContainer /></TabContent>
   </svelte:fragment>
 </Tabs>

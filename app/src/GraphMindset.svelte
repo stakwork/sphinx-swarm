@@ -8,6 +8,7 @@
   import { stack, selectedNode } from "./store";
   import Roles from "./components/SecondBrain/roles/roles.svelte";
   import Apikeys from "./components/SecondBrain/apikeys.svelte";
+  import EnvContainer from "./components/envContainer/index.svelte";
 
   export let host = "";
   export let updateBody = () => {};
@@ -24,7 +25,7 @@
   $: firstTime = false;
   $: currentTab = "General";
 
-  const tabs = ["General", "Roles", "Payments", "Api Keys"];
+  const tabs = ["General", "Roles", "Payments", "Api Keys", "Advance"];
 
   function setActiveTab(tab) {
     currentTab = tab;
@@ -98,6 +99,8 @@
         <Roles />
       {:else if currentTab === "Api Keys"}
         <Apikeys />
+      {:else if currentTab === "Advance"}
+        <EnvContainer />
       {:else}
         <EnpointPermission />
       {/if}

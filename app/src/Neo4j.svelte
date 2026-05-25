@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Loading, PasswordInput, NumberInput, Button } from "carbon-components-svelte";
+  import { Loading, PasswordInput, NumberInput, Button, Tabs, Tab, TabContent } from "carbon-components-svelte";
+  import EnvContainer from "./components/envContainer/index.svelte";
   import {
     get_neo4j_password,
     update_neo4j_config,
@@ -232,36 +233,45 @@
   });
 </script>
 
-<div class="nav-wrapper">
-  {#if isLoading}
-    <Loading />
-  {/if}
+<Tabs>
+  <Tab label="General" />
+  <Tab label="Advance" />
+  <svelte:fragment slot="content">
+    <TabContent>
+      <div class="nav-wrapper">
+        {#if isLoading}
+          <Loading />
+        {/if}
 
-  <div class="neo4j_container">
-    <PasswordInput labelText="Password" value={neo4jPassword} readonly />
+        <div class="neo4j_container">
+          <PasswordInput labelText="Password" value={neo4jPassword} readonly />
 
-    <div class="settings">
-      <h3>Neo4j Memory & IO Settings</h3>
+          <div class="settings">
+            <h3>Neo4j Memory & IO Settings</h3>
 
-      <div class="grid">
-        <NumberInput id="heap_initial_gb" label="Heap initial size (GB)" min={1} bind:value={heap_initial_gb} />
-        <NumberInput id="heap_max_gb" label="Heap max size (GB)" min={1} bind:value={heap_max_gb} />
-        <NumberInput id="pagecache_gb" label="Page cache size (GB)" min={1} bind:value={pagecache_gb} />
-        <NumberInput id="tx_total_gb" label="Tx total memory max (GB)" min={1} bind:value={tx_total_gb} />
-        <NumberInput id="tx_max_gb" label="Tx memory max (GB)" min={1} bind:value={tx_max_gb} />
-        <NumberInput id="checkpoint_iops" label="Checkpoint IOPS limit" min={1} bind:value={checkpoint_iops} />
+            <div class="grid">
+              <NumberInput id="heap_initial_gb" label="Heap initial size (GB)" min={1} bind:value={heap_initial_gb} />
+              <NumberInput id="heap_max_gb" label="Heap max size (GB)" min={1} bind:value={heap_max_gb} />
+              <NumberInput id="pagecache_gb" label="Page cache size (GB)" min={1} bind:value={pagecache_gb} />
+              <NumberInput id="tx_total_gb" label="Tx total memory max (GB)" min={1} bind:value={tx_total_gb} />
+              <NumberInput id="tx_max_gb" label="Tx memory max (GB)" min={1} bind:value={tx_max_gb} />
+              <NumberInput id="checkpoint_iops" label="Checkpoint IOPS limit" min={1} bind:value={checkpoint_iops} />
+            </div>
+
+            <Button kind="primary" disabled={isSaving} on:click={handleUpdateNeo4jConfig}>
+              {isSaving ? "Saving..." : "Save Neo4j Config"}
+            </Button>
+
+            {#if saveMessage}
+              <p class="save-message">{saveMessage}</p>
+            {/if}
+          </div>
+        </div>
       </div>
-
-      <Button kind="primary" disabled={isSaving} on:click={handleUpdateNeo4jConfig}>
-        {isSaving ? "Saving..." : "Save Neo4j Config"}
-      </Button>
-
-      {#if saveMessage}
-        <p class="save-message">{saveMessage}</p>
-      {/if}
-    </div>
-  </div>
-</div>
+    </TabContent>
+    <TabContent><EnvContainer /></TabContent>
+  </svelte:fragment>
+</Tabs>
 
 <style>
   .nav-wrapper {

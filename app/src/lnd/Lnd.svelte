@@ -4,6 +4,7 @@
   import Invoices from "./Invoices.svelte";
   import Onchain from "./Onchain.svelte";
   import FirstConnect from "../controls/FirstConnect.svelte";
+  import EnvContainer from "../components/envContainer/index.svelte";
   import {
     finishedOnboarding,
     isOnboarding,
@@ -77,6 +78,7 @@
       <Tab label="Channels" />
       <Tab label="Invoices" />
       <Tab label="Onchain" />
+      <Tab label="Advance" />
       <svelte:fragment slot="content">
         <TabContent><Channels {tag} {type} /></TabContent>
         <TabContent>
@@ -85,6 +87,7 @@
         <TabContent>
           <Onchain {tag} {type} />
         </TabContent>
+        <TabContent><EnvContainer /></TabContent>
       </svelte:fragment>
     </Tabs>
   </div>
