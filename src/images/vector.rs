@@ -20,8 +20,10 @@ pub struct VectorImage {
     /// When set, Vector runs in forwarder mode: reads Docker container logs
     /// and ships them over HTTPS to a remote Vector instance at this URL.
     /// Example: "https://vector.example.com"
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub forward_url: Option<String>,
     /// Auth token for the remote Vector instance (will be hashed with sha256_hex_24)
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub forward_token: Option<String>,
 }
 
