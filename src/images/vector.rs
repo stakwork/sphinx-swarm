@@ -17,6 +17,12 @@ pub struct VectorImage {
     pub links: Links,
     pub host: Option<String>,
     pub auth_token: String,
+    /// When set, Vector runs in forwarder mode: reads Docker container logs
+    /// and ships them over HTTPS to a remote Vector instance at this URL.
+    /// Example: "https://vector.example.com"
+    pub forward_url: Option<String>,
+    /// Auth token for the remote Vector instance (will be hashed with sha256_hex_24)
+    pub forward_token: Option<String>,
 }
 
 impl VectorImage {
@@ -28,6 +34,8 @@ impl VectorImage {
             links: vec![],
             host: None,
             auth_token: secrets::random_word(32),
+            forward_url: None,
+            forward_token: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -38,30 +46,38 @@ impl VectorImage {
     pub fn links(&mut self, links: Vec<&str>) {
         self.links = strarr(links)
     }
+    pub fn set_forward(&mut self, url: &str, token: &str) {
+        self.forward_url = Some(url.to_string());
+        self.forward_token = Some(token.to_string());
+    }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<Node>) -> Result<()> {
-        let li = LinkedImages::from_nodes(self.links.clone(), nodes);
-        let quickwit = li.find_quickwit();
-
-        let quickwit_host = if let Some(qw) = quickwit {
-            domain(&qw.name)
+        let config = if let (Some(url), Some(token)) = (&self.forward_url, &self.forward_token) {
+            // Forwarder mode: read Docker logs and ship to remote Vector
+            let auth_token = secrets::sha256_hex_24(token);
+            log::info!("=> vector forwarder mode -> {}", url);
+            vector_forwarder_toml(url, &auth_token)
         } else {
-            // Default to quickwit.sphinx if no linked quickwit found
-            "quickwit.sphinx".to_string()
+            // Receiver mode: accept logs via HTTP and send to Quickwit
+            let li = LinkedImages::from_nodes(self.links.clone(), nodes);
+            let quickwit = li.find_quickwit();
+
+            let quickwit_host = if let Some(qw) = quickwit {
+                domain(&qw.name)
+            } else {
+                "quickwit.sphinx".to_string()
+            };
+
+            let base_token = if let Some(boltwall) = li.find_boltwall() {
+                boltwall.stakwork_secret.unwrap_or(self.auth_token.clone())
+            } else {
+                self.auth_token.clone()
+            };
+
+            let auth_token = secrets::sha256_hex_24(&base_token);
+            log::info!("=> vector auth token (hashed): {}", auth_token);
+            vector_toml(&self.http_port, &quickwit_host, &auth_token)
         };
 
-        // Use boltwall's stakwork_secret if linked, otherwise use our own token
-        let base_token = if let Some(boltwall) = li.find_boltwall() {
-            boltwall.stakwork_secret.unwrap_or(self.auth_token.clone())
-        } else {
-            self.auth_token.clone()
-        };
-
-        // Hash the token so the raw secret is never exposed to 3rd parties
-        let auth_token = secrets::sha256_hex_24(&base_token);
-
-        let config = vector_toml(&self.http_port, &quickwit_host, &auth_token);
-
-        log::info!("=> vector auth token (hashed): {}", auth_token);
         log::info!("=> uploading vector.toml config...");
         upload_to_container(
             docker,
@@ -102,11 +118,18 @@ fn vector(node: &VectorImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.http_port.clone()];
 
+    // In forwarder mode, mount the Docker socket so Vector can read container logs
+    let extra_vols = if node.forward_url.is_some() {
+        Some(vec!["/var/run/docker.sock:/var/run/docker.sock:ro".to_string()])
+    } else {
+        None
+    };
+
     let mut c = Config {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
-        host_config: host_config(&name, ports, root_vol, None, None),
+        host_config: host_config(&name, ports, root_vol, extra_vols, None),
         // Explicitly use only our config file, no default/demo sources
         cmd: Some(vec![
             "--config".to_string(),
@@ -225,6 +248,58 @@ inputs = ["aggregate_by_request"]
 uri = "http://{quickwit_host}:7280/api/v1/logs/ingest"
 encoding.codec = "json"
 framing.method = "newline_delimited"
+"#
+    )
+}
+
+fn vector_forwarder_toml(forward_url: &str, auth_token: &str) -> String {
+    format!(
+        r#"# Vector forwarder configuration
+# Reads Docker container logs and ships them to a remote Vector instance
+
+# =============================================================================
+# SOURCE - Docker container logs
+# =============================================================================
+
+[sources.docker]
+type = "docker_logs"
+# Reads from all running containers via the Docker daemon socket
+# Excludes the vector container itself to avoid log loops
+exclude_containers = ["vector*"]
+
+# =============================================================================
+# TRANSFORM - Normalize Docker logs for the remote Vector /logs endpoint
+# =============================================================================
+
+[transforms.normalize]
+type = "remap"
+inputs = ["docker"]
+source = '''
+.log_source = "docker"
+.timestamp = to_unix_timestamp(now(), unit: "milliseconds")
+.level = if string(.stream) ?? "stdout" == "stderr" {{ "error" }} else {{ "info" }}
+.container_name = string(.label."com.docker.compose.service") ?? string(.container_name) ?? ""
+.container_id = string(.container_id) ?? ""
+
+del(.stream)
+del(.source_type)
+del(.label)
+del(.image)
+del(.container_created_at)
+'''
+
+# =============================================================================
+# SINK - Forward to remote Vector over HTTPS
+# =============================================================================
+
+[sinks.remote_vector]
+type = "http"
+inputs = ["normalize"]
+uri = "{forward_url}/logs"
+encoding.codec = "json"
+framing.method = "newline_delimited"
+[sinks.remote_vector.request]
+headers.Authorization = "Bearer {auth_token}"
 "#
     )
 }
