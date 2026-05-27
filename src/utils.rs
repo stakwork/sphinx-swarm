@@ -89,6 +89,89 @@ fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
                 config: Some(h),
             })
         }
+        Environment::Fluentd => {
+            let address = env::var("FLUENTD_ADDRESS")
+                .unwrap_or_else(|_| "localhost:24224".to_string());
+            let tag = env::var("FLUENTD_TAG")
+                .unwrap_or_else(|_| "{{.Name}}".to_string());
+
+            h.insert("fluentd-address".to_string(), address);
+            h.insert("tag".to_string(), tag);
+            h.insert("fluentd-async".to_string(), "true".to_string());
+
+            Some(HostConfigLogConfig {
+                typ: Some("fluentd".to_string()),
+                config: Some(h),
+            })
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    // Serialize all env-var-dependent tests: env vars are process-global and
+    // cannot be safely read/written from parallel threads.
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn test_fluentd_with_explicit_env_vars() {
+        let _guard = ENV_MUTEX.lock().unwrap();
+        env::set_var("RUST_ENV", "fluentd");
+        env::set_var("FLUENTD_ADDRESS", "vector.example.com:24224");
+        env::set_var("FLUENTD_TAG", "myapp");
+
+        let config = local_log_config("test-swarm").unwrap();
+        assert_eq!(config.typ, Some("fluentd".to_string()));
+        let cfg = config.config.unwrap();
+        assert_eq!(cfg.get("fluentd-address").unwrap(), "vector.example.com:24224");
+        assert_eq!(cfg.get("tag").unwrap(), "myapp");
+        assert_eq!(cfg.get("fluentd-async").unwrap(), "true");
+
+        env::remove_var("RUST_ENV");
+        env::remove_var("FLUENTD_ADDRESS");
+        env::remove_var("FLUENTD_TAG");
+    }
+
+    #[test]
+    fn test_fluentd_with_defaults() {
+        let _guard = ENV_MUTEX.lock().unwrap();
+        env::set_var("RUST_ENV", "fluentd");
+        env::remove_var("FLUENTD_ADDRESS");
+        env::remove_var("FLUENTD_TAG");
+
+        let config = local_log_config("test-swarm").unwrap();
+        assert_eq!(config.typ, Some("fluentd".to_string()));
+        let cfg = config.config.unwrap();
+        assert_eq!(cfg.get("fluentd-address").unwrap(), "localhost:24224");
+        assert_eq!(cfg.get("tag").unwrap(), "{{.Name}}");
+        assert_eq!(cfg.get("fluentd-async").unwrap(), "true");
+
+        env::remove_var("RUST_ENV");
+    }
+
+    #[test]
+    fn test_local_returns_json_file() {
+        let _guard = ENV_MUTEX.lock().unwrap();
+        env::set_var("RUST_ENV", "local");
+
+        let config = local_log_config("test-swarm").unwrap();
+        assert_eq!(config.typ, Some("json-file".to_string()));
+
+        env::remove_var("RUST_ENV");
+    }
+
+    #[test]
+    fn test_production_returns_awslogs() {
+        let _guard = ENV_MUTEX.lock().unwrap();
+        env::set_var("RUST_ENV", "production");
+
+        let config = local_log_config("test-swarm").unwrap();
+        assert_eq!(config.typ, Some("awslogs".to_string()));
+
+        env::remove_var("RUST_ENV");
     }
 }
 
@@ -96,6 +179,7 @@ fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
 enum Environment {
     Local,
     Cloud,
+    Fluentd,
 }
 
 fn get_environment() -> Environment {
@@ -104,6 +188,7 @@ fn get_environment() -> Environment {
         match env.to_lowercase().as_str() {
             "local" | "development" | "dev" => return Environment::Local,
             "production" | "prod" | "cloud" => return Environment::Cloud,
+            "fluentd" => return Environment::Fluentd,
             _ => {}
         }
     }
