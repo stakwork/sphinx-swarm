@@ -21,7 +21,7 @@ struct SupportedService {
 
 fn make_client() -> reqwest::Client {
     reqwest::Client::builder()
-        .timeout(Duration::from_secs(60))
+        .timeout(Duration::from_secs(5))
         .danger_accept_invalid_certs(true)
         .build()
         .expect("couldnt build fast node reqwest client")
@@ -76,13 +76,15 @@ pub async fn get_service_busy_status(name: &str, port: &str) -> bool {
                 return body.busy;
             }
             Err(err) => {
+                // unreachable/garbage response => assume the service is down, allow update
                 log::error!("Error parsing {} busy endpoint: {}", name, err.to_string());
-                return true;
+                return false;
             }
         },
         Err(err) => {
+            // connection error => service likely down/crash-looping, allow update
             log::error!("Error calling {} busy endpoint: {}", name, err.to_string());
-            return true;
+            return false;
         }
     }
 }
