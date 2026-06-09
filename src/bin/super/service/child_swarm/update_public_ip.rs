@@ -1,6 +1,16 @@
 use crate::{cmd::SuperSwarmResponse, route53::add_domain_name_to_route53, state::state_read, state::state_write};
 use sphinx_swarm::config::UpdateChildSwarmPublicIpBody;
 
+pub fn build_route53_domains(
+    route53_domain_names: Option<Vec<String>>,
+    host: &str,
+) -> Vec<String> {
+    match route53_domain_names {
+        Some(names) if !names.is_empty() => names,
+        _ => vec![host.to_string()], // fallback for legacy/missing state
+    }
+}
+
 pub async fn handle_update_child_swarm_public_ip(
     proj: &str,
     info: UpdateChildSwarmPublicIpBody,
@@ -42,40 +52,31 @@ pub async fn handle_update_child_swarm_public_ip(
             };
         }
 
-        // Only update Route53 if the IP was previously set (not the first time)
-        if current_ip.is_some() {
-            match add_domain_name_to_route53(
-                vec![host.clone()],
-                &info.public_ip,
-            )
-            .await
-            {
-                Ok(_) => {
-                    log::info!(
-                        "Successfully updated Route53 record for swarm {} with new IP {}",
-                        swarm_id,
-                        info.public_ip
-                    );
-                }
-                Err(err) => {
-                    let message = format!(
-                        "Failed to update Route53 record for swarm {}: {}",
-                        swarm_id, err
-                    );
-                    log::error!("{}", message);
-                    return SuperSwarmResponse {
-                        success: false,
-                        message,
-                        data: None,
-                    };
-                }
+        match add_domain_name_to_route53(
+            vec![host.clone()],
+            &info.public_ip,
+        )
+        .await
+        {
+            Ok(_) => {
+                log::info!(
+                    "Successfully updated Route53 record for swarm {} with new IP {}",
+                    swarm_id,
+                    info.public_ip
+                );
             }
-        } else {
-            log::info!(
-                "First IP registration for swarm {}: {}, skipping Route53 update",
-                swarm_id,
-                info.public_ip
-            );
+            Err(err) => {
+                let message = format!(
+                    "Failed to update Route53 record for swarm {}: {}",
+                    swarm_id, err
+                );
+                log::error!("{}", message);
+                return SuperSwarmResponse {
+                    success: false,
+                    message,
+                    data: None,
+                };
+            }
         }
 
         // Write: update reserved instance IP
@@ -111,12 +112,13 @@ pub async fn handle_update_child_swarm_public_ip(
                 s.public_ip_address.clone(),
                 s.host.clone(),
                 s.default_host.clone(),
+                s.route53_domain_names.clone(),
             ))
     })
     .await;
 
     match stack_info {
-        Some((current_ip, host, default_host)) => {
+        Some((current_ip, host, _default_host, route53_domain_names)) => {
             if current_ip.as_deref() == Some(&info.public_ip) {
                 return SuperSwarmResponse {
                     success: true,
@@ -126,39 +128,27 @@ pub async fn handle_update_child_swarm_public_ip(
                 };
             }
 
-            // Only update Route53 if the IP was previously set (not the first time)
-            if current_ip.is_some() {
-                let mut domains = vec![host.clone()];
-                if !default_host.contains(":8800") {
-                    domains.push(default_host.clone());
+            let domains = build_route53_domains(route53_domain_names, &host);
+            match add_domain_name_to_route53(domains, &info.public_ip).await {
+                Ok(_) => {
+                    log::info!(
+                        "Successfully updated Route53 record for swarm {} with new IP {}",
+                        swarm_id,
+                        info.public_ip
+                    );
                 }
-                match add_domain_name_to_route53(domains, &info.public_ip).await {
-                    Ok(_) => {
-                        log::info!(
-                            "Successfully updated Route53 record for swarm {} with new IP {}",
-                            swarm_id,
-                            info.public_ip
-                        );
-                    }
-                    Err(err) => {
-                        let message = format!(
-                            "Failed to update Route53 record for swarm {}: {}",
-                            swarm_id, err
-                        );
-                        log::error!("{}", message);
-                        return SuperSwarmResponse {
-                            success: false,
-                            message,
-                            data: None,
-                        };
-                    }
+                Err(err) => {
+                    let message = format!(
+                        "Failed to update Route53 record for swarm {}: {}",
+                        swarm_id, err
+                    );
+                    log::error!("{}", message);
+                    return SuperSwarmResponse {
+                        success: false,
+                        message,
+                        data: None,
+                    };
                 }
-            } else {
-                log::info!(
-                    "First IP registration for swarm {}: {}, skipping Route53 update",
-                    swarm_id,
-                    info.public_ip
-                );
             }
 
             // Write: update stack IP (re-find by stable ID)
@@ -182,5 +172,40 @@ pub async fn handle_update_child_swarm_public_ip(
             message: "Swarm not found".to_string(),
             data: None,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_uses_route53_domain_names_when_present() {
+        let domains = build_route53_domains(
+            Some(vec!["*.swarm1.sphinx.chat".into(), "swarm1.sphinx.chat".into()]),
+            "swarm1.sphinx.chat",
+        );
+        assert_eq!(domains, vec!["*.swarm1.sphinx.chat", "swarm1.sphinx.chat"]);
+    }
+
+    #[test]
+    fn test_uses_vanity_domain_from_route53_names() {
+        let domains = build_route53_domains(
+            Some(vec!["custom.sphinx.chat".into()]),
+            "swarm2.sphinx.chat",
+        );
+        assert_eq!(domains, vec!["custom.sphinx.chat"]);
+    }
+
+    #[test]
+    fn test_falls_back_to_host_when_route53_names_is_none() {
+        let domains = build_route53_domains(None, "swarm3.sphinx.chat");
+        assert_eq!(domains, vec!["swarm3.sphinx.chat"]);
+    }
+
+    #[test]
+    fn test_falls_back_to_host_when_route53_names_is_empty() {
+        let domains = build_route53_domains(Some(vec![]), "swarm4.sphinx.chat");
+        assert_eq!(domains, vec!["swarm4.sphinx.chat"]);
     }
 }
