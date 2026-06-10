@@ -5,6 +5,7 @@ use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::config_server::ConfigImage;
 use crate::images::mixer::MixerImage;
 use crate::images::tribes::TribesImage;
+use crate::images::vector::VectorImage;
 use crate::images::Image;
 use crate::secrets;
 
@@ -57,6 +58,23 @@ pub fn sphinxv2_only(network: &str, host: Option<String>) -> Stack {
         tribes.links(vec!["broker"]);
         tribes.host(host.clone());
         internal_nodes.push(Image::Tribes(tribes));
+    }
+
+    // vector - forwards Docker container logs to a remote Vector (e.g. secondbrain swarm)
+    // VECTOR_FORWARD_URL: remote Vector base url, e.g. https://vector.<secondbrain-host>
+    // VECTOR_FORWARD_TOKEN: the raw secondbrain boltwall stakwork_secret (hashed before send)
+    match env_no_empty("VECTOR_FORWARD_URL") {
+        Some(url) => match env_no_empty("VECTOR_FORWARD_TOKEN") {
+            Some(token) => {
+                let mut vector = VectorImage::new("vector", "latest-distroless-libc");
+                vector.set_forward(&url, &token);
+                internal_nodes.push(Image::Vector(vector));
+            }
+            None => log::warn!(
+                "VECTOR_FORWARD_URL is set but VECTOR_FORWARD_TOKEN is missing; skipping vector forwarder"
+            ),
+        },
+        None => log::info!("VECTOR_FORWARD_URL not set; skipping vector log forwarder"),
     }
 
     let mut nodes: Vec<Node> = internal_nodes
