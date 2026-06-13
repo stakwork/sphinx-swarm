@@ -279,7 +279,7 @@ inputs = ["docker"]
 source = '''
 .log_source = "docker"
 .timestamp = to_unix_timestamp(now(), unit: "milliseconds")
-.level = if string(.stream) ?? "stdout" == "stderr" {{ "error" }} else {{ "info" }}
+.level = if (string(.stream) ?? "stdout") == "stderr" {{ "error" }} else {{ "info" }}
 .container_name = string(.label."com.docker.compose.service") ?? string(.container_name) ?? ""
 .container_id = string(.container_id) ?? ""
 
