@@ -179,6 +179,11 @@ inputs = ["http_logs"]
 source = '''
 expected = "Bearer {auth_token}"
 auth_header = .Authorization
+# http_server may store the header as an array (e.g. ["Bearer ..."]);
+# flatten to a string before comparing
+if is_array(auth_header) {{
+  auth_header = string!(auth_header[0])
+}}
 if is_null(auth_header) || auth_header != expected {{
   abort
 }}
@@ -279,7 +284,7 @@ inputs = ["docker"]
 source = '''
 .log_source = "docker"
 .timestamp = to_unix_timestamp(now(), unit: "milliseconds")
-.level = if string(.stream) ?? "stdout" == "stderr" {{ "error" }} else {{ "info" }}
+.level = if (string(.stream) ?? "stdout") == "stderr" {{ "error" }} else {{ "info" }}
 .container_name = string(.label."com.docker.compose.service") ?? string(.container_name) ?? ""
 .container_id = string(.container_id) ?? ""
 
