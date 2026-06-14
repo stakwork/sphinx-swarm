@@ -345,11 +345,17 @@ pub struct GetInvoice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetTransactionStatus {
+    pub txid: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", content = "content")]
 pub enum BitcoindCmd {
     GetInfo,
     TestMine(TestMine),
     GetBalance,
+    GetTransactionStatus(GetTransactionStatus),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

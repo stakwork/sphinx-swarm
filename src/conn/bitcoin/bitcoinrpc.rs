@@ -2,12 +2,20 @@ extern crate bitcoincore_rpc;
 
 use crate::images::btc::BtcImage;
 use anyhow::Result;
-use bitcoincore_rpc::bitcoin::{Address, BlockHash};
+use bitcoincore_rpc::bitcoin::{Address, BlockHash, Txid};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitcoincore_rpc_json::{AddressType, GetBlockchainInfoResult};
+use serde::Serialize;
 use std::str::FromStr;
 
 pub struct BitcoinRPC(Client);
+
+#[derive(Serialize)]
+pub struct TransactionStatus {
+    pub confirmed: bool,
+    pub block_height: Option<u32>,
+    pub confirmations: u32,
+}
 
 impl BitcoinRPC {
     pub fn new(btc: &BtcImage, url: &str, port: &str) -> Result<Self> {
@@ -30,6 +38,26 @@ impl BitcoinRPC {
 
     pub fn get_info(&self) -> Result<GetBlockchainInfoResult> {
         Ok(self.0.get_blockchain_info()?)
+    }
+
+    pub fn get_transaction_status(&self, txid: String) -> Result<TransactionStatus> {
+        let txid = Txid::from_str(&txid)?;
+        let transaction = self.0.get_raw_transaction_info(&txid, None)?;
+        let confirmations = transaction.confirmations.unwrap_or(0);
+        let block_height = transaction
+            .blockhash
+            .map(|block_hash| {
+                self.0
+                    .get_block_header_info(&block_hash)
+                    .map(|b| b.height as u32)
+            })
+            .transpose()?;
+
+        Ok(TransactionStatus {
+            confirmed: confirmations > 0,
+            block_height,
+            confirmations,
+        })
     }
 
     pub fn create_or_load_wallet(&self) -> Result<()> {
