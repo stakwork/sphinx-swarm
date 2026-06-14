@@ -150,8 +150,25 @@
     }
   }
 
+  function keepChannelConfirmations(newChannels: LND.LndChannel[]) {
+    const confirmationsByPoint = new Map(
+      ($channels[tag] || []).map((channel) => [
+        channel.channel_point,
+        channel.confirmation,
+      ])
+    );
+
+    return newChannels.map((channel) => {
+      const confirmation = confirmationsByPoint.get(channel.channel_point);
+      if (!channel.active && confirmation != null) {
+        return { ...channel, confirmation };
+      }
+      return channel;
+    });
+  }
+
   async function getChannels() {
-    let newChannels = [];
+    let newChannels: LND.LndChannel[] = [];
     if (type === "Cln") {
       const peersData = await CLN.list_peer_channels(tag);
       newChannels = await parseClnListPeerChannelsRes(peersData);
@@ -159,6 +176,7 @@
       const channelsData = await getLndPendingAndActiveChannels(tag);
       newChannels = channelsData;
     }
+    newChannels = keepChannelConfirmations(newChannels);
     if (JSON.stringify(newChannels) !== JSON.stringify($channels[tag])) {
       channels.update((chans) => {
         return { ...chans, [tag]: newChannels };

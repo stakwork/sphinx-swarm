@@ -33,6 +33,7 @@ export interface LndChannel {
   close_address?: string;
   push_amount_sat?: number;
   thaw_height?: number;
+  confirmation?: number;
 }
 
 export interface LndPeer {
