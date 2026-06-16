@@ -135,6 +135,7 @@ services:
       - CONTENT_WORKFLOW_ID=$CONTENT_WORKFLOW_ID
       - GRAPHMINDSET_STAKWORK_WORKFLOW_ID=$GRAPHMINDSET_STAKWORK_WORKFLOW_ID
       - CHECK_PUBLIC_IP_CRON=$CHECK_PUBLIC_IP_CRON
+      - ROUTER_URL=$ROUTER_URL
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
