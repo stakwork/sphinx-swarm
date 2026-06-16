@@ -55,9 +55,6 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/certs:/certs
-    logging:
-      options:
-        max-size: 10m
 
   sphinx-swarm:
     image: sphinxlightning/sphinx-swarm
