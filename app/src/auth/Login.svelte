@@ -7,11 +7,11 @@
 
   export let saveUserToStore = (_a: string) => {};
 
-  $: username = "";
-  $: password = "";
-  $: qrString = "";
-  $: challenge = "";
-  $: errorMessage = "";
+  let username = "";
+  let password = "";
+  let qrString = "";
+  let challenge = "";
+  let errorMessage = "";
 
   $: addDisabled = !username || !password;
 
