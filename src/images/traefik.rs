@@ -343,6 +343,13 @@ pub fn broker_traefik_labels(
             "traefik.tcp.services.{}.loadbalancer.server.port={}",
             mqtt_name, mqtt_port
         ),
+        // -1 = infinite: don't let Traefik force-close the still-live reverse
+        // direction after one side half-closes (default is 100ms, too aggressive
+        // for long-lived MQTT connections). Deprecated in v2, removed in v3.
+        format!(
+            "traefik.tcp.services.{}.loadbalancer.terminationdelay=-1",
+            mqtt_name
+        ),
         format!(
             "traefik.tcp.routers.{}.rule=HostSNI(`{}`)",
             mqtt_name, mqtt_host
