@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
+use crate::images::jarvis::JarvisImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::traefik::shared_host;
 use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
@@ -53,7 +54,8 @@ impl DockerConfig for Repo2GraphImage {
         let li = LinkedImages::from_nodes(self.links.clone(), nodes);
         let neo4j = li.find_neo4j().context("Repo2Graph: No Neo4j")?;
         let boltwall = li.find_boltwall();
-        Ok(repo2graph(self, &neo4j, &boltwall)?)
+        let jarvis = li.find_jarvis();
+        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis)?)
     }
 }
 
@@ -72,6 +74,7 @@ fn repo2graph(
     img: &Repo2GraphImage,
     neo4j: &Neo4jImage,
     boltwall: &Option<BoltwallImage>,
+    jarvis: &Option<JarvisImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -97,6 +100,9 @@ fn repo2graph(
         if let Some(api_token) = &boltwall.stakwork_secret {
             env.push(format!("API_TOKEN={}", api_token));
         }
+    }
+    if let Some(j) = jarvis {
+        env.push(format!("JARVIS_URL=http://{}:{}", domain(&j.name), j.port));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
