@@ -88,7 +88,7 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall"]);
+    repo2graph.links(vec!["neo4j", "boltwall", "jarvis"]);
 
     // stakgraph
     v = "latest";
