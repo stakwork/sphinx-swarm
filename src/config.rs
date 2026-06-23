@@ -403,6 +403,10 @@ pub fn migrate_stack(stack: &mut Stack) {
                 if !img.links.contains(&"bifrost".to_string()) {
                     img.links.push("bifrost".to_string());
                 }
+                if !img.links.contains(&"jarvis".to_string()) {
+                    img.links.push("jarvis".to_string());
+                    log::info!("=> added jarvis link to repo2graph");
+                }
             }
             Node::Internal(Image::Stakgraph(ref mut img)) => {
                 if !img.links.contains(&"bifrost".to_string()) {
