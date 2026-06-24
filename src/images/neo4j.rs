@@ -92,6 +92,12 @@ impl Neo4jImage {
                 "https://github.com/neo4j/apoc/releases/download/5.19.0/apoc-5.19.0-core.jar";
             log::info!("=> download apoc plugin for neo4j...");
             let bytes = reqwest::get(apoc_url).await?.bytes().await?;
+            // The apoc-core jar ships an unshaded, stale commons-lang3 (3.12.0) that lacks
+            // ObjectUtils.getIfNull(Object, Object). When it wins classpath order it shadows
+            // Neo4j's newer commons-lang3 and breaks commons-configuration2 while APOC reads
+            // apoc.conf (NoSuchMethodError -> Neo4j fails to start). Strip it so Neo4j's own
+            // commons-lang3 is used instead. All APOC 5.x releases bundle this bad jar.
+            let bytes = strip_bundled_lang3(&bytes)?;
             upload_to_container(
                 docker,
                 &self.name,
@@ -126,6 +132,32 @@ impl Neo4jImage {
 
         Ok(())
     }
+}
+
+/// Rewrite a zip/jar in-memory, dropping the bundled `commons-lang3` classes (and its maven
+/// metadata) so they can't shadow Neo4j's own newer `commons-lang3` on the classpath.
+fn strip_bundled_lang3(jar_bytes: &[u8]) -> Result<Vec<u8>> {
+    use std::io::Cursor;
+    let mut archive = zip::ZipArchive::new(Cursor::new(jar_bytes))?;
+    let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    let mut removed = 0usize;
+    for i in 0..archive.len() {
+        let file = archive.by_index_raw(i)?;
+        let name = file.name().to_string();
+        if name.starts_with("org/apache/commons/lang3/")
+            || name.starts_with("META-INF/maven/org.apache.commons/commons-lang3/")
+        {
+            removed += 1;
+            continue;
+        }
+        writer.raw_copy_file(file)?;
+    }
+    let out = writer.finish()?;
+    log::info!(
+        "=> stripped {} bundled commons-lang3 entries from apoc-core jar",
+        removed
+    );
+    Ok(out.into_inner())
 }
 
 #[async_trait]

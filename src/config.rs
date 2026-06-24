@@ -344,6 +344,7 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
 pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
     use crate::images::bifrost::BifrostImage;
+    use crate::images::graphmindset::GraphMindsetImage;
     use crate::images::hive_relay::HiveRelayImage;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
@@ -358,8 +359,22 @@ pub fn migrate_stack(stack: &mut Stack) {
     let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
     let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
     let has_bifrost = stack.nodes.iter().any(|n| n.name() == "bifrost");
+    let has_graphmindset = stack.nodes.iter().any(|n| n.name() == "graphmindset");
 
     log::info!("=> migrating stack: ensuring second-brain nodes and links");
+
+    if !has_graphmindset {
+        // The v2 frontend that serves `/` on the vanity domain (priority 2
+        // shared-host router). Without it, the base domain falls through to
+        // Traefik's default 404. host() prepends "graph." internally.
+        let mut graphmindset = GraphMindsetImage::new("graphmindset", "latest", "3100");
+        graphmindset.host(stack.host.clone());
+        graphmindset.links(vec!["jarvis"]);
+        stack
+            .nodes
+            .push(Node::Internal(Image::GraphMindset(graphmindset)));
+        log::info!("=> added graphmindset node");
+    }
 
     if !has_quickwit {
         let quickwit = QuickwitImage::new("quickwit", "latest");
