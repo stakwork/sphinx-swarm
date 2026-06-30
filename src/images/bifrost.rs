@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
+use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, getenv, host_config};
@@ -77,7 +78,11 @@ impl DockerConfig for BifrostImage {
         // If a stack ships Bifrost without a redis link, the plugin
         // logs revocation/budget checks but does not enforce them.
         let redis = li.find_redis();
-        Ok(bifrost(self, &boltwall, &redis))
+        // Optional like redis: absent ⇒ no NEO4J_* env ⇒ the plugin's
+        // agent-catalog endpoints return 503 and the dashboard shows
+        // every agent as "traffic only" (see gateway/plans/agent-catalog.md).
+        let neo4j = li.find_neo4j();
+        Ok(bifrost(self, &boltwall, &redis, &neo4j))
     }
 }
 
@@ -100,6 +105,7 @@ pub fn bifrost(
     img: &BifrostImage,
     boltwall: &Option<BoltwallImage>,
     redis: &Option<RedisImage>,
+    neo4j: &Option<Neo4jImage>,
 ) -> Config<String> {
     let name = img.name.clone();
     let repo = img.repo();
@@ -154,6 +160,27 @@ pub fn bifrost(
             domain(&redis.name),
             redis.http_port,
         ));
+    }
+
+    // Agent-catalog neo4j connection. The plugin speaks neo4j's native
+    // transactional Cypher HTTP API (the 7474 HTTP port, NOT 7687 bolt)
+    // to seed and read the agent catalog (prompts / tools / skills); it
+    // needs no bolt driver. Hive pushes its default agent set here via
+    // `POST /_plugin/agents`, and the dashboard reads it back.
+    //
+    // The gateway defaults NEO4J_USER (`neo4j`) and NEO4J_DATABASE
+    // (`neo4j`) to swarm conventions, so only the URL + password need
+    // wiring. NEO4J_PASSWORD is the catalog's "configured" signal:
+    // absent ⇒ the catalog endpoints return 503 and every agent shows
+    // as "traffic only" in the UI. Absent neo4j link ⇒ no env ⇒ that
+    // graceful-degradation mode, matching the redis-optional stance.
+    if let Some(neo4j) = neo4j {
+        env.push(format!(
+            "NEO4J_HTTP_URL=http://{}:{}",
+            domain(&neo4j.name),
+            neo4j.http_port,
+        ));
+        env.push(format!("NEO4J_PASSWORD={}", neo4j.password));
     }
 
     // Provider API keys referenced by Bifrost's config.json via env.<NAME>.
@@ -215,6 +242,10 @@ mod tests {
         RedisImage::new("redis", "latest")
     }
 
+    fn test_neo4j() -> Neo4jImage {
+        Neo4jImage::new("neo4j", "5.19.0")
+    }
+
     #[test]
     fn test_bifrost_image_uses_stakgraph_gateway_repo() {
         let img = test_bifrost_image();
@@ -251,7 +282,7 @@ mod tests {
         std::env::set_var("GOOGLE_API_KEY", "test-google-key");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None, &None);
+        let config = bifrost(&img, &None, &None, &None);
         let env = config.env.unwrap();
 
         assert!(env.contains(&format!("BIFROST_ADMIN_USER={}", img.admin_user)));
@@ -277,7 +308,7 @@ mod tests {
         std::env::remove_var("GOOGLE_API_KEY");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None, &None);
+        let config = bifrost(&img, &None, &None, &None);
         let env = config.env.unwrap();
 
         assert_eq!(
@@ -300,7 +331,7 @@ mod tests {
 
         let img = test_bifrost_image();
         let boltwall = Some(test_boltwall_with_secret("stakwork-shared-secret"));
-        let config = bifrost(&img, &boltwall, &None);
+        let config = bifrost(&img, &boltwall, &None, &None);
         let env = config.env.unwrap();
 
         assert!(env.contains(&"BIFROST_PROVISIONING_TOKEN=stakwork-shared-secret".to_string()));
@@ -316,7 +347,7 @@ mod tests {
         std::env::remove_var("GOOGLE_API_KEY");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None, &None);
+        let config = bifrost(&img, &None, &None, &None);
         let env = config.env.unwrap();
 
         assert!(!env
@@ -335,7 +366,7 @@ mod tests {
 
         let img = test_bifrost_image();
         let redis = Some(test_redis());
-        let config = bifrost(&img, &None, &redis);
+        let config = bifrost(&img, &None, &redis, &None);
         let env = config.env.unwrap();
 
         // Shape comes from images/redis.rs: name="redis", http_port="6379".
@@ -356,7 +387,7 @@ mod tests {
         std::env::remove_var("GOOGLE_API_KEY");
 
         let img = test_bifrost_image();
-        let config = bifrost(&img, &None, &None);
+        let config = bifrost(&img, &None, &None, &None);
         let env = config.env.unwrap();
 
         // Absent redis link ⇒ plugin runs in observability mode (no
@@ -364,5 +395,45 @@ mod tests {
         assert!(!env
             .iter()
             .any(|e| e.starts_with("BIFROST_PLUGIN_REDIS_URL=")));
+    }
+
+    #[test]
+    fn test_bifrost_neo4j_env_emitted_when_linked() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+
+        let img = test_bifrost_image();
+        let neo4j = test_neo4j();
+        let password = neo4j.password.clone();
+        let config = bifrost(&img, &None, &None, &Some(neo4j));
+        let env = config.env.unwrap();
+
+        // HTTP API on neo4j.sphinx:7474 (the 7474 HTTP port, not 7687
+        // bolt). User / database default to swarm conventions gateway-
+        // side, so only URL + password are emitted here.
+        assert!(env.contains(&"NEO4J_HTTP_URL=http://neo4j.sphinx:7474".to_string()));
+        assert!(env.contains(&format!("NEO4J_PASSWORD={}", password)));
+    }
+
+    #[test]
+    fn test_bifrost_no_neo4j_env_without_link() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+
+        let img = test_bifrost_image();
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+
+        // Absent neo4j link ⇒ no NEO4J_* env ⇒ the plugin's agent-catalog
+        // endpoints return 503 (every agent shows "traffic only").
+        assert!(!env.iter().any(|e| e.starts_with("NEO4J_")));
     }
 }

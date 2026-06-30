@@ -401,12 +401,13 @@ pub fn migrate_stack(stack: &mut Stack) {
     }
 
     if !has_bifrost {
-        // Links: boltwall (for the shared provisioning token) and
-        // redis (for the plugin's macaroon-enforcement state — see
-        // gateway/plans/phases/phase-6-plugin-enforcement.md).
+        // Links: boltwall (for the shared provisioning token), redis
+        // (for the plugin's macaroon-enforcement state — see
+        // gateway/plans/phases/phase-6-plugin-enforcement.md) and neo4j
+        // (for the agent catalog — see gateway/plans/agent-catalog.md).
         let mut bifrost = BifrostImage::new("bifrost", "latest");
         bifrost.host(stack.host.clone());
-        bifrost.links(vec!["boltwall", "redis"]);
+        bifrost.links(vec!["boltwall", "redis", "neo4j"]);
         stack.nodes.push(Node::Internal(Image::Bifrost(bifrost)));
         log::info!("=> added bifrost node");
     }
@@ -438,6 +439,15 @@ pub fn migrate_stack(stack: &mut Stack) {
                 // pushed if absent.
                 if !img.links.contains(&"redis".to_string()) {
                     img.links.push("redis".to_string());
+                }
+                // Existing swarms predate the bifrost↔neo4j link; add
+                // it on migration so the plugin can seed and serve the
+                // agent catalog (gateway/plans/agent-catalog.md).
+                // Without it NEO4J_PASSWORD is unset, the catalog
+                // endpoints 503, and every agent shows as "traffic
+                // only" in the dashboard. Idempotent.
+                if !img.links.contains(&"neo4j".to_string()) {
+                    img.links.push("neo4j".to_string());
                 }
             }
             Node::Internal(Image::BoltWall(ref mut img)) => {
