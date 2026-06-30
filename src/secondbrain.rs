@@ -135,7 +135,11 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     // "Namespace" and gateway/images/bifrost.rs for the wiring).
     let mut bifrost = BifrostImage::new("bifrost", "latest");
     bifrost.host(host.clone());
-    bifrost.links(vec!["boltwall", "redis"]);
+    // neo4j: the plugin's agent catalog (Hive seeds its default agents
+    // here via POST /_plugin/agents; the dashboard reads them back).
+    // Without it NEO4J_PASSWORD is unset and every agent shows as
+    // "traffic only" (see gateway/plans/agent-catalog.md).
+    bifrost.links(vec!["boltwall", "redis", "neo4j"]);
 
     let mut imgs = vec![
         Image::NavFiber(nav),
