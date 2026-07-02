@@ -115,12 +115,19 @@ fn repo2graph(
     let sessions_dir = "/usr/src/app/sessions";
     env.push(format!("SESSIONS_DIR={}", sessions_dir));
 
+    // Durable dir for agent-written output files (reports, answer.json, etc.).
+    // Backed by a named volume so artifacts survive container restarts; the mcp
+    // prunes entries older than 7 days on startup and every 6h.
+    let artifacts_dir = "/usr/src/app/artifacts";
+    env.push(format!("AGENT_ARTIFACTS_DIR={}", artifacts_dir));
+
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
         "/usr/src/app/tests/generated_tests",
     );
     let sessions_vol = volume_string(&format!("{}-sessions", img.name), sessions_dir);
-    let extra_vols = vec![tests_vol, sessions_vol];
+    let artifacts_vol = volume_string(&format!("{}-artifacts", img.name), artifacts_dir);
+    let extra_vols = vec![tests_vol, sessions_vol, artifacts_vol];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
