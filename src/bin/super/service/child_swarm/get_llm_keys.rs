@@ -19,8 +19,10 @@ pub const LLM_KEY_NAMES: [&str; 4] = [
     "OPENROUTER_API_KEY",
 ];
 
-// containers that receive the LLM keys, in lookup order
-const LLM_KEY_NODES: [&str; 3] = ["bifrost", "repo2graph", "jarvis"];
+// containers that receive the LLM keys in their env, in lookup order.
+// only containers that actually consume the keys belong here — inspecting
+// any other container would report "not set" even when .env has the key
+const LLM_KEY_NODES: [&str; 2] = ["bifrost", "repo2graph"];
 
 pub async fn get_child_swarm_llm_keys(
     swarm: Option<RemoteStack>,
@@ -98,6 +100,6 @@ async fn handle_get_child_swarm_llm_keys(
     }
 
     Err(anyhow!(
-        "could not find a container with LLM env variables"
+        "no LLM-consuming container (bifrost/repo2graph) running — keys can't be verified remotely"
     ))
 }
