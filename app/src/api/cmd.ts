@@ -113,6 +113,7 @@ export type Cmd =
   | "GetSuperAdminLogs"
   | "GetSuperAdminVersion"
   | "UpdateChildSwarmEnv"
+  | "GetChildSwarmLlmKeys"
   | "AddAnthropicKey"
   | "GetAnthropicKey"
   | "RestartSuperAdmin"

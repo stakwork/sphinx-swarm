@@ -18,6 +18,7 @@
   } from "carbon-components-svelte";
   import { UpdateNow, Stop } from "carbon-icons-svelte";
   import Renew from "carbon-icons-svelte/lib/Renew.svelte";
+  import Password from "carbon-icons-svelte/lib/Password.svelte";
 
   import Healthcheck from "./Healthcheck.svelte";
   import UploadIcon from "carbon-icons-svelte/lib/Upload.svelte";
@@ -40,6 +41,7 @@
     get_aws_instance_types,
     restart_child_swarm_containers,
     update_child_swarm_env,
+    get_child_swarm_llm_keys,
     get_ec2_cpu_usage,
     nuke_warm_swarm,
     nuke_all_warm_swarms,
@@ -89,6 +91,18 @@
   let child_nodes = [];
 
   let selected_child_node = "";
+
+  const LLM_PROVIDERS = [
+    { name: "Anthropic", env: "ANTHROPIC_API_KEY" },
+    { name: "OpenAI", env: "OPENAI_API_KEY" },
+    { name: "Google", env: "GOOGLE_API_KEY" },
+    { name: "OpenRouter", env: "OPENROUTER_API_KEY" },
+  ];
+
+  let show_llm_keys = false;
+  let llm_keys: { [k: string]: string } = null;
+  let llm_keys_loading = false;
+  let llm_keys_error = "";
 
   let selectedRowIds = [];
 
@@ -515,6 +529,31 @@
     env_value = "";
     selected_child_node = "";
     child_nodes = [];
+    show_llm_keys = false;
+    llm_keys = null;
+    llm_keys_error = "";
+  }
+
+  async function handleToggleLlmKeys() {
+    show_llm_keys = !show_llm_keys;
+    if (!show_llm_keys || llm_keys || llm_keys_loading) return;
+    llm_keys_loading = true;
+    llm_keys_error = "";
+    try {
+      const res = await get_child_swarm_llm_keys({
+        host: selected_host,
+        ...(selected_is_reserved && { is_reserved: selected_is_reserved }),
+      });
+      if (res.success && res.data) {
+        llm_keys = res.data.keys || {};
+      } else {
+        llm_keys_error = res.message || "could not fetch LLM keys";
+      }
+    } catch (error) {
+      llm_keys_error = "could not fetch LLM keys";
+    } finally {
+      llm_keys_loading = false;
+    }
   }
 
   async function handleSubmitUpdateEnv() {
@@ -952,6 +991,41 @@
         }}
       />
     {/if}
+    <div class="llm_keys_toggle_container">
+      <Button
+        kind="ghost"
+        size="small"
+        icon={Password}
+        on:click={handleToggleLlmKeys}
+      >
+        {show_llm_keys ? "Hide LLM keys" : "Show LLM keys"}
+      </Button>
+    </div>
+    {#if show_llm_keys}
+      <div class="llm_keys_panel">
+        {#if llm_keys_loading}
+          <p class="llm_keys_hint">Loading LLM keys...</p>
+        {:else if llm_keys_error}
+          <p class="llm_keys_error">{llm_keys_error}</p>
+        {:else if llm_keys}
+          {#each LLM_PROVIDERS as provider}
+            <div class="llm_key_row">
+              <span class="llm_key_name">{provider.env}</span>
+              {#if llm_keys[provider.env]}
+                <span class="llm_key_value">{llm_keys[provider.env]}</span>
+              {:else}
+                <span class="llm_key_unset">not set</span>
+              {/if}
+              <Link
+                style="cursor: pointer;"
+                on:click={() => (env_key = provider.env)}
+                >{llm_keys[provider.env] ? "update" : "set"}</Link
+              >
+            </div>
+          {/each}
+        {/if}
+      </div>
+    {/if}
     <div class="select_instance_container">
       <Select
         on:change={(e) => (selected_child_node = e.target.value)}
@@ -990,6 +1064,53 @@
 
   .success_toast_container {
     margin-bottom: 1.2rem;
+  }
+
+  .llm_keys_toggle_container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+  }
+
+  .llm_keys_panel {
+    border: 1px solid #394b59;
+    border-radius: 0.25rem;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .llm_key_row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+    font-size: 0.85rem;
+  }
+
+  .llm_key_name {
+    flex: 1;
+    color: #8a9ba8;
+  }
+
+  .llm_key_value {
+    font-family: monospace;
+  }
+
+  .llm_key_unset {
+    color: #5f6f7d;
+    font-style: italic;
+  }
+
+  .llm_keys_hint {
+    font-size: 0.85rem;
+    color: #8a9ba8;
+    margin: 0;
+  }
+
+  .llm_keys_error {
+    font-size: 0.85rem;
+    color: #fa4d56;
+    margin: 0;
   }
 
   .custom_text_input_container {
