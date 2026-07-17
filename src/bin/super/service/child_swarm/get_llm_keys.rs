@@ -60,6 +60,8 @@ async fn handle_get_child_swarm_llm_keys(
         _ => LLM_KEY_NODES.iter().map(|n| n.to_string()).collect(),
     };
 
+    let mut last_err: Option<String> = None;
+
     for node in &nodes {
         let cmd = Cmd::Swarm(SwarmCmd::GetEnv(node.clone()));
         let res = match tokio::time::timeout(
@@ -69,13 +71,32 @@ async fn handle_get_child_swarm_llm_keys(
         .await
         {
             Ok(Ok(res)) => res,
-            _ => continue,
+            Ok(Err(err)) => {
+                last_err = Some(err.to_string());
+                continue;
+            }
+            Err(_) => {
+                last_err = Some(format!("timed out reading env from {}", node));
+                continue;
+            }
         };
-        let result: SwarmResponse = match res.json().await {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        if status != 200 {
+            let snippet: String = body.chars().take(120).collect();
+            last_err = Some(format!("{} from child swarm: {}", status, snippet));
+            continue;
+        }
+        let result: SwarmResponse = match serde_json::from_str(&body) {
             Ok(res_body) => res_body,
-            Err(_) => continue,
+            Err(_) => {
+                let snippet: String = body.chars().take(120).collect();
+                last_err = Some(format!("unexpected response from child swarm: {}", snippet));
+                continue;
+            }
         };
         if !result.success {
+            last_err = Some(result.message);
             continue;
         }
         let envs: HashMap<String, String> = match result.data {
@@ -99,7 +120,8 @@ async fn handle_get_child_swarm_llm_keys(
         });
     }
 
-    Err(anyhow!(
+    Err(anyhow!(last_err.unwrap_or_else(|| {
         "no LLM-consuming container (bifrost/repo2graph) running — keys can't be verified remotely"
-    ))
+            .to_string()
+    })))
 }
