@@ -70,6 +70,7 @@ fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
                 SwarmCmd::GetApiToken => true,
                 SwarmCmd::ChangeReservedSwarmToActive(_) => true,
                 SwarmCmd::UpdateEvn(_) => true,
+                SwarmCmd::GetEnv(_) => true,
                 SwarmCmd::UpdateNeo4jConfig(_) => true,
                 _ => false,
             },
