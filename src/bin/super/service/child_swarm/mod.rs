@@ -1,3 +1,4 @@
+pub mod get_llm_keys;
 pub mod update_env;
 pub mod update_public_ip;
 pub mod update_vanity_address;

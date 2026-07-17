@@ -1,9 +1,9 @@
-use crate::{cmd::SuperSwarmResponse, state::Super};
+use crate::{cmd::SuperSwarmResponse, state::Super, util::mask_key};
 
 pub fn handle_get_anthropic_keys(state: &Super) -> SuperSwarmResponse {
     let mut data: Vec<String> = vec![];
     if let Some(anthropic_keys) = &state.anthropic_keys {
-        data = anthropic_keys.clone();
+        data = anthropic_keys.iter().map(|k| mask_key(k)).collect();
     }
 
     let anthropic_keys = match serde_json::to_value(data) {

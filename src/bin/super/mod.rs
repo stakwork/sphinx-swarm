@@ -31,6 +31,7 @@ use crate::checker::swarm_checker;
 use crate::cmd::SuperRestarterResponse;
 use crate::service::anthropic_key::add::handle_add_anthropic_key;
 use crate::service::anthropic_key::get::handle_get_anthropic_keys;
+use crate::service::child_swarm::get_llm_keys::get_child_swarm_llm_keys;
 use crate::service::child_swarm::update_env::update_child_swarm_env;
 use crate::service::child_swarm::update_public_ip::handle_update_child_swarm_public_ip;
 use crate::service::child_swarm::handle_update_swarm_vanity_address;
@@ -649,6 +650,13 @@ pub async fn super_handle(
                 let swarm =
                     state_read(|s| s.find_swarm_by_host(&data.host, data.is_reserved)).await;
                 let res = update_child_swarm_env(swarm, data).await;
+                Some(serde_json::to_string(&res)?)
+            }
+            // Pattern 3: Read state, do I/O, return
+            SwarmCmd::GetChildSwarmLlmKeys(data) => {
+                let swarm =
+                    state_read(|s| s.find_swarm_by_host(&data.host, data.is_reserved)).await;
+                let res = get_child_swarm_llm_keys(swarm, data).await;
                 Some(serde_json::to_string(&res)?)
             }
             // Pattern 2: Mutate and return

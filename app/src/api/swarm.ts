@@ -539,6 +539,22 @@ export async function get_anthropic_keys() {
   return await swarmCmd("GetAnthropicKey");
 }
 
+export async function get_child_swarm_llm_keys({
+  host,
+  node_name,
+  is_reserved,
+}: {
+  host: string;
+  node_name?: string;
+  is_reserved?: boolean;
+}) {
+  return await swarmCmd("GetChildSwarmLlmKeys", {
+    host,
+    node_name,
+    is_reserved,
+  });
+}
+
 export async function add_anthropic_key({ key }: { key: string }) {
   return await swarmCmd("AddAnthropicKey", { key });
 }

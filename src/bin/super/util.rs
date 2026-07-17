@@ -152,7 +152,13 @@ pub async fn login_to_child_swarm(swarm_details: &RemoteStack) -> Result<String,
         password: swarm_details.pass.clone().unwrap(),
     };
 
-    return match client.post(route.as_str()).json(&body).send().await {
+    return match client
+        .post(route.as_str())
+        .timeout(Duration::from_secs(20))
+        .json(&body)
+        .send()
+        .await
+    {
         Ok(res) => {
             if res.status().clone() != 200 {
                 return Err(anyhow!(
@@ -201,6 +207,15 @@ pub async fn swarm_cmd(cmd: Cmd, host: String, token: &str) -> Result<Response, 
     let url = get_child_base_route(host)?;
     let cmd_res = send_cmd_request(cmd, "SWARM", &url, Some("x-jwt"), Some(&token)).await?;
     Ok(cmd_res)
+}
+
+pub fn mask_key(value: &str) -> String {
+    let chars: Vec<char> = value.chars().collect();
+    if chars.len() <= 8 {
+        return "…".to_string();
+    }
+    let last4: String = chars[chars.len() - 4..].iter().collect();
+    format!("…{}", last4)
 }
 
 pub fn get_child_base_route(host: String) -> Result<String, Error> {

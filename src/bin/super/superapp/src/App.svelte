@@ -18,7 +18,7 @@
   import ViewNodes from "./ViewNodes.svelte";
   import LightningBot from "./LightningBot.svelte";
   import Logs from "./logs.svelte";
-  import AnthropicKeys from "./AnthropicKeys.svelte";
+  import LLMKeys from "./LLMKeys.svelte";
   import { update_super_admin, get_super_admin_version } from "../../../../../app/src/api/swarm";
   import { onMount } from "svelte";
   import SslCert from "./SslCert.svelte";
@@ -114,7 +114,7 @@
           <Tab label="Swarms" />
           <Tab label="Lightning" />
           <Tab label="Logs" />
-          <Tab label="Anthropic Keys" />
+          <Tab label="LLM Keys" />
           <Tab label="SSL Cert" />
           <svelte:fragment slot="content">
             <TabContent>
@@ -128,7 +128,7 @@
             </TabContent>
             <TabContent><LightningBot /></TabContent>
             <TabContent><Logs /></TabContent>
-            <TabContent><AnthropicKeys /></TabContent>
+            <TabContent><LLMKeys /></TabContent>
             <TabContent><SslCert /></TabContent>
           </svelte:fragment>
         </Tabs>
