@@ -70,6 +70,11 @@ fn redis(node: &RedisImage) -> Config<String> {
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports.clone()),
         env: Some(env),
+        cmd: Some(vec![
+            "redis-server".to_string(),
+            "--appendonly".to_string(),
+            "yes".to_string(),
+        ]),
         host_config: host_config(&name, ports, root_vol, None, None),
         ..Default::default()
     };
