@@ -27,6 +27,12 @@ pub struct MixerImage {
     pub hub_url: Option<String>,
     pub invite_price: Option<String>,
     pub timeout_ms: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub purge_msgs_days: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub db_compact: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub db_integrity_check: Option<bool>,
 }
 
 impl MixerImage {
@@ -48,6 +54,9 @@ impl MixerImage {
             hub_url: None,
             invite_price: None,
             timeout_ms: None,
+            purge_msgs_days: None,
+            db_compact: None,
+            db_integrity_check: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -81,6 +90,15 @@ impl MixerImage {
     }
     pub fn set_hub_url(&mut self, hu: &str) {
         self.hub_url = Some(hu.to_string())
+    }
+    pub fn set_purge_msgs_days(&mut self, days: &str) {
+        self.purge_msgs_days = Some(days.to_string())
+    }
+    pub fn set_db_compact(&mut self) {
+        self.db_compact = Some(true)
+    }
+    pub fn set_db_integrity_check(&mut self) {
+        self.db_integrity_check = Some(true)
     }
 }
 
@@ -165,6 +183,18 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
 
     if let Some(tm) = &img.timeout_ms {
         env.push(format!("TIMEOUT_MS={}", tm));
+    }
+
+    if let Some(pd) = &img.purge_msgs_days {
+        env.push(format!("PURGE_MSGS_DAYS={}", pd));
+    }
+
+    if bool_arg(&img.db_compact) {
+        env.push("DB_COMPACT=true".to_string());
+    }
+
+    if bool_arg(&img.db_integrity_check) {
+        env.push("DB_INTEGRITY_CHECK=true".to_string());
     }
 
     if let Ok(toats) = std::env::var("TESTING_ONLY_ADD_TO_SENDER") {
