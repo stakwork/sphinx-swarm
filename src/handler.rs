@@ -715,6 +715,10 @@ pub async fn handle(
                     let res = client.get_wallet_balance()?;
                     Some(serde_json::to_string(&res)?)
                 }
+                BitcoindCmd::GetTransactionStatus(ts) => {
+                    let res = client.get_transaction_status(ts.txid)?;
+                    Some(serde_json::to_string(&res)?)
+                }
             }
         }
         Cmd::Lnd(c) => {
