@@ -111,6 +111,9 @@ fn repo2graph(
     if let Ok(anthropic_api_key) = getenv("ANTHROPIC_API_KEY") {
         env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
+    if let Ok(openrouter_api_key) = getenv("OPENROUTER_API_KEY") {
+        env.push(format!("OPENROUTER_API_KEY={}", openrouter_api_key));
+    }
 
     let sessions_dir = "/usr/src/app/sessions";
     env.push(format!("SESSIONS_DIR={}", sessions_dir));
