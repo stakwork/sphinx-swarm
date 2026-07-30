@@ -32,7 +32,11 @@ if  [ $1 == "btc" ] || \
 
 then
     echo "=> stop $1.sphinx"
-    docker stop $1.sphinx
+    if [ $1 == "mixer" ]; then
+        docker stop -t 180 $1.sphinx
+    else
+        docker stop $1.sphinx
+    fi
     docker rm $1.sphinx
 else
     echo "=> invalid image name!"
