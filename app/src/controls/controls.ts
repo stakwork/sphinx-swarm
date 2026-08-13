@@ -90,6 +90,8 @@ const stakgraphControls: Control[] = [];
 
 const repo2graphControls: Control[] = [];
 
+const hiverelayControls: Control[] = [];
+
 const botControls: Control[] = [];
 
 export const controls = {
@@ -106,5 +108,6 @@ export const controls = {
   Neo4j: neo4jControls,
   Stakgraph: stakgraphControls,
   Repo2Graph: repo2graphControls,
+  HiveRelay: hiverelayControls,
   Bot: botControls,
 };
