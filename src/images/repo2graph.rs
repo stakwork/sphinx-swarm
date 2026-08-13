@@ -124,13 +124,21 @@ fn repo2graph(
     let artifacts_dir = "/usr/src/app/artifacts";
     env.push(format!("AGENT_ARTIFACTS_DIR={}", artifacts_dir));
 
+    // Durable dir for MCP request-tracking store. Backed by a named volume so
+    // in-flight and historical request records survive container recreation on
+    // auto-updater image pulls. sweepOrphanedReqs converts surviving pending
+    // records to failed (retryable) on boot — durability, not continuation.
+    let reqs_dir = "/usr/src/app/reqs";
+    env.push(format!("REQS_DIR={}", reqs_dir));
+
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
         "/usr/src/app/tests/generated_tests",
     );
     let sessions_vol = volume_string(&format!("{}-sessions", img.name), sessions_dir);
     let artifacts_vol = volume_string(&format!("{}-artifacts", img.name), artifacts_dir);
-    let extra_vols = vec![tests_vol, sessions_vol, artifacts_vol];
+    let reqs_vol = volume_string(&format!("{}-reqs", img.name), reqs_dir);
+    let extra_vols = vec![tests_vol, sessions_vol, artifacts_vol, reqs_vol];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
@@ -143,4 +151,108 @@ fn repo2graph(
         c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
     }
     Ok(c)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn test_repo2graph_image() -> Repo2GraphImage {
+        Repo2GraphImage::new("repo2graph", "latest", "8888")
+    }
+
+    fn test_neo4j_image() -> Neo4jImage {
+        Neo4jImage::new("neo4j", "5.19.0")
+    }
+
+    #[test]
+    fn test_reqs_dir_env_var_is_emitted() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("GITHUB_REQUEST_TOKEN");
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let config = repo2graph(&img, &neo4j, &None, &None).unwrap();
+        let env = config.env.unwrap();
+
+        assert!(
+            env.contains(&"REQS_DIR=/usr/src/app/reqs".to_string()),
+            "env should contain REQS_DIR=/usr/src/app/reqs, got: {:?}",
+            env
+        );
+    }
+
+    #[test]
+    fn test_reqs_vol_is_in_binds() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("GITHUB_REQUEST_TOKEN");
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let config = repo2graph(&img, &neo4j, &None, &None).unwrap();
+
+        let binds = config
+            .host_config
+            .expect("host_config must be set")
+            .binds
+            .expect("binds must be set");
+
+        assert!(
+            binds
+                .iter()
+                .any(|b| b == "repo2graph-reqs.sphinx:/usr/src/app/reqs:rw"),
+            "binds should contain repo2graph-reqs.sphinx:/usr/src/app/reqs:rw, got: {:?}",
+            binds
+        );
+    }
+
+    #[test]
+    fn test_sessions_and_artifacts_vols_still_present() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("GITHUB_REQUEST_TOKEN");
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let config = repo2graph(&img, &neo4j, &None, &None).unwrap();
+
+        let env = config.env.as_ref().unwrap();
+        assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
+        assert!(env.contains(&"AGENT_ARTIFACTS_DIR=/usr/src/app/artifacts".to_string()));
+
+        let binds = config
+            .host_config
+            .expect("host_config must be set")
+            .binds
+            .expect("binds must be set");
+
+        assert!(
+            binds
+                .iter()
+                .any(|b| b == "repo2graph-sessions.sphinx:/usr/src/app/sessions:rw"),
+            "sessions vol missing from binds: {:?}",
+            binds
+        );
+        assert!(
+            binds
+                .iter()
+                .any(|b| b == "repo2graph-artifacts.sphinx:/usr/src/app/artifacts:rw"),
+            "artifacts vol missing from binds: {:?}",
+            binds
+        );
+    }
 }
