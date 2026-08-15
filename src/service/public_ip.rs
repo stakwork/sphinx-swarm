@@ -8,23 +8,30 @@ use crate::{
 
 pub async fn handle_check_public_ip_via_cron(proj: &str) -> Result<(), Error> {
     let current_ip = get_public_ip().await?;
-    let alert_super_admin = config::stack_read(|s| {
+    let ip_changed = config::stack_read(|s| {
         s.ip.is_none() || s.ip.as_deref() != Some(&current_ip)
     })
     .await;
 
-    if alert_super_admin {
+    // Always report to super admin (heartbeat every 5 minutes), even when the IP is
+    // unchanged. Super admin records the last heartbeat (liveness signal) and only
+    // touches route53 when the IP actually changed.
+    if ip_changed {
         log::info!("Public IP has changed to {}", current_ip);
-        // updating super admin of the change
-        if let Err(e) = update_super_admin_of_ip_change(&current_ip).await {
-            log::error!("Failed to notify super admin of IP change: {:?}", e);
-        } else {
+    } else {
+        log::debug!("Heartbeat: public IP unchanged ({})", current_ip);
+    }
+
+    if let Err(e) = update_super_admin_of_ip_change(&current_ip).await {
+        log::error!("Failed to notify super admin of IP change: {:?}", e);
+    } else {
+        if ip_changed {
             log::info!("Successfully notified super admin of IP change");
-            config::stack_write(proj, |s| {
-                s.ip = Some(current_ip);
-            })
-            .await;
         }
+        config::stack_write(proj, |s| {
+            s.ip = Some(current_ip);
+        })
+        .await;
     }
     Ok(())
 }

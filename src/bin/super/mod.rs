@@ -268,6 +268,7 @@ pub async fn super_handle(
                     owner_pubkey: None,
                     workspace_type: None,
                     cln_pubkey: None,
+                    last_heartbeat_at: None,
                 };
                 let hm = state_write(proj, |s| add_new_swarm_details(s, swarm_detail)).await;
                 Some(serde_json::to_string(&hm)?)
@@ -293,6 +294,7 @@ pub async fn super_handle(
                                 owner_pubkey: s.stacks[ui].owner_pubkey.clone(),
                                 workspace_type: s.stacks[ui].workspace_type.clone(),
                                 cln_pubkey: s.stacks[ui].cln_pubkey.clone(),
+                                last_heartbeat_at: None,
                             };
                             AddSwarmResponse {
                                 success: true,
@@ -365,6 +367,7 @@ pub async fn super_handle(
                     owner_pubkey: None,
                     workspace_type: None,
                     cln_pubkey: None,
+                    last_heartbeat_at: None,
                 };
                 let hm =
                     state_write(proj, |s| add_new_swarm_from_child_swarm(s, swarm_details)).await;
