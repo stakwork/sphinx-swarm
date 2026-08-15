@@ -211,7 +211,14 @@
     } else if (r.default_host) {
       swarmNumber = getSwarmNumber(r.default_host);
     }
-    return { ...r, id: r.host, number: swarmNumber };
+    return {
+      ...r,
+      id: r.host,
+      number: swarmNumber,
+      last_heartbeat_at: r.last_heartbeat_at
+        ? new Date(r.last_heartbeat_at * 1000).toLocaleString()
+        : "never",
+    };
   }
 
   function reserveRemoteRow(r: ReservedRemote) {
@@ -663,6 +670,7 @@
       { key: "ec2", value: "Instance", sort: (a, b) => (a || "").localeCompare(b || "") },
       { key: "public_ip_address", value: "Public IP", sort: (a, b) => (a || "").localeCompare(b || "") },
       { key: "private_ip_address", value: "Private IP", sort: (a, b) => (a || "").localeCompare(b || "") },
+      { key: "last_heartbeat_at", value: "Last Heartbeat" },
       { key: "cpu", value: "CPU %" },
       { key: "update_env", value: "Update Env" },
       { key: "view", value: "View" },
