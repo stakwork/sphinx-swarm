@@ -27,11 +27,11 @@ pub async fn handle_check_public_ip_via_cron(proj: &str) -> Result<(), Error> {
     } else {
         if ip_changed {
             log::info!("Successfully notified super admin of IP change");
+            config::stack_write(proj, |s| {
+                s.ip = Some(current_ip);
+            })
+            .await;
         }
-        config::stack_write(proj, |s| {
-            s.ip = Some(current_ip);
-        })
-        .await;
     }
     Ok(())
 }
