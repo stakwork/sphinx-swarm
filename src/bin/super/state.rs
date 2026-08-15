@@ -43,6 +43,9 @@ pub struct RemoteStack {
     pub workspace_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cln_pubkey: Option<String>,
+    /// Unix timestamp (seconds) of the last public-IP heartbeat received from this swarm.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_heartbeat_at: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default, Clone)]
@@ -217,6 +220,7 @@ impl Super {
                 owner_pubkey: n.owner_pubkey.clone(),
                 workspace_type: n.workspace_type.clone(),
                 cln_pubkey: n.cln_pubkey.clone(),
+                last_heartbeat_at: None,
             })
             .collect();
         let bots = self
@@ -289,6 +293,7 @@ impl Super {
                 owner_pubkey: None,
                 workspace_type: None,
                 cln_pubkey: None,
+                last_heartbeat_at: None,
             });
         }
         let pos = self.stacks.iter().position(|s| s.host == host);

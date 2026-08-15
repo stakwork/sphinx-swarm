@@ -120,6 +120,8 @@ pub async fn handle_update_child_swarm_public_ip(
     match stack_info {
         Some((current_ip, host, _default_host, route53_domain_names)) => {
             if current_ip.as_deref() == Some(&info.public_ip) {
+                // Heartbeat with unchanged IP: record liveness, no route53 work needed.
+                record_last_heartbeat(proj, &swarm_id).await;
                 return SuperSwarmResponse {
                     success: true,
                     message: "Public IP is the same as the current one, no update needed"
@@ -157,6 +159,7 @@ pub async fn handle_update_child_swarm_public_ip(
             state_write(proj, |state| {
                 if let Some(s) = state.stacks.iter_mut().find(|s| s.id == swarm_id_for_write) {
                     s.public_ip_address = Some(public_ip);
+                    s.last_heartbeat_at = Some(unix_now());
                 }
             })
             .await;
@@ -173,6 +176,27 @@ pub async fn handle_update_child_swarm_public_ip(
             data: None,
         },
     }
+}
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+async fn record_last_heartbeat(proj: &str, swarm_id: &str) {
+    let now = unix_now();
+    state_write(proj, |state| {
+        if let Some(s) = state
+            .stacks
+            .iter_mut()
+            .find(|s| s.id.as_deref() == Some(swarm_id))
+        {
+            s.last_heartbeat_at = Some(now);
+        }
+    })
+    .await;
 }
 
 #[cfg(test)]
