@@ -5,6 +5,7 @@ use crate::images::bot::BotImage;
 use crate::images::graphmindset::GraphMindsetImage;
 use crate::images::bifrost::BifrostImage;
 use crate::images::hive_relay::HiveRelayImage;
+use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::navfiber::NavFiberImage;
@@ -73,11 +74,15 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     let mut jarvis = JarvisImage::new("jarvis", v, "6000", false);
     jarvis.links(vec!["neo4j", "elastic", "boltwall", "redis"]);
 
+    // hermes (subscription proxy for OAuth-backed LLM providers)
+    v = "latest";
+    let hermes = HermesImage::new("hermes", v, "8645");
+
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall", "bifrost", "jarvis"]);
+    repo2graph.links(vec!["neo4j", "boltwall", "bifrost", "jarvis", "hermes"]);
 
     // stakgraph
     v = "latest";
@@ -149,6 +154,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Jarvis(jarvis),
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
+        Image::Hermes(hermes),
         Image::Stakgraph(stakgraph),
         Image::Quickwit(quickwit),
         Image::Vector(vector),

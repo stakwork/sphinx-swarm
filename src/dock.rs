@@ -516,6 +516,33 @@ pub async fn exec(docker: &Docker, id: &str, cmd: &str) -> Result<String> {
     Ok(ret.join("/n"))
 }
 
+/// Like `exec` but takes a pre-split argv instead of a space-delimited string,
+/// and returns the output verbatim. For commands whose arguments can't be
+/// assumed space-free, or whose output is meant to be read rather than logged.
+pub async fn exec_no_tty(docker: &Docker, id: &str, cmd: Vec<String>) -> Result<String> {
+    let exec = docker
+        .create_exec(
+            id,
+            CreateExecOptions {
+                attach_stdout: Some(true),
+                attach_stderr: Some(true),
+                tty: Some(false),
+                cmd: Some(cmd),
+                ..Default::default()
+            },
+        )
+        .await?
+        .id;
+    let started = docker.start_exec(&exec, None).await?;
+    let mut ret = String::new();
+    if let StartExecResults::Attached { mut output, .. } = started {
+        while let Some(Ok(msg)) = output.next().await {
+            ret.push_str(&msg.to_string());
+        }
+    }
+    Ok(ret)
+}
+
 pub async fn sleep(millis: u64) {
     tokio::time::sleep(tokio::time::Duration::from_millis(millis)).await;
 }

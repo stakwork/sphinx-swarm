@@ -2,6 +2,7 @@ use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
+use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::traefik::shared_host;
@@ -55,7 +56,8 @@ impl DockerConfig for Repo2GraphImage {
         let neo4j = li.find_neo4j().context("Repo2Graph: No Neo4j")?;
         let boltwall = li.find_boltwall();
         let jarvis = li.find_jarvis();
-        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis)?)
+        let hermes = li.find_hermes();
+        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis, &hermes)?)
     }
 }
 
@@ -75,6 +77,7 @@ fn repo2graph(
     neo4j: &Neo4jImage,
     boltwall: &Option<BoltwallImage>,
     jarvis: &Option<JarvisImage>,
+    hermes: &Option<HermesImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -103,6 +106,9 @@ fn repo2graph(
     }
     if let Some(j) = jarvis {
         env.push(format!("JARVIS_URL=http://{}:{}", domain(&j.name), j.port));
+    }
+    if let Some(h) = hermes {
+        env.push(format!("HERMES_URL=http://{}:{}", domain(&h.name), h.port));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -179,7 +185,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -200,7 +206,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -218,6 +224,33 @@ mod tests {
     }
 
     #[test]
+    fn test_hermes_url_is_emitted_only_when_linked() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
+        assert!(
+            !without
+                .env
+                .unwrap()
+                .iter()
+                .any(|e| e.starts_with("HERMES_URL=")),
+            "HERMES_URL should be absent when hermes isn't linked"
+        );
+
+        let hermes = HermesImage::new("hermes", "latest", "8645");
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes)).unwrap();
+        assert!(
+            with.env
+                .unwrap()
+                .contains(&"HERMES_URL=http://hermes.sphinx:8645".to_string()),
+            "HERMES_URL should point at the hermes container"
+        );
+    }
+
+    #[test]
     fn test_sessions_and_artifacts_vols_still_present() {
         let _lock = ENV_LOCK.lock().unwrap();
 
@@ -228,7 +261,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
