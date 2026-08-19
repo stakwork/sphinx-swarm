@@ -225,8 +225,8 @@ mod tests {
 
     #[test]
     fn test_hermes_url_is_emitted_only_when_linked() {
-        let _lock = ENV_LOCK.lock().unwrap();
-
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at HERMES_URL.
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 

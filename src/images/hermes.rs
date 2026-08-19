@@ -66,16 +66,37 @@
 //! nothing, since a login that was still pending is dead anyway; the stored
 //! credentials themselves are on the volume (see HERMES_HOME below).
 //!
+//! # There is no token to hand out
+//!
+//! A successful login does not yield a bearer token you can pass around. The
+//! OAuth credentials stay in auth.json on the volume and rotate transparently;
+//! `auth list` prints only metadata (provider, pool index, active/cooldown,
+//! expiry), never the raw access or refresh token. So `HermesAuthList` cannot
+//! leak a credential even though it returns CLI output verbatim.
+//!
+//! The proxy *is* the credential. A harness consumes it by using
+//! `http://hermes.sphinx:8645/v1` as an OpenAI-compatible base URL — clients
+//! send **any** bearer token, and the proxy attaches the real OAuth credential
+//! on the way upstream.
+//!
+//! That "any bearer token" is why this container publishes no host port and
+//! carries no traefik labels: anything that can reach the port can spend the
+//! subscription. Keep it on the sphinx-swarm network. If you ever do need it
+//! from outside, put real auth in front of it rather than publishing it.
+//!
 //! # Gotchas
 //!
 //!   - `hermes` is **not on PATH** for `docker exec`; the CLI lives in a venv.
 //!     Hence `HERMES_BIN` below.
 //!   - `HERMES_HOME` must point at the named volume or credentials are lost on
 //!     every image pull by the auto-updater. See the test at the bottom.
-//!   - No traefik labels, deliberately: the proxy is an unauthenticated
-//!     OpenAI-compatible endpoint sitting on top of your xAI session, so it
-//!     stays reachable only inside the sphinx-swarm network. repo2graph gets
-//!     `HERMES_URL=http://hermes.sphinx:8645` (see `repo2graph.rs`).
+//!   - `proxy start` defaults to `--provider nous`. We pass `--provider xai`
+//!     explicitly, or an xai-oauth login would authenticate fine and then
+//!     serve the wrong upstream. Note the auth namespace differs from the
+//!     proxy one: `xai-oauth` for `auth add`, `xai` for `proxy start`.
+//!   - Neither host-published nor traefik-fronted, deliberately — see above.
+//!     repo2graph reaches it at `HERMES_URL=http://hermes.sphinx:8645`
+//!     (see `repo2graph.rs`).
 //!   - Not in any preset's `auto_update` list. Those are all Sphinx/stakwork
 //!     images; auto-recreating a third-party `:latest` on every upstream push
 //!     is an opt-in decision, not a default.
@@ -112,6 +133,17 @@ pub struct HermesImage {
     pub version: String,
     pub port: String,
     pub links: Links,
+    /// Upstream the proxy forwards to. `proxy start` takes `<nous|xai>` and
+    /// **defaults to nous**, which is not what we want — a stack that logged
+    /// in with `auth add xai-oauth` but proxied to nous would authenticate
+    /// fine and then serve the wrong upstream. Note this namespace differs
+    /// from the auth provider's ("xai" here, "xai-oauth" there).
+    #[serde(default = "default_proxy_provider")]
+    pub provider: String,
+}
+
+fn default_proxy_provider() -> String {
+    "xai".to_string()
 }
 
 impl HermesImage {
@@ -121,6 +153,7 @@ impl HermesImage {
             version: version.to_string(),
             port: port.to_string(),
             links: vec![],
+            provider: default_proxy_provider(),
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -156,16 +189,20 @@ fn hermes(node: &HermesImage) -> Config<String> {
 
     let env = vec![format!("HERMES_HOME={}", HERMES_HOME)];
 
-    // No traefik labels: the proxy is an unauthenticated OpenAI-compatible
-    // endpoint sitting on top of your xAI session, so it stays reachable only
-    // inside the sphinx-swarm network (http://hermes.sphinx:PORT).
+    // The proxy accepts ANY bearer token — it attaches the real OAuth
+    // credential upstream itself, so anything that can reach this port can
+    // spend the subscription. Hence both: no traefik labels, and no host port
+    // publishing (the empty `ports` passed to host_config below). Reachable
+    // only from inside the sphinx-swarm network, at http://hermes.sphinx:PORT.
     Config {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&name)),
-        exposed_ports: exposed_ports(ports.clone()),
+        exposed_ports: exposed_ports(ports),
         cmd: Some(vec![
             "proxy".to_string(),
             "start".to_string(),
+            "--provider".to_string(),
+            node.provider.clone(),
             "--port".to_string(),
             node.port.clone(),
             "--host".to_string(),
@@ -175,7 +212,7 @@ fn hermes(node: &HermesImage) -> Config<String> {
         // Mirrors stdin_open/tty in the upstream compose example.
         open_stdin: Some(true),
         tty: Some(true),
-        host_config: host_config(&name, ports, root_vol, None, None),
+        host_config: host_config(&name, vec![], root_vol, None, None),
         ..Default::default()
     }
 }
@@ -185,16 +222,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_hermes_runs_the_proxy_on_its_port() {
+    fn test_hermes_runs_the_proxy_against_the_xai_upstream() {
         let img = HermesImage::new("hermes", "latest", "8645");
         let c = hermes(&img);
 
+        // --provider matters: `proxy start` defaults to nous, so without it
+        // an xai-oauth login would serve the wrong upstream.
         assert_eq!(
             c.cmd.unwrap(),
-            vec!["proxy", "start", "--port", "8645", "--host", "0.0.0.0"]
+            vec![
+                "proxy", "start", "--provider", "xai", "--port", "8645", "--host", "0.0.0.0"
+            ]
         );
         assert_eq!(c.image.unwrap(), "nousresearch/hermes-agent:latest");
         assert_eq!(c.hostname.unwrap(), "hermes.sphinx");
+    }
+
+    #[test]
+    fn test_hermes_port_is_not_published_to_the_host() {
+        let img = HermesImage::new("hermes", "latest", "8645");
+        let c = hermes(&img);
+
+        // The proxy takes any bearer token, so publishing it on the host would
+        // put a spendable xAI subscription on a public interface.
+        let bindings = c.host_config.unwrap().port_bindings.unwrap();
+        assert!(
+            bindings.is_empty(),
+            "hermes must not publish a host port, got: {:?}",
+            bindings
+        );
     }
 
     #[test]
