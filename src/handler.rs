@@ -22,6 +22,7 @@ use crate::conn::swarm::{
 };
 use crate::conn::swarm::{create_bot_invoice, get_bot_balance, get_bot_payments, get_bot_token, get_neo4j_password};
 use crate::dock::*;
+use crate::hermes_auth;
 use crate::dock::restart_node_container_global;
 use crate::images::DockerHubImage;
 use crate::images::Image;
@@ -129,6 +130,32 @@ pub async fn handle(
                 log::info!("RestartContainer -> {}", id);
                 restart_node_container_global(docker, &id, proj).await?;
                 Some(serde_json::to_string("{}")?)
+            }
+            // Hermes `auth add` is a device-code flow: it prints a
+            // verification URL within a second, then polls the provider for
+            // minutes waiting for a human to approve in a browser. Too long
+            // to hold the request open, so it's start-then-poll.
+            SwarmCmd::HermesAuthStart(req) => {
+                let provider = hermes_auth::provider_or_default(&req.provider)?;
+                log::info!("HermesAuthStart -> {}", &provider);
+                let session = hermes_auth::start(docker, &provider).await?;
+                Some(serde_json::to_string(&session)?)
+            }
+            SwarmCmd::HermesAuthStatus(session_id) => {
+                let session = hermes_auth::status(&session_id).await?;
+                Some(serde_json::to_string(&session)?)
+            }
+            SwarmCmd::HermesAuthList(req) => {
+                let provider = hermes_auth::provider_or_default(&req.provider)?;
+                log::info!("HermesAuthList -> {}", &provider);
+                let out = hermes_auth::list(docker, &provider).await?;
+                Some(serde_json::to_string(&out)?)
+            }
+            SwarmCmd::HermesAuthLogout(req) => {
+                let provider = hermes_auth::provider_or_default(&req.provider)?;
+                log::info!("HermesAuthLogout -> {}", &provider);
+                let out = hermes_auth::logout(docker, &provider).await?;
+                Some(serde_json::to_string(&out)?)
             }
             SwarmCmd::AddNode(node) => {
                 log::info!("AddNode -> {:?}", node);

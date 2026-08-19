@@ -11,6 +11,7 @@ pub mod config_server;
 pub mod dufs;
 pub mod elastic;
 pub mod graphmindset;
+pub mod hermes;
 pub mod hive_relay;
 pub mod jamie;
 pub mod jarvis;
@@ -83,6 +84,7 @@ pub enum Image {
     Vector(vector::VectorImage),
     HiveRelay(hive_relay::HiveRelayImage),
     Bifrost(bifrost::BifrostImage),
+    Hermes(hermes::HermesImage),
 }
 
 pub enum Registry {
@@ -164,6 +166,7 @@ impl Image {
             Image::Vector(n) => n.name.clone(),
             Image::HiveRelay(n) => n.name.clone(),
             Image::Bifrost(n) => n.name.clone(),
+            Image::Hermes(n) => n.name.clone(),
         }
     }
 
@@ -205,6 +208,8 @@ impl Image {
             Image::Vector(n) => n.host.clone(),
             Image::HiveRelay(n) => n.host.clone(),
             Image::Bifrost(n) => n.host.clone(),
+            // internal only: never fronted by traefik
+            Image::Hermes(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -245,6 +250,7 @@ impl Image {
             Image::Vector(_n) => "Vector",
             Image::HiveRelay(_n) => "HiveRelay",
             Image::Bifrost(_n) => "Bifrost",
+            Image::Hermes(_n) => "Hermes",
         }
         .to_string()
     }
@@ -286,6 +292,7 @@ impl Image {
             Image::Vector(n) => n.version = version.to_string(),
             Image::HiveRelay(n) => n.version = version.to_string(),
             Image::Bifrost(n) => n.version = version.to_string(),
+            Image::Hermes(n) => n.version = version.to_string(),
         }
     }
 
@@ -327,6 +334,7 @@ impl Image {
             Image::Vector(n) => n.host(Some(host.to_string())),
             Image::HiveRelay(n) => n.host(Some(host.to_string())),
             Image::Bifrost(n) => n.host(Some(host.to_string())),
+            Image::Hermes(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -429,6 +437,7 @@ impl DockerConfig for Image {
             Image::Vector(n) => n.make_config(nodes, docker).await,
             Image::HiveRelay(n) => n.make_config(nodes, docker).await,
             Image::Bifrost(n) => n.make_config(nodes, docker).await,
+            Image::Hermes(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -472,6 +481,7 @@ impl DockerHubImage for Image {
             Image::Vector(n) => n.repo(),
             Image::HiveRelay(n) => n.repo(),
             Image::Bifrost(n) => n.repo(),
+            Image::Hermes(n) => n.repo(),
         }
     }
 }
@@ -550,6 +560,14 @@ impl LinkedImages {
     pub fn find_boltwall(&self) -> Option<boltwall::BoltwallImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_boltwall() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_hermes(&self) -> Option<hermes::HermesImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_hermes() {
                 return Some(i);
             }
         }
@@ -832,6 +850,12 @@ impl Image {
         match self {
             Image::Bifrost(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Bifrost".to_string())),
+        }
+    }
+    pub fn as_hermes(&self) -> anyhow::Result<hermes::HermesImage> {
+        match self {
+            Image::Hermes(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Hermes".to_string())),
         }
     }
 }

@@ -345,6 +345,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
     use crate::images::bifrost::BifrostImage;
     use crate::images::graphmindset::GraphMindsetImage;
+    use crate::images::hermes::HermesImage;
     use crate::images::hive_relay::HiveRelayImage;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
@@ -359,6 +360,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
     let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
     let has_bifrost = stack.nodes.iter().any(|n| n.name() == "bifrost");
+    let has_hermes = stack.nodes.iter().any(|n| n.name() == "hermes");
     let has_graphmindset = stack.nodes.iter().any(|n| n.name() == "graphmindset");
 
     log::info!("=> migrating stack: ensuring second-brain nodes and links");
@@ -412,6 +414,14 @@ pub fn migrate_stack(stack: &mut Stack) {
         log::info!("=> added bifrost node");
     }
 
+    if !has_hermes {
+        // Subscription proxy for OAuth-backed LLM providers. No links: it
+        // talks only to the provider, and repo2graph reaches it by hostname.
+        let hermes = HermesImage::new("hermes", "latest", "8645");
+        stack.nodes.push(Node::Internal(Image::Hermes(hermes)));
+        log::info!("=> added hermes node");
+    }
+
     // Update existing Repo2Graph and Stakgraph links to include bifrost
     for node in &mut stack.nodes {
         match node {
@@ -422,6 +432,10 @@ pub fn migrate_stack(stack: &mut Stack) {
                 if !img.links.contains(&"jarvis".to_string()) {
                     img.links.push("jarvis".to_string());
                     log::info!("=> added jarvis link to repo2graph");
+                }
+                if !img.links.contains(&"hermes".to_string()) {
+                    img.links.push("hermes".to_string());
+                    log::info!("=> added hermes link to repo2graph");
                 }
             }
             Node::Internal(Image::Stakgraph(ref mut img)) => {
@@ -533,6 +547,7 @@ impl Stack {
                 Image::Vector(v) => Node::Internal(Image::Vector(v)),
                 Image::HiveRelay(h) => Node::Internal(Image::HiveRelay(h)),
                 Image::Bifrost(b) => Node::Internal(Image::Bifrost(b)),
+                Image::Hermes(h) => Node::Internal(Image::Hermes(h)),
             },
         });
         Stack {

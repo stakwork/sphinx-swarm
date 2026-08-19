@@ -254,6 +254,16 @@ pub enum SwarmCmd {
     ChangeReservedSwarmToActive(AssignSwarmNewDetails),
     UpdateSslCert,
     UpdateNeo4jConfig(UpdateNeo4jConfigRequest),
+    HermesAuthStart(HermesAuthRequest),
+    HermesAuthStatus(String),
+    HermesAuthList(HermesAuthRequest),
+    HermesAuthLogout(HermesAuthRequest),
+}
+
+/// `provider` defaults to "xai-oauth" when omitted.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HermesAuthRequest {
+    pub provider: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

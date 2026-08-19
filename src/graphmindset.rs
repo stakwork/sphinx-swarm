@@ -2,6 +2,7 @@ use crate::config::*;
 use crate::defaults::*;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::bot::BotImage;
+use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::graphmindset::GraphMindsetImage;
 use crate::images::navfiber::NavFiberImage;
@@ -84,11 +85,15 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     gm.links(vec!["jarvis"]);
     gm.host(host.clone());
 
+    // hermes (subscription proxy for OAuth-backed LLM providers)
+    v = "latest";
+    let hermes = HermesImage::new("hermes", v, "8645");
+
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall", "jarvis"]);
+    repo2graph.links(vec!["neo4j", "boltwall", "jarvis", "hermes"]);
 
     // stakgraph
     v = "latest";
@@ -105,6 +110,7 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
         Image::Jarvis(jarvis),
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
+        Image::Hermes(hermes),
         Image::Stakgraph(stakgraph),
     ]
 }
