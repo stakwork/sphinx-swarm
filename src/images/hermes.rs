@@ -86,8 +86,14 @@
 //!
 //! # Gotchas
 //!
-//!   - `hermes` is **not on PATH** for `docker exec`; the CLI lives in a venv.
-//!     Hence `HERMES_BIN` below.
+//!   - `proxy start` **exits immediately** when no credential is stored. As a
+//!     bare container command that crash-loops under `restart: unless-stopped`
+//!     and leaves nothing to exec into, so PID 1 is a retry loop instead —
+//!     see `proxy_command`. The container is up but idle until someone logs
+//!     in, then picks the proxy up on its own within ~30s.
+//!   - `create_and_init` skips containers that already exist, so changing the
+//!     command here does **not** reach deployed swarms. `recreate_stale_hermes`
+//!     in `builder.rs` removes mismatched containers on boot.
 //!   - `HERMES_HOME` must point at the named volume or credentials are lost on
 //!     every image pull by the auto-updater. See the test at the bottom.
 //!   - `proxy start` defaults to `--provider nous`. We pass `--provider xai`
@@ -111,8 +117,10 @@ use async_trait::async_trait;
 use bollard::{container::Config, Docker};
 use serde::{Deserialize, Serialize};
 
-/// Absolute path to the CLI inside the official image. `hermes` is not on
-/// PATH for `docker exec`, so every exec we issue has to spell it out.
+/// Absolute path to the CLI inside the official image. `hermes` does resolve
+/// on PATH for `docker exec` (the image's PATH carries /opt/hermes/bin), but
+/// the absolute venv path is stable regardless of how the entrypoint sets up
+/// the environment, so execs spell it out.
 pub const HERMES_BIN: &str = "/opt/hermes/.venv/bin/hermes";
 
 /// Mutable state dir. The image keeps its immutable app tree under
@@ -179,6 +187,39 @@ impl DockerHubImage for HermesImage {
     }
 }
 
+/// The proxy command, wrapped in a retry loop.
+///
+/// `proxy start` exits immediately with "Not logged into xAI Grok OAuth" when
+/// no credential is stored. Run as the container's whole command that kills
+/// the container, and `restart: unless-stopped` turns it into a crash loop —
+/// which also means there's no running container to exec the login into.
+///
+/// So PID 1 is a shell that keeps retrying instead. The container stays up
+/// unauthenticated (doing nothing useful, but alive and exec-able), and picks
+/// the proxy up on its own within `RETRY_SECS` of a successful login. No
+/// redeploy needed after authenticating.
+///
+/// `main-wrapper.sh` routes the container CMD three ways: no args runs
+/// `hermes`, a first arg that resolves as an executable is exec'd directly,
+/// and anything else is passed through as a `hermes` subcommand. `sh` takes
+/// the executable path, and `hermes` is on PATH inside it.
+fn proxy_command(node: &HermesImage) -> Vec<String> {
+    let start = format!(
+        "hermes proxy start --provider {} --host 0.0.0.0 --port {}",
+        node.provider, node.port
+    );
+    vec![
+        "sh".to_string(),
+        "-c".to_string(),
+        format!(
+            "while true; do {};              echo \"[swarm] hermes proxy exited (not logged in?); retrying in {}s\";              sleep {}; done",
+            start, RETRY_SECS, RETRY_SECS
+        ),
+    ]
+}
+
+const RETRY_SECS: u32 = 30;
+
 fn hermes(node: &HermesImage) -> Config<String> {
     let name = node.name.clone();
     let repo = node.repo();
@@ -187,6 +228,8 @@ fn hermes(node: &HermesImage) -> Config<String> {
     let root_vol = &repo.root_volume;
     let ports = vec![node.port.clone()];
 
+    // The image already sets HERMES_HOME=/opt/data itself; we set it anyway so
+    // the invariant is visible here and survives an upstream default change.
     let env = vec![format!("HERMES_HOME={}", HERMES_HOME)];
 
     // The proxy accepts ANY bearer token — it attaches the real OAuth
@@ -198,16 +241,7 @@ fn hermes(node: &HermesImage) -> Config<String> {
         image: Some(format!("{}:{}", image, node.version)),
         hostname: Some(domain(&name)),
         exposed_ports: exposed_ports(ports),
-        cmd: Some(vec![
-            "proxy".to_string(),
-            "start".to_string(),
-            "--provider".to_string(),
-            node.provider.clone(),
-            "--port".to_string(),
-            node.port.clone(),
-            "--host".to_string(),
-            "0.0.0.0".to_string(),
-        ]),
+        cmd: Some(proxy_command(node)),
         env: Some(env),
         // Mirrors stdin_open/tty in the upstream compose example.
         open_stdin: Some(true),
@@ -226,13 +260,22 @@ mod tests {
         let img = HermesImage::new("hermes", "latest", "8645");
         let c = hermes(&img);
 
+        let cmd = c.cmd.unwrap();
+
+        // PID 1 must be a shell loop, not `proxy start` directly: the latter
+        // exits when unauthenticated and crash-loops the container, leaving
+        // nothing to exec the login into.
+        assert_eq!(cmd[0], "sh");
+        assert_eq!(cmd[1], "-c");
+        assert!(cmd[2].starts_with("while true; do "), "got: {}", cmd[2]);
+        assert!(cmd[2].contains("sleep 30"), "got: {}", cmd[2]);
+
         // --provider matters: `proxy start` defaults to nous, so without it
         // an xai-oauth login would serve the wrong upstream.
-        assert_eq!(
-            c.cmd.unwrap(),
-            vec![
-                "proxy", "start", "--provider", "xai", "--port", "8645", "--host", "0.0.0.0"
-            ]
+        assert!(
+            cmd[2].contains("hermes proxy start --provider xai --host 0.0.0.0 --port 8645"),
+            "got: {}",
+            cmd[2]
         );
         assert_eq!(c.image.unwrap(), "nousresearch/hermes-agent:latest");
         assert_eq!(c.hostname.unwrap(), "hermes.sphinx");
