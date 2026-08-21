@@ -35,3 +35,6 @@ export async function get_balance(tag: string) {
   return await btcCmd("GetBalance", tag);
 }
 
+export async function get_transaction_status(tag: string, txid: string) {
+  return await btcCmd("GetTransactionStatus", tag, { txid });
+}

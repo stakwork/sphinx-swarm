@@ -10,7 +10,7 @@
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
-  import { channels, lightningPeers, peers } from "../store";
+  import { channels, lightningPeers, peers, stack } from "../store";
   import { formatSatsNumbers } from "../helpers";
   import { getTransactionStatus, getBlockTip } from "../helpers/bitcoin";
   import Exit from "carbon-icons-svelte/lib/Exit.svelte";
@@ -27,7 +27,24 @@
   export let type = "";
   export let onclose = (id: string, dest: string) => {};
 
-  let channel_arr = $channels[tag];
+  let channel_arr = $channels[tag] || [];
+
+  $: channel_arr = $channels[tag] || [];
+  $: btcTag = getBitcoinTag();
+
+  function getBitcoinTag() {
+    const nodes = $stack.nodes || [];
+    const lightningNode = nodes.find((node) => node.name === tag);
+    const linkedBitcoin = lightningNode?.links?.find((link) =>
+      nodes.some((node) => node.name === link && node.type === "Btc")
+    );
+    return (
+      linkedBitcoin ||
+      nodes.find((node) => node.type === "Btc" && node.place === "Internal")
+        ?.name ||
+      "bitcoind"
+    );
+  }
 
   $: peersObj = convertLightningPeersToObject($lightningPeers);
 
@@ -106,12 +123,18 @@
         return 0;
       }
       let tx_id = channel_point_arr[0];
-      const transaction_status = await getTransactionStatus(tx_id);
+      const transaction_status = await getTransactionStatus(
+        tx_id,
+        $stack.network,
+        btcTag
+      );
       if (!transaction_status.confirmed) {
         return 0;
       }
-      const currentBlockHeight = await getBlockTip();
-      return currentBlockHeight - transaction_status.block_height + 1;
+      const currentBlockHeight = await getBlockTip($stack.network, btcTag);
+      return transaction_status.block_height != null
+        ? currentBlockHeight - transaction_status.block_height + 1
+        : transaction_status.confirmations || 0;
     } catch (e) {
       console.warn(e);
       return 0;
@@ -120,17 +143,23 @@
 
   async function getChannelsConfirmation() {
     let new_channel = [];
-    let notActiveExist = false;
+    let updated = false;
+
     for (const chan of channel_arr) {
       if (!chan.active) {
-        notActiveExist = true;
         const confirmation = await getConfirmation(chan);
         new_channel.push({ ...chan, confirmation });
+        updated = updated || chan.confirmation !== confirmation;
+      } else {
+        new_channel.push(chan);
       }
     }
-    // if (notActiveExist) {
-    //   channel_arr = [...new_channel];
-    // }
+
+    if (updated) {
+      channels.update((chans) => {
+        return { ...chans, [tag]: new_channel };
+      });
+    }
   }
 
   function openReconnectPeerModal(e, pubkey) {

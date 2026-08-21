@@ -29,6 +29,7 @@ export type Cmd =
   | "ListUsers"
   | "AddUser"
   | "GetInfo"
+  | "GetTransactionStatus"
   | "GetContainerLogs"
   | "TestMine"
   | "ListChannels"
