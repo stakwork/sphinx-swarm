@@ -25,6 +25,55 @@ pub fn shutdown_now() {
     SHUTDOWN.store(true, Ordering::Relaxed);
 }
 
+/// One-time repair for hermes containers created before the retry-loop command
+/// landed. Those ran `hermes proxy start` directly as PID 1, which exits at
+/// once when no credential is stored — so `restart: unless-stopped` turned
+/// them into a crash loop, with nothing running to exec a login into.
+///
+/// `create_and_init` returns early for containers that already exist, so a
+/// swarm upgrade alone never replaces them. Compare the live container's Cmd
+/// against what we'd generate now and remove it if they differ; the normal
+/// build path immediately recreates it with the current config. Idempotent,
+/// and it picks up any future command change for free.
+///
+/// Deliberately best-effort: a failure here must not block the rest of the
+/// stack from starting.
+async fn recreate_stale_hermes(docker: &Docker, stack: &Stack) -> Result<()> {
+    let node = match stack.nodes.iter().find(|n| n.name() == "hermes") {
+        Some(n) => n,
+        None => return Ok(()),
+    };
+    let img = match node.as_internal() {
+        Ok(Image::Hermes(h)) => h,
+        _ => return Ok(()),
+    };
+
+    let hostname = domain(&img.name);
+    let id = match id_by_name(docker, &hostname).await {
+        Some(id) => id,
+        None => return Ok(()),
+    };
+
+    let desired = img.make_config(&stack.nodes, docker).await?.cmd;
+    let current = docker
+        .inspect_container(&hostname, None)
+        .await?
+        .config
+        .and_then(|c| c.cmd);
+
+    if current == desired {
+        return Ok(());
+    }
+
+    log::info!(
+        "=> hermes container has a stale command, recreating (was {:?})",
+        current
+    );
+    let _ = stop_container(docker, &id).await;
+    remove_container(docker, &id).await?;
+    Ok(())
+}
+
 // return a map of name:docker_id
 pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<ClientMap> {
     // set global mem limit if it exists
@@ -34,6 +83,10 @@ pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<C
     }
     // first create the default network
     create_network(docker, None).await?;
+    // repair containers whose baked-in command is stale before we build
+    if let Err(e) = recreate_stale_hermes(docker, stack).await {
+        log::warn!("recreate_stale_hermes failed: {:?}", e);
+    }
     // then add the containers
     let mut clients: ClientMap = Default::default();
     let nodes = stack.nodes.clone();

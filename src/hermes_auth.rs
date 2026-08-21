@@ -86,11 +86,16 @@ pub async fn start(docker: &Docker, provider: &str) -> Result<AuthSession> {
     let provider = validate_provider(provider)?;
     let container = domain(HERMES_NODE);
 
+    // --type oauth is what the container's own "not logged in" message tells
+    // you to run; --no-browser keeps it from trying to spawn one and makes it
+    // print the verification URL instead.
     let cmd = vec![
         HERMES_BIN.to_string(),
         "auth".to_string(),
         "add".to_string(),
         provider.clone(),
+        "--type".to_string(),
+        "oauth".to_string(),
         "--no-browser".to_string(),
     ];
 
@@ -179,10 +184,17 @@ pub async fn status(session_id: &str) -> Result<AuthSession> {
     }
 }
 
-/// `hermes auth list <provider>` — fast, exits on its own.
+/// Login state plus stored credentials for a provider.
+///
+/// `auth list` alone is not enough: with nothing stored it prints an empty
+/// string and exits 0, which tells a caller nothing. `auth status` is the one
+/// that actually answers "am I logged in?" ("xai-oauth: logged out (...)"), so
+/// both run and the output is concatenated.
 pub async fn list(docker: &Docker, provider: &str) -> Result<String> {
     let provider = validate_provider(provider)?;
-    run(docker, vec!["auth", "list", &provider]).await
+    let status = run(docker, vec!["auth", "status", &provider]).await?;
+    let list = run(docker, vec!["auth", "list", &provider]).await?;
+    Ok(format!("{}{}", status, list))
 }
 
 /// `hermes auth logout <provider>` — drops every stored credential for it.
