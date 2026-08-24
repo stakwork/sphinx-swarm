@@ -285,7 +285,7 @@ fn boltwall(
 
     match getenv("BOLTWALL_TESTING_FREE") {
         Ok(env_value) => {
-            env.push(format!("BOLTWALL_TESTING_FREE={}", env_value));
+            env.push(format!("TESTING_FREE={}", env_value));
         }
         Err(err) => {
             log::error!("Error geting env host: {}", err.to_string())
