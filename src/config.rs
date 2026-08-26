@@ -437,6 +437,12 @@ pub fn migrate_stack(stack: &mut Stack) {
                     img.links.push("hermes".to_string());
                     log::info!("=> added hermes link to repo2graph");
                 }
+                // Existing swarms predate the repo2graph↔redis link; add
+                // it on migration so REDIS_URL gets set. Idempotent.
+                if !img.links.contains(&"redis".to_string()) {
+                    img.links.push("redis".to_string());
+                    log::info!("=> added redis link to repo2graph");
+                }
             }
             Node::Internal(Image::Stakgraph(ref mut img)) => {
                 if !img.links.contains(&"bifrost".to_string()) {

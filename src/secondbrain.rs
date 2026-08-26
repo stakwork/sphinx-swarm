@@ -82,7 +82,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall", "bifrost", "jarvis", "hermes"]);
+    repo2graph.links(vec!["neo4j", "boltwall", "bifrost", "jarvis", "hermes", "redis"]);
 
     // stakgraph
     v = "latest";

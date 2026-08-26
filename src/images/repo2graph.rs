@@ -5,6 +5,7 @@ use crate::images::boltwall::BoltwallImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::redis::RedisImage;
 use crate::images::traefik::shared_host;
 use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
@@ -57,7 +58,8 @@ impl DockerConfig for Repo2GraphImage {
         let boltwall = li.find_boltwall();
         let jarvis = li.find_jarvis();
         let hermes = li.find_hermes();
-        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis, &hermes)?)
+        let redis = li.find_redis();
+        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis, &hermes, &redis)?)
     }
 }
 
@@ -78,6 +80,7 @@ fn repo2graph(
     boltwall: &Option<BoltwallImage>,
     jarvis: &Option<JarvisImage>,
     hermes: &Option<HermesImage>,
+    redis: &Option<RedisImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -109,6 +112,9 @@ fn repo2graph(
     }
     if let Some(h) = hermes {
         env.push(format!("HERMES_URL=http://{}:{}", domain(&h.name), h.port));
+    }
+    if let Some(r) = redis {
+        env.push(format!("REDIS_URL=redis://{}:{}", domain(&r.name), r.http_port));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -185,7 +191,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -206,7 +212,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -230,7 +236,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -241,12 +247,39 @@ mod tests {
         );
 
         let hermes = HermesImage::new("hermes", "latest", "8645");
-        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes)).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None).unwrap();
         assert!(
             with.env
                 .unwrap()
                 .contains(&"HERMES_URL=http://hermes.sphinx:8645".to_string()),
             "HERMES_URL should point at the hermes container"
+        );
+    }
+
+    #[test]
+    fn test_redis_url_is_emitted_only_when_linked() {
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at REDIS_URL.
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        assert!(
+            !without
+                .env
+                .unwrap()
+                .iter()
+                .any(|e| e.starts_with("REDIS_URL=")),
+            "REDIS_URL should be absent when redis isn't linked"
+        );
+
+        let redis = RedisImage::new("redis", "latest");
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis)).unwrap();
+        assert!(
+            with.env
+                .unwrap()
+                .contains(&"REDIS_URL=redis://redis.sphinx:6379".to_string()),
+            "REDIS_URL should point at the redis container"
         );
     }
 
@@ -261,7 +294,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
