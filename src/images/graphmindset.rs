@@ -65,12 +65,25 @@ fn graphmindset(node: &GraphMindsetImage) -> Config<String> {
         format!("PORT={}", node.port),
     ];
 
-    match getenv("NEXT_PUBLIC_API_URL") {
+    // GRAPH_MINDSET_API_URL wins; NEXT_PUBLIC_API_URL is still accepted so
+    // existing swarm environments keep working without an edit.
+    //
+    // The resolved value is passed under both names. GraphMindset reads
+    // GRAPH_MINDSET_API_URL from the live environment on each boot and injects
+    // it into the served document — a NEXT_PUBLIC_* name cannot do that job,
+    // because Next inlines anything with that prefix at build time, freezing
+    // whatever was set when the image was built.
+    let api_url = getenv("GRAPH_MINDSET_API_URL")
+        .or_else(|_| getenv("NEXT_PUBLIC_API_URL"));
+
+    match api_url {
         Ok(api_url) => {
+            env.push(format!("GRAPH_MINDSET_API_URL={}", api_url));
+            // Retained for images built before the runtime-config change.
             env.push(format!("NEXT_PUBLIC_API_URL={}", api_url));
         }
         Err(_) => {
-            log::debug!("NEXT_PUBLIC_API_URL not set");
+            log::debug!("neither GRAPH_MINDSET_API_URL nor NEXT_PUBLIC_API_URL is set");
         }
     }
 
