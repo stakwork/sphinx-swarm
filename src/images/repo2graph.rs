@@ -22,6 +22,8 @@ pub struct Repo2GraphImage {
     pub host: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub llm_provider: Option<String>, // openai by default
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hf_token: Option<String>,
 }
 
 impl Repo2GraphImage {
@@ -33,6 +35,7 @@ impl Repo2GraphImage {
             links: vec![],
             host: None,
             llm_provider: None,
+            hf_token: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -125,6 +128,9 @@ fn repo2graph(
     }
     if let Ok(openrouter_api_key) = getenv("OPENROUTER_API_KEY") {
         env.push(format!("OPENROUTER_API_KEY={}", openrouter_api_key));
+    }
+    if let Some(hf_token) = img.hf_token.clone().or_else(|| getenv("HF_TOKEN").ok()) {
+        env.push(format!("HF_TOKEN={}", hf_token));
     }
 
     let sessions_dir = "/usr/src/app/sessions";
