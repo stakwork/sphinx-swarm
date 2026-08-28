@@ -149,6 +149,13 @@ fn repo2graph(
     let reqs_dir = "/usr/src/app/reqs";
     env.push(format!("REQS_DIR={}", reqs_dir));
 
+    // Durable dir for the vein cache (GAIA dataset checkout + scorer +
+    // on-demand python venv). The gated dataset cannot be baked into the
+    // image and a cold clone takes minutes, so a named volume makes
+    // bootstrap a one-time cost instead of a per-recreation one.
+    let cache_dir = "/usr/src/app/cache";
+    env.push(format!("VEIN_CACHE_DIR={}", cache_dir));
+
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
         "/usr/src/app/tests/generated_tests",
@@ -156,7 +163,8 @@ fn repo2graph(
     let sessions_vol = volume_string(&format!("{}-sessions", img.name), sessions_dir);
     let artifacts_vol = volume_string(&format!("{}-artifacts", img.name), artifacts_dir);
     let reqs_vol = volume_string(&format!("{}-reqs", img.name), reqs_dir);
-    let extra_vols = vec![tests_vol, sessions_vol, artifacts_vol, reqs_vol];
+    let cache_vol = volume_string(&format!("{}-cache", img.name), cache_dir);
+    let extra_vols = vec![tests_vol, sessions_vol, artifacts_vol, reqs_vol, cache_vol];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
@@ -231,6 +239,43 @@ mod tests {
                 .iter()
                 .any(|b| b == "repo2graph-reqs.sphinx:/usr/src/app/reqs:rw"),
             "binds should contain repo2graph-reqs.sphinx:/usr/src/app/reqs:rw, got: {:?}",
+            binds
+        );
+    }
+
+    #[test]
+    fn test_cache_vol_and_env_are_emitted() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("GITHUB_REQUEST_TOKEN");
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+
+        assert!(
+            config
+                .env
+                .as_ref()
+                .unwrap()
+                .contains(&"VEIN_CACHE_DIR=/usr/src/app/cache".to_string()),
+            "env should contain VEIN_CACHE_DIR=/usr/src/app/cache"
+        );
+
+        let binds = config
+            .host_config
+            .expect("host_config must be set")
+            .binds
+            .expect("binds must be set");
+
+        assert!(
+            binds
+                .iter()
+                .any(|b| b == "repo2graph-cache.sphinx:/usr/src/app/cache:rw"),
+            "binds should contain repo2graph-cache.sphinx:/usr/src/app/cache:rw, got: {:?}",
             binds
         );
     }
