@@ -161,6 +161,18 @@ fn jarvis(
     if let Ok(youtube_api_token) = getenv("YOUTUBE_API_TOKEN") {
         env.push(format!("YOUTUBE_API_TOKEN={}", youtube_api_token));
     }
+    // Gunicorn sizing. Jarvis defaults to 4 workers x 8 threads, and each
+    // worker carries its own torch/transformers runtime (~1.25GB unique RSS
+    // measured in prod), so worker count dominates the container's memory.
+    // Left unset here so the app keeps its own defaults; set these in the
+    // swarm .env to size jarvis to the host. Concurrency is workers x threads,
+    // so 2x16 holds the same 32 slots at half the process count.
+    if let Ok(gunicorn_worker) = getenv("GUNICORN_WORKER") {
+        env.push(format!("GUNICORN_WORKER={}", gunicorn_worker));
+    }
+    if let Ok(gunicorn_threads) = getenv("GUNICORN_THREADS") {
+        env.push(format!("GUNICORN_THREADS={}", gunicorn_threads));
+    }
     if let Ok(jarvis_feature_flag_schema) = getenv("JARVIS_FEATURE_FLAG_SCHEMA") {
         env.push(format!(
             "FEATURE_FLAG_SCHEMA={}",
