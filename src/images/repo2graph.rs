@@ -156,6 +156,14 @@ fn repo2graph(
     let cache_dir = "/usr/src/app/cache";
     env.push(format!("VEIN_CACHE_DIR={}", cache_dir));
 
+    // Durable dir for the lab vein workspace (run history/outputs plus any
+    // steps/workflows edited through the vein UI/API). Without the env var the
+    // lab defaults to ./lab-workspace in the container's writable layer, which
+    // is lost on container recreation. Templates are re-seeded on boot; run
+    // data is not.
+    let lab_ws_dir = "/usr/src/app/lab-workspace";
+    env.push(format!("VEIN_LAB_WORKSPACE={}", lab_ws_dir));
+
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
         "/usr/src/app/tests/generated_tests",
@@ -164,7 +172,15 @@ fn repo2graph(
     let artifacts_vol = volume_string(&format!("{}-artifacts", img.name), artifacts_dir);
     let reqs_vol = volume_string(&format!("{}-reqs", img.name), reqs_dir);
     let cache_vol = volume_string(&format!("{}-cache", img.name), cache_dir);
-    let extra_vols = vec![tests_vol, sessions_vol, artifacts_vol, reqs_vol, cache_vol];
+    let lab_ws_vol = volume_string(&format!("{}-lab-workspace", img.name), lab_ws_dir);
+    let extra_vols = vec![
+        tests_vol,
+        sessions_vol,
+        artifacts_vol,
+        reqs_vol,
+        cache_vol,
+        lab_ws_vol,
+    ];
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&img.name)),
@@ -276,6 +292,43 @@ mod tests {
                 .iter()
                 .any(|b| b == "repo2graph-cache.sphinx:/usr/src/app/cache:rw"),
             "binds should contain repo2graph-cache.sphinx:/usr/src/app/cache:rw, got: {:?}",
+            binds
+        );
+    }
+
+    #[test]
+    fn test_lab_workspace_vol_and_env_are_emitted() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("GITHUB_REQUEST_TOKEN");
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+
+        assert!(
+            config
+                .env
+                .as_ref()
+                .unwrap()
+                .contains(&"VEIN_LAB_WORKSPACE=/usr/src/app/lab-workspace".to_string()),
+            "env should contain VEIN_LAB_WORKSPACE=/usr/src/app/lab-workspace"
+        );
+
+        let binds = config
+            .host_config
+            .expect("host_config must be set")
+            .binds
+            .expect("binds must be set");
+
+        assert!(
+            binds
+                .iter()
+                .any(|b| b == "repo2graph-lab-workspace.sphinx:/usr/src/app/lab-workspace:rw"),
+            "binds should contain repo2graph-lab-workspace.sphinx:/usr/src/app/lab-workspace:rw, got: {:?}",
             binds
         );
     }
