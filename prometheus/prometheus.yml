@@ -22,3 +22,27 @@ scrape_configs:
       # Label the instances with their name and availability zone
       - source_labels: [__meta_ec2_tag_Name, __meta_ec2_availability_zone]
         target_label: instance
+        replacement: "${1}-${2}"
+  
+  - job_name: 'jarvis'
+    ec2_sd_configs:
+      - region: us-east-1
+        port: 8444
+    scheme: http  # Ensure Prometheus uses HTTP
+    metrics_path: /jarvis/metrics
+    relabel_configs:
+      # Keep only the EC2 instances with the tag Swarm set to superadmin
+      - source_labels: [__meta_ec2_tag_Swarm]
+        regex: superadmin
+        action: keep
+
+      # Extract the public IP from EC2 metadata and assign it to __address__
+      - source_labels: [__meta_ec2_private_ip]
+        regex: (.*)
+        target_label: __address__
+        replacement: "${1}:8444"
+
+      # Label the instances with their name and availability zone
+      - source_labels: [__meta_ec2_tag_Name, __meta_ec2_availability_zone]
+        target_label: instance
+        replacement: "${1}-${2}"
