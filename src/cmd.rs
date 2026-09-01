@@ -275,6 +275,7 @@ pub enum SwarmCmd {
     RestartContainer(String),
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
+    GetHostStorage,
     AddBoltwallAdminPubkey(AddAdminRequest),
     GetBoltwallSuperAdmin,
     AddBoltwallUser(AddUserRequest),
@@ -477,12 +478,32 @@ pub enum HsmdCmd {
     GetClients,
 }
 
+#[cfg(test)]
+mod ready_tests {
+    use super::*;
+
+    #[test]
+    fn get_host_storage_can_run_before_ready() {
+        let cmd = Cmd::Swarm(SwarmCmd::GetHostStorage);
+        assert!(cmd.can_run_before_ready());
+        // existing allowlist unaffected
+        assert!(Cmd::Swarm(SwarmCmd::GetConfig).can_run_before_ready());
+        assert!(Cmd::Swarm(SwarmCmd::Login(LoginInfo {
+            username: "u".into(),
+            password: "p".into(),
+        }))
+        .can_run_before_ready());
+        assert!(!Cmd::Swarm(SwarmCmd::ListContainers).can_run_before_ready());
+    }
+}
+
 impl Cmd {
     pub fn can_run_before_ready(&self) -> bool {
         match self {
             Cmd::Swarm(c) => match c {
                 SwarmCmd::GetConfig => true,
                 SwarmCmd::Login(_) => true,
+                SwarmCmd::GetHostStorage => true,
                 _ => false,
             },
             _ => false,

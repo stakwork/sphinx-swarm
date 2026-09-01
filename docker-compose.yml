@@ -91,6 +91,17 @@ services:
       - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
       - HF_TOKEN=$HF_TOKEN # repo2graph GAIA dataset bootstrap (gated HF repo)
 
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+
 networks:
   sphinx-swarm:
     external: true

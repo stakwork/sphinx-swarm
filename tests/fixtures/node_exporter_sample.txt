@@ -1,0 +1,24 @@
+# HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
+# TYPE node_filesystem_avail_bytes gauge
+node_filesystem_avail_bytes{device="/dev/nvme0n1p1",fstype="ext4",mountpoint="/"} 8.5e+10
+node_filesystem_avail_bytes{device="/dev/nvme1n1p1",fstype="ext4",mountpoint="/var/lib/docker"} 1.234e+11
+node_filesystem_avail_bytes{device="tmpfs",fstype="tmpfs",mountpoint="/run"} 5.0e+08
+node_filesystem_avail_bytes{device="overlay",fstype="overlay",mountpoint="/"} 4.2e+10
+node_filesystem_avail_bytes{device="nodev",fstype="squashfs",mountpoint="/snap/core20/1"} 3.5e+07
+node_filesystem_avail_bytes{device="/dev/nvme0n1p1",fstype="ext4",mountpoint="/host/proc/1/root"} 8.5e+10
+# HELP node_filesystem_size_bytes Filesystem size in bytes.
+# TYPE node_filesystem_size_bytes gauge
+node_filesystem_size_bytes{device="/dev/nvme0n1p1",fstype="ext4",mountpoint="/"} 1.0e+11
+node_filesystem_size_bytes{device="/dev/nvme1n1p1",fstype="ext4",mountpoint="/var/lib/docker"} 2.0e+11
+node_filesystem_size_bytes{device="tmpfs",fstype="tmpfs",mountpoint="/run"} 1.0e+09
+node_filesystem_size_bytes{device="overlay",fstype="overlay",mountpoint="/"} 5.0e+10
+node_filesystem_size_bytes{device="nodev",fstype="squashfs",mountpoint="/snap/core20/1"} 6.5e+07
+node_filesystem_size_bytes{device="/dev/nvme0n1p1",fstype="ext4",mountpoint="/host/proc/1/root"} 1.0e+11
+# HELP node_filesystem_free_bytes Filesystem free space in bytes.
+# TYPE node_filesystem_free_bytes gauge
+node_filesystem_free_bytes{device="/dev/nvme0n1p1",fstype="ext4",mountpoint="/"} 9.0e+10
+node_filesystem_free_bytes{device="/dev/nvme1n1p1",fstype="ext4",mountpoint="/var/lib/docker"} 1.5e+11
+node_filesystem_free_bytes{device="tmpfs",fstype="tmpfs",mountpoint="/run"} 9.0e+08
+node_filesystem_free_bytes{device="overlay",fstype="overlay",mountpoint="/"} 4.4e+10
+node_filesystem_free_bytes{device="nodev",fstype="squashfs",mountpoint="/snap/core20/1"} 6.5e+07
+node_filesystem_free_bytes{device="/dev/nvme0n1p1",fstype="ext4",mountpoint="/host/proc/1/root"} 9.0e+10

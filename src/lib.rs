@@ -15,6 +15,7 @@ pub mod fast_service_update;
 pub mod graphmindset;
 pub mod handler;
 pub mod hermes_auth;
+pub mod host_stats;
 pub mod images;
 pub mod logs;
 pub mod mount_backedup_volume;
