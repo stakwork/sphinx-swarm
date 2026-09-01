@@ -1098,6 +1098,7 @@ pub async fn create_swarm_ec2(
         owner_pubkey: info.owner_pubkey.clone(),
         workspace_type: info.workspace_type.clone(),
         cln_pubkey: None,
+        last_heartbeat_at: None,
     };
 
     state_write(proj, |state| {
@@ -1694,6 +1695,7 @@ pub fn get_child_swarm_credentials(
                         owner_pubkey: None,
                         workspace_type: None,
                         cln_pubkey: None,
+                        last_heartbeat_at: None,
                     })
             } else {
                 None
@@ -1759,6 +1761,7 @@ mod tests {
             owner_pubkey: None,
             workspace_type: None,
             cln_pubkey: None,
+            last_heartbeat_at: None,
         });
         state
     }
