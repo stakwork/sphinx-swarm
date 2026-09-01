@@ -31,6 +31,7 @@ export type Cmd =
   | "GetInfo"
   | "GetContainerLogs"
   | "TestMine"
+  | "GetTransactionStatus"
   | "ListChannels"
   | "AddPeer"
   | "ListPeers"
