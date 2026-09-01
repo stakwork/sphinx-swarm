@@ -36,6 +36,60 @@ use rocket::tokio::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
+#[cfg(test)]
+mod access_tests {
+    use super::*;
+
+    fn stack_with_role(role: Role) -> Stack {
+        Stack {
+            network: "regtest".to_string(),
+            nodes: vec![],
+            host: None,
+            users: vec![User {
+                id: 1,
+                username: "u".to_string(),
+                pass_hash: "x".to_string(),
+                pubkey: None,
+                role,
+            }],
+            jwt_key: "k".to_string(),
+            ready: true,
+            ip: None,
+            auto_update: None,
+            auto_restart: None,
+            custom_2b_domain: None,
+            global_mem_limit: None,
+            backup_services: None,
+            backup_files: None,
+            lightning_peers: None,
+            ssl_cert_last_modified: None,
+            instance_id: None,
+        }
+    }
+
+    #[test]
+    fn get_host_storage_allowed_for_all_roles() {
+        for role in [Role::Admin, Role::SubAdmin, Role::Super] {
+            let stack = stack_with_role(role.clone());
+            let cmd = Cmd::Swarm(SwarmCmd::GetHostStorage);
+            assert!(
+                access(&cmd, &stack, &Some(1)),
+                "GetHostStorage must be allowed for {:?} (sub-admin visibility is a documented accept)",
+                role
+            );
+        }
+    }
+
+    #[test]
+    fn get_host_storage_requires_authenticated_user() {
+        let stack = stack_with_role(Role::Admin);
+        let cmd = Cmd::Swarm(SwarmCmd::GetHostStorage);
+        assert!(!access(&cmd, &stack, &None), "no user_id => denied");
+        let stack_unknown = stack_with_role(Role::Super);
+        assert!(!access(&cmd, &stack_unknown, &Some(999)), "unknown user id => denied");
+    }
+}
+
 fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
     // login needs no auth
     if let Cmd::Swarm(c) = cmd {
@@ -69,6 +123,7 @@ fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ChangePassword(_) => true,
                 SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 SwarmCmd::GetApiToken => true,
+                SwarmCmd::GetHostStorage => true,
                 SwarmCmd::ChangeReservedSwarmToActive(_) => true,
                 SwarmCmd::UpdateEvn(_) => true,
                 SwarmCmd::GetEnv(_) => true,
@@ -291,6 +346,24 @@ pub async fn handle(
                 let containers = get_container_statistics(&docker, container_name).await?;
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
+            }
+            SwarmCmd::GetHostStorage => {
+                let started = std::time::Instant::now();
+                let nodes = config::stack_read(|s| s.nodes.clone()).await;
+                let result = crate::host_stats::get_host_storage(docker, &nodes).await;
+                let root_free = result.docker_root_filesystem.as_deref().and_then(|root| {
+                    result.filesystems.iter().find(|f| f.mount == root).map(|f| f.free_bytes)
+                });
+                log::info!(
+                    "GetHostStorage source={} host_visible={} root_free_bytes={:?} neo4j_bytes={:?} errors={} elapsed_ms={}",
+                    result.source,
+                    result.host_visible,
+                    root_free,
+                    result.neo4j.as_ref().and_then(|n| n.size_bytes),
+                    result.errors.len(),
+                    started.elapsed().as_millis()
+                );
+                Some(serde_json::to_string(&result)?)
             }
             SwarmCmd::AddBoltwallAdminPubkey(admin) => {
                 log::info!("AddBoltwallAdminPubkey ->pubkey {}, name {:?}", admin.pubkey, admin.name);

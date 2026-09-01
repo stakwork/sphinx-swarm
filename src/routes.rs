@@ -105,7 +105,9 @@ fn timeout_secs() -> u64 {
 }
 
 fn fmt_err(err: &str) -> String {
-    format!("{{\"stack_error\":\"{}\"}}", err)
+    // Escape quotes/backslashes so an error string containing device/mount
+    // names (influenceable input) can't produce malformed or injected JSON.
+    serde_json::json!({ "stack_error": err }).to_string()
 }
 
 /// Call handle() directly with a timeout. Returns the JSON response string.
@@ -507,4 +509,31 @@ pub async fn check_signup_challenge_legacy(
         return Err(Error::Unauthorized);
     }
     Ok(reply)
+}
+
+#[cfg(test)]
+mod fmt_err_tests {
+    use super::fmt_err;
+
+    /// A device/mount name containing quotes/backslashes (influenceable input,
+    /// parsed from node_exporter labels) must not produce malformed or
+    /// injectable JSON.
+    #[test]
+    fn fmt_err_escapes_quotes_and_backslashes() {
+        let payload = fmt_err("bad device \"/dev/x\\y\" ended");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&payload).expect("fmt_err must always produce valid JSON");
+        assert_eq!(
+            parsed["stack_error"],
+            serde_json::Value::String("bad device \"/dev/x\\y\" ended".to_string())
+        );
+        // no key injection through raw interpolation
+        let injected = fmt_err("\",\"admin\":true,\"x\":\"");
+        let parsed: serde_json::Value = serde_json::from_str(&injected).unwrap();
+        assert_eq!(
+            parsed["stack_error"],
+            serde_json::Value::String("\",\"admin\":true,\"x\":\"".to_string())
+        );
+        assert!(parsed.get("admin").is_none());
+    }
 }

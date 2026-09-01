@@ -1,0 +1,30 @@
+{
+  "Volumes": [
+    {
+      "Name": "neo4j.sphinx",
+      "Driver": "local",
+      "Mountpoint": "/var/lib/docker/volumes/neo4j.sphinx/_data",
+      "Labels": {},
+      "Scope": "local",
+      "Options": {},
+      "UsageData": { "Size": 536870912000, "RefCount": 1 }
+    },
+    {
+      "Name": "unknown_driver.vol",
+      "Driver": "other",
+      "Mountpoint": "/mnt/unknown_driver.vol",
+      "Labels": {},
+      "Scope": "local",
+      "Options": {},
+      "UsageData": { "Size": -1, "RefCount": -1 }
+    },
+    {
+      "Name": "no_usage_data.vol",
+      "Driver": "local",
+      "Mountpoint": "/var/lib/docker/volumes/no_usage_data.vol/_data",
+      "Labels": {},
+      "Scope": "local",
+      "Options": {}
+    }
+  ]
+}

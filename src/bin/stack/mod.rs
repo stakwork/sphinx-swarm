@@ -16,6 +16,10 @@ use tokio::sync::Mutex;
 
 #[rocket::main]
 async fn main() -> Result<()> {
+    // Pin the node_exporter scrape target once at startup (SSRF guard: later
+    // runtime env writes can never repoint the GetHostStorage collector).
+    sphinx_swarm::host_stats::init_node_exporter_target();
+
     dotenv::dotenv().ok();
 
     let docker = dockr();

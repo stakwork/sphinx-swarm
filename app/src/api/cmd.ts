@@ -58,6 +58,7 @@ export type Cmd =
   | "ListPays"
   | "ListPayments"
   | "GetStatistics"
+  | "GetHostStorage"
   | "ListPendingChannels"
   | "GetClients"
   | "AddBoltwallAdminPubkey"

@@ -10,6 +10,8 @@ bitcoin = { version = "0.29.2", default-features = false, features = [
     "std",
 ] }
 bollard = "0.18"
+# safe statvfs wrapper for the /vol host-bind fallback (no raw libc FFI)
+nix = { version = "0.29", features = ["fs"] }
 futures-core = "0.3"
 futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
