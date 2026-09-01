@@ -203,6 +203,12 @@ async fn test_handler_flow() -> Result<()> {
     eprintln!("\n=== test_access_control ===");
     test_access_control(&docker).await?;
 
+    eprintln!("\n=== test_get_host_storage ===");
+    test_get_host_storage(&docker).await?;
+
+    eprintln!("\n=== test_get_host_storage_cache_and_singleflight ===");
+    test_get_host_storage_cache_and_singleflight(&docker).await?;
+
     // --- New test (needs live bitcoind container) ---
     eprintln!("\n=== test_concurrent_bitcoind_calls ===");
     test_concurrent_bitcoind_calls(&docker).await?;
@@ -746,5 +752,116 @@ async fn test_access_control(docker: &Docker) -> Result<()> {
     );
     eprintln!("[pass] Login with user_id=None -> allowed, returned token");
 
+    Ok(())
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GetHostStorage: end-to-end through handle()
+// ═══════════════════════════════════════════════════════════════════════
+
+/// One end-to-end GetHostStorage call through handle() on a stack WITHOUT a
+/// Neo4j node: the response must deserialize into HostStorage with
+/// `neo4j: null` (a valid, non-error response) and errors[] well-formed.
+async fn test_get_host_storage(docker: &Docker) -> Result<()> {
+    use sphinx_swarm::host_stats::HostStorage;
+
+    let stack = make_auth_stack(); // no nodes -> no neo4j
+    hydrate(stack, Clients::default()).await;
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+
+    let res = handle(
+        TEST_PROJECT,
+        Cmd::Swarm(SwarmCmd::GetHostStorage),
+        "SWARM",
+        docker,
+        &Some(1),
+    )
+    .await;
+
+    assert!(res.is_ok(), "GetHostStorage failed: {:?}", res.err());
+    let json = res.unwrap();
+    let parsed: HostStorage = serde_json::from_str(&json)
+        .unwrap_or_else(|e| panic!("response must deserialize into HostStorage: {} — {}", e, json));
+    assert!(parsed.cached == false || parsed.cached == true);
+    // neo4j: null when the stack has no Neo4j node
+    assert!(parsed.neo4j.is_none(), "no neo4j node => neo4j must be null, got {:?}", parsed.neo4j);
+    // every error entry is well-formed
+    for e in &parsed.errors {
+        assert!(!e.collector.is_empty(), "collector must be set");
+        assert!(!e.reason.is_empty(), "reason must be set");
+        assert!(
+            matches!(
+                e.collector.as_str(),
+                "filesystems" | "volumes" | "neo4j" | "docker_info"
+            ),
+            "unexpected collector name: {}",
+            e.collector
+        );
+    }
+    // volume entries never fabricate 0: unknown sizes are null + size_known false
+    for v in &parsed.volumes {
+        if !v.size_known {
+            assert_eq!(v.size_bytes, None, "unknown size must serialize as null");
+        }
+    }
+    // host_visible follows describes_host, exactly
+    let computed = parsed.filesystems.iter().any(|f| f.describes_host);
+    assert_eq!(parsed.host_visible, computed);
+
+    eprintln!(
+        "[pass] GetHostStorage source={} host_visible={} volumes={} errors={}",
+        parsed.source,
+        parsed.host_visible,
+        parsed.volumes.len(),
+        parsed.errors.len()
+    );
+    Ok(())
+}
+
+/// Cache + single-flight: two sequential calls inside the 60s TTL share one
+/// `collected_at` and the second is `cached: true`; concurrent calls all share
+/// the same `collected_at` (single in-flight collection, not one df() each).
+async fn call_host_storage(docker: &Docker) -> Result<String> {
+    handle(
+        TEST_PROJECT,
+        Cmd::Swarm(SwarmCmd::GetHostStorage),
+        "SWARM",
+        docker,
+        &Some(1),
+    )
+    .await
+}
+
+async fn test_get_host_storage_cache_and_singleflight(docker: &Docker) -> Result<()> {
+    use sphinx_swarm::host_stats::HostStorage;
+
+    let stack = make_auth_stack();
+    hydrate(stack, Clients::default()).await;
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+
+    // Sequential: first populates, second is a cache hit with the same timestamp
+    let first: HostStorage = serde_json::from_str(&call_host_storage(docker).await.unwrap())?;
+    let second: HostStorage = serde_json::from_str(&call_host_storage(docker).await.unwrap())?;
+    assert!(second.cached, "second call within TTL must be cached=true");
+    assert_eq!(first.collected_at, second.collected_at, "cache hit preserves collected_at");
+
+    // Concurrent: 5 callers at once must all share one collection timestamp
+    let mut handles = Vec::new();
+    for _ in 0..5 {
+        let d = docker.clone();
+        handles.push(tokio::spawn(async move { call_host_storage(&d).await }));
+    }
+    let mut stamps = Vec::new();
+    for h in handles {
+        let txt = h.await.unwrap()?;
+        let parsed: HostStorage = serde_json::from_str(&txt)?;
+        stamps.push(parsed.collected_at);
+    }
+    assert!(
+        stamps.windows(2).all(|w| w[0] == w[1]),
+        "concurrent calls must single-flight to one collection, got {:?}",
+        stamps
+    );
+    eprintln!("[pass] GetHostStorage cache TTL + single-flight");
     Ok(())
 }
