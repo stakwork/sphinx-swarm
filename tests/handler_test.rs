@@ -320,7 +320,7 @@ async fn test_concurrent_reads(docker: &Docker) -> Result<()> {
     hydrate(stack, Clients::default()).await;
 
     // Set the JWT key so handle() doesn't error
-    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key").expect("set jwt key");
 
     let start = Instant::now();
     let mut handles = Vec::new();
@@ -375,7 +375,7 @@ async fn test_concurrent_reads(docker: &Docker) -> Result<()> {
 async fn test_login_and_change_password(docker: &Docker) -> Result<()> {
     let stack = make_auth_stack();
     hydrate(stack, Clients::default()).await;
-    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key").expect("set jwt key");
 
     // 1. Login with correct password
     let res = handle(
@@ -500,7 +500,7 @@ async fn test_read_during_write(docker: &Docker) -> Result<()> {
     // Build a stack with a user whose password hash is expensive to verify
     let stack = make_auth_stack();
     hydrate(stack, Clients::default()).await;
-    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key").expect("set jwt key");
 
     // Spawn a Login call — bcrypt::verify is CPU-expensive but runs outside the lock
     let docker_clone = docker.clone();
@@ -554,7 +554,7 @@ async fn test_read_during_write(docker: &Docker) -> Result<()> {
 async fn test_stack_mutations_persist(docker: &Docker) -> Result<()> {
     let stack = make_auth_stack();
     hydrate(stack, Clients::default()).await;
-    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key").expect("set jwt key");
 
     // Set global_mem_limit to 1234
     let res = handle(
@@ -680,7 +680,7 @@ async fn test_concurrent_bitcoind_calls(docker: &Docker) -> Result<()> {
 async fn test_access_control(docker: &Docker) -> Result<()> {
     let stack = make_auth_stack();
     hydrate(stack, Clients::default()).await;
-    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key").expect("set jwt key");
 
     // 1. GetConfig with no user_id -> access denied
     let res = handle(

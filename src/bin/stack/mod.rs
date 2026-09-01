@@ -33,7 +33,9 @@ async fn main() -> Result<()> {
     }
 
     // put the jwt key into a var
-    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
+    // (an empty config value means "not configured": a random key is generated
+    // at boot; a configured-but-blank key fails startup)
+    sphinx_swarm::auth::set_jwt_key_from_config(&stack.jwt_key)?;
     // hydrate the "stack" without clients
     handler::hydrate_stack(stack.clone()).await;
 

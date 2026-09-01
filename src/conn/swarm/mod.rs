@@ -500,10 +500,11 @@ pub async fn update_env_variables(
     docker: &Docker,
     update_value: &mut UpdateEnvRequest,
 ) -> SwarmResponse {
+    // log the env keys only — values can hold passwords / API keys
     log::info!(
-        "Updating env variables for {:?}: {:?}",
+        "Updating env variables for {:?}: keys={:?}",
         update_value.id,
-        update_value.values
+        update_value.values.keys().collect::<Vec<_>>()
     );
 
     // 1. Write to .env file (no lock needed)
