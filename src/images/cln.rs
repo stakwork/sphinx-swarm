@@ -24,6 +24,8 @@ pub struct ClnImage {
     pub seed: Option<String>,
     pub developer: Option<bool>,
     pub rescan: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offline: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -54,6 +56,7 @@ impl ClnImage {
             seed: None,
             developer: None,
             rescan: None,
+            offline: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -81,6 +84,9 @@ impl ClnImage {
     }
     pub fn set_rescan(&mut self, rescan: i32) {
         self.rescan = Some(rescan);
+    }
+    pub fn set_offline(&mut self, offline: bool) {
+        self.offline = Some(offline);
     }
     pub fn remove_client(&self, clients: &mut ClientMap) {
         clients.cln.remove(&self.name);
@@ -308,6 +314,11 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
     }
     if let Some(rescan) = img.rescan {
         cmd.push(format!("--rescan={}", rescan));
+    }
+    // --offline: do not listen for or reconnect to peers (RPC, invoices,
+    // and onchain enforcement keep working). Use during CLN security embargoes.
+    if img.offline.unwrap_or(false) {
+        cmd.push("--offline".to_string());
     }
     if let Some(hsms) = &img.seed {
         cmd.push(format!("--dev-force-bip32-seed={}", hsms));
