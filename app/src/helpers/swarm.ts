@@ -74,6 +74,11 @@ export async function handleGetImageTags(node_name: string): Promise<string[]> {
     host = "Github";
   }
 
+  if (node_name === "cln") {
+    fullName = `stakwork/cln-sphinx`;
+    host = "Github";
+  }
+
   const response = await get_image_tags(fullName, "1", "100", host);
 
   const tags = [];
