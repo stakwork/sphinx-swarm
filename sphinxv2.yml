@@ -79,6 +79,7 @@ services:
       - AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
       - VECTOR_FORWARD_URL=$VECTOR_FORWARD_URL
       - VECTOR_FORWARD_TOKEN=$VECTOR_FORWARD_TOKEN
+      - RUST_ENV=$RUST_ENV
 
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
