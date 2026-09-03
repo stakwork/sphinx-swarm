@@ -1,7 +1,7 @@
 docker image prune -af
 docker pull sphinxlightning/sphinx-swarm:latest
 docker pull sphinxlightning/sphinx-proxy:latest
-docker pull sphinxlightning/cln-sphinx:latest
+docker pull ghcr.io/stakwork/cln-sphinx:latest
 docker pull sphinxlightning/sphinx-relay-swarm:latest
 docker pull sphinxlightning/sphinx-cache:latest
 docker pull sphinxlightning/sphinx-boltwall:latest
