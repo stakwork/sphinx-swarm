@@ -94,10 +94,19 @@ fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
                 .unwrap_or_else(|_| "localhost:24224".to_string());
             let tag = env::var("FLUENTD_TAG")
                 .unwrap_or_else(|_| "{{.Name}}".to_string());
+            // Docker fluentd-buffer-limit is bytes (Atoi); default matches
+            // the daemon's 1MiB so a sidecar outage cannot grow unbounded.
+            let buffer_limit = env::var("FLUENTD_BUFFER_LIMIT")
+                .unwrap_or_else(|_| "1048576".to_string());
 
             h.insert("fluentd-address".to_string(), address);
             h.insert("tag".to_string(), tag);
             h.insert("fluentd-async".to_string(), "true".to_string());
+            h.insert("fluentd-buffer-limit".to_string(), buffer_limit);
+            // Same dual-logging cache as Cloud so docker.logs() (in-app
+            // viewers) still returns output for the remote fluentd driver.
+            h.insert("cache-max-size".to_string(), "10m".to_string());
+            h.insert("cache-max-file".to_string(), "3".to_string());
 
             Some(HostConfigLogConfig {
                 typ: Some("fluentd".to_string()),
@@ -122,6 +131,7 @@ mod tests {
         env::set_var("RUST_ENV", "fluentd");
         env::set_var("FLUENTD_ADDRESS", "vector.example.com:24224");
         env::set_var("FLUENTD_TAG", "myapp");
+        env::set_var("FLUENTD_BUFFER_LIMIT", "8388608");
 
         let config = local_log_config("test-swarm").unwrap();
         assert_eq!(config.typ, Some("fluentd".to_string()));
@@ -129,10 +139,14 @@ mod tests {
         assert_eq!(cfg.get("fluentd-address").unwrap(), "vector.example.com:24224");
         assert_eq!(cfg.get("tag").unwrap(), "myapp");
         assert_eq!(cfg.get("fluentd-async").unwrap(), "true");
+        assert_eq!(cfg.get("fluentd-buffer-limit").unwrap(), "8388608");
+        assert_eq!(cfg.get("cache-max-size").unwrap(), "10m");
+        assert_eq!(cfg.get("cache-max-file").unwrap(), "3");
 
         env::remove_var("RUST_ENV");
         env::remove_var("FLUENTD_ADDRESS");
         env::remove_var("FLUENTD_TAG");
+        env::remove_var("FLUENTD_BUFFER_LIMIT");
     }
 
     #[test]
@@ -141,6 +155,7 @@ mod tests {
         env::set_var("RUST_ENV", "fluentd");
         env::remove_var("FLUENTD_ADDRESS");
         env::remove_var("FLUENTD_TAG");
+        env::remove_var("FLUENTD_BUFFER_LIMIT");
 
         let config = local_log_config("test-swarm").unwrap();
         assert_eq!(config.typ, Some("fluentd".to_string()));
@@ -148,6 +163,9 @@ mod tests {
         assert_eq!(cfg.get("fluentd-address").unwrap(), "localhost:24224");
         assert_eq!(cfg.get("tag").unwrap(), "{{.Name}}");
         assert_eq!(cfg.get("fluentd-async").unwrap(), "true");
+        assert_eq!(cfg.get("fluentd-buffer-limit").unwrap(), "1048576");
+        assert_eq!(cfg.get("cache-max-size").unwrap(), "10m");
+        assert_eq!(cfg.get("cache-max-file").unwrap(), "3");
 
         env::remove_var("RUST_ENV");
     }
