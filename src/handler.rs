@@ -107,6 +107,15 @@ fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
     if user.is_none() {
         return false;
     }
+    // self-service commands: the payload's user_id must be the authenticated
+    // caller — never let it target another user's record (IDOR guard)
+    if let Cmd::Swarm(c) = cmd {
+        match c {
+            SwarmCmd::ChangePassword(cp) => return cp.user_id == user_id,
+            SwarmCmd::ChangeAdmin(cp) => return cp.user_id == user_id,
+            _ => {}
+        }
+    }
     match user.unwrap().role {
         Role::Admin => true,
         Role::SubAdmin => true,
@@ -1054,4 +1063,148 @@ pub fn spawn_handler(proj: &str, mut rx: mpsc::Receiver<CmdRequest>, docker: Doc
 
 fn fmt_err(err: &str) -> String {
     format!("{{\"stack_error\":\"{}\"}}", err.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cmd::{ChangeAdminInfo, ChangePasswordInfo};
+    use crate::config::{Role, Stack, User};
+
+    fn stack_with_users(users: Vec<User>) -> Stack {
+        Stack {
+            network: "regtest".to_string(),
+            nodes: vec![],
+            host: None,
+            users,
+            jwt_key: "test-jwt-key".to_string(),
+            ready: true,
+            ip: None,
+            auto_update: None,
+            auto_restart: None,
+            custom_2b_domain: None,
+            global_mem_limit: None,
+            backup_services: None,
+            backup_files: None,
+            lightning_peers: None,
+            ssl_cert_last_modified: None,
+            instance_id: None,
+        }
+    }
+
+    fn admin_user(id: u32) -> User {
+        User {
+            id,
+            username: format!("user-{}", id),
+            pass_hash: "x".to_string(),
+            pubkey: None,
+            role: Role::Admin,
+        }
+    }
+
+    #[test]
+    fn change_password_for_self_is_allowed() {
+        let stack = stack_with_users(vec![User {
+            id: 7,
+            username: "admin".to_string(),
+            pass_hash: "x".to_string(),
+            pubkey: None,
+            role: Role::Admin,
+        }]);
+        let cmd = Cmd::Swarm(SwarmCmd::ChangePassword(ChangePasswordInfo {
+            user_id: 7,
+            old_pass: "old".to_string(),
+            password: "new".to_string(),
+        }));
+        assert!(access(&cmd, &stack, &Some(7)));
+    }
+
+    #[test]
+    fn change_password_for_another_user_is_denied() {
+        // IDOR: payload user_id != authenticated caller id
+        let stack = stack_with_users(vec![
+            User {
+                id: 7,
+                username: "sub".to_string(),
+                pass_hash: "x".to_string(),
+                pubkey: None,
+                role: Role::Admin,
+            },
+            User {
+                id: 1,
+                username: "root".to_string(),
+                pass_hash: "x".to_string(),
+                pubkey: None,
+                role: Role::Admin,
+            },
+        ]);
+        let cmd = Cmd::Swarm(SwarmCmd::ChangePassword(ChangePasswordInfo {
+            user_id: 1,
+            old_pass: "old".to_string(),
+            password: "new".to_string(),
+        }));
+        // denied for every role — this command is self-service only
+        assert!(!access(&cmd, &stack, &Some(7))); // Admin caller
+        assert!(!access(&cmd, &stack, &Some(2))); // unknown caller
+        let sub = stack_with_users(vec![User {
+            id: 7,
+            username: "sub".to_string(),
+            pass_hash: "x".to_string(),
+            pubkey: None,
+            role: Role::SubAdmin,
+        }]);
+        assert!(!access(&cmd, &sub, &Some(7)));
+        // super role cannot target another user either
+        let sup = stack_with_users(vec![User {
+            id: 7,
+            username: "sub".to_string(),
+            pass_hash: "x".to_string(),
+            pubkey: None,
+            role: Role::Super,
+        }]);
+        assert!(!access(&cmd, &sup, &Some(7)));
+    }
+
+    #[test]
+    fn change_admin_for_another_user_is_denied() {
+        let stack = stack_with_users(vec![User {
+            id: 7,
+            username: "admin".to_string(),
+            pass_hash: "x".to_string(),
+            pubkey: None,
+            role: Role::Admin,
+        }]);
+        let cmd = Cmd::Swarm(SwarmCmd::ChangeAdmin(ChangeAdminInfo {
+            user_id: 1,
+            old_pass: "old".to_string(),
+            password: "new".to_string(),
+            email: "evil@x.c".to_string(),
+        }));
+        assert!(!access(&cmd, &stack, &Some(7)));
+        let own = Cmd::Swarm(SwarmCmd::ChangeAdmin(ChangeAdminInfo {
+            user_id: 7,
+            old_pass: "old".to_string(),
+            password: "new".to_string(),
+            email: "me@x.c".to_string(),
+        }));
+        assert!(access(&own, &stack, &Some(7)));
+    }
+
+    #[test]
+    fn unauthenticated_caller_still_denied() {
+        let stack = stack_with_users(vec![User {
+            id: 7,
+            username: "admin".to_string(),
+            pass_hash: "x".to_string(),
+            pubkey: None,
+            role: Role::Admin,
+        }]);
+        let cmd = Cmd::Swarm(SwarmCmd::ChangePassword(ChangePasswordInfo {
+            user_id: 7,
+            old_pass: "old".to_string(),
+            password: "new".to_string(),
+        }));
+        // no JWT caller
+        assert!(!access(&cmd, &stack, &None));
+    }
 }

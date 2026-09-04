@@ -7,6 +7,11 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use sphinx_auther::secp256k1::PublicKey;
 
+/// Placeholder printed instead of secret values in `Debug` output, so that
+/// `log::info!("=> CMD: {:?}", cmd)` never writes passwords or env values
+/// to the log stream.
+const REDACTED: &str = "[REDACTED]";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
 pub enum Cmd {
@@ -25,25 +30,55 @@ pub struct ImageRequest {
     pub page: u8,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LoginInfo {
     pub username: String,
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+impl std::fmt::Debug for LoginInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginInfo")
+            .field("username", &self.username)
+            .field("password", &REDACTED)
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChangePasswordInfo {
     pub user_id: u32,
     pub old_pass: String,
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+impl std::fmt::Debug for ChangePasswordInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChangePasswordInfo")
+            .field("user_id", &self.user_id)
+            .field("old_pass", &REDACTED)
+            .field("password", &REDACTED)
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChangeAdminInfo {
     pub user_id: u32,
     pub old_pass: String,
     pub password: String,
     pub email: String,
+}
+
+impl std::fmt::Debug for ChangeAdminInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChangeAdminInfo")
+            .field("user_id", &self.user_id)
+            .field("old_pass", &REDACTED)
+            .field("password", &REDACTED)
+            .field("email", &self.email)
+            .finish()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -121,11 +156,21 @@ pub struct FeatureFlagUserRoles {
     pub admin: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChangeUserPasswordBySuperAdminInfo {
     pub new_password: String,
     pub current_password: String,
     pub username: String,
+}
+
+impl std::fmt::Debug for ChangeUserPasswordBySuperAdminInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChangeUserPasswordBySuperAdminInfo")
+            .field("new_password", &REDACTED)
+            .field("current_password", &REDACTED)
+            .field("username", &self.username)
+            .finish()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -161,17 +206,39 @@ pub struct UpdateNeo4jConfigRequest {
     pub checkpoint_iops: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct UpdateEnvRequest {
     pub id: Option<String>,
     pub values: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+impl std::fmt::Debug for UpdateEnvRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // env values can hold passwords / API keys — log the keys only
+        let keys: Vec<&String> = self.values.keys().collect();
+        f.debug_struct("UpdateEnvRequest")
+            .field("id", &self.id)
+            .field("values", &keys)
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AssignSwarmNewDetails {
     pub new_password: Option<String>,
     pub old_password: Option<String>,
     pub env: Option<HashMap<String, String>>,
+}
+
+impl std::fmt::Debug for AssignSwarmNewDetails {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let env_keys: Option<Vec<&String>> = self.env.as_ref().map(|m| m.keys().collect());
+        f.debug_struct("AssignSwarmNewDetails")
+            .field("new_password", &self.new_password.as_ref().map(|_| REDACTED))
+            .field("old_password", &self.old_password.as_ref().map(|_| REDACTED))
+            .field("env", &env_keys)
+            .finish()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -494,5 +561,121 @@ mod tests {
         println!("{}", serde_json::to_string(&c3).unwrap());
 
         assert!(true == true)
+    }
+
+    #[test]
+    fn login_debug_redacts_password() {
+        let info = LoginInfo {
+            username: "admin".to_string(),
+            password: "s3cret-pass".to_string(),
+        };
+        let dbg = format!("{:?}", info);
+        assert!(!dbg.contains("s3cret-pass"));
+        assert!(dbg.contains("admin"));
+        assert!(dbg.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn change_password_debug_redacts_both_passwords() {
+        let info = ChangePasswordInfo {
+            user_id: 1,
+            old_pass: "old-pass-123".to_string(),
+            password: "new-pass-456".to_string(),
+        };
+        let dbg = format!("{:?}", info);
+        assert!(!dbg.contains("old-pass-123"));
+        assert!(!dbg.contains("new-pass-456"));
+        assert!(dbg.contains("user_id: 1"));
+        assert!(dbg.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn change_admin_debug_redacts_passwords() {
+        let info = ChangeAdminInfo {
+            user_id: 2,
+            old_pass: "old-pass-123".to_string(),
+            password: "new-pass-456".to_string(),
+            email: "a@b.c".to_string(),
+        };
+        let dbg = format!("{:?}", info);
+        assert!(!dbg.contains("old-pass-123"));
+        assert!(!dbg.contains("new-pass-456"));
+        assert!(dbg.contains("a@b.c"));
+    }
+
+    #[test]
+    fn change_user_password_debug_redacts_passwords() {
+        let info = ChangeUserPasswordBySuperAdminInfo {
+            new_password: "fresh-pass-789".to_string(),
+            current_password: "current-pass-000".to_string(),
+            username: "admin".to_string(),
+        };
+        let dbg = format!("{:?}", info);
+        assert!(!dbg.contains("fresh-pass-789"));
+        assert!(!dbg.contains("current-pass-000"));
+        assert!(dbg.contains("admin"));
+    }
+
+    #[test]
+    fn update_env_debug_logs_keys_only() {
+        let mut values = HashMap::new();
+        values.insert("HOST".to_string(), "https://hidden-host.example".to_string());
+        values.insert(
+            "NEO4J_PASSWORD".to_string(),
+            "env-secret-value-1".to_string(),
+        );
+        let req = UpdateEnvRequest {
+            id: Some("boltwall".to_string()),
+            values,
+        };
+        let dbg = format!("{:?}", req);
+        // keys are visible...
+        assert!(dbg.contains("HOST"));
+        assert!(dbg.contains("NEO4J_PASSWORD"));
+        // ...but values never are
+        assert!(!dbg.contains("env-secret-value-1"));
+        assert!(!dbg.contains("hidden-host.example"));
+    }
+
+    #[test]
+    fn assign_swarm_new_details_debug_redacts_passwords_and_env() {
+        let mut env = HashMap::new();
+        env.insert("OWNER_PUBKEY".to_string(), "assign-secret-value-2".to_string());
+        let details = AssignSwarmNewDetails {
+            new_password: Some("new-swarm-pass-1".to_string()),
+            old_password: Some("old-swarm-pass-1".to_string()),
+            env: Some(env),
+        };
+        let dbg = format!("{:?}", details);
+        assert!(!dbg.contains("new-swarm-pass-1"));
+        assert!(!dbg.contains("old-swarm-pass-1"));
+        assert!(!dbg.contains("assign-secret-value-2"));
+        assert!(dbg.contains("OWNER_PUBKEY"));
+    }
+
+    #[test]
+    fn swarm_cmd_debug_redacts_nested_secrets() {
+        // the "=> CMD: {:?}" log path formats the whole command enum
+        let cmd = Cmd::Swarm(SwarmCmd::Login(LoginInfo {
+            username: "admin".to_string(),
+            password: "s3cret-pass".to_string(),
+        }));
+        let dbg = format!("{:?}", cmd);
+        assert!(!dbg.contains("s3cret-pass"));
+        assert!(dbg.contains("admin"));
+        assert!(dbg.contains("Login"));
+    }
+
+    #[test]
+    fn redacted_structs_still_serialize_real_values() {
+        // Debug is redacted for logs; serde must still carry the real payload
+        let info = LoginInfo {
+            username: "admin".to_string(),
+            password: "s3cret-pass".to_string(),
+        };
+        let json = serde_json::to_string(&info).unwrap();
+        assert!(json.contains("s3cret-pass"));
+        let back: LoginInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.password, "s3cret-pass");
     }
 }
