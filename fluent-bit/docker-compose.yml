@@ -1,14 +1,17 @@
-# Fluent Bit sidecar. MUST use json-file with rotation — never the fluentd
-# driver. [rate_limit] notices and throttle Print_Status go to stdout; shipping
-# that through fluentd would loop into INPUT 24224.
+# Standalone / overlay helper for local Fluent Bit testing.
+# Production service is `fluent_bit` in the repo-root docker-compose.yml
+# (dedicated `fluent-bit` network, loopback 127.0.0.1:24224, IMDS creds).
+#
+# MUST use json-file with rotation — never the fluentd driver. [rate_limit]
+# notices and throttle Print_Status go to stdout; shipping that through
+# fluentd would loop into INPUT 24224.
 #
 # HTTP 2020 is /api/v1/metrics (Prometheus). Forward input is 24224.
-# Both are bound to 127.0.0.1: the forward input is unauthenticated, and
-# these hosts already publish 80/443/8883 publicly. Docker's fluentd
-# driver (FLUENTD_ADDRESS=localhost:24224) and a local scrape still work.
+# Both are bound to 127.0.0.1: the forward input is unauthenticated.
+# Docker's fluentd driver (FLUENTD_ADDRESS=localhost:24224) still works.
 #
-# Include from a swarm compose, e.g.:
-#   docker-compose -f docker-compose.yml -f fluent-bit/docker-compose.yml up -d
+# Do NOT attach this service to sphinx-swarm (DEFAULT_NETWORK). The
+# legitimate path is host-daemon → 127.0.0.1:24224.
 version: "2"
 
 services:
@@ -17,7 +20,7 @@ services:
     container_name: fluent-bit
     restart: unless-stopped
     networks:
-      - sphinx-swarm
+      - fluent-bit
     ports:
       - "127.0.0.1:24224:24224"
       - "127.0.0.1:2020:2020"
@@ -27,6 +30,7 @@ services:
       - fluent-bit-storage:/var/log/flb-storage
     environment:
       - SWARM_NUMBER=${SWARM_NUMBER}
+      - AWS_REGION=${AWS_REGION}
       - FLUENTBIT_RATE_LIMIT_INTERVAL=${FLUENTBIT_RATE_LIMIT_INTERVAL:-3600}
       - FLUENTBIT_RATE_LIMIT_BYTES=${FLUENTBIT_RATE_LIMIT_BYTES:-67108864}
       - FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES=${FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES:-repo2graph.sphinx=1073741824,boltwall.sphinx=268435456}
@@ -43,5 +47,6 @@ volumes:
   fluent-bit-storage:
 
 networks:
-  sphinx-swarm:
-    external: true
+  fluent-bit:
+    name: fluent-bit
+    driver: bridge
