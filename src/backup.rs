@@ -1,7 +1,7 @@
 use crate::config;
 use crate::images::DockerHubImage;
 use crate::utils::{domain, getenv};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::Region;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart, Delete, ObjectIdentifier};
@@ -10,7 +10,7 @@ use aws_smithy_types::byte_stream::{ByteStream, Length};
 use aws_smithy_types::retry::RetryConfig;
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
-use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, Utc};
 use futures_util::stream::TryStreamExt;
 use std::fs::{self, File};
 use std::io::{Read, Write};
@@ -47,6 +47,109 @@ fn backup_retention_days() -> i64 {
             return 10;
         }
     }
+}
+
+/// Local staging directory on the `/vol` bind mount. The S3 key still uses the
+/// relative `swarm{N}` prefix — only this on-disk path is absolute.
+fn local_backup_staging_dir(swarm_number: &str, current_date: &str) -> String {
+    format!("/vol/swarm{}_{}", swarm_number, current_date)
+}
+
+/// True when `name` is a backup staging directory: starts with `swarm`, and the
+/// segment after the final `_` parses as `YYYY-MM-DD`. The swarm identifier is
+/// not required to be numeric (`swarmprod_2024-01-01` matches; `swarm7` does not).
+fn is_backup_staging_dir_name(name: &str) -> bool {
+    if !name.starts_with("swarm") {
+        return false;
+    }
+    match name.rsplit_once('_') {
+        Some((_, date_seg)) => NaiveDate::parse_from_str(date_seg, "%Y-%m-%d").is_ok(),
+        None => false,
+    }
+}
+
+fn sweep_stale_backup_staging_dirs() {
+    let removed = sweep_stale_backup_staging_dirs_in(&["/vol", "/"]);
+    log::info!(
+        "Backup staging sweep: removed {} stale dir(s): {:?}",
+        removed.len(),
+        removed
+    );
+}
+
+fn sweep_stale_backup_staging_dirs_in(roots: &[&str]) -> Vec<String> {
+    let mut removed = Vec::new();
+    for root in roots {
+        let entries = match fs::read_dir(root) {
+            Ok(entries) => entries,
+            Err(e) => {
+                log::warn!("Could not read {} for stale staging sweep: {}", root, e);
+                continue;
+            }
+        };
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
+            if !is_backup_staging_dir_name(name) {
+                continue;
+            }
+            let file_type = match entry.file_type() {
+                Ok(ft) => ft,
+                Err(_) => continue,
+            };
+            if !file_type.is_dir() {
+                continue;
+            }
+            let path = entry.path();
+            match fs::remove_dir_all(&path) {
+                Ok(()) => removed.push(path.display().to_string()),
+                Err(e) => {
+                    log::error!(
+                        "Failed to remove stale staging dir {}: {}",
+                        path.display(),
+                        e
+                    );
+                }
+            }
+        }
+    }
+    removed
+}
+
+/// Run `work`, then always best-effort-remove the staging directory. A cleanup
+/// error never masks the original backup result.
+async fn with_staging_dir_cleanup<F>(s3_parent_directory: &str, work: F) -> Result<()>
+where
+    F: std::future::Future<Output = Result<()>>,
+{
+    let result = work.await;
+    let _ = remove_dir_all(s3_parent_directory).await;
+    result
+}
+
+/// Map an `upload_to_s3_multi` result to success or a surfaced error.
+/// `Ok(true)` is the only success; `Ok(false)` and `Err` both fail the caller.
+fn interpret_s3_upload(result: Result<bool>, key: &str) -> Result<()> {
+    match result {
+        Ok(true) => Ok(()),
+        Ok(false) => {
+            log::error!("S3 upload failed for {}: upload reported failure", key);
+            bail!("S3 upload failed for {}: upload reported failure", key);
+        }
+        Err(err) => {
+            log::error!("S3 upload failed for {}: {}", key, err);
+            Err(err)
+        }
+    }
+}
+
+/// Apply the container-zip upload outcome: remove the local tar only on success.
+fn apply_final_zip_upload_result(result: Result<bool>, parent_zip: &str, key: &str) -> Result<()> {
+    interpret_s3_upload(result, key)?;
+    let _ = fs::remove_file(parent_zip);
+    Ok(())
 }
 
 pub async fn backup_containers(backup_services: Vec<String>) -> Result<()> {
@@ -87,14 +190,33 @@ pub async fn download_and_zip_from_container(
     let parent_directory = format!("swarm{}", swarm_number);
 
     let current_date = Local::now().format("%Y-%m-%d").to_string();
-    let s3_parent_directory = format!("{}_{}", &parent_directory, current_date);
+    let s3_parent_directory = local_backup_staging_dir(&swarm_number, &current_date);
 
     // Create the parent directory if it doesn't exist
     fs::create_dir_all(&s3_parent_directory)?;
 
     log::info!("Directory was created!!!");
 
-    // Iterate over each container and download its volume
+    with_staging_dir_cleanup(
+        &s3_parent_directory,
+        zip_and_upload_containers(
+            &docker,
+            containers,
+            &s3_parent_directory,
+            &parent_directory,
+            &current_date,
+        ),
+    )
+    .await
+}
+
+async fn zip_and_upload_containers(
+    docker: &Docker,
+    containers: Vec<(String, String, String)>,
+    s3_parent_directory: &str,
+    parent_directory: &str,
+    current_date: &str,
+) -> Result<()> {
     for (container_id, volume_path, sub_directory) in containers {
         // Options for downloading the volume
         let options = DownloadFromContainerOptions { path: &volume_path };
@@ -109,7 +231,7 @@ pub async fn download_and_zip_from_container(
 
         futures::pin_mut!(body_reader);
 
-        let subdirectory = format!("{}/{}", &s3_parent_directory, &sub_directory);
+        let subdirectory = format!("{}/{}", s3_parent_directory, &sub_directory);
 
         fs::create_dir_all(&subdirectory)?;
 
@@ -122,11 +244,11 @@ pub async fn download_and_zip_from_container(
         upload_final_zip_to_s3(
             format!(
                 "{}/{}/{}.tar",
-                &s3_parent_directory, &sub_directory, &sub_directory
+                s3_parent_directory, &sub_directory, &sub_directory
             ),
             format!(
                 "{}/{}/{}/{}.tar",
-                &parent_directory, &current_date, &sub_directory, &sub_directory
+                parent_directory, current_date, &sub_directory, &sub_directory
             ),
         )
         .await?;
@@ -138,25 +260,12 @@ pub async fn download_and_zip_from_container(
         );
     }
 
-    // delete folder
-    let _ = remove_dir_all(&s3_parent_directory).await;
-
     Ok(())
 }
 
 async fn upload_final_zip_to_s3(parent_zip: String, key: String) -> Result<()> {
-    match upload_to_s3_multi(&bucket_name(), &parent_zip.clone(), &key.clone()).await {
-        Ok(status) => {
-            if status == true {
-                let _ = fs::remove_file(parent_zip);
-            }
-        }
-        Err(err) => {
-            log::error!("We are getting somewhere: {}", err)
-        }
-    }
-
-    Ok(())
+    let result = upload_to_s3_multi(&bucket_name(), &parent_zip, &key).await;
+    apply_final_zip_upload_result(result, &parent_zip, &key)
 }
 
 pub fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
@@ -185,6 +294,16 @@ pub fn zip_directory(src_dir: &str, zip_file: &str) -> Result<()> {
 
     zip.finish()?;
     Ok(())
+}
+
+async fn upload_source_file_size(path: &Path, file_path: &str) -> Result<u64> {
+    let meta = tokio::fs::metadata(path).await.with_context(|| {
+        format!(
+            "unable to find file to upload in this path: {}",
+            file_path
+        )
+    })?;
+    Ok(meta.len())
 }
 
 async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<bool> {
@@ -238,13 +357,7 @@ async fn upload_to_s3_multi(bucket: &str, file_path: &str, key: &str) -> Result<
     };
 
     let path = Path::new(&file_path);
-    let file_size = tokio::fs::metadata(path)
-        .await
-        .expect(&format!(
-            "unable to find file to upload in this path: {}",
-            file_path
-        ))
-        .len();
+    let file_size = upload_source_file_size(path, file_path).await?;
 
     let mut chunk_count = (file_size / CHUNK_SIZE) + 1;
     let mut size_of_last_chunk = file_size % CHUNK_SIZE;
@@ -433,6 +546,9 @@ async fn delete_old_backups_with_prefix(
 
 pub async fn backup_and_delete_volumes_cron(backup_services: Vec<String>) -> Result<JobScheduler> {
     log::info!(":backup and delete volumes");
+    // Once at scheduler setup — never inside the per-tick job, which could
+    // delete an in-flight same-day `/vol/swarm{N}_{date}` staging directory.
+    sweep_stale_backup_staging_dirs();
     let sched = JobScheduler::new().await?;
 
     sched
@@ -495,6 +611,16 @@ fn parse_backup_file_entry(entry: &str) -> Option<BackupFileEntry> {
     })
 }
 
+async fn finish_single_file_backup(
+    upload_result: Result<bool>,
+    key: &str,
+    backup_path: &str,
+) -> Result<()> {
+    let outcome = interpret_s3_upload(upload_result, key);
+    let _ = tokio::fs::remove_file(backup_path).await;
+    outcome
+}
+
 async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
     let volume_name = domain(&entry.name);
     let src_path = format!(
@@ -526,13 +652,8 @@ async fn backup_single_file(entry: &BackupFileEntry) -> Result<()> {
         &backup_path,
         &s3_key
     );
-    match upload_to_s3_multi(&bucket_name(), &backup_path, &s3_key).await {
-        Ok(_) => {}
-        Err(err) => log::error!("backup_file: S3 upload error: {}", err),
-    }
-
-    // rm the temp backup file
-    let _ = tokio::fs::remove_file(&backup_path).await;
+    let upload_result = upload_to_s3_multi(&bucket_name(), &backup_path, &s3_key).await;
+    finish_single_file_backup(upload_result, &s3_key, &backup_path).await?;
 
     log::info!(
         "backup_file: completed backup of {} from {}",
@@ -616,4 +737,234 @@ pub async fn backup_files_cron(backup_files: Vec<String>) -> Result<Vec<JobSched
     }
 
     Ok(schedulers)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::anyhow;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn test_temp_dir(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let p = std::env::temp_dir().join(format!(
+            "sphinx-swarm-backup-{}-{}-{}",
+            std::process::id(),
+            nanos,
+            label
+        ));
+        fs::create_dir_all(&p).unwrap();
+        p
+    }
+
+    fn test_temp_file(label: &str) -> PathBuf {
+        let dir = test_temp_dir(label);
+        let path = dir.join("file.tar");
+        fs::write(&path, b"data").unwrap();
+        path
+    }
+
+    #[test]
+    fn staging_path_is_under_vol_and_s3_prefix_stays_relative() {
+        assert_eq!(
+            local_backup_staging_dir("7", "2024-01-01"),
+            "/vol/swarm7_2024-01-01"
+        );
+        let parent_directory = format!("swarm{}", "7");
+        assert_eq!(parent_directory, "swarm7");
+        let key = format!("{}/{}/{}/{}.tar", parent_directory, "2024-01-01", "neo4j", "neo4j");
+        assert_eq!(key, "swarm7/2024-01-01/neo4j/neo4j.tar");
+        assert!(!key.starts_with("/vol/"));
+    }
+
+    #[test]
+    fn staging_dir_matcher_accepts_date_suffix() {
+        assert!(is_backup_staging_dir_name("swarm7_2024-01-01"));
+        assert!(is_backup_staging_dir_name("swarmprod_2024-01-01"));
+    }
+
+    #[test]
+    fn staging_dir_matcher_rejects_non_staging() {
+        assert!(!is_backup_staging_dir_name("swarm7"));
+        assert!(!is_backup_staging_dir_name("vol"));
+        assert!(!is_backup_staging_dir_name("swarm7_notadate"));
+        assert!(!is_backup_staging_dir_name("arbitrary"));
+        assert!(!is_backup_staging_dir_name("swarm7_2024-13-01"));
+        assert!(!is_backup_staging_dir_name("config.json"));
+    }
+
+    #[test]
+    fn sweep_removes_only_matching_dirs() {
+        let root = test_temp_dir("sweep");
+        fs::create_dir_all(root.join("swarm7_2024-01-01")).unwrap();
+        fs::create_dir_all(root.join("swarmprod_2024-01-01")).unwrap();
+        fs::create_dir_all(root.join("swarm7")).unwrap();
+        fs::create_dir_all(root.join("vol")).unwrap();
+        fs::create_dir_all(root.join("swarm7_notadate")).unwrap();
+        fs::write(root.join("keep.txt"), b"x").unwrap();
+
+        let removed = sweep_stale_backup_staging_dirs_in(&[root.to_str().unwrap()]);
+        assert_eq!(removed.len(), 2);
+        assert!(!root.join("swarm7_2024-01-01").exists());
+        assert!(!root.join("swarmprod_2024-01-01").exists());
+        assert!(root.join("swarm7").exists());
+        assert!(root.join("vol").exists());
+        assert!(root.join("swarm7_notadate").exists());
+        assert!(root.join("keep.txt").exists());
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn sweep_runs_at_scheduler_setup_not_per_tick() {
+        let src = include_str!("backup.rs");
+        let fn_start = src
+            .find("pub async fn backup_and_delete_volumes_cron")
+            .expect("backup_and_delete_volumes_cron");
+        let rest = &src[fn_start..];
+        let fn_end = rest[1..]
+            .find("\n// backup_files:")
+            .or_else(|| rest[1..].find("\npub async fn "))
+            .map(|i| i + 1)
+            .unwrap_or(rest.len());
+        let body = &rest[..fn_end];
+
+        let sweep_idx = body
+            .find("sweep_stale_backup_staging_dirs()")
+            .expect("sweep must run at scheduler setup");
+        let start_idx = body.find("sched.start()").expect("sched.start()");
+        assert!(
+            sweep_idx < start_idx,
+            "sweep must run before sched.start()"
+        );
+
+        let job_idx = body.find("Job::new_async").expect("cron job");
+        let spawn_idx = body.find("tokio::spawn").expect("spawn loop");
+        assert!(!body[job_idx..spawn_idx].contains("sweep_stale_backup_staging_dirs"));
+        assert!(!body[spawn_idx..].contains("sweep_stale_backup_staging_dirs"));
+    }
+
+    #[test]
+    fn upload_final_zip_ok_true_removes_file() {
+        let path = test_temp_file("zip-ok");
+        let path_str = path.to_str().unwrap();
+        let result = apply_final_zip_upload_result(Ok(true), path_str, "swarm7/k.tar");
+        assert!(result.is_ok());
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[test]
+    fn upload_final_zip_ok_false_returns_err() {
+        let path = test_temp_file("zip-false");
+        let path_str = path.to_str().unwrap();
+        let result = apply_final_zip_upload_result(Ok(false), path_str, "mykey");
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("S3 upload failed for mykey: upload reported failure"));
+        assert!(path.exists(), "failed upload must not pretend success by deleting");
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[test]
+    fn upload_final_zip_err_returns_err() {
+        let path = test_temp_file("zip-err");
+        let path_str = path.to_str().unwrap();
+        let result =
+            apply_final_zip_upload_result(Err(anyhow!("network down")), path_str, "mykey");
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("network down"));
+        assert!(!msg.contains("We are getting somewhere"));
+        assert!(path.exists());
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[tokio::test]
+    async fn backup_single_file_ok_true_cleans_temp() {
+        let path = test_temp_file("single-ok");
+        let path_str = path.to_str().unwrap().to_string();
+        let result = finish_single_file_backup(Ok(true), "k", &path_str).await;
+        assert!(result.is_ok());
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[tokio::test]
+    async fn backup_single_file_ok_false_propagates_err() {
+        let path = test_temp_file("single-false");
+        let path_str = path.to_str().unwrap().to_string();
+        let result = finish_single_file_backup(Ok(false), "filekey", &path_str).await;
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("S3 upload failed for filekey: upload reported failure"));
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[tokio::test]
+    async fn backup_single_file_err_propagates_err() {
+        let path = test_temp_file("single-err");
+        let path_str = path.to_str().unwrap().to_string();
+        let result = finish_single_file_backup(Err(anyhow!("timeout")), "filekey", &path_str).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("timeout"));
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[tokio::test]
+    async fn staging_dir_removed_after_successful_work() {
+        let dir = test_temp_dir("cleanup-ok");
+        let path = dir.to_str().unwrap().to_string();
+        fs::write(dir.join("file.tar"), b"data").unwrap();
+        let result = with_staging_dir_cleanup(&path, async { Ok(()) }).await;
+        assert!(result.is_ok());
+        assert!(!Path::new(&path).exists());
+    }
+
+    #[tokio::test]
+    async fn staging_dir_removed_after_mid_loop_failure() {
+        let dir = test_temp_dir("cleanup-err");
+        let path = dir.to_str().unwrap().to_string();
+        let result = with_staging_dir_cleanup(&path, async { bail!("mid-loop failure") }).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "mid-loop failure");
+        assert!(!Path::new(&path).exists());
+    }
+
+    #[tokio::test]
+    async fn staging_dir_removed_when_upload_metadata_missing() {
+        let dir = test_temp_dir("cleanup-meta");
+        let path = dir.to_str().unwrap().to_string();
+        let missing = dir.join("missing.tar");
+        let missing_str = missing.to_str().unwrap().to_string();
+        let result = with_staging_dir_cleanup(&path, async {
+            upload_source_file_size(Path::new(&missing_str), &missing_str).await?;
+            Ok(())
+        })
+        .await;
+        assert!(result.is_err());
+        let msg = format!("{:#}", result.unwrap_err());
+        assert!(msg.contains("unable to find file to upload in this path"));
+        assert!(!Path::new(&path).exists());
+    }
+
+    #[tokio::test]
+    async fn upload_source_file_size_returns_err_not_panic() {
+        let result = upload_source_file_size(
+            Path::new("/no/such/backup/file.tar"),
+            "/no/such/backup/file.tar",
+        )
+        .await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("unable to find file to upload in this path"));
+    }
 }
