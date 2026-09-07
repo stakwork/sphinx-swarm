@@ -45,8 +45,12 @@ the daemon's storage root from `GET /info`.
   ],
   "docker_root_dir": "/var/lib/docker",
   "docker_root_filesystem": "/",
-  "volumes": [{"name": "neo4j.sphinx", "size_bytes": 0, "size_known": true}],
+  "volumes": [{"name": "neo4j.sphinx", "size_bytes": 0, "size_known": true, "service": "neo4j"}],
   "neo4j": {"volumes": ["neo4j.sphinx"], "size_bytes": 0, "size_known": true},
+  "services": [
+    {"name": "neo4j", "typ": "Neo4j", "volumes": ["neo4j.sphinx"],
+     "size_bytes": 0, "size_known": true}
+  ],
   "errors": [{"collector": "volumes", "reason": "docker df timed out after 8s"}] }
 ```
 
@@ -64,6 +68,20 @@ the daemon's storage root from `GET /info`.
   `usage_data`) for volumes it did not compute; that maps to
   `size_bytes: null, size_known: false` plus an `errors[]` entry — never a
   fabricated `0`.
+- **`volumes[].service`** (additive) is the owning swarm node name
+  (`node.name()`). `null` means an ungrouped orphan (host-path bind, or a
+  volume matching no known internal node) — those entries stay **visible** in
+  `volumes[]`. Named `{name}.sphinx` / `{name}-{suffix}.sphinx` volumes are
+  attributed from the volume name (so a volume shared by several containers,
+  e.g. `cln.sphinx` mounted by cln/boltwall/proxy, is owned by `cln` exactly
+  once). Anonymous 64-hex volumes are attributed from the mounting container.
+- **`services[]`** (additive) is a per-service rollup for every internal node
+  that owns at least one volume: `{name, typ, volumes, size_bytes, size_known}`.
+  `typ` is the node's `Image` kind (e.g. `"Neo4j"`, `"Cln"`), never a mount
+  path. Totals are summed only when **every** member volume is known; any
+  unknown or missing member suppresses the whole total to
+  `size_bytes: null, size_known: false` plus an `errors[]` entry with
+  `collector: "services"`. Nodes that own zero volumes are omitted.
 - **`neo4j` is `null`** when no Neo4j node exists in the stack (a valid,
   non-error response). When present it lists *all* named volumes attributed to
   the Neo4j node and sums them. In this repo Neo4j mounts exactly one named
@@ -71,13 +89,15 @@ the daemon's storage root from `GET /info`.
   copied into the container filesystem (`docker cp`), not volumes. **Host-path
   bind mounts are excluded** from the attribution. `neo4j.size_bytes` is
   derived by lookup into the same map that produced `volumes[]`, so the two can
-  never disagree; it is summed only when every volume's size is known.
+  never disagree; it is summed only when every volume's size is known. The
+  Neo4j field is unchanged; `services[]` generalizes the same rollup to every
+  service.
 - **`docker_root_dir` / `docker_root_filesystem`** come from `Docker::info()` and
   a longest-prefix match against `filesystems[].mount`, so an operator can tell
   which reported `free_bytes` actually governs the Neo4j volume — the daemon's
   storage root is frequently a separate device from `/`.
 - **`errors[]` elements are objects**: `{"collector": "filesystems" | "volumes"
-  | "neo4j" | "docker_info", "reason": "<string>"}`.
+  | "neo4j" | "docker_info" | "containers" | "services", "reason": "<string>"}`.
 - **Partial failures return 200** with a fully-formed object; collector failures
   are folded into `errors[]` and never fail the request.
 - **`used_bytes` / `free_bytes`**: `used = total - free` (free, not available,
