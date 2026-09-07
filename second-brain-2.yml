@@ -152,6 +152,66 @@ services:
     volumes:
       - "/:/host:ro,rslave"
 
+  # Rate-limiting log sidecar. Host Docker fluentd driver ships managed-container
+  # logs to 127.0.0.1:24224; this service must NOT join sphinx-swarm (DEFAULT_NETWORK)
+  # so co-networked containers cannot reach the unauthenticated Forward input.
+  # Sidecar MUST use json-file with rotation — never the fluentd driver — or
+  # [rate_limit] notices / throttle Print_Status on stdout would loop into INPUT 24224.
+  fluent_bit:
+    image: fluent/fluent-bit:3.2.10
+    container_name: fluent_bit
+    restart: unless-stopped
+    networks:
+      - fluent-bit
+    ports:
+      # Loopback only. Docker fluentd-address=localhost:24224 resolves here.
+      # Do not bind 0.0.0.0 — Forward input is unauthenticated.
+      - "127.0.0.1:24224:24224"
+      # HTTP_Server /api/v1/metrics (dropped-record signal). Loopback so it is
+      # not on a public interface; these hosts already publish 80/443/8883.
+      - "127.0.0.1:2020:2020"
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./fluent-bit/rate_limit.lua:/fluent-bit/etc/rate_limit.lua:ro
+      - fluent-bit-storage:/var/log/flb-storage
+    environment:
+      # Written to host .env by provisioning; required so log_group_name
+      # /swarms/${SWARM_NUMBER} in fluent-bit.conf does not resolve empty.
+      - SWARM_NUMBER=$SWARM_NUMBER
+      # Passed for tooling consistency. CloudWatch output region is hardcoded
+      # us-east-1 in fluent-bit.conf (matches Environment::Cloud / awslogs-region).
+      - AWS_REGION=$AWS_REGION
+      - FLUENTBIT_RATE_LIMIT_INTERVAL=${FLUENTBIT_RATE_LIMIT_INTERVAL:-3600}
+      - FLUENTBIT_RATE_LIMIT_BYTES=${FLUENTBIT_RATE_LIMIT_BYTES:-67108864}
+      - FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES=${FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES:-repo2graph.sphinx=1073741824,boltwall.sphinx=268435456}
+      - FLUENTBIT_RATE_LIMIT_DEFAULT=${FLUENTBIT_RATE_LIMIT_DEFAULT:-500000}
+      - FLUENTBIT_RATE_LIMIT_OVERRIDES=${FLUENTBIT_RATE_LIMIT_OVERRIDES:-repo2graph.sphinx=8000000}
+      - FLUENTBIT_RATE_LIMIT_MAX_KEYS=${FLUENTBIT_RATE_LIMIT_MAX_KEYS:-256}
+      # AWS credentials: IMDS/instance role is preferred and default.
+      # The host awslogs driver used the daemon's EC2 role; cloudwatch_logs in
+      # this container does not inherit that. The sidecar reaches IMDS at
+      # 169.254.169.254 (same aws_config::from_env() chain as
+      # make_cloudwatch_logs_client). If IMDSv2 hop-limit is 1, raise it to 2
+      # on the instance so containers can assume the role.
+      # Static keys only from a secret store if IMDS is unreachable — never
+      # commit real values:
+      # - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      # - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   sphinx-swarm:
     external: true
+  # Dedicated bridge for the sidecar only. Not sphinx-swarm: managed containers
+  # cannot DNS-resolve or reach fluent_bit:24224. Outbound (CloudWatch + IMDS)
+  # remains available — do not set internal: true.
+  fluent-bit:
+    name: fluent-bit
+    driver: bridge
+
+volumes:
+  fluent-bit-storage:
