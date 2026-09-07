@@ -11,7 +11,7 @@ RUN cargo +nightly chef prepare --recipe-path recipe.json
 
 # --- Stage 3: Build the app
 FROM chef AS builder
-RUN apt-get update && \
+RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && \
     apt-get install -y --no-install-recommends \
     protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
@@ -30,7 +30,7 @@ RUN cargo +nightly build --release --bin super
 
 # --- Stage 4: Runtime (No change needed here)
 FROM debian:11-slim
-RUN apt-get update && \
+RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && \
     apt-get install -y --no-install-recommends ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
