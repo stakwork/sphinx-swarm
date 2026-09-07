@@ -3,6 +3,9 @@
 # that through fluentd would loop into INPUT 24224.
 #
 # HTTP 2020 is /api/v1/metrics (Prometheus). Forward input is 24224.
+# Both are bound to 127.0.0.1: the forward input is unauthenticated, and
+# these hosts already publish 80/443/8883 publicly. Docker's fluentd
+# driver (FLUENTD_ADDRESS=localhost:24224) and a local scrape still work.
 #
 # Include from a swarm compose, e.g.:
 #   docker-compose -f docker-compose.yml -f fluent-bit/docker-compose.yml up -d
@@ -16,11 +19,12 @@ services:
     networks:
       - sphinx-swarm
     ports:
-      - "24224:24224"
-      - "2020:2020"
+      - "127.0.0.1:24224:24224"
+      - "127.0.0.1:2020:2020"
     volumes:
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./rate_limit.lua:/fluent-bit/etc/rate_limit.lua:ro
+      - fluent-bit-storage:/var/log/flb-storage
     environment:
       - SWARM_NUMBER=${SWARM_NUMBER}
       - FLUENTBIT_RATE_LIMIT_BYTES=${FLUENTBIT_RATE_LIMIT_BYTES:-1048576}
@@ -33,6 +37,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  fluent-bit-storage:
 
 networks:
   sphinx-swarm:
