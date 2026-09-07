@@ -69,6 +69,42 @@ export async function get_container_stat(name?: string) {
   return await swarmCmd("GetStatistics", name);
 }
 
+export interface VolumeUsage {
+  name: string;
+  size_bytes: number | null;
+  size_known: boolean;
+  /** Owning swarm service name. null/undefined = ungrouped orphan. */
+  service?: string | null;
+}
+
+export interface ServiceStorage {
+  name: string;
+  typ: string;
+  volumes: string[];
+  size_bytes: number | null;
+  size_known: boolean;
+}
+
+export interface Neo4jStorage {
+  volumes: string[];
+  size_bytes: number | null;
+  size_known: boolean;
+}
+
+export interface HostStorage {
+  host_visible: boolean;
+  source: string;
+  collected_at: number;
+  cached: boolean;
+  filesystems: unknown[];
+  docker_root_dir: string | null;
+  docker_root_filesystem: string | null;
+  volumes: VolumeUsage[];
+  neo4j: Neo4jStorage | null;
+  services: ServiceStorage[];
+  errors: { collector: string; reason: string }[];
+}
+
 export async function get_host_storage() {
   return await swarmCmd("GetHostStorage");
 }

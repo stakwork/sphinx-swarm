@@ -1,0 +1,59 @@
+[
+  {
+    "Id": "cln-container",
+    "Names": ["/cln.sphinx"],
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "cln.sphinx"
+      },
+      {
+        "Type": "volume",
+        "Name": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    ]
+  },
+  {
+    "Id": "boltwall-container",
+    "Names": ["/boltwall.sphinx"],
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "cln.sphinx"
+      }
+    ]
+  },
+  {
+    "Id": "proxy-container",
+    "Names": ["/proxy.sphinx"],
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "cln.sphinx"
+      }
+    ]
+  },
+  {
+    "Id": "repo2graph-container",
+    "Names": ["/repo2graph.sphinx"],
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "repo2graph-sessions.sphinx"
+      },
+      {
+        "Type": "volume",
+        "Name": "repo2graph-cache.sphinx"
+      }
+    ]
+  },
+  {
+    "Id": "orphan-container",
+    "Names": ["/unknown-orphan"],
+    "Mounts": [
+      {
+        "Type": "bind"
+      }
+    ]
+  }
+]

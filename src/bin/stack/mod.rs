@@ -1,7 +1,9 @@
 use anyhow::Result;
 use rocket::tokio;
 use sphinx_swarm::auto_restart_cron::auto_restart_cron;
-use sphinx_swarm::backup::{backup_and_delete_volumes_cron, backup_files_cron};
+use sphinx_swarm::backup::{
+    backup_and_delete_volumes_cron, backup_files_cron, sweep_stale_backup_staging_dirs,
+};
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, migrate_stack, put_config_file, Stack};
 use sphinx_swarm::cron_jobs::public_ip::check_public_ip;
@@ -74,6 +76,11 @@ async fn main() -> Result<()> {
         if let Err(e) = cron_handler_res {
             log::error!("CRON failed {:?}", e);
         }
+    }
+
+    // Drain leftover swarm*_YYYY-MM-DD staging dirs even when backup is disabled.
+    if let Err(e) = sweep_stale_backup_staging_dirs().await {
+        log::error!("Backup staging sweep failed: {:?}", e);
     }
 
     if let Some(backup_services) = stack.backup_services {

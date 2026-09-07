@@ -363,12 +363,17 @@ pub async fn handle(
                 let root_free = result.docker_root_filesystem.as_deref().and_then(|root| {
                     result.filesystems.iter().find(|f| f.mount == root).map(|f| f.free_bytes)
                 });
+                let services_known = result.services.iter().filter(|s| s.size_known).count();
+                let services_unknown = result.services.len().saturating_sub(services_known);
                 log::info!(
-                    "GetHostStorage source={} host_visible={} root_free_bytes={:?} neo4j_bytes={:?} errors={} elapsed_ms={}",
+                    "GetHostStorage source={} host_visible={} root_free_bytes={:?} neo4j_bytes={:?} services={} known={} unknown={} errors={} elapsed_ms={}",
                     result.source,
                     result.host_visible,
                     root_free,
                     result.neo4j.as_ref().and_then(|n| n.size_bytes),
+                    result.services.len(),
+                    services_known,
+                    services_unknown,
                     result.errors.len(),
                     started.elapsed().as_millis()
                 );
