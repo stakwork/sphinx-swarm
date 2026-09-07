@@ -10,7 +10,7 @@ use aws_smithy_types::byte_stream::{ByteStream, Length};
 use aws_smithy_types::retry::RetryConfig;
 use bollard::container::DownloadFromContainerOptions;
 use bollard::Docker;
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, Duration, Local, NaiveDate, NaiveDateTime, Utc};
 use futures_util::stream::TryStreamExt;
 use std::fs::{self, File};
@@ -26,7 +26,7 @@ use zip::ZipWriter;
 
 pub static BACK_AND_DELETE: AtomicBool = AtomicBool::new(false);
 
-const S3_MULTIPART_CHUNK_SIZE: u64 = 1024 * 1024 * 150;
+const S3_MULTIPART_CHUNK_SIZE: u64 = 1024 * 1024 * 16;
 const S3_MULTIPART_MAX_CHUNKS: u64 = 10000;
 
 pub fn bucket_name() -> String {
@@ -306,9 +306,9 @@ async fn upload_part_bytes(
     key: &str,
     upload_id: &str,
     part_number: i32,
-    data: &[u8],
+    data: Bytes,
 ) -> Result<CompletedPart> {
-    let stream = ByteStream::from(Bytes::copy_from_slice(data));
+    let stream = ByteStream::from(data);
     let upload_part_res = client
         .upload_part()
         .key(key)
@@ -397,34 +397,37 @@ where
     };
 
     let mut upload_parts: Vec<CompletedPart> = Vec::new();
-    let mut buf = vec![0u8; chunk_size];
-    let mut filled = 0usize;
+    let mut buf = BytesMut::with_capacity(chunk_size);
     let mut part_number: i32 = 1;
     let mut total: u64 = 0;
 
     loop {
-        let n = match reader.read(&mut buf[filled..]).await {
-            Ok(n) => n,
-            Err(e) => {
-                abort_multipart(&client, bucket, key, &upload_id).await;
-                return Err(e.into());
+        while buf.len() < chunk_size {
+            if buf.capacity() <= buf.len() {
+                buf.reserve(chunk_size - buf.len());
             }
-        };
-        if n == 0 {
-            break;
+            let n = match reader.read_buf(&mut buf).await {
+                Ok(n) => n,
+                Err(e) => {
+                    abort_multipart(&client, bucket, key, &upload_id).await;
+                    return Err(e.into());
+                }
+            };
+            if n == 0 {
+                break;
+            }
+            total += n as u64;
         }
-        filled += n;
-        total += n as u64;
-        if filled < chunk_size {
-            continue;
+        if buf.is_empty() {
+            break;
         }
         if (part_number as u64) > S3_MULTIPART_MAX_CHUNKS {
             log::error!("Too many chunks! Try increasing your chunk size.");
             abort_multipart(&client, bucket, key, &upload_id).await;
             return Ok(false);
         }
-        match upload_part_bytes(&client, bucket, key, &upload_id, part_number, &buf[..filled]).await
-        {
+        let data = buf.split().freeze();
+        match upload_part_bytes(&client, bucket, key, &upload_id, part_number, data).await {
             Ok(part) => upload_parts.push(part),
             Err(e) => {
                 log::error!("Error uploading part: {:?}", e);
@@ -439,36 +442,12 @@ where
             total / (1024 * 1024)
         );
         part_number += 1;
-        filled = 0;
     }
 
     if total == 0 {
         log::error!("Invalid file, file size is 0");
         abort_multipart(&client, bucket, key, &upload_id).await;
         return Ok(false);
-    }
-
-    if filled > 0 {
-        if (part_number as u64) > S3_MULTIPART_MAX_CHUNKS {
-            log::error!("Too many chunks! Try increasing your chunk size.");
-            abort_multipart(&client, bucket, key, &upload_id).await;
-            return Ok(false);
-        }
-        match upload_part_bytes(&client, bucket, key, &upload_id, part_number, &buf[..filled]).await
-        {
-            Ok(part) => upload_parts.push(part),
-            Err(e) => {
-                log::error!("Error uploading part: {:?}", e);
-                abort_multipart(&client, bucket, key, &upload_id).await;
-                return Ok(false);
-            }
-        }
-        log::info!(
-            "S3 upload: {} part {} ({}MB total)",
-            key,
-            part_number,
-            total / (1024 * 1024)
-        );
     }
 
     complete_multipart(&client, bucket, key, &upload_id, upload_parts).await
@@ -974,6 +953,25 @@ mod tests {
         assert!(!body.contains("/vol/swarm"));
         assert!(body.contains("stream_container_volume_to_s3"));
         assert!(body.contains("aggregate_backup_failures"));
+    }
+
+    #[test]
+    fn stream_upload_uses_small_chunks_without_copy() {
+        assert_eq!(S3_MULTIPART_CHUNK_SIZE, 16 * 1024 * 1024);
+        assert!(
+            S3_MULTIPART_CHUNK_SIZE * S3_MULTIPART_MAX_CHUNKS >= 21 * 1024 * 1024 * 1024,
+            "16MB parts must still cover bifrost-scale volumes"
+        );
+        let src = include_str!("backup.rs");
+        let body = function_body(
+            src,
+            "async fn upload_reader_to_s3_multi",
+            &["\nasync fn upload_to_s3_multi"],
+        );
+        assert!(body.contains("BytesMut"));
+        assert!(body.contains("split().freeze()"));
+        assert!(!body.contains("copy_from_slice"));
+        assert!(!body.contains("vec![0u8;"));
     }
 
     #[test]
