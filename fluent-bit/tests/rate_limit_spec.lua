@@ -37,6 +37,23 @@ local function collect_codes(name, n, t0, msg)
   return codes
 end
 
+local function default_env(extra)
+  local env = {
+    FLUENTBIT_RATE_LIMIT_DEFAULT = "3",
+    -- High enough that existing record-cap tests are not byte-capped.
+    FLUENTBIT_RATE_LIMIT_BYTES = "1048576",
+    FLUENTBIT_RATE_LIMIT_INTERVAL = "10",
+    FLUENTBIT_RATE_LIMIT_MAX_KEYS = "8",
+    FLUENTBIT_RATE_LIMIT_OVERRIDES = "",
+  }
+  if extra then
+    for k, v in pairs(extra) do
+      env[k] = v
+    end
+  end
+  return env
+end
+
 describe("rate_limit.lua source safety", function()
   it("does not call load, loadstring, or dofile", function()
     local f = assert(io.open(SCRIPT, "r"))
@@ -114,12 +131,7 @@ describe("rate_limit filter", function()
     RateLimit.set_printer(function(msg)
       notices[#notices + 1] = msg
     end)
-    RateLimit.set_env({
-      FLUENTBIT_RATE_LIMIT_DEFAULT = "3",
-      FLUENTBIT_RATE_LIMIT_INTERVAL = "10",
-      FLUENTBIT_RATE_LIMIT_MAX_KEYS = "8",
-      FLUENTBIT_RATE_LIMIT_OVERRIDES = "",
-    })
+    RateLimit.set_env(default_env())
   end)
 
   after_each(function()
@@ -144,12 +156,10 @@ describe("rate_limit filter", function()
   end)
 
   it("applies a per-container override instead of the global default", function()
-    RateLimit.set_env({
+    RateLimit.set_env(default_env({
       FLUENTBIT_RATE_LIMIT_DEFAULT = "2",
-      FLUENTBIT_RATE_LIMIT_INTERVAL = "10",
-      FLUENTBIT_RATE_LIMIT_MAX_KEYS = "8",
       FLUENTBIT_RATE_LIMIT_OVERRIDES = "noisy=5",
-    })
+    }))
     local quiet = collect_codes("quiet", 3, 100)
     local noisy = collect_codes("noisy", 6, 100)
     assert.are.same({ PASS, PASS, DROP }, quiet)
@@ -157,12 +167,10 @@ describe("rate_limit filter", function()
   end)
 
   it("looks up overrides with or without a leading slash", function()
-    RateLimit.set_env({
+    RateLimit.set_env(default_env({
       FLUENTBIT_RATE_LIMIT_DEFAULT = "1",
-      FLUENTBIT_RATE_LIMIT_INTERVAL = "10",
-      FLUENTBIT_RATE_LIMIT_MAX_KEYS = "8",
       FLUENTBIT_RATE_LIMIT_OVERRIDES = "jarvis=4",
-    })
+    }))
     local codes = collect_codes("/jarvis", 5, 100)
     assert.are.same({ PASS, PASS, PASS, PASS, DROP }, codes)
   end)
@@ -212,12 +220,10 @@ describe("rate_limit filter", function()
   end)
 
   it("bounds distinct keys by evicting the LRU entry", function()
-    RateLimit.set_env({
+    RateLimit.set_env(default_env({
       FLUENTBIT_RATE_LIMIT_DEFAULT = "1",
-      FLUENTBIT_RATE_LIMIT_INTERVAL = "10",
       FLUENTBIT_RATE_LIMIT_MAX_KEYS = "3",
-      FLUENTBIT_RATE_LIMIT_OVERRIDES = "",
-    })
+    }))
     rate_limit("t", ts(100), rec("k1"))
     rate_limit("t", ts(101), rec("k2"))
     rate_limit("t", ts(102), rec("k3"))
@@ -241,5 +247,90 @@ describe("rate_limit filter", function()
     assert.are.same({ PASS, PASS, PASS, DROP }, first)
     local second = collect_codes("alpha", 3, 110)
     assert.are.same({ PASS, PASS, PASS }, second)
+  end)
+
+  it("counts bytes of record.log and drops when the byte cap is exceeded", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "10",
+    }))
+    -- 6-byte "aaaaaa" fits; second 6-byte line would be 12 > 10.
+    local first = rate_limit("tag", ts(100), rec("bytes", "aaaaaa"))
+    local second = rate_limit("tag", ts(100), rec("bytes", "bbbbbb"))
+    assert.are.equal(PASS, first)
+    assert.are.equal(DROP, second)
+  end)
+
+  it("passes a record that exactly fills the remaining byte budget", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "10",
+    }))
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("bytes", "12345")))
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("bytes", "67890")))
+    assert.are.equal(DROP, rate_limit("tag", ts(100), rec("bytes", "x")))
+  end)
+
+  it("drops on the record cap even when bytes are still under budget", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "2",
+      FLUENTBIT_RATE_LIMIT_BYTES = "1048576",
+    }))
+    local codes = collect_codes("tiny", 3, 100, "x")
+    assert.are.same({ PASS, PASS, DROP }, codes)
+  end)
+
+  it("isolates byte counters per container", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "10",
+    }))
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("a", "1234567890")))
+    assert.are.equal(DROP, rate_limit("tag", ts(100), rec("a", "x")))
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("b", "1234567890")))
+  end)
+
+  it("resets the byte counter on interval rollover", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "5",
+    }))
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("bytes", "12345")))
+    assert.are.equal(DROP, rate_limit("tag", ts(100), rec("bytes", "x")))
+    assert.are.equal(PASS, rate_limit("tag", ts(110), rec("bytes", "12345")))
+  end)
+
+  it("includes byte counts in the first-breach notice, never the body", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "4",
+    }))
+    rate_limit("tag", ts(100), rec("alpha", "abcd"))
+    rate_limit("tag", ts(100), rec("alpha", "secret body"))
+    assert.are.equal(1, #notices)
+    assert.is_not_nil(notices[1]:match("bytes=4"))
+    assert.is_not_nil(notices[1]:match("byte_cap=4"))
+    assert.is_nil(notices[1]:match("secret body"))
+  end)
+
+  it("drops a single record larger than the byte cap", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "4",
+    }))
+    local code, _, out = rate_limit("tag", ts(100), rec("alpha", "12345"))
+    assert.are.equal(DROP, code)
+    assert.is_nil(out)
+    assert.are.equal(1, #notices)
+  end)
+
+  it("treats a missing log field as zero bytes", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "2",
+      FLUENTBIT_RATE_LIMIT_BYTES = "1",
+    }))
+    local code = rate_limit("tag", ts(100), { container_name = "nolog" })
+    assert.are.equal(PASS, code)
+    assert.are.equal(0, RateLimit.record_log_bytes({ container_name = "nolog" }))
   end)
 end)

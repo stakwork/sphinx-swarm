@@ -1,10 +1,16 @@
 -- Per-container fixed-interval rate limiter for Fluent Bit.
 --
+-- Primary cap is bytes of record["log"] per window (FLUENTBIT_RATE_LIMIT_BYTES)
+-- so the limit maps to CloudWatch ingest cost. Record count
+-- (FLUENTBIT_RATE_LIMIT_DEFAULT / OVERRIDES) is a secondary guard against a
+-- flood of tiny lines.
+--
 -- Keyed on the Docker-daemon-set `container_name` record field (fallback:
 -- fluentd tag). Override map is parsed with a strict delimiter split — never
 -- load / loadstring / dofile on env content.
 
 local DEFAULT_CAP = 100
+local DEFAULT_BYTE_CAP = 1048576 -- 1 MiB/interval; interval=1s → ~86 GiB/day
 local DEFAULT_INTERVAL = 1
 local DEFAULT_MAX_KEYS = 256
 
@@ -12,6 +18,7 @@ local getenv = os.getenv
 local printer = print
 
 local default_cap = DEFAULT_CAP
+local byte_cap = DEFAULT_BYTE_CAP
 local interval = DEFAULT_INTERVAL
 local max_keys = DEFAULT_MAX_KEYS
 local overrides = {}
@@ -80,6 +87,10 @@ local function reload_config()
     getenv("FLUENTBIT_RATE_LIMIT_DEFAULT"),
     DEFAULT_CAP
   )
+  byte_cap = parse_non_negative_int(
+    getenv("FLUENTBIT_RATE_LIMIT_BYTES"),
+    DEFAULT_BYTE_CAP
+  )
   interval = parse_non_negative_int(
     getenv("FLUENTBIT_RATE_LIMIT_INTERVAL"),
     DEFAULT_INTERVAL
@@ -147,6 +158,7 @@ local function ensure_key(key, now)
   end
   st = {
     count = 0,
+    bytes = 0,
     window = window_id(now),
     notified = false,
     last_seen = now,
@@ -168,6 +180,19 @@ local function cap_for(name)
     return overrides[slashed]
   end
   return default_cap
+end
+
+-- Docker fluentd driver puts the message in `log` (a string). Byte length of
+-- that field is the CloudWatch ingest size we are budgeting against.
+local function record_log_bytes(record)
+  if type(record) ~= "table" then
+    return 0
+  end
+  local log = record["log"]
+  if type(log) == "string" then
+    return #log
+  end
+  return 0
 end
 
 -- Docker's fluentd extra sets container_name to "/name"; awslogs {{.Name}}
@@ -198,34 +223,41 @@ function rate_limit(tag, timestamp, record)
   local cap = cap_for(key)
   local st = ensure_key(key, now)
   local win = window_id(now)
+  local nbytes = record_log_bytes(record)
 
   if st.window ~= win then
     st.window = win
     st.count = 0
+    st.bytes = 0
     st.notified = false
   end
 
-  if st.count < cap then
-    st.count = st.count + 1
-    -- 1 = use this record (applies the leading-slash normalization).
-    -- 0 would discard record mutations and keep Docker's "/name".
-    return 1, timestamp, record
-  end
-
-  if not st.notified then
-    st.notified = true
-    printer(
-      string.format(
-        "[rate_limit] container %s throttled count=%d cap=%d interval=%ds",
-        sanitize(key),
-        st.count,
-        cap,
-        interval
+  -- Byte cap is primary (cost). Record cap is a secondary guard.
+  local over_records = st.count >= cap
+  local over_bytes = (st.bytes + nbytes) > byte_cap
+  if over_records or over_bytes then
+    if not st.notified then
+      st.notified = true
+      printer(
+        string.format(
+          "[rate_limit] container %s throttled count=%d cap=%d bytes=%d byte_cap=%d interval=%ds",
+          sanitize(key),
+          st.count,
+          cap,
+          st.bytes,
+          byte_cap,
+          interval
+        )
       )
-    )
+    end
+    return -1, timestamp, nil
   end
 
-  return -1, timestamp, nil
+  st.count = st.count + 1
+  st.bytes = st.bytes + nbytes
+  -- 1 = use this record (applies the leading-slash normalization).
+  -- 0 would discard record mutations and keep Docker's "/name".
+  return 1, timestamp, record
 end
 
 reload_config()
@@ -244,6 +276,7 @@ RateLimit = {
     return state[k] ~= nil
   end,
   cap_for = cap_for,
+  record_log_bytes = record_log_bytes,
   set_env = function(tbl)
     if tbl == nil then
       getenv = os.getenv
@@ -260,6 +293,7 @@ RateLimit = {
   end,
   defaults = {
     cap = DEFAULT_CAP,
+    byte_cap = DEFAULT_BYTE_CAP,
     interval = DEFAULT_INTERVAL,
     max_keys = DEFAULT_MAX_KEYS,
   },

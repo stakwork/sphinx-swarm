@@ -1,0 +1,39 @@
+# Fluent Bit sidecar. MUST use json-file with rotation — never the fluentd
+# driver. [rate_limit] notices and throttle Print_Status go to stdout; shipping
+# that through fluentd would loop into INPUT 24224.
+#
+# HTTP 2020 is /api/v1/metrics (Prometheus). Forward input is 24224.
+#
+# Include from a swarm compose, e.g.:
+#   docker-compose -f docker-compose.yml -f fluent-bit/docker-compose.yml up -d
+version: "2"
+
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:3.2.10
+    container_name: fluent-bit
+    restart: unless-stopped
+    networks:
+      - sphinx-swarm
+    ports:
+      - "24224:24224"
+      - "2020:2020"
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./rate_limit.lua:/fluent-bit/etc/rate_limit.lua:ro
+    environment:
+      - SWARM_NUMBER=${SWARM_NUMBER}
+      - FLUENTBIT_RATE_LIMIT_BYTES=${FLUENTBIT_RATE_LIMIT_BYTES:-1048576}
+      - FLUENTBIT_RATE_LIMIT_DEFAULT=${FLUENTBIT_RATE_LIMIT_DEFAULT:-100}
+      - FLUENTBIT_RATE_LIMIT_OVERRIDES=${FLUENTBIT_RATE_LIMIT_OVERRIDES:-}
+      - FLUENTBIT_RATE_LIMIT_INTERVAL=${FLUENTBIT_RATE_LIMIT_INTERVAL:-1}
+      - FLUENTBIT_RATE_LIMIT_MAX_KEYS=${FLUENTBIT_RATE_LIMIT_MAX_KEYS:-256}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  sphinx-swarm:
+    external: true
