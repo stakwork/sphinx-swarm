@@ -153,8 +153,11 @@ fn repo2graph(
     // on-demand python venv). The gated dataset cannot be baked into the
     // image and a cold clone takes minutes, so a named volume makes
     // bootstrap a one-time cost instead of a per-recreation one.
+    // VEIN_* is being renamed to STRUT_*; send both so either service
+    // version picks it up.
     let cache_dir = "/usr/src/app/cache";
     env.push(format!("VEIN_CACHE_DIR={}", cache_dir));
+    env.push(format!("STRUT_CACHE_DIR={}", cache_dir));
 
     // Durable dir for the lab vein workspace (run history/outputs plus any
     // steps/workflows edited through the vein UI/API). Without the env var the
@@ -163,6 +166,7 @@ fn repo2graph(
     // data is not.
     let lab_ws_dir = "/usr/src/app/lab-workspace";
     env.push(format!("VEIN_LAB_WORKSPACE={}", lab_ws_dir));
+    env.push(format!("STRUT_LAB_WORKSPACE={}", lab_ws_dir));
 
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
@@ -272,14 +276,11 @@ mod tests {
         let neo4j = test_neo4j_image();
         let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
 
-        assert!(
-            config
-                .env
-                .as_ref()
-                .unwrap()
-                .contains(&"VEIN_CACHE_DIR=/usr/src/app/cache".to_string()),
-            "env should contain VEIN_CACHE_DIR=/usr/src/app/cache"
-        );
+        let env = config.env.as_ref().unwrap();
+        for key in ["VEIN_CACHE_DIR", "STRUT_CACHE_DIR"] {
+            let expected = format!("{}=/usr/src/app/cache", key);
+            assert!(env.contains(&expected), "env should contain {}", expected);
+        }
 
         let binds = config
             .host_config
@@ -309,14 +310,11 @@ mod tests {
         let neo4j = test_neo4j_image();
         let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
 
-        assert!(
-            config
-                .env
-                .as_ref()
-                .unwrap()
-                .contains(&"VEIN_LAB_WORKSPACE=/usr/src/app/lab-workspace".to_string()),
-            "env should contain VEIN_LAB_WORKSPACE=/usr/src/app/lab-workspace"
-        );
+        let env = config.env.as_ref().unwrap();
+        for key in ["VEIN_LAB_WORKSPACE", "STRUT_LAB_WORKSPACE"] {
+            let expected = format!("{}=/usr/src/app/lab-workspace", key);
+            assert!(env.contains(&expected), "env should contain {}", expected);
+        }
 
         let binds = config
             .host_config
