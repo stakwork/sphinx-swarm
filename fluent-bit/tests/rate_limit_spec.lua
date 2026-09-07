@@ -42,6 +42,7 @@ local function default_env(extra)
     FLUENTBIT_RATE_LIMIT_DEFAULT = "3",
     -- High enough that existing record-cap tests are not byte-capped.
     FLUENTBIT_RATE_LIMIT_BYTES = "1048576",
+    FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES = "",
     FLUENTBIT_RATE_LIMIT_INTERVAL = "10",
     FLUENTBIT_RATE_LIMIT_MAX_KEYS = "8",
     FLUENTBIT_RATE_LIMIT_OVERRIDES = "",
@@ -62,6 +63,15 @@ describe("rate_limit.lua source safety", function()
     assert.is_nil(source:match("[^%w_]load%s*%("), "must not call load()")
     assert.is_nil(source:match("loadstring%s*%("), "must not call loadstring()")
     assert.is_nil(source:match("dofile%s*%("), "must not call dofile()")
+  end)
+end)
+
+describe("hourly budget defaults", function()
+  it("uses 3600s / 64 MiB / 500k events", function()
+    assert.are.equal(500000, RateLimit.defaults.cap)
+    assert.are.equal(67108864, RateLimit.defaults.byte_cap)
+    assert.are.equal(3600, RateLimit.defaults.interval)
+    assert.are.equal(256, RateLimit.defaults.max_keys)
   end)
 end)
 
@@ -322,6 +332,44 @@ describe("rate_limit filter", function()
     assert.are.equal(DROP, code)
     assert.is_nil(out)
     assert.are.equal(1, #notices)
+  end)
+
+  it("applies a per-container byte override instead of the global byte cap", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "4",
+      FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES = "noisy=20",
+    }))
+    -- quiet is limited to 4 bytes; noisy gets 20.
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("quiet", "abcd")))
+    assert.are.equal(DROP, rate_limit("tag", ts(100), rec("quiet", "x")))
+    assert.are.equal(PASS, rate_limit("tag", ts(100), rec("noisy", "12345678901234567890")))
+    assert.are.equal(DROP, rate_limit("tag", ts(100), rec("noisy", "x")))
+  end)
+
+  it("looks up byte overrides with or without a leading slash", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "100",
+      FLUENTBIT_RATE_LIMIT_BYTES = "4",
+      FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES = "repo2graph.sphinx=20",
+    }))
+    assert.are.equal(
+      PASS,
+      rate_limit("tag", ts(100), rec("/repo2graph.sphinx", "12345678901234567890"))
+    )
+    assert.are.equal(
+      DROP,
+      rate_limit("tag", ts(100), rec("/repo2graph.sphinx", "x"))
+    )
+  end)
+
+  it("rejects injection-style input in the byte-override map", function()
+    local map = RateLimit.parse_overrides(
+      "repo2graph.sphinx=20,evil=load('x'),bad"
+    )
+    assert.are.equal(20, map["repo2graph.sphinx"])
+    assert.is_nil(map["evil"])
+    assert.is_nil(map["bad"])
   end)
 
   it("treats a missing log field as zero bytes", function()

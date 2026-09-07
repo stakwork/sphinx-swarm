@@ -1,17 +1,21 @@
 -- Per-container fixed-interval rate limiter for Fluent Bit.
 --
--- Primary cap is bytes of record["log"] per window (FLUENTBIT_RATE_LIMIT_BYTES)
--- so the limit maps to CloudWatch ingest cost. Record count
--- (FLUENTBIT_RATE_LIMIT_DEFAULT / OVERRIDES) is a secondary guard against a
--- flood of tiny lines.
+-- Primary cap is bytes of record["log"] per window (FLUENTBIT_RATE_LIMIT_BYTES
+-- / FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES) so the limit maps to CloudWatch
+-- ingest cost. Record count (FLUENTBIT_RATE_LIMIT_DEFAULT / OVERRIDES) is a
+-- secondary guard against a flood of tiny lines.
+--
+-- Defaults are an hourly budget: short windows cannot tell a healthy burst
+-- (workloads are bimodal, idle ~0.4 lines/s, bursting to 15k/s) from a loop.
+-- Hourly also bounds blast radius and resets 24 times a day.
 --
 -- Keyed on the Docker-daemon-set `container_name` record field (fallback:
--- fluentd tag). Override map is parsed with a strict delimiter split — never
--- load / loadstring / dofile on env content.
+-- fluentd tag). Override maps are parsed with a strict delimiter split —
+-- never load / loadstring / dofile on env content.
 
-local DEFAULT_CAP = 100
-local DEFAULT_BYTE_CAP = 1048576 -- 1 MiB/interval; interval=1s → ~86 GiB/day
-local DEFAULT_INTERVAL = 1
+local DEFAULT_CAP = 500000 -- 500k events / hour
+local DEFAULT_BYTE_CAP = 67108864 -- 64 MiB / hour (~1.55 GiB/day)
+local DEFAULT_INTERVAL = 3600 -- hourly window
 local DEFAULT_MAX_KEYS = 256
 
 local getenv = os.getenv
@@ -22,6 +26,7 @@ local byte_cap = DEFAULT_BYTE_CAP
 local interval = DEFAULT_INTERVAL
 local max_keys = DEFAULT_MAX_KEYS
 local overrides = {}
+local byte_overrides = {}
 local state = {}
 
 local function trim(s)
@@ -106,6 +111,9 @@ local function reload_config()
     max_keys = DEFAULT_MAX_KEYS
   end
   overrides = parse_overrides(getenv("FLUENTBIT_RATE_LIMIT_OVERRIDES") or "")
+  byte_overrides = parse_overrides(
+    getenv("FLUENTBIT_RATE_LIMIT_BYTE_OVERRIDES") or ""
+  )
 end
 
 local function reset_state()
@@ -167,19 +175,28 @@ local function ensure_key(key, now)
   return st
 end
 
-local function cap_for(name)
-  if overrides[name] ~= nil then
-    return overrides[name]
+-- Same lookup shape for record-cap and byte-cap override maps.
+local function lookup_override(map, name, fallback)
+  if map[name] ~= nil then
+    return map[name]
   end
   local stripped = name:gsub("^/", "")
-  if overrides[stripped] ~= nil then
-    return overrides[stripped]
+  if map[stripped] ~= nil then
+    return map[stripped]
   end
   local slashed = "/" .. stripped
-  if overrides[slashed] ~= nil then
-    return overrides[slashed]
+  if map[slashed] ~= nil then
+    return map[slashed]
   end
-  return default_cap
+  return fallback
+end
+
+local function cap_for(name)
+  return lookup_override(overrides, name, default_cap)
+end
+
+local function byte_cap_for(name)
+  return lookup_override(byte_overrides, name, byte_cap)
 end
 
 -- Docker fluentd driver puts the message in `log` (a string). Byte length of
@@ -221,6 +238,7 @@ function rate_limit(tag, timestamp, record)
   local now = to_seconds(timestamp)
   local key = record_key(tag, record)
   local cap = cap_for(key)
+  local bcap = byte_cap_for(key)
   local st = ensure_key(key, now)
   local win = window_id(now)
   local nbytes = record_log_bytes(record)
@@ -234,7 +252,7 @@ function rate_limit(tag, timestamp, record)
 
   -- Byte cap is primary (cost). Record cap is a secondary guard.
   local over_records = st.count >= cap
-  local over_bytes = (st.bytes + nbytes) > byte_cap
+  local over_bytes = (st.bytes + nbytes) > bcap
   if over_records or over_bytes then
     if not st.notified then
       st.notified = true
@@ -245,7 +263,7 @@ function rate_limit(tag, timestamp, record)
           st.count,
           cap,
           st.bytes,
-          byte_cap,
+          bcap,
           interval
         )
       )
@@ -276,6 +294,7 @@ RateLimit = {
     return state[k] ~= nil
   end,
   cap_for = cap_for,
+  byte_cap_for = byte_cap_for,
   record_log_bytes = record_log_bytes,
   set_env = function(tbl)
     if tbl == nil then
