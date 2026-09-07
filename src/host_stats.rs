@@ -47,7 +47,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Result};
-use bollard::models::Volume;
+use bollard::models::{ContainerSummary, Volume};
 use bollard::Docker;
 use once_cell::sync::{Lazy, OnceCell};
 use serde::{Deserialize, Serialize};
@@ -95,6 +95,10 @@ pub struct HostStorage {
     pub volumes: Vec<VolumeUsage>,
     /// `null` when the stack has no Neo4j node — a valid, non-error response.
     pub neo4j: Option<Neo4jStorage>,
+    /// Per-service volume rollup for every internal node that owns at least one
+    /// volume. Additive; empty when nothing could be attributed.
+    #[serde(default)]
+    pub services: Vec<ServiceStorage>,
     /// Per-collector failures. A partial failure is always a well-formed 200.
     pub errors: Vec<CollectorError>,
 }
@@ -117,12 +121,16 @@ pub struct FilesystemUsage {
 
 /// One Docker volume with its measured size. `size_bytes` is `None` (and
 /// `size_known: false`) when the daemon returned `-1` or omitted `usage_data` —
-/// never a fabricated `0`.
+/// never a fabricated `0`. `service` is the owning node name, or `None` for an
+/// ungrouped orphan (still listed in `volumes[]`).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VolumeUsage {
     pub name: String,
     pub size_bytes: Option<i64>,
     pub size_known: bool,
+    /// Owning swarm service (`node.name()`). `None` = ungrouped/orphan.
+    #[serde(default)]
+    pub service: Option<String>,
 }
 
 /// Neo4j storage rollup. Lists *all* named volumes attributed to the Neo4j node
@@ -136,8 +144,21 @@ pub struct Neo4jStorage {
     pub size_known: bool,
 }
 
+/// Per-service volume rollup. `size_bytes` is `None` (and `size_known: false`)
+/// when any member volume is unknown or missing from docker df — never a
+/// partial total.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServiceStorage {
+    pub name: String,
+    pub typ: String,
+    pub volumes: Vec<String>,
+    pub size_bytes: Option<i64>,
+    pub size_known: bool,
+}
+
 /// One failed/timed-out sub-collector. `collector` is one of
-/// `"filesystems"` | `"volumes"` | `"neo4j"` | `"docker_info"`.
+/// `"filesystems"` | `"volumes"` | `"neo4j"` | `"docker_info"` | `"containers"`
+/// | `"services"`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CollectorError {
     pub collector: String,
@@ -497,34 +518,152 @@ fn reqwest_client() -> reqwest::Client {
 ///
 /// `usage_data` present with `size >= 0` => `size_known: true`. `usage_data`
 /// absent or `size == -1` => `size_bytes: None, size_known: false` plus a
-/// `CollectorError` — never a fabricated `0`.
-pub fn map_df_response(volumes: &[Volume]) -> (Vec<VolumeUsage>, Vec<CollectorError>) {
+/// `CollectorError` — never a fabricated `0`. `service` is filled from
+/// `owners` (volume name → node name); missing keys stay `None`.
+pub fn map_df_response(
+    volumes: &[Volume],
+    owners: &HashMap<String, String>,
+) -> (Vec<VolumeUsage>, Vec<CollectorError>) {
     let mut out = Vec::with_capacity(volumes.len());
     let mut errors = Vec::new();
     for v in volumes {
+        let service = owners.get(&v.name).cloned();
         match v.usage_data.as_ref().map(|u| u.size) {
             Some(size) if size >= 0 => out.push(VolumeUsage {
                 name: v.name.clone(),
                 size_bytes: Some(size),
                 size_known: true,
+                service,
             }),
             Some(size) => {
                 errors.push(CollectorError::new(
                     "volumes",
                     format!("volume {}: size not computed by daemon (={})", v.name, size),
                 ));
-                out.push(VolumeUsage { name: v.name.clone(), size_bytes: None, size_known: false });
+                out.push(VolumeUsage {
+                    name: v.name.clone(),
+                    size_bytes: None,
+                    size_known: false,
+                    service,
+                });
             }
             None => {
                 errors.push(CollectorError::new(
                     "volumes",
                     format!("volume {}: usage_data absent from docker df", v.name),
                 ));
-                out.push(VolumeUsage { name: v.name.clone(), size_bytes: None, size_known: false });
+                out.push(VolumeUsage {
+                    name: v.name.clone(),
+                    size_bytes: None,
+                    size_known: false,
+                    service,
+                });
             }
         }
     }
     (out, errors)
+}
+
+/// Longest-node-name, boundary-aware match of a `{name}.sphinx` / `{name}-{suffix}.sphinx`
+/// volume onto an internal node name. `node_names` must already be sorted longest-first.
+fn match_sphinx_volume(name: &str, node_names: &[String]) -> Option<String> {
+    let base = name.strip_suffix(".sphinx")?;
+    for n in node_names {
+        if base == n.as_str() || base.starts_with(&format!("{}-", n)) {
+            return Some(n.clone());
+        }
+    }
+    None
+}
+
+/// Map each volume name to the friendly service label (`node.name()`).
+///
+/// Pass 1 (name-based, authoritative) attributes `.sphinx`-suffixed named
+/// volumes from `df_volume_names` (and any named mounts) so a volume shared
+/// by several containers is owned exactly once. Pass 2 attributes leftover
+/// names (typically 64-hex anonymous volumes) from container mounts.
+/// `Node::External` is skipped. Unattributed names stay out of the map.
+/// Reads only `MountPoint.name` — never `source` / `destination`.
+pub fn attribute_volumes(
+    nodes: &[Node],
+    containers: &[ContainerSummary],
+    df_volume_names: &[String],
+) -> HashMap<String, String> {
+    let mut node_names: Vec<String> = Vec::new();
+    for node in nodes {
+        if let Ok(img) = node.as_internal() {
+            let n = img.name();
+            if !node_names.contains(&n) {
+                node_names.push(n);
+            }
+        }
+    }
+    node_names.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+
+    let mut owners: HashMap<String, String> = HashMap::new();
+
+    for name in df_volume_names {
+        if let Some(owner) = match_sphinx_volume(name, &node_names) {
+            owners.insert(name.clone(), owner);
+        }
+    }
+    for c in containers {
+        if let Some(mounts) = &c.mounts {
+            for m in mounts {
+                if let Some(vol_name) = &m.name {
+                    if owners.contains_key(vol_name) {
+                        continue;
+                    }
+                    if let Some(owner) = match_sphinx_volume(vol_name, &node_names) {
+                        owners.insert(vol_name.clone(), owner);
+                    }
+                }
+            }
+        }
+    }
+
+    for c in containers {
+        let Some(names) = &c.names else {
+            continue;
+        };
+        let Some(raw) = names.first() else {
+            continue;
+        };
+        let cname = raw.trim_start_matches('/');
+        let mut owner_label: Option<String> = None;
+        for node in nodes {
+            if let Ok(img) = node.as_internal() {
+                if utils::domain(&img.name()) == cname {
+                    owner_label = Some(img.name());
+                    break;
+                }
+            }
+        }
+        let Some(owner_label) = owner_label else {
+            continue;
+        };
+        let Some(mounts) = &c.mounts else {
+            continue;
+        };
+        for m in mounts {
+            let is_volume = m
+                .typ
+                .as_ref()
+                .map(|t| t.to_string().eq_ignore_ascii_case("volume"))
+                .unwrap_or(false);
+            if !is_volume {
+                continue;
+            }
+            let Some(vol_name) = &m.name else {
+                continue;
+            };
+            owners
+                .entry(vol_name.clone())
+                .or_insert_with(|| owner_label.clone());
+        }
+    }
+
+    owners
 }
 
 /// Named volumes attributed to Neo4j nodes (deduplicated, order preserved).
@@ -587,6 +726,67 @@ pub fn build_neo4j_storage(
     (Some(storage), errors)
 }
 
+/// Per-service rollup for every internal node that owns at least one volume
+/// present in `volume_map`. Sums only when every member is known; any unknown
+/// or missing member suppresses the total. Nodes owning zero volumes are skipped.
+pub fn build_service_storage(
+    nodes: &[Node],
+    volume_map: &HashMap<String, VolumeUsage>,
+    owner_map: &HashMap<String, String>,
+) -> (Vec<ServiceStorage>, Vec<CollectorError>) {
+    let mut services = Vec::new();
+    let mut errors = Vec::new();
+    for node in nodes {
+        let Ok(img) = node.as_internal() else {
+            continue;
+        };
+        let label = img.name();
+        let mut owned: Vec<String> = owner_map
+            .iter()
+            .filter(|(_, owner)| *owner == &label)
+            .map(|(vol, _)| vol.clone())
+            .filter(|vol| volume_map.contains_key(vol))
+            .collect();
+        if owned.is_empty() {
+            continue;
+        }
+        owned.sort();
+        let mut all_known = true;
+        let mut total: i64 = 0;
+        for name in &owned {
+            match volume_map.get(name) {
+                Some(vu) if vu.size_known => {
+                    if let Some(sz) = vu.size_bytes {
+                        total += sz;
+                    }
+                }
+                Some(vu) => {
+                    all_known = false;
+                    errors.push(CollectorError::new(
+                        "services",
+                        format!("service {} volume {} size unknown", label, vu.name),
+                    ));
+                }
+                None => {
+                    all_known = false;
+                    errors.push(CollectorError::new(
+                        "services",
+                        format!("service {} volume {} not found in docker df", label, name),
+                    ));
+                }
+            }
+        }
+        services.push(ServiceStorage {
+            name: label,
+            typ: img.typ(),
+            volumes: owned,
+            size_bytes: if all_known { Some(total) } else { None },
+            size_known: all_known,
+        });
+    }
+    (services, errors)
+}
+
 /// Longest-prefix match of a root dir against reported mounts. `/` matches
 /// everything (boundary-checked); `/var/lib/docker` on its own mount wins.
 pub fn longest_prefix_match<'a>(filesystems: &'a [FilesystemUsage], root: &str) -> Option<&'a str> {
@@ -602,23 +802,57 @@ pub fn longest_prefix_match<'a>(filesystems: &'a [FilesystemUsage], root: &str) 
         .max_by_key(|m| m.len())
 }
 
-/// df() + info() under one roof. Both are cancelled client-side after 8s.
-async fn collect_volumes(docker: &Docker) -> (Vec<VolumeUsage>, Vec<CollectorError>, Option<String>) {
+/// df() + info() + list_containers() under one roof. All cancelled client-side after 8s.
+async fn collect_volumes(
+    docker: &Docker,
+    nodes: &[Node],
+) -> (
+    Vec<VolumeUsage>,
+    Vec<CollectorError>,
+    Option<String>,
+    HashMap<String, String>,
+) {
     let mut errors: Vec<CollectorError> = Vec::new();
 
     let df_fut = tokio::time::timeout(Duration::from_secs(COLLECTOR_TIMEOUT_SECS), docker.df());
     let info_fut = tokio::time::timeout(Duration::from_secs(COLLECTOR_TIMEOUT_SECS), docker.info());
-    let (df_res, info_res) = tokio::join!(df_fut, info_fut);
+    let containers_fut = tokio::time::timeout(
+        Duration::from_secs(COLLECTOR_TIMEOUT_SECS),
+        crate::dock::list_containers(docker),
+    );
+    let (df_res, info_res, containers_res) = tokio::join!(df_fut, info_fut, containers_fut);
 
-    let (volumes, df_errors, _) = match df_res {
-        Ok(Ok(df)) => {
-            let (vols, errs) = map_df_response(df.volumes.as_deref().unwrap_or(&[]));
-            (vols, errs, None::<String>)
+    let df_volumes: Vec<Volume> = match &df_res {
+        Ok(Ok(df)) => df.volumes.clone().unwrap_or_default(),
+        _ => Vec::new(),
+    };
+    let df_volume_names: Vec<String> = df_volumes.iter().map(|v| v.name.clone()).collect();
+
+    let containers = match containers_res {
+        Ok(Ok(cs)) => cs,
+        Ok(Err(e)) => {
+            errors.push(CollectorError::new(
+                "containers",
+                format!("list_containers failed: {}", e),
+            ));
+            Vec::new()
         }
+        Err(_) => {
+            errors.push(CollectorError::new(
+                "containers",
+                format!("list_containers timed out after {}s", COLLECTOR_TIMEOUT_SECS),
+            ));
+            Vec::new()
+        }
+    };
+
+    let owners = attribute_volumes(nodes, &containers, &df_volume_names);
+
+    let (volumes, df_errors) = match df_res {
+        Ok(Ok(_)) => map_df_response(&df_volumes, &owners),
         Ok(Err(e)) => (
             vec![],
             vec![CollectorError::new("volumes", format!("docker df failed: {}", e))],
-            None,
         ),
         Err(_) => (
             vec![],
@@ -626,7 +860,6 @@ async fn collect_volumes(docker: &Docker) -> (Vec<VolumeUsage>, Vec<CollectorErr
                 "volumes",
                 format!("docker df timed out after {}s", COLLECTOR_TIMEOUT_SECS),
             )],
-            None,
         ),
     };
     errors.extend(df_errors);
@@ -645,7 +878,7 @@ async fn collect_volumes(docker: &Docker) -> (Vec<VolumeUsage>, Vec<CollectorErr
             None
         }
     };
-    (volumes, errors, docker_root_dir)
+    (volumes, errors, docker_root_dir, owners)
 }
 
 fn now_unix() -> i64 {
@@ -668,7 +901,7 @@ static CACHE: Lazy<Mutex<Option<CacheEntry>>> = Lazy::new(|| Mutex::new(None));
 /// returns Err.
 pub async fn collect_host_storage(docker: &Docker, nodes: &[Node]) -> HostStorage {
     let (fs, mut errors, source) = collect_filesystems().await;
-    let (volumes, mut vol_errors, docker_root_dir) = collect_volumes(docker).await;
+    let (volumes, mut vol_errors, docker_root_dir, owners) = collect_volumes(docker, nodes).await;
     errors.append(&mut vol_errors);
 
     let docker_root_filesystem = docker_root_dir
@@ -680,6 +913,8 @@ pub async fn collect_host_storage(docker: &Docker, nodes: &[Node]) -> HostStorag
     let names = neo4j_volume_names(nodes);
     let (neo4j, neo4j_errors) = build_neo4j_storage(&names, &volume_map);
     errors.extend(neo4j_errors);
+    let (services, service_errors) = build_service_storage(nodes, &volume_map, &owners);
+    errors.extend(service_errors);
 
     HostStorage {
         host_visible: fs.iter().any(|f| f.describes_host),
@@ -691,6 +926,7 @@ pub async fn collect_host_storage(docker: &Docker, nodes: &[Node]) -> HostStorag
         docker_root_filesystem,
         volumes,
         neo4j,
+        services,
         errors,
     }
 }
@@ -777,20 +1013,23 @@ mod tests {
         let df: bollard::models::SystemDataUsageResponse = serde_json::from_str(DF_RESPONSE)
             .expect("fixture must deserialize into bollard SystemDataUsageResponse");
         let volumes = df.volumes.as_deref().unwrap_or(&[]).to_vec();
-        let (out, errors) = map_df_response(&volumes);
+        let (out, errors) = map_df_response(&volumes, &HashMap::new());
         assert_eq!(out.len(), 3);
 
         let neo4j = out.iter().find(|v| v.name == "neo4j.sphinx").unwrap();
         assert_eq!(neo4j.size_bytes, Some(536_870_912_000));
         assert!(neo4j.size_known);
+        assert_eq!(neo4j.service, None, "empty owner map => service: None");
 
         let unknown = out.iter().find(|v| v.name == "unknown_driver.vol").unwrap();
         assert_eq!(unknown.size_bytes, None);
         assert!(!unknown.size_known);
+        assert_eq!(unknown.service, None);
 
         let absent = out.iter().find(|v| v.name == "no_usage_data.vol").unwrap();
         assert_eq!(absent.size_bytes, None);
         assert!(!absent.size_known);
+        assert_eq!(absent.service, None);
 
         // exactly two errors: the -1 volume and the absent usage_data volume
         assert_eq!(errors.len(), 2);
@@ -799,6 +1038,14 @@ mod tests {
             .iter()
             .any(|e| e.reason.contains("not computed by daemon")));
         assert!(errors.iter().any(|e| e.reason.contains("usage_data absent")));
+
+        let mut owners = HashMap::new();
+        owners.insert("neo4j.sphinx".to_string(), "neo4j".to_string());
+        let (out, _) = map_df_response(&volumes, &owners);
+        let neo4j = out.iter().find(|v| v.name == "neo4j.sphinx").unwrap();
+        assert_eq!(neo4j.service.as_deref(), Some("neo4j"));
+        let unknown = out.iter().find(|v| v.name == "unknown_driver.vol").unwrap();
+        assert_eq!(unknown.service, None);
     }
 
     // ── Neo4j attribution ──────────────────────────────────────────────────
@@ -814,7 +1061,12 @@ mod tests {
         let mut map = HashMap::new();
         map.insert(
             "neo4j.sphinx".to_string(),
-            VolumeUsage { name: "neo4j.sphinx".to_string(), size_bytes: Some(100), size_known: true },
+            VolumeUsage {
+                name: "neo4j.sphinx".to_string(),
+                size_bytes: Some(100),
+                size_known: true,
+                service: Some("neo4j".to_string()),
+            },
         );
         let (storage, errors) = build_neo4j_storage(&names, &map);
         assert!(errors.is_empty());
@@ -844,7 +1096,12 @@ mod tests {
         let mut map = HashMap::new();
         map.insert(
             "neo4j.sphinx".to_string(),
-            VolumeUsage { name: "neo4j.sphinx".to_string(), size_bytes: None, size_known: false },
+            VolumeUsage {
+                name: "neo4j.sphinx".to_string(),
+                size_bytes: None,
+                size_known: false,
+                service: Some("neo4j".to_string()),
+            },
         );
         let (storage, errors) = build_neo4j_storage(&names, &map);
         let storage = storage.unwrap();
@@ -950,12 +1207,20 @@ mod tests {
                 name: "neo4j.sphinx".to_string(),
                 size_bytes: Some(1),
                 size_known: true,
+                service: Some("neo4j".to_string()),
             }],
             neo4j: Some(Neo4jStorage {
                 volumes: vec!["neo4j.sphinx".to_string()],
                 size_bytes: Some(1),
                 size_known: true,
             }),
+            services: vec![ServiceStorage {
+                name: "neo4j".to_string(),
+                typ: "Neo4j".to_string(),
+                volumes: vec!["neo4j.sphinx".to_string()],
+                size_bytes: Some(1),
+                size_known: true,
+            }],
             errors: vec![CollectorError { collector: "volumes".to_string(), reason: "x".to_string() }],
         };
         let json = serde_json::to_value(&response).unwrap();
@@ -969,5 +1234,165 @@ mod tests {
         // deserialize back
         let back: HostStorage = serde_json::from_value(json).unwrap();
         assert_eq!(back.volumes[0].name, "neo4j.sphinx");
+        assert_eq!(back.volumes[0].service.as_deref(), Some("neo4j"));
+        assert_eq!(back.services.len(), 1);
+        assert_eq!(back.services[0].name, "neo4j");
+    }
+
+    // ── attribute_volumes ──────────────────────────────────────────────────
+
+    const CONTAINERS_RESPONSE: &str = include_str!("../tests/fixtures/containers_response.json");
+
+    fn cln_node() -> Node {
+        Node::Internal(Image::Cln(crate::images::cln::ClnImage::new(
+            "cln", "v23.05", "regtest", "9735", "10009",
+        )))
+    }
+    fn boltwall_node() -> Node {
+        Node::Internal(Image::BoltWall(crate::images::boltwall::BoltwallImage::new(
+            "boltwall", "latest", "8444",
+        )))
+    }
+    fn proxy_node() -> Node {
+        Node::Internal(Image::Proxy(crate::images::proxy::ProxyImage::new(
+            "proxy", "latest", "regtest", "11111", "5555",
+        )))
+    }
+    fn repo2graph_node() -> Node {
+        Node::Internal(Image::Repo2Graph(crate::images::repo2graph::Repo2GraphImage::new(
+            "repo2graph", "latest", "3355",
+        )))
+    }
+    fn external_btc() -> Node {
+        Node::External(crate::config::ExternalNode::new(
+            "ext-btc",
+            crate::config::ExternalNodeType::Btc,
+            "http://btc.example",
+        ))
+    }
+
+    fn fixture_containers() -> Vec<ContainerSummary> {
+        serde_json::from_str(CONTAINERS_RESPONSE)
+            .expect("fixture must deserialize into bollard ContainerSummary[]")
+    }
+
+    #[test]
+    fn attribute_volumes_named_anonymous_shared_suffixed_orphan_and_external() {
+        let nodes = vec![
+            cln_node(),
+            boltwall_node(),
+            proxy_node(),
+            repo2graph_node(),
+            external_btc(),
+        ];
+        let containers = fixture_containers();
+        let df_names = vec![
+            "cln.sphinx".to_string(),
+            "repo2graph-sessions.sphinx".to_string(),
+            "repo2graph-cache.sphinx".to_string(),
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_string(),
+            "orphan.vol".to_string(),
+        ];
+        let owners = attribute_volumes(&nodes, &containers, &df_names);
+
+        assert_eq!(owners.get("cln.sphinx").map(String::as_str), Some("cln"));
+        assert_eq!(
+            owners.get("repo2graph-sessions.sphinx").map(String::as_str),
+            Some("repo2graph")
+        );
+        assert_eq!(
+            owners.get("repo2graph-cache.sphinx").map(String::as_str),
+            Some("repo2graph")
+        );
+        assert_eq!(
+            owners
+                .get("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+                .map(String::as_str),
+            Some("cln"),
+            "anonymous 64-hex volume mounted by cln.sphinx belongs to cln"
+        );
+        assert!(
+            !owners.contains_key("orphan.vol"),
+            "unmatched volume stays out of the map => service: None"
+        );
+        // shared named volume attributed exactly once (HashMap key uniqueness)
+        let cln_owned: Vec<_> = owners
+            .iter()
+            .filter(|(_, owner)| *owner == "cln")
+            .map(|(vol, _)| vol.as_str())
+            .collect();
+        assert_eq!(
+            cln_owned.iter().filter(|n| **n == "cln.sphinx").count(),
+            1,
+            "shared cln.sphinx must not be double-counted"
+        );
+        assert!(!owners.values().any(|o| o == "boltwall" || o == "proxy"));
+        assert!(!owners.values().any(|o| o == "ext-btc"));
+    }
+
+    // ── build_service_storage ──────────────────────────────────────────────
+
+    fn vu(name: &str, size: Option<i64>, known: bool, service: Option<&str>) -> VolumeUsage {
+        VolumeUsage {
+            name: name.to_string(),
+            size_bytes: size,
+            size_known: known,
+            service: service.map(|s| s.to_string()),
+        }
+    }
+
+    #[test]
+    fn build_service_storage_sums_known_and_suppresses_unknown() {
+        let nodes = vec![cln_node(), repo2graph_node(), boltwall_node()];
+        let mut volume_map = HashMap::new();
+        volume_map.insert(
+            "cln.sphinx".to_string(),
+            vu("cln.sphinx", Some(10), true, Some("cln")),
+        );
+        volume_map.insert(
+            "anon".to_string(),
+            vu("anon", Some(5), true, Some("cln")),
+        );
+        volume_map.insert(
+            "repo2graph-sessions.sphinx".to_string(),
+            vu("repo2graph-sessions.sphinx", Some(20), true, Some("repo2graph")),
+        );
+        volume_map.insert(
+            "repo2graph-cache.sphinx".to_string(),
+            vu("repo2graph-cache.sphinx", None, false, Some("repo2graph")),
+        );
+        let mut owners = HashMap::new();
+        owners.insert("cln.sphinx".to_string(), "cln".to_string());
+        owners.insert("anon".to_string(), "cln".to_string());
+        owners.insert("repo2graph-sessions.sphinx".to_string(), "repo2graph".to_string());
+        owners.insert("repo2graph-cache.sphinx".to_string(), "repo2graph".to_string());
+
+        let (services, errors) = build_service_storage(&nodes, &volume_map, &owners);
+        assert_eq!(services.len(), 2, "boltwall owns zero volumes => no entry");
+
+        let cln = services.iter().find(|s| s.name == "cln").unwrap();
+        assert_eq!(cln.typ, "Cln");
+        assert_eq!(cln.size_bytes, Some(15));
+        assert!(cln.size_known);
+        assert_eq!(cln.volumes.len(), 2);
+
+        let r2g = services.iter().find(|s| s.name == "repo2graph").unwrap();
+        assert_eq!(r2g.typ, "Repo2Graph");
+        assert_eq!(r2g.size_bytes, None);
+        assert!(!r2g.size_known);
+        assert!(errors.iter().any(|e| e.collector == "services"));
+        assert!(errors.iter().any(|e| e.reason.contains("repo2graph")));
+    }
+
+    #[test]
+    fn build_service_storage_empty_when_no_nodes_or_volumes() {
+        let (services, errors) = build_service_storage(&[], &HashMap::new(), &HashMap::new());
+        assert!(services.is_empty());
+        assert!(errors.is_empty());
+
+        let nodes = vec![cln_node()];
+        let (services, errors) = build_service_storage(&nodes, &HashMap::new(), &HashMap::new());
+        assert!(services.is_empty());
+        assert!(errors.is_empty());
     }
 }
