@@ -1,6 +1,6 @@
 # --- Stage 1: Install cargo-chef using nightly (required for edition2024)
 # Use a nightly tag to support the unstable edition2024 feature
-FROM rustlang/rust:nightly-bullseye AS chef
+FROM rustlang/rust:nightly-bookworm AS chef
 RUN cargo +nightly install cargo-chef --locked
 WORKDIR /sphinx-swarm
 
@@ -29,7 +29,7 @@ COPY . .
 RUN cargo +nightly build --release --bin super
 
 # --- Stage 4: Runtime (No change needed here)
-FROM debian:11-slim
+FROM debian:12-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
     rm -rf /var/lib/apt/lists/*
