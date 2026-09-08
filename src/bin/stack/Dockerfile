@@ -1,5 +1,5 @@
 # Rust as the base image
-FROM rust:1.88-slim-bullseye AS build
+FROM rust:1.88-slim-bookworm AS build
 
 # Create a new empty shell project
 # RUN USER=root cargo new --lib sphinx-swarm
@@ -30,8 +30,8 @@ RUN cargo build --release --bin stack
 
 # The final base image
 # FROM debian:buster-slim
-# FROM debian:bullseye-slim
-FROM debian:11-slim
+# FROM debian:bookworm-slim
+FROM debian:12-slim
 
 # get root CA certs
 RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && apt-get install -y --no-install-recommends ca-certificates 

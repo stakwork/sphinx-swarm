@@ -154,7 +154,7 @@ fn repo2graph(
     // image and a cold clone takes minutes, so a named volume makes
     // bootstrap a one-time cost instead of a per-recreation one.
     // VEIN_* is being renamed to STRUT_*; send both so either service
-    // version picks it up.
+    // version picks it up. (backward compatibility)
     let cache_dir = "/usr/src/app/cache";
     env.push(format!("VEIN_CACHE_DIR={}", cache_dir));
     env.push(format!("STRUT_CACHE_DIR={}", cache_dir));
