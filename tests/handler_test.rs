@@ -209,6 +209,9 @@ async fn test_handler_flow() -> Result<()> {
     eprintln!("\n=== test_get_host_storage_cache_and_singleflight ===");
     test_get_host_storage_cache_and_singleflight(&docker).await?;
 
+    eprintln!("\n=== test_get_fluentbit_stats ===");
+    test_get_fluentbit_stats(&docker).await?;
+
     // --- New test (needs live bitcoind container) ---
     eprintln!("\n=== test_concurrent_bitcoind_calls ===");
     test_concurrent_bitcoind_calls(&docker).await?;
@@ -863,5 +866,72 @@ async fn test_get_host_storage_cache_and_singleflight(docker: &Docker) -> Result
         stamps
     );
     eprintln!("[pass] GetHostStorage cache TTL + single-flight");
+    Ok(())
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GetFluentbitStats: end-to-end through handle()
+// ═══════════════════════════════════════════════════════════════════════
+
+/// One end-to-end GetFluentbitStats call through handle() on a stack with no
+/// reachable FluentBit sidecar. Must deserialize into FluentbitStats with
+/// `available: false` and a well-formed errors[] (no panic, no hang).
+async fn test_get_fluentbit_stats(docker: &Docker) -> Result<()> {
+    use sphinx_swarm::fluentbit_stats::FluentbitStats;
+
+    let stack = make_auth_stack();
+    hydrate(stack, Clients::default()).await;
+    sphinx_swarm::auth::set_jwt_key("test-jwt-key");
+
+    let res = handle(
+        TEST_PROJECT,
+        Cmd::Swarm(SwarmCmd::GetFluentbitStats),
+        "SWARM",
+        docker,
+        &Some(1),
+    )
+    .await;
+
+    assert!(res.is_ok(), "GetFluentbitStats failed: {:?}", res.err());
+    let json = res.unwrap();
+    let parsed: FluentbitStats = serde_json::from_str(&json).unwrap_or_else(|e| {
+        panic!(
+            "response must deserialize into FluentbitStats: {} — {}",
+            e, json
+        )
+    });
+    assert!(
+        !parsed.available,
+        "no reachable FluentBit target => available must be false, got {:?}",
+        parsed
+    );
+    assert!(
+        !parsed.errors.is_empty(),
+        "unavailable result must include errors[], got empty"
+    );
+    for e in &parsed.errors {
+        assert_eq!(e.collector, "fluentbit", "collector must be fluentbit");
+        assert!(!e.reason.is_empty(), "reason must be set");
+        assert!(
+            matches!(
+                e.reason.as_str(),
+                "timeout"
+                    | "unreachable"
+                    | "invalid-target"
+                    | "empty-metrics"
+                    | "unparseable"
+                    | "redirected"
+                    | "too-large"
+            ),
+            "unexpected reason: {}",
+            e.reason
+        );
+    }
+
+    eprintln!(
+        "[pass] GetFluentbitStats available={} errors={}",
+        parsed.available,
+        parsed.errors.len()
+    );
     Ok(())
 }

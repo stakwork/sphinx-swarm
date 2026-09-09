@@ -276,6 +276,7 @@ pub enum SwarmCmd {
     UpdateNode(UpdateNode),
     GetStatistics(Option<String>),
     GetHostStorage,
+    GetFluentbitStats,
     AddBoltwallAdminPubkey(AddAdminRequest),
     GetBoltwallSuperAdmin,
     AddBoltwallUser(AddUserRequest),
@@ -495,6 +496,21 @@ mod ready_tests {
         .can_run_before_ready());
         assert!(!Cmd::Swarm(SwarmCmd::ListContainers).can_run_before_ready());
     }
+
+    #[test]
+    fn get_fluentbit_stats_can_run_before_ready() {
+        let cmd = Cmd::Swarm(SwarmCmd::GetFluentbitStats);
+        assert!(cmd.can_run_before_ready());
+        // existing allowlist unaffected
+        assert!(Cmd::Swarm(SwarmCmd::GetHostStorage).can_run_before_ready());
+        assert!(Cmd::Swarm(SwarmCmd::GetConfig).can_run_before_ready());
+        assert!(Cmd::Swarm(SwarmCmd::Login(LoginInfo {
+            username: "u".into(),
+            password: "p".into(),
+        }))
+        .can_run_before_ready());
+        assert!(!Cmd::Swarm(SwarmCmd::ListContainers).can_run_before_ready());
+    }
 }
 
 impl Cmd {
@@ -504,6 +520,7 @@ impl Cmd {
                 SwarmCmd::GetConfig => true,
                 SwarmCmd::Login(_) => true,
                 SwarmCmd::GetHostStorage => true,
+                SwarmCmd::GetFluentbitStats => true,
                 _ => false,
             },
             _ => false,

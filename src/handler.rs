@@ -88,6 +88,28 @@ mod access_tests {
         let stack_unknown = stack_with_role(Role::Super);
         assert!(!access(&cmd, &stack_unknown, &Some(999)), "unknown user id => denied");
     }
+
+    #[test]
+    fn get_fluentbit_stats_allowed_for_all_roles() {
+        for role in [Role::Admin, Role::SubAdmin, Role::Super] {
+            let stack = stack_with_role(role.clone());
+            let cmd = Cmd::Swarm(SwarmCmd::GetFluentbitStats);
+            assert!(
+                access(&cmd, &stack, &Some(1)),
+                "GetFluentbitStats must be allowed for {:?}",
+                role
+            );
+        }
+    }
+
+    #[test]
+    fn get_fluentbit_stats_requires_authenticated_user() {
+        let stack = stack_with_role(Role::Admin);
+        let cmd = Cmd::Swarm(SwarmCmd::GetFluentbitStats);
+        assert!(!access(&cmd, &stack, &None), "no user_id => denied");
+        let stack_unknown = stack_with_role(Role::Super);
+        assert!(!access(&cmd, &stack_unknown, &Some(999)), "unknown user id => denied");
+    }
 }
 
 fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
@@ -133,6 +155,7 @@ fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
                 SwarmCmd::ChangeUserPasswordBySuperAdmin(_) => true,
                 SwarmCmd::GetApiToken => true,
                 SwarmCmd::GetHostStorage => true,
+                SwarmCmd::GetFluentbitStats => true,
                 SwarmCmd::ChangeReservedSwarmToActive(_) => true,
                 SwarmCmd::UpdateEvn(_) => true,
                 SwarmCmd::GetEnv(_) => true,
@@ -355,6 +378,26 @@ pub async fn handle(
                 let containers = get_container_statistics(&docker, container_name).await?;
                 println!("GetStatistics Called");
                 Some(serde_json::to_string(&containers)?)
+            }
+            SwarmCmd::GetFluentbitStats => {
+                let started = std::time::Instant::now();
+                let result = crate::fluentbit_stats::get_fluentbit_stats().await;
+                log::info!(
+                    "GetFluentbitStats available={} input_bytes={} input_records={} output_proc_bytes={} output_proc_records={} filter_drop_records={} output_dropped_records={} output_errors={} retries_failed={} uptime_seconds={} errors={} elapsed_ms={}",
+                    result.available,
+                    result.input_bytes.is_some(),
+                    result.input_records.is_some(),
+                    result.output_proc_bytes.is_some(),
+                    result.output_proc_records.is_some(),
+                    result.filter_drop_records.is_some(),
+                    result.output_dropped_records.is_some(),
+                    result.output_errors.is_some(),
+                    result.retries_failed.is_some(),
+                    result.uptime_seconds.is_some(),
+                    result.errors.len(),
+                    started.elapsed().as_millis()
+                );
+                Some(serde_json::to_string(&result)?)
             }
             SwarmCmd::GetHostStorage => {
                 let started = std::time::Instant::now();
