@@ -1,0 +1,4 @@
+# HELP fluentbit_input_bytes_total Number of input bytes.
+# TYPE fluentbit_input_bytes_total counter
+fluentbit_input_bytes_total{name="forward.0"} 0 1788948139537
+fluentbit_filter_drop_records_total{name="lua.0"
