@@ -1,0 +1,6 @@
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1788947881
+# HELP fluentbit_build_info Build version information.
+# TYPE fluentbit_build_info gauge
+fluentbit_build_info{version="3.2.10",edition="Community"} 1

@@ -1,0 +1,48 @@
+# HELP fluentbit_filter_add_records_total Fluentbit metrics.
+# TYPE fluentbit_filter_add_records_total counter
+fluentbit_filter_add_records_total{name="lua.0"} 0 1788948139537
+fluentbit_filter_add_records_total{name="throttle.1"} 0 1788948139537
+# HELP fluentbit_filter_bytes_total Fluentbit metrics.
+# TYPE fluentbit_filter_bytes_total counter
+fluentbit_filter_bytes_total{name="lua.0"} 0 1788948139537
+fluentbit_filter_bytes_total{name="throttle.1"} 0 1788948139537
+# HELP fluentbit_filter_drop_bytes_total Fluentbit metrics.
+# TYPE fluentbit_filter_drop_bytes_total counter
+fluentbit_filter_drop_bytes_total{name="lua.0"} 0 1788948139537
+fluentbit_filter_drop_bytes_total{name="throttle.1"} 0 1788948139537
+# HELP fluentbit_filter_records_total Fluentbit metrics.
+# TYPE fluentbit_filter_records_total counter
+fluentbit_filter_records_total{name="lua.0"} 0 1788948139537
+fluentbit_filter_records_total{name="throttle.1"} 0 1788948139537
+# HELP fluentbit_input_bytes_total Number of input bytes.
+# TYPE fluentbit_input_bytes_total counter
+fluentbit_input_bytes_total{name="forward.0"} 0 1788948139537
+fluentbit_input_bytes_total{name="storage_backlog.1"} 0 1788948139537
+# HELP fluentbit_input_records_total Number of input records.
+# TYPE fluentbit_input_records_total counter
+fluentbit_input_records_total{name="forward.0"} 0 1788948139537
+fluentbit_input_records_total{name="storage_backlog.1"} 0 1788948139537
+# HELP fluentbit_output_dropped_records_total Number of dropped records.
+# TYPE fluentbit_output_dropped_records_total counter
+fluentbit_output_dropped_records_total{name="cloudwatch_logs.0"} 0 1788948139537
+# HELP fluentbit_output_proc_bytes_total Number of processed output bytes.
+# TYPE fluentbit_output_proc_bytes_total counter
+fluentbit_output_proc_bytes_total{name="cloudwatch_logs.0"} 0 1788948139537
+# HELP fluentbit_output_proc_records_total Number of processed output records.
+# TYPE fluentbit_output_proc_records_total counter
+fluentbit_output_proc_records_total{name="cloudwatch_logs.0"} 0 1788948139537
+# HELP fluentbit_output_retried_records_total Number of retried records.
+# TYPE fluentbit_output_retried_records_total counter
+fluentbit_output_retried_records_total{name="cloudwatch_logs.0"} 0 1788948139537
+# HELP fluentbit_output_retries_failed_total Number of abandoned batches because the maximum number of re-tries was reached.
+# TYPE fluentbit_output_retries_failed_total counter
+fluentbit_output_retries_failed_total{name="cloudwatch_logs.0"} 0 1788948139537
+# HELP fluentbit_output_retries_total Number of output retries.
+# TYPE fluentbit_output_retries_total counter
+fluentbit_output_retries_total{name="cloudwatch_logs.0"} 0 1788948139537
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1788947881
+# HELP fluentbit_build_info Build version information.
+# TYPE fluentbit_build_info gauge
+fluentbit_build_info{version="3.2.10",edition="Community"} 1

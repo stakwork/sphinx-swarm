@@ -12,6 +12,7 @@ pub mod dock;
 pub mod env;
 pub mod events;
 pub mod fast_service_update;
+pub mod fluentbit_stats;
 pub mod graphmindset;
 pub mod handler;
 pub mod hermes_auth;
