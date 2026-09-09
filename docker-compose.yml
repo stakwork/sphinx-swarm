@@ -42,8 +42,11 @@ services:
   sphinx-swarm:
     image: sphinxlightning/sphinx-swarm
     container_name: sphinx-swarm
+    # Recreate this container (not just image-bump) so the fluent-bit network
+    # attach and Traefik network pin take effect.
     networks:
       - sphinx-swarm
+      - fluent-bit
     depends_on:
       - load_balancer
     volumes:
@@ -53,6 +56,7 @@ services:
       - 8000:8000
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=sphinx-swarm"
       - "traefik.http.routers.elements.rule=Host(`app.${HOST}`)"
       - "traefik.http.services.elements.loadbalancer.server.port=8000"
       - "traefik.http.routers.elements.tls=true"
@@ -112,7 +116,9 @@ services:
     container_name: fluent_bit
     restart: unless-stopped
     networks:
-      - fluent-bit
+      fluent-bit:
+        aliases:
+          - fluentbit
     ports:
       # Loopback only. Docker fluentd-address=localhost:24224 resolves here.
       # Do not bind 0.0.0.0 — Forward input is unauthenticated.
