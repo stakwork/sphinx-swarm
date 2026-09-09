@@ -24,6 +24,11 @@ async fn main() -> Result<()> {
 
     dotenv::dotenv().ok();
 
+    // Pin after dotenv so a `.env` FLUENTBIT_METRICS_URL override is visible
+    // (e.g. second-brain-2.yml mounts the host `.env`). Do not move
+    // init_node_exporter_target() — it stays before dotenv.
+    sphinx_swarm::fluentbit_stats::init_fluentbit_target();
+
     let docker = dockr();
     sphinx_swarm::utils::setup_logs();
 
