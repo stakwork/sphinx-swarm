@@ -379,7 +379,7 @@ pub fn parse_node_exporter_filesystems(body: &str) -> Result<Vec<FilesystemUsage
 }
 
 /// Split `k="v",k2="v2"} value` into a label map and the trailing value.
-fn split_labels_value(rest: &str) -> Result<(HashMap<String, String>, &str)> {
+pub(crate) fn split_labels_value(rest: &str) -> Result<(HashMap<String, String>, &str)> {
     let mut labels = HashMap::new();
     let (label_str, value) = match rest.find('}') {
         Some(end) => (&rest[..end], rest[end + 1..].trim()),
