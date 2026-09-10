@@ -158,6 +158,31 @@ fn access(cmd: &Cmd, stack: &Stack, user_id: &Option<u32>) -> bool {
     }
 }
 
+const FLUENTBIT_CONTAINER_NAME: &str = "fluent_bit";
+const FLUENTBIT_CONTAINER_STATS_PATH: &str = "/var/log/flb-storage/container_stats.json";
+const CONTAINER_STATS_DUMP_TIMEOUT: Duration = Duration::from_secs(1);
+
+/// Best-effort merge of the Fluent Bit sidecar dump. Never fails the
+/// GetFluentbitStats response: timeout, missing dump, oversized, or
+/// unparseable all leave `containers` omitted.
+async fn attach_container_stats(
+    docker: &Docker,
+    stats: &mut crate::fluentbit_stats::FluentbitStats,
+) {
+    let download = crate::dock::download_from_container(
+        docker,
+        FLUENTBIT_CONTAINER_NAME,
+        FLUENTBIT_CONTAINER_STATS_PATH,
+    );
+    let bytes = match tokio::time::timeout(CONTAINER_STATS_DUMP_TIMEOUT, download).await {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(_)) | Err(_) => return,
+    };
+    if let Some(reason) = crate::fluentbit_stats::merge_container_stats_dump(stats, &bytes) {
+        log::warn!("GetFluentbitStats containers dump {}", reason);
+    }
+}
+
 // tag is the service name
 pub async fn handle(
     proj: &str,
@@ -372,9 +397,10 @@ pub async fn handle(
             }
             SwarmCmd::GetFluentbitStats => {
                 let started = std::time::Instant::now();
-                let result = crate::fluentbit_stats::get_fluentbit_stats().await;
+                let mut result = crate::fluentbit_stats::get_fluentbit_stats().await;
+                attach_container_stats(docker, &mut result).await;
                 log::info!(
-                    "GetFluentbitStats available={} input_bytes={} input_records={} output_proc_bytes={} output_proc_records={} filter_drop_records={} output_dropped_records={} output_errors={} retries_failed={} uptime_seconds={} errors={} elapsed_ms={}",
+                    "GetFluentbitStats available={} input_bytes={} input_records={} output_proc_bytes={} output_proc_records={} filter_drop_records={} output_dropped_records={} output_errors={} retries_failed={} uptime_seconds={} containers={} errors={} elapsed_ms={}",
                     result.available,
                     result.input_bytes.is_some(),
                     result.input_records.is_some(),
@@ -385,6 +411,7 @@ pub async fn handle(
                     result.output_errors.is_some(),
                     result.retries_failed.is_some(),
                     result.uptime_seconds.is_some(),
+                    crate::fluentbit_stats::containers_log_label(&result),
                     result.errors.len(),
                     started.elapsed().as_millis()
                 );
