@@ -57,6 +57,14 @@ const ALLOWED_HOSTS: &[&str] = &[
 
 static FLUENTBIT_TARGET: OnceCell<String> = OnceCell::new();
 
+/// Lifetime totals for one container, from the Fluent Bit Lua dump.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct FluentbitContainerStats {
+    pub container_name: String,
+    pub input_bytes: i64,
+    pub input_records: i64,
+}
+
 /// Hive-stable response for `SwarmCmd::GetFluentbitStats`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FluentbitStats {
@@ -74,6 +82,10 @@ pub struct FluentbitStats {
     pub retries_failed: Option<i64>,
     pub uptime_seconds: Option<i64>,
     pub errors: Vec<CollectorError>,
+    /// Per-container lifetime totals from the sidecar dump. Omitted when the
+    /// dump is missing, empty, unparseable, or oversized.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub containers: Option<Vec<FluentbitContainerStats>>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -117,6 +129,7 @@ impl ParsedCounters {
             retries_failed: self.retries_failed,
             uptime_seconds: self.uptime_seconds,
             errors,
+            containers: None,
         }
     }
 }
@@ -454,6 +467,78 @@ fn parse_json_metrics(body: &str) -> Result<ParsedCounters, &'static str> {
     Ok(out)
 }
 
+const MAX_CONTAINER_STATS: usize = 64;
+
+/// Parse the Lua sidecar dump `{"containers":[...]}`. Never panics.
+///
+/// Returns `None` on any parse failure, a missing/empty `containers` array,
+/// or when every entry is dropped. Never returns `Some(vec![])`.
+pub(crate) fn parse_container_stats_dump(bytes: &[u8]) -> Option<Vec<FluentbitContainerStats>> {
+    let v: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let obj = v.as_object()?;
+    let arr = obj.get("containers")?.as_array()?;
+    if arr.is_empty() {
+        return None;
+    }
+
+    let mut out = Vec::new();
+    for entry in arr {
+        let Some(eobj) = entry.as_object() else {
+            continue;
+        };
+        let name = match eobj.get("container_name") {
+            Some(serde_json::Value::String(s)) if !s.is_empty() => s.clone(),
+            _ => continue,
+        };
+        out.push(FluentbitContainerStats {
+            container_name: name,
+            input_bytes: eobj.get("input_bytes").and_then(json_i64).unwrap_or(0),
+            input_records: eobj.get("input_records").and_then(json_i64).unwrap_or(0),
+        });
+    }
+    if out.is_empty() {
+        return None;
+    }
+
+    out.sort_by(|a, b| {
+        b.input_bytes
+            .cmp(&a.input_bytes)
+            .then_with(|| b.input_records.cmp(&a.input_records))
+            .then_with(|| a.container_name.cmp(&b.container_name))
+    });
+    out.truncate(MAX_CONTAINER_STATS);
+    Some(out)
+}
+
+/// ~64 KiB cap on a downloaded dump before parsing.
+pub(crate) const CONTAINER_STATS_DUMP_MAX_BYTES: usize = 64 * 1024;
+
+/// Merge a downloaded dump into `stats.containers`. Never touches `available`
+/// or `errors`. Returns a closed warn reason when a dump was present but
+/// unusable; `None` on success or a normal miss (empty/missing containers).
+pub(crate) fn merge_container_stats_dump(
+    stats: &mut FluentbitStats,
+    bytes: &[u8],
+) -> Option<&'static str> {
+    stats.containers = None;
+    if bytes.len() > CONTAINER_STATS_DUMP_MAX_BYTES {
+        return Some(REASON_TOO_LARGE);
+    }
+    match parse_container_stats_dump(bytes) {
+        Some(parsed) => {
+            stats.containers = Some(parsed);
+            None
+        }
+        None => {
+            if serde_json::from_slice::<serde_json::Value>(bytes).is_err() {
+                Some(REASON_UNPARSEABLE)
+            } else {
+                None
+            }
+        }
+    }
+}
+
 fn fluentbit_error(reason: &'static str) -> CollectorError {
     CollectorError {
         collector: COLLECTOR.to_string(),
@@ -480,9 +565,16 @@ fn stats_from_body(body: &str, collected_at: i64) -> FluentbitStats {
     }
 }
 
+pub(crate) fn containers_log_label(stats: &FluentbitStats) -> String {
+    match &stats.containers {
+        Some(cs) => cs.len().to_string(),
+        None => "none".to_string(),
+    }
+}
+
 fn log_stats(stats: &FluentbitStats, elapsed_ms: u128) {
     log::info!(
-        "GetFluentbitStats available={} input_bytes={} input_records={} output_proc_bytes={} output_proc_records={} filter_drop_records={} output_dropped_records={} output_errors={} retries_failed={} uptime_seconds={} errors={} elapsed_ms={}",
+        "GetFluentbitStats available={} input_bytes={} input_records={} output_proc_bytes={} output_proc_records={} filter_drop_records={} output_dropped_records={} output_errors={} retries_failed={} uptime_seconds={} containers={} errors={} elapsed_ms={}",
         stats.available,
         stats.input_bytes.is_some(),
         stats.input_records.is_some(),
@@ -493,6 +585,7 @@ fn log_stats(stats: &FluentbitStats, elapsed_ms: u128) {
         stats.output_errors.is_some(),
         stats.retries_failed.is_some(),
         stats.uptime_seconds.is_some(),
+        containers_log_label(stats),
         stats.errors.len(),
         elapsed_ms
     );
@@ -547,6 +640,7 @@ mod tests {
         assert_eq!(stats.retries_failed, Some(0));
         assert_eq!(stats.uptime_seconds, Some(258));
         assert_eq!(stats.collected_at, 1_700_000_000);
+        assert!(stats.containers.is_none());
     }
 
     #[test]
@@ -563,6 +657,7 @@ mod tests {
         assert_eq!(stats.filter_drop_records, None);
         assert_eq!(stats.output_errors, None);
         assert_eq!(stats.uptime_seconds, None);
+        assert!(stats.containers.is_none());
     }
 
     #[test]
@@ -574,6 +669,7 @@ mod tests {
         assert_eq!(stats.errors[0].reason, REASON_UNPARSEABLE);
         assert!(stats.input_bytes.is_none());
         assert!(stats.filter_drop_records.is_none());
+        assert!(stats.containers.is_none());
     }
 
     #[test]
@@ -584,6 +680,7 @@ mod tests {
         assert_eq!(stats.errors[0].reason, REASON_EMPTY_METRICS);
         assert!(stats.input_bytes.is_none());
         assert!(stats.uptime_seconds.is_none());
+        assert!(stats.containers.is_none());
     }
 
     #[test]
@@ -681,18 +778,257 @@ fluentbit_uptime 1
             retries_failed: None,
             uptime_seconds: Some(9),
             errors: vec![],
+            containers: None,
         };
         let json = serde_json::to_value(&stats).unwrap();
         assert_eq!(json["available"], true);
         assert_eq!(json["collected_at"], 1_730_000_000);
         assert!(json["input_records"].is_null());
         assert_eq!(json["output_errors"], 0);
+        assert!(
+            json.get("containers").is_none(),
+            "containers: None must be omitted from serialized JSON"
+        );
         let back: FluentbitStats = serde_json::from_value(json).unwrap();
         assert_eq!(back.available, stats.available);
         assert_eq!(back.collected_at, stats.collected_at);
         assert_eq!(back.input_bytes, stats.input_bytes);
         assert!(back.input_records.is_none());
         assert_eq!(back.uptime_seconds, Some(9));
+        assert!(back.containers.is_none());
+
+        let populated = FluentbitStats {
+            available: true,
+            collected_at: 1_730_000_000,
+            input_bytes: Some(1),
+            input_records: None,
+            output_proc_bytes: Some(2),
+            output_proc_records: Some(3),
+            filter_drop_records: Some(4),
+            output_dropped_records: None,
+            output_errors: Some(0),
+            retries_failed: None,
+            uptime_seconds: Some(9),
+            errors: vec![],
+            containers: Some(vec![FluentbitContainerStats {
+                container_name: "hive".to_string(),
+                input_bytes: 10,
+                input_records: 2,
+            }]),
+        };
+        let json = serde_json::to_value(&populated).unwrap();
+        assert!(json.get("containers").is_some());
+        assert_eq!(json["containers"][0]["container_name"], "hive");
+        assert_eq!(json["containers"][0]["input_bytes"], 10);
+        assert_eq!(json["containers"][0]["input_records"], 2);
+        let back: FluentbitStats = serde_json::from_value(json).unwrap();
+        assert_eq!(back.containers, populated.containers);
+    }
+
+    // ── container stats dump ──────────────────────────────────────────────
+
+    #[test]
+    fn parse_container_stats_dump_table() {
+        struct Case {
+            name: &'static str,
+            body: &'static [u8],
+            expect: Option<Vec<FluentbitContainerStats>>,
+        }
+        let cases = [
+            Case {
+                name: "valid dump with multiple containers",
+                body: br#"{"containers":[
+                    {"container_name":"boltwall","input_bytes":100,"input_records":5},
+                    {"container_name":"hive","input_bytes":200,"input_records":9}
+                ]}"#,
+                expect: Some(vec![
+                    FluentbitContainerStats {
+                        container_name: "hive".to_string(),
+                        input_bytes: 200,
+                        input_records: 9,
+                    },
+                    FluentbitContainerStats {
+                        container_name: "boltwall".to_string(),
+                        input_bytes: 100,
+                        input_records: 5,
+                    },
+                ]),
+            },
+            Case {
+                name: "empty containers array",
+                body: br#"{"containers":[]}"#,
+                expect: None,
+            },
+            Case {
+                name: "missing containers key",
+                body: br#"{"other":1}"#,
+                expect: None,
+            },
+            Case {
+                name: "empty top-level object",
+                body: b"{}",
+                expect: None,
+            },
+            Case {
+                name: "malformed json",
+                body: b"{not json",
+                expect: None,
+            },
+            Case {
+                name: "truncated json",
+                body: br#"{"containers":[{"container_name":"hive""#,
+                expect: None,
+            },
+            Case {
+                name: "empty container_name dropped",
+                body: br#"{"containers":[
+                    {"container_name":"","input_bytes":9,"input_records":1},
+                    {"container_name":"hive","input_bytes":1,"input_records":1}
+                ]}"#,
+                expect: Some(vec![FluentbitContainerStats {
+                    container_name: "hive".to_string(),
+                    input_bytes: 1,
+                    input_records: 1,
+                }]),
+            },
+            Case {
+                name: "missing container_name dropped",
+                body: br#"{"containers":[
+                    {"input_bytes":9,"input_records":1},
+                    {"container_name":"ok","input_bytes":2,"input_records":3}
+                ]}"#,
+                expect: Some(vec![FluentbitContainerStats {
+                    container_name: "ok".to_string(),
+                    input_bytes: 2,
+                    input_records: 3,
+                }]),
+            },
+            Case {
+                name: "all names empty => None not empty vec",
+                body: br#"{"containers":[{"container_name":"","input_bytes":1,"input_records":1}]}"#,
+                expect: None,
+            },
+            Case {
+                name: "sort by bytes desc, then records desc, then name asc",
+                body: br#"{"containers":[
+                    {"container_name":"b","input_bytes":10,"input_records":1},
+                    {"container_name":"a","input_bytes":10,"input_records":1},
+                    {"container_name":"c","input_bytes":10,"input_records":5},
+                    {"container_name":"z","input_bytes":50,"input_records":0}
+                ]}"#,
+                expect: Some(vec![
+                    FluentbitContainerStats {
+                        container_name: "z".to_string(),
+                        input_bytes: 50,
+                        input_records: 0,
+                    },
+                    FluentbitContainerStats {
+                        container_name: "c".to_string(),
+                        input_bytes: 10,
+                        input_records: 5,
+                    },
+                    FluentbitContainerStats {
+                        container_name: "a".to_string(),
+                        input_bytes: 10,
+                        input_records: 1,
+                    },
+                    FluentbitContainerStats {
+                        container_name: "b".to_string(),
+                        input_bytes: 10,
+                        input_records: 1,
+                    },
+                ]),
+            },
+        ];
+        for case in cases {
+            let got = parse_container_stats_dump(case.body);
+            assert_eq!(got, case.expect, "case: {}", case.name);
+        }
+    }
+
+    #[test]
+    fn parse_container_stats_dump_caps_at_64_with_sort() {
+        let mut entries = Vec::new();
+        for i in 0..80 {
+            entries.push(format!(
+                r#"{{"container_name":"c{:02}","input_bytes":{},"input_records":{}}}"#,
+                i,
+                i,
+                80 - i
+            ));
+        }
+        let body = format!(r#"{{"containers":[{}]}}"#, entries.join(","));
+        let parsed = parse_container_stats_dump(body.as_bytes()).expect("should parse");
+        assert_eq!(parsed.len(), 64);
+        assert_eq!(parsed[0].container_name, "c79");
+        assert_eq!(parsed[0].input_bytes, 79);
+        assert_eq!(parsed[63].container_name, "c16");
+        assert_eq!(parsed[63].input_bytes, 16);
+        for w in parsed.windows(2) {
+            assert!(
+                w[0].input_bytes >= w[1].input_bytes,
+                "must be sorted by input_bytes desc"
+            );
+        }
+    }
+
+    fn sample_stats() -> FluentbitStats {
+        FluentbitStats {
+            available: true,
+            collected_at: 1,
+            input_bytes: Some(9),
+            input_records: Some(3),
+            output_proc_bytes: None,
+            output_proc_records: None,
+            filter_drop_records: None,
+            output_dropped_records: None,
+            output_errors: None,
+            retries_failed: None,
+            uptime_seconds: Some(1),
+            errors: vec![],
+            containers: None,
+        }
+    }
+
+    #[test]
+    fn merge_container_stats_dump_success_and_miss_leave_aggregates() {
+        let mut stats = sample_stats();
+        let warn = merge_container_stats_dump(
+            &mut stats,
+            br#"{"containers":[{"container_name":"hive","input_bytes":4,"input_records":2}]}"#,
+        );
+        assert!(warn.is_none());
+        assert_eq!(
+            stats.containers.as_ref().map(|c| c.len()),
+            Some(1)
+        );
+        assert!(stats.available);
+        assert!(stats.errors.is_empty());
+        assert_eq!(stats.input_bytes, Some(9));
+
+        let mut stats = sample_stats();
+        stats.available = false;
+        stats.errors = vec![fluentbit_error(REASON_UNREACHABLE)];
+        let warn = merge_container_stats_dump(&mut stats, br#"{"containers":[]}"#);
+        assert!(warn.is_none());
+        assert!(stats.containers.is_none());
+        assert!(!stats.available);
+        assert_eq!(stats.errors[0].reason, REASON_UNREACHABLE);
+
+        let mut stats = sample_stats();
+        let warn = merge_container_stats_dump(&mut stats, b"{not json");
+        assert_eq!(warn, Some(REASON_UNPARSEABLE));
+        assert!(stats.containers.is_none());
+        assert!(stats.available);
+        assert!(stats.errors.is_empty());
+
+        let mut stats = sample_stats();
+        let oversized = vec![b'x'; CONTAINER_STATS_DUMP_MAX_BYTES + 1];
+        let warn = merge_container_stats_dump(&mut stats, &oversized);
+        assert_eq!(warn, Some(REASON_TOO_LARGE));
+        assert!(stats.containers.is_none());
+        assert!(stats.available);
+        assert_eq!(stats.input_bytes, Some(9));
     }
 
     // ── SSRF allowlist ────────────────────────────────────────────────────
