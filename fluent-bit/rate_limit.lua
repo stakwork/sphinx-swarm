@@ -12,11 +12,23 @@
 -- Keyed on the Docker-daemon-set `container_name` record field (fallback:
 -- fluentd tag). Override maps are parsed with a strict delimiter split —
 -- never load / loadstring / dofile on env content.
+--
+-- Lifetime totals (total_count / total_bytes) accumulate accepted traffic
+-- only and survive hourly window reset. They persist until Fluent Bit
+-- restarts OR that key is LRU-evicted when FLUENTBIT_RATE_LIMIT_MAX_KEYS
+-- (default 256) is hit — eviction deletes the whole per-key entry, including
+-- lifetime totals. Do not lift max_keys to retain totals; healthy swarms
+-- have far fewer than 256 containers. Totals are snapshotted to
+-- /var/log/flb-storage/container_stats.json (storage.path volume) at most
+-- once per second. The dump is removed on script load so a volume-persisted
+-- file cannot outlive this process.
 
 local DEFAULT_CAP = 500000 -- 500k events / hour
 local DEFAULT_BYTE_CAP = 67108864 -- 64 MiB / hour (~1.55 GiB/day)
 local DEFAULT_INTERVAL = 3600 -- hourly window
 local DEFAULT_MAX_KEYS = 256
+local DEFAULT_STATS_PATH = "/var/log/flb-storage/container_stats.json"
+local DUMP_INTERVAL = 1 -- at most once per second
 
 local getenv = os.getenv
 local printer = print
@@ -28,6 +40,9 @@ local max_keys = DEFAULT_MAX_KEYS
 local overrides = {}
 local byte_overrides = {}
 local state = {}
+local stats_path = DEFAULT_STATS_PATH
+local last_dump = nil
+local dump_dirty = false
 
 local function trim(s)
   return (s:gsub("^%s+", ""):gsub("%s+$", ""))
@@ -40,6 +55,23 @@ local function sanitize(s, max_len)
   if #s > max_len then
     s = s:sub(1, max_len) .. "..."
   end
+  return s
+end
+
+-- JSON string encoder for dump output. Do not reuse sanitize(): that helper
+-- truncates at 128 bytes and is only for [rate_limit] printer lines.
+local function json_escape(s)
+  s = tostring(s or "")
+  s = s:gsub("\\", "\\\\")
+  s = s:gsub('"', '\\"')
+  s = s:gsub("\b", "\\b")
+  s = s:gsub("\f", "\\f")
+  s = s:gsub("\n", "\\n")
+  s = s:gsub("\r", "\\r")
+  s = s:gsub("\t", "\\t")
+  s = s:gsub("[%z\1-\31]", function(c)
+    return string.format("\\u%04x", string.byte(c))
+  end)
   return s
 end
 
@@ -118,6 +150,8 @@ end
 
 local function reset_state()
   state = {}
+  last_dump = nil
+  dump_dirty = false
 end
 
 local function to_seconds(timestamp)
@@ -167,6 +201,8 @@ local function ensure_key(key, now)
   st = {
     count = 0,
     bytes = 0,
+    total_count = 0,
+    total_bytes = 0,
     window = window_id(now),
     notified = false,
     last_seen = now,
@@ -234,6 +270,90 @@ local function record_key(tag, record)
   return "unknown"
 end
 
+local function stats_for(key)
+  local st = state[key]
+  if not st then
+    return nil
+  end
+  return {
+    count = st.count,
+    bytes = st.bytes,
+    total_count = st.total_count or 0,
+    total_bytes = st.total_bytes or 0,
+    window = st.window,
+  }
+end
+
+-- Pure encoder: lifetime totals only, never log bodies. No cjson.
+local function encode_stats()
+  local names = {}
+  for k in pairs(state) do
+    names[#names + 1] = k
+  end
+  table.sort(names)
+  local parts = {}
+  for _, k in ipairs(names) do
+    local st = state[k]
+    parts[#parts + 1] = string.format(
+      '{"container_name":"%s","input_bytes":%d,"input_records":%d}',
+      json_escape(k),
+      st.total_bytes or 0,
+      st.total_count or 0
+    )
+  end
+  return '{"containers":[' .. table.concat(parts, ",") .. "]}"
+end
+
+local function write_dump_file(path, json)
+  local tmp = path .. ".tmp"
+  local f, err = io.open(tmp, "w")
+  if not f then
+    error(err or "io.open failed")
+  end
+  local ok, werr = f:write(json)
+  f:close()
+  if not ok then
+    error(werr or "write failed")
+  end
+  local renamed, rerr = os.rename(tmp, path)
+  if not renamed then
+    error(rerr or "os.rename failed")
+  end
+end
+
+-- Throttled atomic dump. I/O is pcall'd so a failure never throws to the
+-- caller; in-memory counters stay intact. Single global last_dump (not
+-- per-key) so max_keys=256 cannot produce hundreds of writes per second.
+-- last_dump advances on any attempt so a missing volume cannot retry I/O
+-- on every record; dump_dirty stays set until a write succeeds.
+local function dump_stats(path, now)
+  if not dump_dirty then
+    return false
+  end
+  now = now or os.time()
+  if last_dump ~= nil and (now - last_dump) < DUMP_INTERVAL then
+    return false
+  end
+  path = path or stats_path
+  local json = encode_stats()
+  -- Advance the throttle before I/O so a throw cannot skip it.
+  last_dump = now
+  local ok = pcall(write_dump_file, path, json)
+  if ok then
+    dump_dirty = false
+  end
+  return ok
+end
+
+local function maybe_dump(now)
+  pcall(dump_stats, stats_path, now)
+end
+
+local function clear_stale_dump(path)
+  os.remove(path)
+  os.remove(path .. ".tmp")
+end
+
 function rate_limit(tag, timestamp, record)
   local now = to_seconds(timestamp)
   local key = record_key(tag, record)
@@ -248,6 +368,7 @@ function rate_limit(tag, timestamp, record)
     st.count = 0
     st.bytes = 0
     st.notified = false
+    -- total_count / total_bytes survive window rollover.
   end
 
   -- Byte cap is primary (cost). Record cap is a secondary guard.
@@ -268,17 +389,23 @@ function rate_limit(tag, timestamp, record)
         )
       )
     end
+    maybe_dump(now)
     return -1, timestamp, nil
   end
 
   st.count = st.count + 1
   st.bytes = st.bytes + nbytes
+  st.total_count = (st.total_count or 0) + 1
+  st.total_bytes = (st.total_bytes or 0) + nbytes
+  dump_dirty = true
+  maybe_dump(now)
   -- 1 = use this record (applies the leading-slash normalization).
   -- 0 would discard record mutations and keep Docker's "/name".
   return 1, timestamp, record
 end
 
 reload_config()
+pcall(clear_stale_dump, DEFAULT_STATS_PATH)
 
 -- Test seam. Fluent Bit only requires the global `rate_limit` callback;
 -- this table is unused in production.
@@ -296,6 +423,12 @@ RateLimit = {
   cap_for = cap_for,
   byte_cap_for = byte_cap_for,
   record_log_bytes = record_log_bytes,
+  stats_for = stats_for,
+  encode_stats = encode_stats,
+  dump_stats = dump_stats,
+  set_stats_path = function(p)
+    stats_path = p or DEFAULT_STATS_PATH
+  end,
   set_env = function(tbl)
     if tbl == nil then
       getenv = os.getenv
