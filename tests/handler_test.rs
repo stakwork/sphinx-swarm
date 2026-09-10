@@ -927,9 +927,28 @@ async fn test_get_fluentbit_stats(docker: &Docker) -> Result<()> {
             e.reason
         );
     }
+    assert!(
+        parsed.containers.is_none(),
+        "dump miss must leave containers unset, got {:?}",
+        parsed.containers
+    );
+    let value: serde_json::Value = serde_json::from_str(&json).expect("json value");
+    assert!(
+        value.get("containers").is_none(),
+        "dump miss must omit containers from serialized JSON, got {}",
+        json
+    );
+    assert_eq!(
+        value["available"], false,
+        "dump miss must not flip available"
+    );
+    assert!(
+        value["errors"].as_array().map(|a| !a.is_empty()).unwrap_or(false),
+        "dump miss must not clear HTTP-scrape errors[]"
+    );
 
     eprintln!(
-        "[pass] GetFluentbitStats available={} errors={}",
+        "[pass] GetFluentbitStats available={} errors={} containers=none",
         parsed.available,
         parsed.errors.len()
     );
