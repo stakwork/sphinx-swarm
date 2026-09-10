@@ -142,11 +142,14 @@ describe("rate_limit filter", function()
       notices[#notices + 1] = msg
     end)
     RateLimit.set_env(default_env())
+    -- Existing specs must not write the production dump path.
+    RateLimit.set_stats_path("/no/such/dir/container_stats.json")
   end)
 
   after_each(function()
     RateLimit.set_printer(nil)
     RateLimit.set_env(nil)
+    RateLimit.set_stats_path(nil)
   end)
 
   it("passes records under the cap through", function()
@@ -380,5 +383,176 @@ describe("rate_limit filter", function()
     local code = rate_limit("tag", ts(100), { container_name = "nolog" })
     assert.are.equal(PASS, code)
     assert.are.equal(0, RateLimit.record_log_bytes({ container_name = "nolog" }))
+  end)
+end)
+
+local function decode_containers(json)
+  assert.is_not_nil(json:match('^{"containers":%[.*%]}$'), "unexpected dump shape: " .. json)
+  local inner = json:match('^{"containers":%[(.*)%]}$')
+  local items = {}
+  for obj in inner:gmatch("{.-}") do
+    local name = obj:match('"container_name":"(.-)"')
+    local bytes = tonumber(obj:match('"input_bytes":(%d+)'))
+    local records = tonumber(obj:match('"input_records":(%d+)'))
+    items[#items + 1] = {
+      container_name = name,
+      input_bytes = bytes,
+      input_records = records,
+    }
+    items[name] = items[#items]
+  end
+  return items
+end
+
+describe("lifetime totals and stats dump", function()
+  local notices
+  local tmpdir
+
+  before_each(function()
+    notices = {}
+    RateLimit.set_printer(function(msg)
+      notices[#notices + 1] = msg
+    end)
+    RateLimit.set_env(default_env())
+    tmpdir = os.tmpname()
+    os.remove(tmpdir)
+    os.execute("mkdir -p " .. tmpdir)
+    RateLimit.set_stats_path(tmpdir .. "/container_stats.json")
+  end)
+
+  after_each(function()
+    RateLimit.set_printer(nil)
+    RateLimit.set_env(nil)
+    RateLimit.set_stats_path(nil)
+    if tmpdir then
+      os.execute("rm -rf " .. tmpdir)
+    end
+  end)
+
+  it("keeps lifetime totals across a window rollover that resets the hourly counters", function()
+    rate_limit("tag", ts(100), rec("alpha", "hello"))
+    rate_limit("tag", ts(100), rec("alpha", "world"))
+    local before = RateLimit.stats_for("alpha")
+    assert.are.equal(2, before.count)
+    assert.are.equal(10, before.bytes)
+    assert.are.equal(2, before.total_count)
+    assert.are.equal(10, before.total_bytes)
+
+    -- interval=10, so t=110 is the next window; hourly counters reset.
+    rate_limit("tag", ts(110), rec("alpha", "again"))
+    local after = RateLimit.stats_for("alpha")
+    assert.are.equal(1, after.count)
+    assert.are.equal(5, after.bytes)
+    assert.are.equal(3, after.total_count)
+    assert.are.equal(15, after.total_bytes)
+  end)
+
+  it("does not increment lifetime totals on throttle", function()
+    collect_codes("alpha", 5, 100, "hello")
+    local st = RateLimit.stats_for("alpha")
+    assert.are.equal(3, st.count)
+    assert.are.equal(3, st.total_count)
+    assert.are.equal(15, st.total_bytes)
+  end)
+
+  it("keys lifetime totals by the slash-stripped container_name", function()
+    rate_limit("tag", ts(100), rec("/jarvis", "hello"))
+    assert.is_true(RateLimit.has_key("jarvis"))
+    assert.is_false(RateLimit.has_key("/jarvis"))
+    local json = RateLimit.encode_stats()
+    local items = decode_containers(json)
+    assert.is_nil(items["/jarvis"])
+    assert.are.equal("jarvis", items["jarvis"].container_name)
+    assert.are.equal(5, items["jarvis"].input_bytes)
+    assert.are.equal(1, items["jarvis"].input_records)
+  end)
+
+  it("encode_stats produces the containers dump shape for known values", function()
+    rate_limit("tag", ts(100), rec("jarvis", "hello"))
+    rate_limit("tag", ts(100), rec("boltwall", "abcd"))
+    rate_limit("tag", ts(100), rec("boltwall", "ef"))
+    local json = RateLimit.encode_stats()
+    local items = decode_containers(json)
+    assert.are.equal(2, #items)
+    assert.are.equal(5, items["jarvis"].input_bytes)
+    assert.are.equal(1, items["jarvis"].input_records)
+    assert.are.equal(6, items["boltwall"].input_bytes)
+    assert.are.equal(2, items["boltwall"].input_records)
+  end)
+
+  it("encode_stats after reset produces an empty containers list", function()
+    rate_limit("tag", ts(100), rec("alpha", "hello"))
+    RateLimit.reset()
+    assert.are.equal('{"containers":[]}', RateLimit.encode_stats())
+  end)
+
+  it("escapes quotes and backslashes in container names as valid JSON", function()
+    rate_limit("tag", ts(100), rec('a"b\\c', "hello"))
+    local json = RateLimit.encode_stats()
+    assert.is_not_nil(json:match('"container_name":"a\\"b\\\\c"'), json)
+    assert.is_not_nil(json:match('"input_bytes":5'))
+    assert.is_not_nil(json:match('"input_records":1'))
+    assert.is_not_nil(json:match('^{"containers":%[.*%]}$'))
+  end)
+
+  it("does not throw out of rate_limit when dump I/O fails", function()
+    RateLimit.set_stats_path("/no/such/dir/container_stats.json")
+    local ok, code, timestamp, out = pcall(
+      rate_limit,
+      "tag",
+      ts(100),
+      rec("alpha", "hello")
+    )
+    assert.is_true(ok)
+    assert.are.equal(PASS, code)
+    assert.are.equal("hello", out.log)
+    assert.are.equal(100, timestamp.sec)
+    local st = RateLimit.stats_for("alpha")
+    assert.are.equal(1, st.total_count)
+    assert.are.equal(5, st.total_bytes)
+  end)
+
+  it("throttles dumps globally so rapid calls in the same second write once", function()
+    local path = tmpdir .. "/container_stats.json"
+    RateLimit.set_stats_path(path)
+    rate_limit("tag", ts(100), rec("alpha", "hello"))
+    local first = assert(io.open(path, "r"))
+    local first_json = first:read("*a")
+    first:close()
+    assert.is_not_nil(first_json:match('"alpha"'))
+
+    -- Same-second follow-up must not rewrite even though totals changed.
+    os.remove(path)
+    rate_limit("tag", ts(100), rec("alpha", "world"))
+    local missing = io.open(path, "r")
+    assert.is_nil(missing)
+
+    -- Next second is allowed to write again.
+    rate_limit("tag", ts(101), rec("alpha", "again"))
+    local second = assert(io.open(path, "r"))
+    local second_json = second:read("*a")
+    second:close()
+    local items = decode_containers(second_json)
+    assert.are.equal(3, items["alpha"].input_records)
+  end)
+
+  it("omits LRU-evicted keys from the next encode_stats dump", function()
+    RateLimit.set_env(default_env({
+      FLUENTBIT_RATE_LIMIT_DEFAULT = "1",
+      FLUENTBIT_RATE_LIMIT_MAX_KEYS = "3",
+    }))
+    rate_limit("t", ts(100), rec("k1", "aaaa"))
+    rate_limit("t", ts(101), rec("k2", "bbbb"))
+    rate_limit("t", ts(102), rec("k3", "cccc"))
+    local before = decode_containers(RateLimit.encode_stats())
+    assert.is_not_nil(before["k1"])
+    rate_limit("t", ts(103), rec("k4", "dddd"))
+    assert.is_false(RateLimit.has_key("k1"))
+    local after = decode_containers(RateLimit.encode_stats())
+    assert.is_nil(after["k1"])
+    assert.is_not_nil(after["k2"])
+    assert.is_not_nil(after["k3"])
+    assert.is_not_nil(after["k4"])
+    assert.are.equal(3, #after)
   end)
 end)
