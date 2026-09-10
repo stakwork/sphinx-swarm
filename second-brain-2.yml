@@ -145,6 +145,7 @@ services:
       - GUNICORN_WORKER=$GUNICORN_WORKER
       - GUNICORN_THREADS=$GUNICORN_THREADS
       - HF_TOKEN=$HF_TOKEN
+      - XAI_API_KEY=$XAI_API_KEY
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
