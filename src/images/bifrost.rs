@@ -196,6 +196,9 @@ pub fn bifrost(
     if let Ok(google_api_key) = getenv("GOOGLE_API_KEY") {
         env.push(format!("GOOGLE_API_KEY={}", google_api_key));
     }
+    if let Ok(xai_api_key) = getenv("XAI_API_KEY") {
+        env.push(format!("XAI_API_KEY={}", xai_api_key));
+    }
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
@@ -280,6 +283,7 @@ mod tests {
         std::env::set_var("ANTHROPIC_API_KEY", "test-anthropic-key");
         std::env::set_var("OPENROUTER_API_KEY", "test-openrouter-key");
         std::env::set_var("GOOGLE_API_KEY", "test-google-key");
+        std::env::set_var("XAI_API_KEY", "test-xai-key");
 
         let img = test_bifrost_image();
         let config = bifrost(&img, &None, &None, &None);
@@ -291,11 +295,13 @@ mod tests {
         assert!(env.contains(&"ANTHROPIC_API_KEY=test-anthropic-key".to_string()));
         assert!(env.contains(&"OPENROUTER_API_KEY=test-openrouter-key".to_string()));
         assert!(env.contains(&"GOOGLE_API_KEY=test-google-key".to_string()));
+        assert!(env.contains(&"XAI_API_KEY=test-xai-key".to_string()));
 
         std::env::remove_var("OPENAI_API_KEY");
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
     }
 
     #[test]
@@ -306,6 +312,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let config = bifrost(&img, &None, &None, &None);
@@ -328,6 +335,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let boltwall = Some(test_boltwall_with_secret("stakwork-shared-secret"));
@@ -345,6 +353,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let config = bifrost(&img, &None, &None, &None);
@@ -363,6 +372,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let redis = Some(test_redis());
@@ -385,6 +395,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let config = bifrost(&img, &None, &None, &None);
@@ -405,6 +416,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let neo4j = test_neo4j();
@@ -427,6 +439,7 @@ mod tests {
         std::env::remove_var("ANTHROPIC_API_KEY");
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
 
         let img = test_bifrost_image();
         let config = bifrost(&img, &None, &None, &None);
