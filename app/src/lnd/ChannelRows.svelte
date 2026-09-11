@@ -10,7 +10,7 @@
   import ReceiveLine from "../components/ReceiveLine.svelte";
   import DotWrap from "../components/DotWrap.svelte";
   import Dot from "../components/Dot.svelte";
-  import { channels, lightningPeers, peers } from "../store";
+  import { channels, lightningPeers, peers, stack } from "../store";
   import { formatSatsNumbers } from "../helpers";
   import { getTransactionStatus, getBlockTip } from "../helpers/bitcoin";
   import Exit from "carbon-icons-svelte/lib/Exit.svelte";
@@ -27,11 +27,23 @@
   export let type = "";
   export let onclose = (id: string, dest: string) => {};
 
-  let channel_arr = $channels[tag];
+  let channel_arr = [];
+
+  $: channel_arr = $channels[tag] || [];
+  $: bitcoindTag = getBitcoindTag();
 
   $: peersObj = convertLightningPeersToObject($lightningPeers);
 
   $: peersConnectObj = convertPeersToConnectObj($peers[tag]);
+
+  function getBitcoindTag() {
+    const nodes = $stack?.nodes || [];
+    const lightningNode = nodes.find((node) => node.name === tag);
+    const linkedBitcoind = lightningNode?.links?.find((link) =>
+      nodes.some((node) => node.name === link && node.type === "Btc")
+    );
+    return linkedBitcoind || nodes.find((node) => node.type === "Btc")?.name;
+  }
 
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);
@@ -106,11 +118,12 @@
         return 0;
       }
       let tx_id = channel_point_arr[0];
-      const transaction_status = await getTransactionStatus(tx_id);
-      if (!transaction_status.confirmed) {
+      const lookupOptions = { network: $stack?.network, bitcoindTag };
+      const transaction_status = await getTransactionStatus(tx_id, lookupOptions);
+      if (!transaction_status.confirmed || transaction_status.block_height == null) {
         return 0;
       }
-      const currentBlockHeight = await getBlockTip();
+      const currentBlockHeight = await getBlockTip(lookupOptions);
       return currentBlockHeight - transaction_status.block_height + 1;
     } catch (e) {
       console.warn(e);
@@ -120,17 +133,24 @@
 
   async function getChannelsConfirmation() {
     let new_channel = [];
-    let notActiveExist = false;
+    let updated = false;
+
     for (const chan of channel_arr) {
       if (!chan.active) {
-        notActiveExist = true;
         const confirmation = await getConfirmation(chan);
         new_channel.push({ ...chan, confirmation });
+        updated = updated || chan.confirmation !== confirmation;
+      } else {
+        new_channel.push(chan);
       }
     }
-    // if (notActiveExist) {
-    //   channel_arr = [...new_channel];
-    // }
+
+    if (updated) {
+      channel_arr = [...new_channel];
+      channels.update((chans) => {
+        return { ...chans, [tag]: new_channel };
+      });
+    }
   }
 
   function openReconnectPeerModal(e, pubkey) {

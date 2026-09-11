@@ -159,6 +159,18 @@
       const channelsData = await getLndPendingAndActiveChannels(tag);
       newChannels = channelsData;
     }
+
+    const existingByChannelPoint = new Map(
+      ($channels[tag] || []).map((channel) => [channel.channel_point, channel])
+    );
+    newChannels = newChannels.map((channel) => {
+      const existing = existingByChannelPoint.get(channel.channel_point);
+      if (!channel.active && existing?.confirmation != null) {
+        return { ...channel, confirmation: existing.confirmation };
+      }
+      return channel;
+    });
+
     if (JSON.stringify(newChannels) !== JSON.stringify($channels[tag])) {
       channels.update((chans) => {
         return { ...chans, [tag]: newChannels };
