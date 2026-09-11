@@ -16,7 +16,7 @@ docker pull sphinxlightning/sphinx-swarm:latest
 docker pull sphinxlightning/sphinx-tribes-v2:latest
 docker pull sphinxlightning/sphinx-bot:latest
 docker pull sphinxlightning/sphinx-builtin-bots:latest
-docker pull sphinxlightning/cln-sphinx:latest
+docker pull ghcr.io/stakwork/cln-sphinx:latest
 
 echo "stop swarm.sphinx"
 docker stop swarm.sphinx

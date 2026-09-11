@@ -171,8 +171,8 @@ impl DockerConfig for ClnImage {
 impl DockerHubImage for ClnImage {
     fn repo(&self) -> Repository {
         Repository {
-            registry: Registry::DockerHub,
-            org: "sphinxlightning".to_string(),
+            registry: Registry::Ghcr,
+            org: "stakwork".to_string(),
             repo: "cln-sphinx".to_string(),
             root_volume: "/root/.lightning".to_string(),
         }
@@ -321,6 +321,13 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
         cmd.push("--offline".to_string());
     }
     if let Some(hsms) = &img.seed {
+        // CLN 26.06+ only accepts dev-force-* options under --developer, and
+        // --developer disables deprecated RPCs (pay, getroute) that the mixer
+        // still uses, so re-enable them explicitly.
+        if !cmd.iter().any(|c| c == "--developer") {
+            cmd.push("--developer".to_string());
+        }
+        cmd.push("--allow-deprecated-apis=true".to_string());
         cmd.push(format!("--dev-force-bip32-seed={}", hsms));
         let privkey = privkey_from_seed(&hsms).expect("bad seed");
         cmd.push(format!("--dev-force-privkey={}", privkey));
