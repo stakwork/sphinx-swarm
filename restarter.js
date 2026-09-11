@@ -17,7 +17,7 @@ function is2b() {
 }
 
 http
-  .createServer(async (req, res) => {
+  .createServer(withErrorResponse(async (req, res) => {
     if (req.method === "OPTIONS") {
       return end(res, 200, "");
     }
@@ -124,9 +124,9 @@ http
           console.log(stdout);
           console.log("error:", stderr);
           respond(res, { ok: true, message: stdout, error: stderr });
-        } catch (error) {
+        } catch (e) {
           console.log("error:", e);
-          failure(res, e.message);
+          failure(res, execErrorMessage(e));
         }
       }
       if (url === "/upload-cert") {
@@ -168,9 +168,9 @@ http
             message: message.join(","),
             error: errMsg.join(","),
           });
-        } catch (error) {
+        } catch (e) {
           console.log("error:", e);
-          failure(res, e.message);
+          failure(res, execErrorMessage(e));
         }
       }
       if (url === "/nuke") {
@@ -246,7 +246,7 @@ http
           `docker stop load_balancer`,
           `docker rm load_balancer`,
           `sudo rm -rf /home/admin/certs`,
-          `sudo mkdir -p /home/admins/certs`,
+          `sudo mkdir -p /home/admin/certs`,
           `sudo unzip -o -j /home/admin/data.zip -d /home/admin/certs/`,
           `sudo chown admin:admin /home/admin/certs/*`,
           `sudo chmod 644 /home/admin/certs/sphinx.chat.crt`,
@@ -267,7 +267,7 @@ http
         }
       }
     }
-  })
+  }))
   .listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
   });
@@ -277,7 +277,21 @@ function respond(res, response) {
 }
 
 function failure(res, err_msg) {
-  end(res, 401, JSON.stringify({ error: err_msg }));
+  end(res, 401, JSON.stringify({ ok: false, error: err_msg }));
+}
+
+// exec errors carry the command's stderr (e.g. certbot's actual failure reason)
+function execErrorMessage(e) {
+  return (e && e.stderr && e.stderr.trim()) || (e && e.message) || String(e);
+}
+
+// always send a response, so a thrown error doesn't leave the caller hanging until it times out
+function withErrorResponse(handler) {
+  return (req, res) =>
+    handler(req, res).catch((e) => {
+      console.log("error:", e);
+      if (!res.headersSent) failure(res, execErrorMessage(e));
+    });
 }
 
 function readBody(req) {
