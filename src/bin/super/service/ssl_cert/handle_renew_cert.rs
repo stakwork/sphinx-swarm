@@ -1,3 +1,4 @@
+use std::io::{Cursor, Read};
 use std::time::Duration;
 
 use anyhow::{anyhow, Error, Result};
@@ -6,6 +7,7 @@ use aws_config::Region;
 use aws_sdk_s3::Client;
 use chrono::{DateTime, Utc};
 use sphinx_swarm::utils::getenv;
+use x509_parser::pem::parse_x509_pem;
 
 use crate::{
     cmd::{SllCertExpiryDaysResponse, SuperRestarterResponse, SuperSwarmResponse},
@@ -25,9 +27,23 @@ pub async fn handle_renew_ssl_cert() -> Result<()> {
 
     log::info!("Renew cert response: {:#?}", renew_cert_res);
 
+    if !renew_cert_res.ok {
+        return Err(anyhow!(
+            "Failed to renew cert: {}",
+            renew_cert_res.error.unwrap_or_default()
+        ));
+    }
+
     let upload_cert_res = upload_cert_to_s3().await?;
 
     log::info!("Upload cert response: {:#?}", upload_cert_res);
+
+    if !upload_cert_res.ok {
+        return Err(anyhow!(
+            "Failed to upload cert to s3: {}",
+            upload_cert_res.error.unwrap_or_default()
+        ));
+    }
     Ok(())
 }
 
@@ -42,24 +58,38 @@ pub async fn get_cert_days_left() -> Result<i64, Error> {
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
-    let resp = client.head_object().bucket(bucket).key(key).send().await?;
+    let resp = client.get_object().bucket(bucket).key(key).send().await?;
+    let zip_bytes = resp.body.collect().await?.into_bytes();
 
-    // get last date modified
-    if let None = resp.last_modified() {
-        return Err(anyhow!("Unable to get last date modified from s3 bucket"));
-    }
+    // read the expiry from the cert itself, not the upload date
+    let not_after = cert_not_after(&zip_bytes)?;
 
-    let last_modified = resp.last_modified().unwrap();
-    let now = Utc::now();
+    let diff = not_after.signed_duration_since(Utc::now());
 
-    let last_modified_chrono = DateTime::<Utc>::from_timestamp(last_modified.secs(), 0)
-        .ok_or_else(|| anyhow!("Failed to convert last_modified to chrono::DateTime"))?;
+    Ok(diff.num_days())
+}
 
-    let diff = now.signed_duration_since(last_modified_chrono);
+fn cert_not_after(zip_bytes: &[u8]) -> Result<DateTime<Utc>, Error> {
+    let mut archive = zip::ZipArchive::new(Cursor::new(zip_bytes))?;
 
-    let days_diff = diff.num_days();
+    let crt_name = archive
+        .file_names()
+        .find(|name| name.ends_with("sphinx.chat.crt"))
+        .map(|name| name.to_string())
+        .ok_or_else(|| anyhow!("sphinx.chat.crt not found in data.zip"))?;
 
-    Ok(90 - days_diff)
+    let mut pem_bytes = Vec::new();
+    archive.by_name(&crt_name)?.read_to_end(&mut pem_bytes)?;
+
+    // fullchain.pem: the first cert is the leaf
+    let (_, pem) =
+        parse_x509_pem(&pem_bytes).map_err(|e| anyhow!("Failed to parse cert pem: {:?}", e))?;
+    let cert = pem
+        .parse_x509()
+        .map_err(|e| anyhow!("Failed to parse x509 cert: {:?}", e))?;
+
+    DateTime::<Utc>::from_timestamp(cert.validity().not_after.timestamp(), 0)
+        .ok_or_else(|| anyhow!("Failed to convert cert expiry to chrono::DateTime"))
 }
 
 pub async fn renew_cert() -> Result<SuperRestarterResponse, Error> {
@@ -67,7 +97,8 @@ pub async fn renew_cert() -> Result<SuperRestarterResponse, Error> {
     let password = std::env::var("SUPER_ADMIN_UPDATER_PASSWORD").unwrap_or(String::new());
 
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
+        // certbot's dns challenge can take well over 20s
+        .timeout(Duration::from_secs(180))
         .danger_accept_invalid_certs(true)
         .build()
         .expect("couldnt build renew cert reqwest client");
