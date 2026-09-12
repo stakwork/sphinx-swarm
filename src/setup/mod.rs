@@ -80,6 +80,29 @@ pub async fn mine_blocks(clients: &mut Clients, btc_name: &str, n: u64) -> Resul
     Ok(())
 }
 
+// wait until node1 sees a 2-hop route to node3 (gossip from both channels arrived)
+pub async fn try_check_2_hops(clients: &mut Clients, node1: &str, node3: &str) {
+    for i in 0..200 {
+        let res = check_2_hops(clients, node1, node3).await;
+        if res.is_ok() {
+            return;
+        }
+        log::info!("retrying get_routes to {}: {}...", node3, i);
+        sleep(2000).await;
+    }
+}
+
+async fn check_2_hops(clients: &mut Clients, node1: &str, node3: &str) -> Result<()> {
+    let cln3_pubkey = get_pubkey_cln(clients, node3).await?;
+    let cln1 = clients.cln.get_mut(node1).unwrap();
+    let res = cln1.get_routes(&cln3_pubkey, 1000).await?;
+    let hops = res.routes.first().map(|r| r.path.len()).unwrap_or(0);
+    if hops < 2 {
+        return Err(anyhow::anyhow!("no route found"));
+    }
+    Ok(())
+}
+
 pub async fn new_chan_from_cln1(
     clients: &mut Clients,
     sender_name: &str,
@@ -97,7 +120,14 @@ pub async fn new_chan_from_cln1(
         .iter()
         .filter(|peer| hex::encode(peer.id.clone()) == peer_pubkey)
     {
-        if p.num_channels.unwrap_or(0) > 0 {
+        if p.num_channels > 0 {
+            // recreated containers get new IPs but CLN only remembers the old
+            // address (and none at all for inbound peers), so reconnect by hostname
+            if !p.connected {
+                log::info!("reconnecting to {}", peer_name);
+                cln1.connect_peer(peer_pubkey, &domain(peer_name), peer_port)
+                    .await?;
+            }
             log::info!("skipping new channel setup");
             return Ok(());
         }
@@ -160,7 +190,7 @@ pub async fn cln_keysend_to(
     {
         Ok(sent_keysend) => println!(
             "[CLN] => sent_keysend to {} {:?}",
-            recip_pubkey, sent_keysend.status
+            recip_pubkey, sent_keysend.amount_sent_msat
         ),
         Err(e) => {
             println!("[CLN] keysend err {:?}", e)
