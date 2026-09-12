@@ -23,7 +23,7 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     log::info!("STACK {:?}", stack);
 
-    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
+    sphinx_swarm::auth::set_jwt_key_from_config(&stack.jwt_key)?;
     handler::hydrate_stack(stack.clone()).await;
 
     let (tx, rx) = mpsc::channel::<CmdRequest>(1000);

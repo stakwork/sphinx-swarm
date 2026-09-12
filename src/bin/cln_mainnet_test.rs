@@ -21,7 +21,7 @@ pub async fn main() -> Result<()> {
     let stack = make_stack();
     let clients = builder::build_stack(proj, &docker, &stack).await?;
 
-    sphinx_swarm::auth::set_jwt_key(&stack.jwt_key);
+    sphinx_swarm::auth::set_jwt_key_from_config(&stack.jwt_key)?;
 
     handler::hydrate(stack, clients).await;
 
