@@ -26,6 +26,28 @@ pub struct BifrostImage {
     pub admin_user: String,
     #[serde(default = "default_admin_password")]
     pub admin_password: String,
+    // Overrides the gateway plugin's baked-in `enforce_macaroons`
+    // (gateway/data/config.json, re-seeded on every boot). `None`
+    // (the default, and what pre-existing persisted state loads as)
+    // emits no env var, so the image's config.json value stands
+    // (false: shadow mode — verify + log, never reject). `Some(true)`
+    // ⇒ missing/invalid macaroons 401. Flipping this on is
+    // all-or-nothing per swarm: every caller must already present a
+    // valid macaroon. `skip_serializing_if` keeps the persisted JSON
+    // free of the key when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enforce_macaroons: Option<bool>,
+    // Overrides the plugin's `enforce_budgets`: whether the phase-6
+    // cap walk (per-run / user / realm / agent spend caps read from
+    // Redis) rejects with 402 or only logs "budget shadow: would
+    // reject". Same `None` ⇒ no env var ⇒ config.json semantics as
+    // enforce_macaroons. The plugin only honours it when
+    // enforce_macaroons is also on (otherwise budgets are bypassable
+    // by omitting the macaroon), so the intended rollout is
+    // macaroons first, then — after watching the shadow lines —
+    // budgets.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enforce_budgets: Option<bool>,
 }
 
 fn default_admin_user() -> String {
@@ -55,6 +77,8 @@ impl BifrostImage {
             // exposed to Hive via /_plugin/admin-credentials so workspace
             // admins can copy-paste it into the dashboard login.
             admin_password: default_admin_password(),
+            enforce_macaroons: None,
+            enforce_budgets: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -181,6 +205,20 @@ pub fn bifrost(
             neo4j.http_port,
         ));
         env.push(format!("NEO4J_PASSWORD={}", neo4j.password));
+    }
+
+    // Macaroon enforcement override. The gateway reads
+    // BIFROST_PLUGIN_ENFORCE_MACAROONS at plugin Init (truthy
+    // 1/true/yes/on, falsy 0/false/no/off; unset ⇒ config.json). This
+    // is swarm config, not a host secret, so it comes from the
+    // persisted image struct rather than getenv().
+    if let Some(enforce) = img.enforce_macaroons {
+        env.push(format!("BIFROST_PLUGIN_ENFORCE_MACAROONS={}", enforce));
+    }
+    // Budget (cap walk) enforcement override — same grammar, same
+    // "unset ⇒ config.json" rule, read as BIFROST_PLUGIN_ENFORCE_BUDGETS.
+    if let Some(enforce) = img.enforce_budgets {
+        env.push(format!("BIFROST_PLUGIN_ENFORCE_BUDGETS={}", enforce));
     }
 
     // Provider API keys referenced by Bifrost's config.json via env.<NAME>.
@@ -448,5 +486,131 @@ mod tests {
         // Absent neo4j link ⇒ no NEO4J_* env ⇒ the plugin's agent-catalog
         // endpoints return 503 (every agent shows "traffic only").
         assert!(!env.iter().any(|e| e.starts_with("NEO4J_")));
+    }
+
+    #[test]
+    fn test_bifrost_enforce_macaroons_emitted_when_set() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
+
+        let mut img = test_bifrost_image();
+        img.enforce_macaroons = Some(true);
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+        assert!(env.contains(&"BIFROST_PLUGIN_ENFORCE_MACAROONS=true".to_string()));
+
+        // Explicit false is still emitted: it pins shadow mode even if
+        // a future image flips the baked-in config.json default.
+        img.enforce_macaroons = Some(false);
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+        assert!(env.contains(&"BIFROST_PLUGIN_ENFORCE_MACAROONS=false".to_string()));
+    }
+
+    #[test]
+    fn test_bifrost_no_enforce_macaroons_when_unset() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
+
+        let img = test_bifrost_image();
+        assert_eq!(img.enforce_macaroons, None);
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+
+        // None ⇒ no env var ⇒ the image's config.json value stands.
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("BIFROST_PLUGIN_ENFORCE_MACAROONS=")));
+    }
+
+    #[test]
+    fn test_bifrost_enforce_macaroons_serde_round_trip() {
+        // Pre-existing persisted state has no `enforce_macaroons` key
+        // and must still load (as None). When None, the key must not
+        // be written back so the persisted JSON stays unchanged.
+        let img = test_bifrost_image();
+        let json = serde_json::to_string(&img).unwrap();
+        assert!(!json.contains("enforce_macaroons"));
+        let back: BifrostImage = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.enforce_macaroons, None);
+
+        let mut img = test_bifrost_image();
+        img.enforce_macaroons = Some(true);
+        let json = serde_json::to_string(&img).unwrap();
+        assert!(json.contains("\"enforce_macaroons\":true"));
+        let back: BifrostImage = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.enforce_macaroons, Some(true));
+    }
+
+    #[test]
+    fn test_bifrost_enforce_budgets_emitted_when_set() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
+
+        let mut img = test_bifrost_image();
+        img.enforce_macaroons = Some(true);
+        img.enforce_budgets = Some(true);
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+        assert!(env.contains(&"BIFROST_PLUGIN_ENFORCE_MACAROONS=true".to_string()));
+        assert!(env.contains(&"BIFROST_PLUGIN_ENFORCE_BUDGETS=true".to_string()));
+
+        // The two knobs are independent at this layer: budgets can be
+        // pinned off while macaroons are enforced (the normal
+        // "watch the shadow lines first" state).
+        img.enforce_budgets = Some(false);
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+        assert!(env.contains(&"BIFROST_PLUGIN_ENFORCE_BUDGETS=false".to_string()));
+    }
+
+    #[test]
+    fn test_bifrost_no_enforce_budgets_when_unset() {
+        let _lock = ENV_LOCK.lock().unwrap();
+
+        std::env::remove_var("OPENAI_API_KEY");
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::remove_var("OPENROUTER_API_KEY");
+        std::env::remove_var("GOOGLE_API_KEY");
+        std::env::remove_var("XAI_API_KEY");
+
+        let img = test_bifrost_image();
+        assert_eq!(img.enforce_budgets, None);
+        let config = bifrost(&img, &None, &None, &None);
+        let env = config.env.unwrap();
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("BIFROST_PLUGIN_ENFORCE_BUDGETS=")));
+    }
+
+    #[test]
+    fn test_bifrost_enforce_budgets_serde_round_trip() {
+        let img = test_bifrost_image();
+        let json = serde_json::to_string(&img).unwrap();
+        assert!(!json.contains("enforce_budgets"));
+        let back: BifrostImage = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.enforce_budgets, None);
+
+        let mut img = test_bifrost_image();
+        img.enforce_budgets = Some(true);
+        let json = serde_json::to_string(&img).unwrap();
+        assert!(json.contains("\"enforce_budgets\":true"));
+        let back: BifrostImage = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.enforce_budgets, Some(true));
     }
 }
