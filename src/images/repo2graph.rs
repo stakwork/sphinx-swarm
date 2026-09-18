@@ -5,6 +5,7 @@ use crate::images::boltwall::BoltwallImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::neo4j::Neo4jImage;
+use crate::images::powerpipe::PowerpipeImage;
 use crate::images::redis::RedisImage;
 use crate::images::traefik::shared_host;
 use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
@@ -62,7 +63,10 @@ impl DockerConfig for Repo2GraphImage {
         let jarvis = li.find_jarvis();
         let hermes = li.find_hermes();
         let redis = li.find_redis();
-        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis, &hermes, &redis)?)
+        let powerpipe = li.find_powerpipe();
+        Ok(repo2graph(
+            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &powerpipe,
+        )?)
     }
 }
 
@@ -84,6 +88,7 @@ fn repo2graph(
     jarvis: &Option<JarvisImage>,
     hermes: &Option<HermesImage>,
     redis: &Option<RedisImage>,
+    powerpipe: &Option<PowerpipeImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -118,6 +123,9 @@ fn repo2graph(
     }
     if let Some(r) = redis {
         env.push(format!("REDIS_URL=redis://{}:{}", domain(&r.name), r.http_port));
+    }
+    if let Some(p) = powerpipe {
+        env.push(format!("POWERPIPE_URL=http://{}:{}", domain(&p.name), p.port));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -228,7 +236,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -249,7 +257,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -277,7 +285,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_CACHE_DIR", "STRUT_CACHE_DIR"] {
@@ -311,7 +319,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_LAB_WORKSPACE", "STRUT_LAB_WORKSPACE"] {
@@ -341,7 +349,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -352,7 +360,7 @@ mod tests {
         );
 
         let hermes = HermesImage::new("hermes", "latest", "8645");
-        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -368,7 +376,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -379,12 +387,53 @@ mod tests {
         );
 
         let redis = RedisImage::new("redis", "latest");
-        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis)).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None).unwrap();
         assert!(
             with.env
                 .unwrap()
                 .contains(&"REDIS_URL=redis://redis.sphinx:6379".to_string()),
             "REDIS_URL should point at the redis container"
+        );
+    }
+
+    #[test]
+    fn test_powerpipe_url_is_emitted_only_when_linked() {
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at POWERPIPE_URL.
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        assert!(
+            !without
+                .env
+                .unwrap()
+                .iter()
+                .any(|e| e.starts_with("POWERPIPE_URL=")),
+            "POWERPIPE_URL should be absent when powerpipe isn't linked"
+        );
+
+        let powerpipe = PowerpipeImage::new("powerpipe", "latest", "9033");
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &None, &Some(powerpipe)).unwrap();
+        assert!(
+            with.env
+                .unwrap()
+                .contains(&"POWERPIPE_URL=http://powerpipe.sphinx:9033".to_string()),
+            "POWERPIPE_URL should point at the powerpipe container"
+        );
+    }
+
+    #[test]
+    fn test_powerpipe_url_reflects_non_default_name_and_port() {
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let powerpipe = PowerpipeImage::new("pp2", "latest", "9999");
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &None, &Some(powerpipe)).unwrap();
+        assert!(
+            with.env
+                .unwrap()
+                .contains(&"POWERPIPE_URL=http://pp2.sphinx:9999".to_string()),
+            "POWERPIPE_URL should be derived from domain(&p.name) and p.port"
         );
     }
 
@@ -399,7 +448,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
