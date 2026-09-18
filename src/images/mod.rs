@@ -23,7 +23,6 @@ pub mod mongo;
 pub mod navfiber;
 pub mod neo4j;
 pub mod postgres;
-pub mod powerpipe;
 pub mod proxy;
 pub mod quickwit;
 pub mod redis;
@@ -86,7 +85,6 @@ pub enum Image {
     HiveRelay(hive_relay::HiveRelayImage),
     Bifrost(bifrost::BifrostImage),
     Hermes(hermes::HermesImage),
-    Powerpipe(powerpipe::PowerpipeImage),
 }
 
 pub enum Registry {
@@ -169,7 +167,6 @@ impl Image {
             Image::HiveRelay(n) => n.name.clone(),
             Image::Bifrost(n) => n.name.clone(),
             Image::Hermes(n) => n.name.clone(),
-            Image::Powerpipe(n) => n.name.clone(),
         }
     }
 
@@ -213,8 +210,6 @@ impl Image {
             Image::Bifrost(n) => n.host.clone(),
             // internal only: never fronted by traefik
             Image::Hermes(_) => None,
-            // internal only, never fronted by Traefik — same as Hermes
-            Image::Powerpipe(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -256,7 +251,6 @@ impl Image {
             Image::HiveRelay(_n) => "HiveRelay",
             Image::Bifrost(_n) => "Bifrost",
             Image::Hermes(_n) => "Hermes",
-            Image::Powerpipe(_n) => "Powerpipe",
         }
         .to_string()
     }
@@ -299,7 +293,6 @@ impl Image {
             Image::HiveRelay(n) => n.version = version.to_string(),
             Image::Bifrost(n) => n.version = version.to_string(),
             Image::Hermes(n) => n.version = version.to_string(),
-            Image::Powerpipe(n) => n.version = version.to_string(),
         }
     }
 
@@ -342,7 +335,6 @@ impl Image {
             Image::HiveRelay(n) => n.host(Some(host.to_string())),
             Image::Bifrost(n) => n.host(Some(host.to_string())),
             Image::Hermes(_) => (),
-            Image::Powerpipe(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -446,7 +438,6 @@ impl DockerConfig for Image {
             Image::HiveRelay(n) => n.make_config(nodes, docker).await,
             Image::Bifrost(n) => n.make_config(nodes, docker).await,
             Image::Hermes(n) => n.make_config(nodes, docker).await,
-            Image::Powerpipe(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -491,7 +482,6 @@ impl DockerHubImage for Image {
             Image::HiveRelay(n) => n.repo(),
             Image::Bifrost(n) => n.repo(),
             Image::Hermes(n) => n.repo(),
-            Image::Powerpipe(n) => n.repo(),
         }
     }
 }
@@ -578,14 +568,6 @@ impl LinkedImages {
     pub fn find_hermes(&self) -> Option<hermes::HermesImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_hermes() {
-                return Some(i);
-            }
-        }
-        None
-    }
-    pub fn find_powerpipe(&self) -> Option<powerpipe::PowerpipeImage> {
-        for img in self.0.iter() {
-            if let Ok(i) = img.as_powerpipe() {
                 return Some(i);
             }
         }
@@ -874,12 +856,6 @@ impl Image {
         match self {
             Image::Hermes(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Hermes".to_string())),
-        }
-    }
-    pub fn as_powerpipe(&self) -> anyhow::Result<powerpipe::PowerpipeImage> {
-        match self {
-            Image::Powerpipe(i) => Ok(i.clone()),
-            _ => Err(anyhow::anyhow!("Not Powerpipe".to_string())),
         }
     }
 }
