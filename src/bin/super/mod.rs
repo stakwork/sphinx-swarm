@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
     let s: state::Super = load_config_file(project).await.expect("YAML CONFIG FAIL");
     log::info!("SUPER!!! {:?}", s);
 
-    sphinx_swarm::auth::set_jwt_key(&s.jwt_key);
+    sphinx_swarm::auth::set_jwt_key_from_config(&s.jwt_key)?;
 
     state::hydrate(s).await;
 
@@ -170,7 +170,14 @@ fn access(cmd: &Cmd, state: &Super, user_id: &Option<u32>) -> bool {
     if user.is_none() {
         return false;
     }
-
+    // self-service commands: the payload's user_id must be the authenticated
+    // caller — never let it target another user's record (IDOR guard)
+    if let Cmd::Swarm(c) = cmd {
+        match c {
+            SwarmCmd::ChangePassword(cp) => return cp.user_id == user_id,
+            _ => {}
+        }
+    }
     return match user.unwrap().role {
         Role::Super => true,
         Role::Admin => false,
