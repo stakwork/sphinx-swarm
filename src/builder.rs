@@ -5,7 +5,7 @@ use crate::dock::{
     prune_images, pull_image, restart_container, restore_backup_if_exist, stop_and_remove,
 };
 use crate::fast_service_update::handle_fast_node_update;
-use crate::images::{DockerConfig, DockerHubImage, Image, LinkedImages};
+use crate::images::{DockerConfig, DockerHubImage, Image};
 use crate::utils::{domain, getenv};
 use anyhow::{anyhow, Context, Result};
 use bollard::Docker;
@@ -74,69 +74,6 @@ async fn recreate_stale_hermes(docker: &Docker, stack: &Stack) -> Result<()> {
     Ok(())
 }
 
-/// One-time repair for repo2graph containers created before Powerpipe was
-/// linked. `create_and_init` returns early for containers that already exist,
-/// so an already-running repo2graph will not pick up a newly-added
-/// `POWERPIPE_URL` after an operator links Powerpipe.
-///
-/// If repo2graph has Powerpipe linked, compare the live container's env
-/// against the desired Config and remove it if `POWERPIPE_URL` (or other env)
-/// differs; the normal build path immediately recreates it with the current
-/// config. Idempotent, and it picks up any future env change for free.
-///
-/// Deliberately best-effort: a failure here must not block the rest of the
-/// stack from starting.
-async fn recreate_stale_repo2graph(docker: &Docker, stack: &Stack) -> Result<()> {
-    let node = match stack.nodes.iter().find(|n| n.name() == "repo2graph") {
-        Some(n) => n,
-        None => return Ok(()),
-    };
-    let img = match node.as_internal() {
-        Ok(Image::Repo2Graph(r)) => r,
-        _ => return Ok(()),
-    };
-
-    // Only recreate when Powerpipe is actually linked — otherwise env is
-    // unchanged and we would churn the container for no reason.
-    let li = LinkedImages::from_nodes(img.links.clone(), &stack.nodes);
-    if li.find_powerpipe().is_none() {
-        return Ok(());
-    }
-
-    let hostname = domain(&img.name);
-    let id = match id_by_name(docker, &hostname).await {
-        Some(id) => id,
-        None => return Ok(()),
-    };
-
-    let desired = img.make_config(&stack.nodes, docker).await?.env;
-    let current = docker
-        .inspect_container(&hostname, None)
-        .await?
-        .config
-        .and_then(|c| c.env);
-
-    // Inspect env is the image ENV merged with our Config env, so equality
-    // would always fail. Recreate if any desired entry (POWERPIPE_URL or
-    // otherwise) is missing from the live container.
-    let stale = match (&current, &desired) {
-        (Some(cur), Some(des)) => des.iter().any(|d| !cur.contains(d)),
-        (None, Some(des)) if !des.is_empty() => true,
-        _ => false,
-    };
-    if !stale {
-        return Ok(());
-    }
-
-    log::info!(
-        "=> repo2graph container has stale env, recreating (was {:?})",
-        current
-    );
-    let _ = stop_container(docker, &id).await;
-    remove_container(docker, &id).await?;
-    Ok(())
-}
-
 // return a map of name:docker_id
 pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<ClientMap> {
     // set global mem limit if it exists
@@ -146,12 +83,9 @@ pub async fn build_stack(proj: &str, docker: &Docker, stack: &Stack) -> Result<C
     }
     // first create the default network
     create_network(docker, None).await?;
-    // repair containers whose baked-in command/env is stale before we build
+    // repair containers whose baked-in command is stale before we build
     if let Err(e) = recreate_stale_hermes(docker, stack).await {
         log::warn!("recreate_stale_hermes failed: {:?}", e);
-    }
-    if let Err(e) = recreate_stale_repo2graph(docker, stack).await {
-        log::warn!("recreate_stale_repo2graph failed: {:?}", e);
     }
     // then add the containers
     let mut clients: ClientMap = Default::default();
