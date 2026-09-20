@@ -75,20 +75,12 @@ impl DockerHubImage for AdvisorImage {
     }
 }
 
-/// Swarm .env name -> the advisor's own variable. Add a pair here to forward a new setting.
+/// Swarm .env name -> the advisor's own variable. Only seeds: everything here (and every schedule, the probe
+/// pass, the graph) is edited on the advisor's Settings page, where a saved value wins over the environment.
 const ADVISOR_ENV: &[(&str, &str)] = &[
     ("ADVISOR_AGENT_MODEL", "AGENT_MODEL"),
     ("ADVISOR_AGENT_API_KEY", "AGENT_API_KEY"),
     ("ADVISOR_TYPESAFE_API_KEY", "TYPESAFE_API_KEY"),
-    ("ADVISOR_JEV_MODEL", "JEV_MODEL"),
-    ("ADVISOR_AGENT_WEB_SEARCH", "AGENT_WEB_SEARCH"),
-    ("ADVISOR_RUN_CRON", "RUN_CRON"),
-    ("ADVISOR_WATCH_CRON", "WATCH_CRON"),
-    ("ADVISOR_PROBE_CRON", "PROBE_CRON"),
-    ("ADVISOR_PROBE_SCOPE", "PROBE_SCOPE"),
-    ("ADVISOR_OBSERVE_CRON", "OBSERVE_CRON"),
-    ("ADVISOR_ALERT_INVESTIGATE", "ALERT_INVESTIGATE"),
-    ("ADVISOR_AGENT_AUTO_DISPATCH", "AGENT_AUTO_DISPATCH"),
 ];
 
 fn advisor(
@@ -129,11 +121,12 @@ fn advisor(
         env.push("NEO4J_USER=neo4j".to_string());
         env.push(format!("NEO4J_PASSWORD={}", n.password));
     }
-    // Everything the swarm forwards from its own .env is read under an ADVISOR_ prefix, so the advisor's
-    // settings never clash with the keys other images read (ANTHROPIC_API_KEY is repo2graph's, for instance).
-    // ADVISOR_AGENT_MODEL: the model in repo2graph's provider/model form (anthropic/claude-opus-5,
-    // openai/gpt-5, openrouter/...); ADVISOR_AGENT_API_KEY: the key for that provider, sent per request so the
-    // advisor can use a different provider or key from the one repo2graph itself holds.
+    // What the swarm forwards from its own .env is read under an ADVISOR_ prefix, so the advisor's settings
+    // never clash with the keys other images read (ANTHROPIC_API_KEY is repo2graph's, for instance), and it
+    // only seeds the advisor: the Settings page stores its own values, which win. ADVISOR_AGENT_MODEL is the
+    // model in repo2graph's provider/model form (anthropic/claude-opus-5, openai/gpt-5, openrouter/...);
+    // ADVISOR_AGENT_API_KEY the key for that provider, sent per request, so the advisor can run on a different
+    // provider or key from the one repo2graph holds.
     for (from, to) in ADVISOR_ENV {
         if let Ok(v) = getenv(from) {
             if !v.is_empty() {
