@@ -554,6 +554,7 @@ impl Stack {
                 Image::HiveRelay(h) => Node::Internal(Image::HiveRelay(h)),
                 Image::Bifrost(b) => Node::Internal(Image::Bifrost(b)),
                 Image::Hermes(h) => Node::Internal(Image::Hermes(h)),
+                Image::Advisor(a) => Node::Internal(Image::Advisor(a)),
             },
         });
         Stack {
