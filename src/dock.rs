@@ -147,10 +147,14 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
 
 pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<String> {
     let name: String = c.hostname.clone().context("expected hostname")?.into();
-    let create_opts = CreateContainerOptions {
-        name,
-        platform: None,
+    // Images in the m1_not_supported list are pulled as linux/x86_64 (see create_image). On an
+    // arm64 host Docker would otherwise pick a locally cached arm64 variant of the same tag at
+    // create time, so pin the container to the platform we pulled.
+    let platform = match c.image.as_deref() {
+        Some(img) if m1_not_supported(img) => Some("linux/x86_64".to_string()),
+        _ => None,
     };
+    let create_opts = CreateContainerOptions { name, platform };
     let id = docker
         .create_container::<String, String>(Some(create_opts), c)
         .await?
