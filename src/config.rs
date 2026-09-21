@@ -343,6 +343,7 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
 /// This is safe to call on every startup — it's a no-op if the nodes already exist.
 pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
+    use crate::images::advisor::AdvisorImage;
     use crate::images::bifrost::BifrostImage;
     use crate::images::graphmindset::GraphMindsetImage;
     use crate::images::hermes::HermesImage;
@@ -420,6 +421,24 @@ pub fn migrate_stack(stack: &mut Stack) {
         let hermes = HermesImage::new("hermes", "latest", "8645");
         stack.nodes.push(Node::Internal(Image::Hermes(hermes)));
         log::info!("=> added hermes node");
+    }
+
+    // aws-advisor (DevOps): only when DEVOPS=1 (or true) is in the swarm's .env, and only on a stack that runs
+    // repo2graph (the agent it needs). A stack created before the gate existed gets the node here, on the
+    // next start, exactly as a fresh stack would from graph_mindset_imgs. Private like neo4j: no host.
+    let devops = matches!(std::env::var("DEVOPS").ok().as_deref(), Some("1") | Some("true"));
+    let has_advisor = stack.nodes.iter().any(|n| n.name() == "advisor");
+    let has_repo2graph = stack.nodes.iter().any(|n| n.name() == "repo2graph");
+    if devops && !has_advisor && has_repo2graph {
+        let mut advisor = AdvisorImage::new("advisor", "latest", "9034");
+        advisor.links(vec!["repo2graph", "boltwall", "neo4j"]);
+        stack.nodes.push(Node::Internal(Image::Advisor(advisor)));
+        if let Some(list) = stack.auto_update.as_mut() {
+            if !list.iter().any(|n| n == "advisor") {
+                list.push("advisor".to_string());
+            }
+        }
+        log::info!("=> added advisor node (DEVOPS=1)");
     }
 
     // Update existing Repo2Graph and Stakgraph links to include bifrost
@@ -589,4 +608,51 @@ pub fn set_global_mem_limit(gbm: u64) -> Result<String> {
     Ok(serde_json::to_string(&GbmRes {
         global_mem_limit: gbm,
     })?)
+}
+
+#[cfg(test)]
+mod migrate_tests {
+    use super::*;
+    use crate::images::boltwall::BoltwallImage;
+    use crate::images::repo2graph::Repo2GraphImage;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn graph_mindset_stack() -> Stack {
+        let mut stack = Stack::default();
+        stack.nodes.push(Node::Internal(Image::BoltWall(BoltwallImage::new("boltwall", "latest", "8444"))));
+        stack.nodes.push(Node::Internal(Image::Repo2Graph(Repo2GraphImage::new("repo2graph", "latest", "3355"))));
+        stack.auto_update = Some(vec!["repo2graph".to_string()]);
+        stack
+    }
+
+    #[tokio::test]
+    async fn migration_adds_the_advisor_to_an_existing_stack_when_devops_is_set() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::set_var("DEVOPS", "1");
+        let mut stack = graph_mindset_stack();
+        migrate_stack(&mut stack);
+        migrate_stack(&mut stack);
+        std::env::remove_var("DEVOPS");
+        let advisors: Vec<&Node> = stack.nodes.iter().filter(|n| n.name() == "advisor").collect();
+        assert_eq!(advisors.len(), 1, "added once, idempotent: {:?}", stack.nodes.iter().map(|n| n.name()).collect::<Vec<_>>());
+        match advisors[0] {
+            Node::Internal(Image::Advisor(a)) => {
+                assert!(a.links.contains(&"repo2graph".to_string()) && a.links.contains(&"neo4j".to_string()));
+                assert!(a.api_token.is_some() && a.mcp_token.is_some() && a.callback_secret.is_some());
+            }
+            other => panic!("not an advisor image: {:?}", other),
+        }
+        assert!(stack.auto_update.as_ref().unwrap().contains(&"advisor".to_string()));
+    }
+
+    #[tokio::test]
+    async fn migration_leaves_the_stack_alone_without_devops() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        let mut stack = graph_mindset_stack();
+        migrate_stack(&mut stack);
+        assert!(!stack.nodes.iter().any(|n| n.name() == "advisor"));
+    }
 }
