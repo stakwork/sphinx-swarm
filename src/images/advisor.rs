@@ -4,7 +4,7 @@ use crate::images::neo4j::Neo4jImage;
 use crate::images::repo2graph::Repo2GraphImage;
 use crate::images::boltwall::BoltwallImage;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, getenv, host_config};
+use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -75,14 +75,6 @@ impl DockerHubImage for AdvisorImage {
     }
 }
 
-/// Swarm .env name -> the advisor's own variable. Only seeds: everything here (and every schedule, the probe
-/// pass, the graph) is edited on the advisor's Settings page, where a saved value wins over the environment.
-const ADVISOR_ENV: &[(&str, &str)] = &[
-    ("ADVISOR_AGENT_MODEL", "AGENT_MODEL"),
-    ("ADVISOR_AGENT_API_KEY", "AGENT_API_KEY"),
-    ("ADVISOR_TYPESAFE_API_KEY", "TYPESAFE_API_KEY"),
-];
-
 fn advisor(
     img: &AdvisorImage,
     repo2graph: &Option<Repo2GraphImage>,
@@ -121,19 +113,9 @@ fn advisor(
         env.push("NEO4J_USER=neo4j".to_string());
         env.push(format!("NEO4J_PASSWORD={}", n.password));
     }
-    // What the swarm forwards from its own .env is read under an ADVISOR_ prefix, so the advisor's settings
-    // never clash with the keys other images read (ANTHROPIC_API_KEY is repo2graph's, for instance), and it
-    // only seeds the advisor: the Settings page stores its own values, which win. ADVISOR_AGENT_MODEL is the
-    // model in repo2graph's provider/model form (anthropic/claude-opus-5, openai/gpt-5, openrouter/...);
-    // ADVISOR_AGENT_API_KEY the key for that provider, sent per request, so the advisor can run on a different
-    // provider or key from the one repo2graph holds.
-    for (from, to) in ADVISOR_ENV {
-        if let Ok(v) = getenv(from) {
-            if !v.is_empty() {
-                env.push(format!("{}={}", to, v));
-            }
-        }
-    }
+    // Nothing else: the agent model and key, the TypeSafe key, every schedule and threshold are set on the
+    // advisor's Settings page and stored in its own database. Without a key of its own the advisor's agent
+    // runs on repo2graph's key.
 
     // no Traefik labels on purpose: private-IP only, like neo4j
     Config {
@@ -152,24 +134,6 @@ mod tests {
     use std::sync::Mutex;
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
-
-    #[test]
-    fn advisor_reads_its_settings_under_the_advisor_prefix_only() {
-        let _lock = ENV_LOCK.lock().unwrap();
-        std::env::set_var("ANTHROPIC_API_KEY", "repo2graphs-key");
-        std::env::set_var("ADVISOR_AGENT_MODEL", "openai/gpt-5");
-        std::env::set_var("ADVISOR_AGENT_API_KEY", "advisors-own-key");
-        std::env::remove_var("ADVISOR_TYPESAFE_API_KEY");
-        let img = AdvisorImage::new("advisor", "latest", "9034");
-        let env = advisor(&img, &None, &None, &None).env.unwrap();
-        std::env::remove_var("ANTHROPIC_API_KEY");
-        std::env::remove_var("ADVISOR_AGENT_MODEL");
-        std::env::remove_var("ADVISOR_AGENT_API_KEY");
-        assert!(env.contains(&"AGENT_MODEL=openai/gpt-5".to_string()));
-        assert!(env.contains(&"AGENT_API_KEY=advisors-own-key".to_string()), "{:?}", env);
-        assert!(!env.iter().any(|e| e.contains("repo2graphs-key")), "the shared ANTHROPIC_API_KEY is not forwarded: {:?}", env);
-        assert!(!env.iter().any(|e| e.starts_with("TYPESAFE_API_KEY=")));
-    }
 
     #[test]
     fn advisor_gets_its_three_secrets_and_the_agent_endpoints() {
