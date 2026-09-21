@@ -1,3 +1,4 @@
+pub mod advisor;
 pub mod bifrost;
 pub mod boltwall;
 pub mod bot;
@@ -77,6 +78,7 @@ pub enum Image {
     Mongo(mongo::MongoImage),
     Jamie(jamie::JamieImage),
     Repo2Graph(repo2graph::Repo2GraphImage),
+    Advisor(advisor::AdvisorImage),
     Redis(redis::RedisImage),
     Chrome(chrome::ChromeImage),
     Stakgraph(stakgraph::StakgraphImage),
@@ -159,6 +161,7 @@ impl Image {
             Image::Mongo(n) => n.name.clone(),
             Image::Jamie(n) => n.name.clone(),
             Image::Repo2Graph(n) => n.name.clone(),
+            Image::Advisor(n) => n.name.clone(),
             Image::Redis(n) => n.name.clone(),
             Image::Chrome(n) => n.name.clone(),
             Image::Stakgraph(n) => n.name.clone(),
@@ -201,6 +204,7 @@ impl Image {
             Image::Mongo(n) => n.host.clone(),
             Image::Jamie(n) => n.host.clone(),
             Image::Repo2Graph(n) => n.host.clone(),
+            Image::Advisor(n) => n.host.clone(),
             Image::Redis(n) => n.host.clone(),
             Image::Chrome(n) => n.host.clone(),
             Image::Stakgraph(n) => n.host.clone(),
@@ -243,6 +247,7 @@ impl Image {
             Image::Mongo(_n) => "Mongo",
             Image::Jamie(_n) => "Jamie",
             Image::Repo2Graph(_n) => "Repo2Graph",
+            Image::Advisor(_n) => "Advisor",
             Image::Redis(_n) => "Redis",
             Image::Chrome(_n) => "Chrome",
             Image::Stakgraph(_n) => "Stakgraph",
@@ -285,6 +290,7 @@ impl Image {
             Image::Mongo(n) => n.version = version.to_string(),
             Image::Jamie(n) => n.version = version.to_string(),
             Image::Repo2Graph(n) => n.version = version.to_string(),
+            Image::Advisor(n) => n.version = version.to_string(),
             Image::Redis(n) => n.version = version.to_string(),
             Image::Chrome(n) => n.version = version.to_string(),
             Image::Stakgraph(n) => n.version = version.to_string(),
@@ -327,6 +333,7 @@ impl Image {
             Image::Mongo(n) => n.host(Some(host.to_string())),
             Image::Jamie(n) => n.host(Some(host.to_string())),
             Image::Repo2Graph(n) => n.host(Some(host.to_string())),
+            Image::Advisor(n) => n.host(Some(host.to_string())),
             Image::Redis(n) => n.host(Some(host.to_string())),
             Image::Chrome(n) => n.host(Some(host.to_string())),
             Image::Stakgraph(n) => n.host(Some(host.to_string())),
@@ -430,6 +437,7 @@ impl DockerConfig for Image {
             Image::Mongo(n) => n.make_config(nodes, docker).await,
             Image::Jamie(n) => n.make_config(nodes, docker).await,
             Image::Repo2Graph(n) => n.make_config(nodes, docker).await,
+            Image::Advisor(n) => n.make_config(nodes, docker).await,
             Image::Redis(n) => n.make_config(nodes, docker).await,
             Image::Chrome(n) => n.make_config(nodes, docker).await,
             Image::Stakgraph(n) => n.make_config(nodes, docker).await,
@@ -474,6 +482,7 @@ impl DockerHubImage for Image {
             Image::Mongo(n) => n.repo(),
             Image::Jamie(n) => n.repo(),
             Image::Repo2Graph(n) => n.repo(),
+            Image::Advisor(n) => n.repo(),
             Image::Redis(n) => n.repo(),
             Image::Chrome(n) => n.repo(),
             Image::Stakgraph(n) => n.repo(),

@@ -1,5 +1,6 @@
 use crate::config::*;
 use crate::defaults::*;
+use crate::images::advisor::AdvisorImage;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::bot::BotImage;
 use crate::images::hermes::HermesImage;
@@ -35,6 +36,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
             "repo2graph".to_string(),
             "stakgraph".to_string(),
             "bot".to_string(),
+            "advisor".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -101,7 +103,7 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     stakgraph.host(host.clone());
     stakgraph.links(vec!["neo4j", "boltwall"]);
 
-    vec![
+    let mut imgs = vec![
         Image::Bot(bot),
         Image::NavFiber(nav),
         Image::GraphMindset(gm),
@@ -112,5 +114,14 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
         Image::Repo2Graph(repo2graph),
         Image::Hermes(hermes),
         Image::Stakgraph(stakgraph),
-    ]
+    ];
+
+    // aws-advisor (DevOps): the AWS cost advisor, only when DEVOPS=1 (or true) is in the swarm's .env.
+    // Private like neo4j: no host, no Traefik route; reachable on the private IP, port 9034.
+    if matches!(std::env::var("DEVOPS").ok().as_deref(), Some("1") | Some("true")) {
+        let mut advisor = AdvisorImage::new("advisor", "latest", "9034");
+        advisor.links(vec!["repo2graph", "boltwall", "neo4j"]);
+        imgs.push(Image::Advisor(advisor));
+    }
+    imgs
 }
