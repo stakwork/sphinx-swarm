@@ -171,6 +171,11 @@ fn repo2graph(
     env.push(format!("VEIN_LAB_WORKSPACE={}", lab_ws_dir));
     env.push(format!("STRUT_LAB_WORKSPACE={}", lab_ws_dir));
 
+    // Every lab LLM call must be billed through the Mothership: a call with
+    // no principal, or no delegation on file for it, fails instead of
+    // falling back to the provider keys above.
+    env.push("STRUT_MOTHERSHIP_REQUIRED=1".to_string());
+
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
         "/usr/src/app/tests/generated_tests",
@@ -284,6 +289,10 @@ mod tests {
             let expected = format!("{}=/usr/src/app/cache", key);
             assert!(env.contains(&expected), "env should contain {}", expected);
         }
+        assert!(
+            env.contains(&"STRUT_MOTHERSHIP_REQUIRED=1".to_string()),
+            "env should contain STRUT_MOTHERSHIP_REQUIRED=1"
+        );
 
         let binds = config
             .host_config
