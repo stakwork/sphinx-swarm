@@ -33,7 +33,7 @@ use crate::conn::swarm::SwarmResponse;
 use crate::images::{DockerConfig, DockerHubImage};
 use crate::mount_backedup_volume::download_from_s3;
 use crate::utils::{domain, getenv, sleep_ms};
-use bollard::models::ImageInspect;
+use bollard::models::{ContainerStateStatusEnum, ImageInspect};
 use tokio::fs::File;
 
 pub fn dockr() -> Docker {
@@ -204,24 +204,163 @@ pub async fn stop_and_remove(docker: &Docker, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn stop_container(docker: &Docker, id: &str) -> Result<()> {
-    docker
-        .stop_container(id, Some(StopContainerOptions { t: 9 }))
-        .await?;
-    Ok(())
+/// True when Docker says the container does not exist (404). For stop/remove
+/// that means the work is already done.
+fn is_gone_error(e: &bollard::errors::Error) -> bool {
+    matches!(
+        e,
+        bollard::errors::Error::DockerResponseServerError {
+            status_code: 404,
+            ..
+        }
+    )
 }
 
-pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
-    docker
-        .remove_container(
-            id,
-            Some(RemoveContainerOptions {
-                ..Default::default()
-            }),
-        )
-        .await?;
-    Ok(())
+/// Stops a container. A container that is already stopped (304, handled by
+/// bollard) or already gone (404) is not an error: the caller only needs it
+/// to not be running.
+pub async fn stop_container(docker: &Docker, id: &str) -> Result<()> {
+    match docker
+        .stop_container(id, Some(StopContainerOptions { t: 9 }))
+        .await
+    {
+        Ok(()) => Ok(()),
+        Err(e) if is_gone_error(&e) => Ok(()),
+        Err(e) => Err(e.into()),
+    }
 }
+
+const REMOVE_CONTAINER_ATTEMPTS: u32 = 6;
+
+/// Backoff between remove attempts: 500ms, 1s, 2s, 4s, 8s, then 10s.
+fn remove_retry_delay_ms(attempt: u32) -> u64 {
+    (500u64 << attempt.saturating_sub(1).min(5)).min(10_000)
+}
+
+/// Removes a container and confirms it is gone.
+///
+/// Docker can fail the filesystem cleanup with "unable to remove filesystem ...
+/// directory not empty" (a file such as the dual-logging `container-cached.log`
+/// gets written into the container directory while it is being deleted). The
+/// container is then left `dead` and shown as "Removal In Progress", and a
+/// later create with the same name fails with 409. A second `rm` retries the
+/// cleanup and normally succeeds, so retry with backoff, force from the second
+/// attempt on, and only return Ok once inspect reports 404.
+pub async fn remove_container(docker: &Docker, id: &str) -> Result<()> {
+    let mut last_err: Option<String> = None;
+    for attempt in 1..=REMOVE_CONTAINER_ATTEMPTS {
+        match docker
+            .remove_container(
+                id,
+                Some(RemoveContainerOptions {
+                    force: attempt > 1,
+                    ..Default::default()
+                }),
+            )
+            .await
+        {
+            Ok(()) => {}
+            Err(e) if is_gone_error(&e) => return Ok(()),
+            Err(e) => {
+                log::warn!(
+                    "remove_container {} attempt {}/{} failed: {}",
+                    id,
+                    attempt,
+                    REMOVE_CONTAINER_ATTEMPTS,
+                    e
+                );
+                last_err = Some(e.to_string());
+            }
+        }
+        // A successful response does not guarantee the record is gone; only a
+        // 404 from inspect does.
+        match docker.inspect_container(id, None).await {
+            Err(e) if is_gone_error(&e) => return Ok(()),
+            Ok(info) => {
+                let state = info.state.unwrap_or_default();
+                let status = state.status.map(|s| s.to_string()).unwrap_or_default();
+                let msg = format!(
+                    "container {} still present after remove attempt {}/{} (state={}, error={:?})",
+                    id, attempt, REMOVE_CONTAINER_ATTEMPTS, status, state.error
+                );
+                log::warn!("{}", msg);
+                if last_err.is_none() {
+                    last_err = Some(msg);
+                }
+            }
+            Err(e) => {
+                log::warn!("inspect_container {} after remove failed: {}", id, e);
+                if last_err.is_none() {
+                    last_err = Some(e.to_string());
+                }
+            }
+        }
+        if attempt < REMOVE_CONTAINER_ATTEMPTS {
+            sleep_ms(remove_retry_delay_ms(attempt)).await;
+        }
+    }
+    Err(anyhow!(
+        "could not remove container {} after {} attempts: {}",
+        id,
+        REMOVE_CONTAINER_ATTEMPTS,
+        last_err.unwrap_or_else(|| "container still present".to_string())
+    ))
+}
+
+/// Whether the container exists and is running.
+pub async fn container_running(docker: &Docker, id: &str) -> Result<bool> {
+    match docker.inspect_container(id, None).await {
+        Ok(info) => Ok(info.state.and_then(|s| s.running).unwrap_or(false)),
+        Err(e) if is_gone_error(&e) => Ok(false),
+        Err(e) => Err(e.into()),
+    }
+}
+
+/// Polls until the container reports `running`. Fails early if it has exited
+/// or is dead, since a started service that is not running is a failure the
+/// caller must see rather than a success to log.
+pub async fn wait_until_running(docker: &Docker, id: &str, timeout_secs: u64) -> Result<()> {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(timeout_secs);
+    loop {
+        let state = docker
+            .inspect_container(id, None)
+            .await?
+            .state
+            .unwrap_or_default();
+        if state.running == Some(true) {
+            return Ok(());
+        }
+        let status = state
+            .status
+            .as_ref()
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        if matches!(
+            state.status,
+            Some(ContainerStateStatusEnum::EXITED) | Some(ContainerStateStatusEnum::DEAD)
+        ) {
+            return Err(anyhow!(
+                "container {} is {} right after start (exit_code={:?}, error={:?})",
+                id,
+                status,
+                state.exit_code,
+                state.error
+            ));
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err(anyhow!(
+                "container {} not running {}s after start (state={})",
+                id,
+                timeout_secs,
+                status
+            ));
+        }
+        sleep_ms(1000).await;
+    }
+}
+
+/// How long a freshly started service gets to report `running`.
+pub const START_CONFIRM_TIMEOUT_SECS: u64 = 15;
 
 pub async fn restart_node_container(
     docker: &Docker,
@@ -245,18 +384,17 @@ pub async fn restart_node_container(
         log::warn!("pre_startup failed {} {:?}", &new_id, e);
     }
 
-    match start_container(&docker, &new_id).await {
-        Ok(()) => {
-            log::info!("Container started successfully");
-            img.post_startup(proj, docker).await?;
+    start_container(&docker, &new_id)
+        .await
+        .map_err(|e| anyhow!("error starting container {}: {}", &hostname, e))?;
+    wait_until_running(docker, &new_id, START_CONFIRM_TIMEOUT_SECS).await?;
+    log::info!("Container started successfully");
+    img.post_startup(proj, docker).await?;
 
-            let _ = match make_client(proj, docker, &img, state).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
-            };
-        }
-        Err(err) => log::error!("Error starting container: {}", err.to_string()),
-    }
+    let _ = match make_client(proj, docker, &img, state).await {
+        Ok(_) => Ok(()),
+        Err(e) => Err(anyhow!("FAILED TO MAKE CLIENT {:?}", e)),
+    };
 
     Ok(())
 }
@@ -294,25 +432,27 @@ pub async fn restart_node_container_global(
         log::warn!("pre_startup failed {} {:?}", &new_id, e);
     }
 
-    match start_container(docker, &new_id).await {
-        Ok(()) => {
-            log::info!("Container started successfully");
-            img.post_startup(proj, docker).await?;
+    // A start error or a container that is not running afterwards is returned
+    // as an error so callers (the auto-restart cron in particular) can retry
+    // instead of logging success for a service that is down.
+    start_container(docker, &new_id)
+        .await
+        .map_err(|e| anyhow!("error starting container {}: {}", &hostname, e))?;
+    wait_until_running(docker, &new_id, START_CONFIRM_TIMEOUT_SECS).await?;
+    log::info!("Container started successfully");
+    img.post_startup(proj, docker).await?;
 
-            // 4. Reconnect client (brief CLIENTS write)
-            let nodes = stack_read(|s| s.nodes.clone()).await;
-            let mut cm = CLIENTS.write().await;
-            if let Err(e) = img
-                .connect_client(proj, &mut cm, docker, &nodes, is_shutdown)
-                .await
-            {
-                log::error!("FAILED TO MAKE CLIENT {:?}", e);
-            }
-            if let Err(e) = img.post_client(&cm).await {
-                log::error!("FAILED POST CLIENT {:?}", e);
-            }
-        }
-        Err(err) => log::error!("Error starting container: {}", err.to_string()),
+    // 4. Reconnect client (brief CLIENTS write)
+    let nodes = stack_read(|s| s.nodes.clone()).await;
+    let mut cm = CLIENTS.write().await;
+    if let Err(e) = img
+        .connect_client(proj, &mut cm, docker, &nodes, is_shutdown)
+        .await
+    {
+        log::error!("FAILED TO MAKE CLIENT {:?}", e);
+    }
+    if let Err(e) = img.post_client(&cm).await {
+        log::error!("FAILED POST CLIENT {:?}", e);
     }
 
     Ok(())
@@ -1474,6 +1614,40 @@ pub async fn get_env_variables_by_container_name(docker: &Docker, id: &str) -> S
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn server_err(status_code: u16) -> bollard::errors::Error {
+        bollard::errors::Error::DockerResponseServerError {
+            status_code,
+            message: "x".to_string(),
+        }
+    }
+
+    #[test]
+    fn gone_error_is_only_404() {
+        assert!(is_gone_error(&server_err(404)));
+        assert!(!is_gone_error(&server_err(409)));
+        assert!(!is_gone_error(&server_err(500)));
+        assert!(!is_gone_error(&bollard::errors::Error::RequestTimeoutError));
+    }
+
+    #[test]
+    fn remove_retry_delay_backs_off_and_caps() {
+        assert_eq!(remove_retry_delay_ms(1), 500);
+        assert_eq!(remove_retry_delay_ms(2), 1_000);
+        assert_eq!(remove_retry_delay_ms(3), 2_000);
+        assert_eq!(remove_retry_delay_ms(5), 8_000);
+        assert_eq!(remove_retry_delay_ms(6), 10_000);
+        assert_eq!(remove_retry_delay_ms(60), 10_000);
+        assert_eq!(remove_retry_delay_ms(0), 500);
+        let total: u64 = (1..REMOVE_CONTAINER_ATTEMPTS)
+            .map(remove_retry_delay_ms)
+            .sum();
+        assert!(
+            total <= 30_000,
+            "remove retries should finish within 30s, got {}ms",
+            total
+        );
+    }
 
     #[tokio::test]
     async fn test_ghcr_version_check() {
