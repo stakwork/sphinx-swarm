@@ -132,6 +132,9 @@ fn repo2graph(
     if let Ok(xai_api_key) = getenv("XAI_API_KEY") {
         env.push(format!("XAI_API_KEY={}", xai_api_key));
     }
+    if let Ok(exa_api_key) = getenv("EXA_API_KEY") {
+        env.push(format!("EXA_API_KEY={}", exa_api_key));
+    }
     if let Some(hf_token) = img.hf_token.clone().or_else(|| getenv("HF_TOKEN").ok()) {
         env.push(format!("HF_TOKEN={}", hf_token));
     }
