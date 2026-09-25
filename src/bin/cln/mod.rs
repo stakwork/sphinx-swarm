@@ -18,6 +18,7 @@ use tokio::sync::{mpsc, Mutex};
 const BTC: &str = "btc_1";
 const CLN1: &str = "cln_1";
 const CLN2: &str = "cln_2";
+const CLN3: &str = "cln_3";
 const LSS: &str = "lss_1";
 const JWT_KEY: &str = "e8int45s0pofgtye";
 const LND_1: &str = "lnd_1";
@@ -64,6 +65,9 @@ pub async fn main() -> Result<()> {
     }
     if !skip_setup {
         setup_cln_chans(&mut clients, &stack.nodes, CLN1, CLN2, BTC).await?;
+        // cln_1 -> cln_2 <- cln_3, so cln_1 has a 2-hop route to cln_3
+        setup_cln_chans(&mut clients, &stack.nodes, CLN3, CLN2, BTC).await?;
+        try_check_2_hops(&mut clients, CLN1, CLN3).await;
         if do_test_proxy() {
             setup_lnd_chans(&mut clients, &stack.nodes, CLN1, LND_1, BTC).await?;
         }
@@ -105,21 +109,34 @@ fn make_stack() -> Stack {
         internal_nodes.push(Image::Lss(lss));
     }
 
+    // same seeds (so same pubkeys) and dev mode as the v1 harness (src/bin/v1)
+
     // CLN1
     let v = "latest";
     let mut cln = ClnImage::new(CLN1, v, &network, "9735", "10009");
+    cln.set_dev();
+    cln.set_seed("2b".repeat(32));
     cln.plugins(cln_plugins.clone());
     cln.links(vec![BTC, LSS]);
     internal_nodes.push(Image::Cln(cln));
 
     // CLN2
     let mut cln2 = ClnImage::new(CLN2, v, &network, "9736", "10010");
+    cln2.set_dev();
+    cln2.set_seed("2c".repeat(32));
     cln2.links(vec![BTC]);
     internal_nodes.push(Image::Cln(cln2));
 
+    // CLN3
+    let mut cln3 = ClnImage::new(CLN3, v, &network, "9737", "10011");
+    cln3.set_dev();
+    cln3.set_seed("2d".repeat(32));
+    cln3.links(vec![BTC]);
+    internal_nodes.push(Image::Cln(cln3));
+
     if do_test_proxy() {
         let v = "v0.16.2-beta";
-        let mut lnd = LndImage::new(LND_1, v, &network, "10011", "9737");
+        let mut lnd = LndImage::new(LND_1, v, &network, "10012", "9738");
         lnd.http_port = Some("8881".to_string());
         lnd.links(vec![BTC]);
 
