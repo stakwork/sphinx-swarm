@@ -147,6 +147,8 @@ services:
       - HF_TOKEN=$HF_TOKEN
       - XAI_API_KEY=$XAI_API_KEY
       - EXA_API_KEY=$EXA_API_KEY
+      - STRUT_CHAT_MODEL=$STRUT_CHAT_MODEL
+      - STRUT_LLM_MODEL=$STRUT_LLM_MODEL
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
