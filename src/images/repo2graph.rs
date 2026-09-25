@@ -24,6 +24,15 @@ pub struct Repo2GraphImage {
     pub llm_provider: Option<String>, // openai by default
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hf_token: Option<String>,
+    // Whether every lab LLM call must be billed through the Mothership
+    // (STRUT_MOTHERSHIP_REQUIRED). `Some(true)` ⇒ a call with no
+    // principal, or no delegation on file for it, fails instead of
+    // falling back to the direct provider keys. `None` (the default,
+    // and what pre-existing persisted state loads as) emits no env
+    // var, so the mcp's own default stands. `skip_serializing_if`
+    // keeps the persisted JSON free of the key when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mothership_required: Option<bool>,
 }
 
 impl Repo2GraphImage {
@@ -36,6 +45,7 @@ impl Repo2GraphImage {
             host: None,
             llm_provider: None,
             hf_token: None,
+            mothership_required: None,
         }
     }
     pub fn links(&mut self, links: Vec<&str>) {
@@ -174,10 +184,15 @@ fn repo2graph(
     env.push(format!("VEIN_LAB_WORKSPACE={}", lab_ws_dir));
     env.push(format!("STRUT_LAB_WORKSPACE={}", lab_ws_dir));
 
-    // Every lab LLM call must be billed through the Mothership: a call with
-    // no principal, or no delegation on file for it, fails instead of
-    // falling back to the provider keys above.
-    env.push("STRUT_MOTHERSHIP_REQUIRED=1".to_string());
+    // Mothership billing requirement. This is swarm config, not a host
+    // secret, so it comes from the persisted image struct rather than
+    // getenv(); unset ⇒ no env var ⇒ the mcp's own default.
+    if let Some(required) = img.mothership_required {
+        env.push(format!(
+            "STRUT_MOTHERSHIP_REQUIRED={}",
+            if required { "1" } else { "0" }
+        ));
+    }
 
     let tests_vol = volume_string(
         &format!("{}-tests", img.name),
@@ -292,10 +307,6 @@ mod tests {
             let expected = format!("{}=/usr/src/app/cache", key);
             assert!(env.contains(&expected), "env should contain {}", expected);
         }
-        assert!(
-            env.contains(&"STRUT_MOTHERSHIP_REQUIRED=1".to_string()),
-            "env should contain STRUT_MOTHERSHIP_REQUIRED=1"
-        );
 
         let binds = config
             .host_config
@@ -343,6 +354,54 @@ mod tests {
                 .any(|b| b == "repo2graph-lab-workspace.sphinx:/usr/src/app/lab-workspace:rw"),
             "binds should contain repo2graph-lab-workspace.sphinx:/usr/src/app/lab-workspace:rw, got: {:?}",
             binds
+        );
+    }
+
+    #[test]
+    fn test_mothership_required_env_follows_config() {
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at STRUT_MOTHERSHIP_REQUIRED.
+        let neo4j = test_neo4j_image();
+        let flag = |img: &Repo2GraphImage| -> Option<String> {
+            repo2graph(img, &neo4j, &None, &None, &None, &None)
+                .unwrap()
+                .env
+                .unwrap()
+                .into_iter()
+                .find(|e| e.starts_with("STRUT_MOTHERSHIP_REQUIRED="))
+        };
+
+        let unset = test_repo2graph_image();
+        assert_eq!(flag(&unset), None, "unset ⇒ no env var");
+
+        let mut on = test_repo2graph_image();
+        on.mothership_required = Some(true);
+        assert_eq!(flag(&on), Some("STRUT_MOTHERSHIP_REQUIRED=1".to_string()));
+
+        let mut off = test_repo2graph_image();
+        off.mothership_required = Some(false);
+        assert_eq!(flag(&off), Some("STRUT_MOTHERSHIP_REQUIRED=0".to_string()));
+    }
+
+    #[test]
+    fn test_mothership_required_is_skipped_in_json_when_unset() {
+        let img = test_repo2graph_image();
+        let json = serde_json::to_string(&img).unwrap();
+        assert!(
+            !json.contains("mothership_required"),
+            "persisted JSON should omit the key when unset, got: {}",
+            json
+        );
+        let back: Repo2GraphImage = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.mothership_required, None);
+
+        let mut on = test_repo2graph_image();
+        on.mothership_required = Some(true);
+        let json = serde_json::to_string(&on).unwrap();
+        assert!(
+            json.contains("\"mothership_required\":true"),
+            "got: {}",
+            json
         );
     }
 
