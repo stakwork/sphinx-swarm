@@ -145,6 +145,12 @@ fn repo2graph(
     if let Ok(exa_api_key) = getenv("EXA_API_KEY") {
         env.push(format!("EXA_API_KEY={}", exa_api_key));
     }
+    if let Ok(strut_chat_model) = getenv("STRUT_CHAT_MODEL") {
+        env.push(format!("STRUT_CHAT_MODEL={}", strut_chat_model));
+    }
+    if let Ok(strut_llm_model) = getenv("STRUT_LLM_MODEL") {
+        env.push(format!("STRUT_LLM_MODEL={}", strut_llm_model));
+    }
     if let Some(hf_token) = img.hf_token.clone().or_else(|| getenv("HF_TOKEN").ok()) {
         env.push(format!("HF_TOKEN={}", hf_token));
     }
