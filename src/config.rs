@@ -345,6 +345,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
     use crate::images::advisor::AdvisorImage;
     use crate::images::bifrost::BifrostImage;
+    use crate::images::browser::BrowserImage;
     use crate::images::graphmindset::GraphMindsetImage;
     use crate::images::hermes::HermesImage;
     use crate::images::hive_relay::HiveRelayImage;
@@ -441,6 +442,22 @@ pub fn migrate_stack(stack: &mut Stack) {
         log::info!("=> added advisor node (DEVOPS=1)");
     }
 
+    // The browser repo2graph's workflow steps drive (see images/browser.rs). Its
+    // only client is repo2graph, so a stack without one gets none. The node is
+    // built here once: `new` makes its secret path, and the next start finds the
+    // node (and the path) in the saved config.
+    let has_browser = stack.nodes.iter().any(|n| n.name() == "browser");
+    if has_repo2graph && !has_browser {
+        let browser = BrowserImage::new("browser", "latest", "3000");
+        stack.nodes.push(Node::Internal(Image::Browser(browser)));
+        if let Some(list) = stack.auto_update.as_mut() {
+            if !list.iter().any(|n| n == "browser") {
+                list.push("browser".to_string());
+            }
+        }
+        log::info!("=> added browser node");
+    }
+
     // Update existing Repo2Graph and Stakgraph links to include bifrost
     for node in &mut stack.nodes {
         match node {
@@ -461,6 +478,14 @@ pub fn migrate_stack(stack: &mut Stack) {
                 if !img.links.contains(&"redis".to_string()) {
                     img.links.push("redis".to_string());
                     log::info!("=> added redis link to repo2graph");
+                }
+                // The link is what gives repo2graph BROWSER_WS_URL, the
+                // secret path and the browser's network. An existing
+                // container gets them when it is next recreated, which its
+                // next image update does.
+                if !img.links.contains(&"browser".to_string()) {
+                    img.links.push("browser".to_string());
+                    log::info!("=> added browser link to repo2graph");
                 }
             }
             Node::Internal(Image::Stakgraph(ref mut img)) => {
@@ -574,6 +599,10 @@ impl Stack {
                 Image::Bifrost(b) => Node::Internal(Image::Bifrost(b)),
                 Image::Hermes(h) => Node::Internal(Image::Hermes(h)),
                 Image::Advisor(a) => Node::Internal(Image::Advisor(a)),
+                Image::Browser(mut b) => {
+                    b.ws_path = "".to_string();
+                    Node::Internal(Image::Browser(b))
+                }
             },
         });
         Stack {
@@ -645,6 +674,94 @@ mod migrate_tests {
             other => panic!("not an advisor image: {:?}", other),
         }
         assert!(stack.auto_update.as_ref().unwrap().contains(&"advisor".to_string()));
+    }
+
+    /// A stack saved before the browser existed. `Stack::default()` is today's
+    /// preset, browser included, so take it back out.
+    fn stack_before_the_browser() -> Stack {
+        let mut stack = graph_mindset_stack();
+        stack.nodes.retain(|n| n.name() != "browser");
+        for node in &mut stack.nodes {
+            if let Node::Internal(Image::Repo2Graph(r)) = node {
+                r.links.retain(|l| l != "browser");
+            }
+        }
+        stack
+    }
+
+    #[tokio::test]
+    async fn migration_adds_the_browser_to_an_existing_stack() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        let mut stack = stack_before_the_browser();
+        assert!(!stack.nodes.iter().any(|n| n.name() == "browser"));
+        migrate_stack(&mut stack);
+
+        let path = |stack: &Stack| -> String {
+            let browsers: Vec<&Node> =
+                stack.nodes.iter().filter(|n| n.name() == "browser").collect();
+            assert_eq!(browsers.len(), 1, "added once");
+            match browsers[0] {
+                Node::Internal(Image::Browser(b)) => {
+                    assert_eq!(b.version, "latest");
+                    assert_eq!(b.port, "3000");
+                    b.ws_path.clone()
+                }
+                other => panic!("not a browser image: {:?}", other),
+            }
+        };
+        let first = path(&stack);
+        assert_eq!(first.len(), 64);
+
+        // what the stack binary does on every start: save, load, migrate again
+        let saved = serde_json::to_string(&stack).unwrap();
+        let mut stack: Stack = serde_json::from_str(&saved).unwrap();
+        migrate_stack(&mut stack);
+        assert_eq!(path(&stack), first, "a restart keeps the secret path");
+
+        for node in stack.nodes.iter().filter(|n| n.name() == "repo2graph") {
+            match node {
+                Node::Internal(Image::Repo2Graph(r)) => {
+                    let links: Vec<&String> =
+                        r.links.iter().filter(|l| *l == "browser").collect();
+                    assert_eq!(links.len(), 1, "linked once: {:?}", r.links);
+                }
+                other => panic!("not a repo2graph image: {:?}", other),
+            }
+        }
+        let updates: Vec<&String> = stack
+            .auto_update
+            .as_ref()
+            .unwrap()
+            .iter()
+            .filter(|n| *n == "browser")
+            .collect();
+        assert_eq!(updates.len(), 1, "auto-updated, listed once");
+    }
+
+    #[tokio::test]
+    async fn migration_adds_no_browser_without_a_repo2graph() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        let mut stack = Stack::default();
+        stack.nodes = vec![Node::Internal(Image::BoltWall(BoltwallImage::new(
+            "boltwall", "latest", "8444",
+        )))];
+        migrate_stack(&mut stack);
+        assert!(!stack.nodes.iter().any(|n| n.name() == "browser"));
+    }
+
+    #[tokio::test]
+    async fn the_browser_path_is_not_sent_over_the_wire() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        let mut stack = stack_before_the_browser();
+        migrate_stack(&mut stack);
+        let sent = stack.remove_tokens();
+        match sent.nodes.iter().find(|n| n.name() == "browser").unwrap() {
+            Node::Internal(Image::Browser(b)) => assert_eq!(b.ws_path, ""),
+            other => panic!("not a browser image: {:?}", other),
+        }
     }
 
     #[tokio::test]

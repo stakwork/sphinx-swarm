@@ -56,6 +56,7 @@ export type NodeType =
   | "Llama"
   | "Repo2Graph"
   | "Hermes"
+  | "Browser"
   | "Stakgraph"
   | "Bot";
 

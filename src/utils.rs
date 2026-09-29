@@ -401,6 +401,17 @@ pub fn single_host_port_from(port: &str, from_port: &str) -> Option<PortMap> {
     Some(ports)
 }
 
+/// Networks a container joins besides its `network_mode`. They ride on the
+/// config's `networking_config`; `dock::create_container` takes them off and
+/// connects each one once the container exists.
+pub fn extra_networks(names: Vec<&str>) -> Option<NetworkingConfig<String>> {
+    let mut endpoints_config = HashMap::new();
+    for name in names {
+        endpoints_config.insert(name.to_string(), Default::default());
+    }
+    Some(NetworkingConfig { endpoints_config })
+}
+
 pub fn _custom_network() -> CreateNetworkOptions<String> {
     CreateNetworkOptions {
         name: _NET.to_string(),

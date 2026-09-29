@@ -1,13 +1,15 @@
 use super::traefik::traefik_labels;
 use super::*;
 use crate::config::Node;
+use crate::dock::{BROWSER_NETWORK, DEFAULT_NETWORK};
 use crate::images::boltwall::BoltwallImage;
+use crate::images::browser::BrowserImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::traefik::shared_host;
-use crate::utils::{domain, exposed_ports, getenv, host_config, volume_string};
+use crate::utils::{domain, exposed_ports, extra_networks, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -72,7 +74,10 @@ impl DockerConfig for Repo2GraphImage {
         let jarvis = li.find_jarvis();
         let hermes = li.find_hermes();
         let redis = li.find_redis();
-        Ok(repo2graph(self, &neo4j, &boltwall, &jarvis, &hermes, &redis)?)
+        let browser = li.find_browser();
+        Ok(repo2graph(
+            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser,
+        )?)
     }
 }
 
@@ -94,6 +99,7 @@ fn repo2graph(
     jarvis: &Option<JarvisImage>,
     hermes: &Option<HermesImage>,
     redis: &Option<RedisImage>,
+    browser: &Option<BrowserImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -128,6 +134,12 @@ fn repo2graph(
     }
     if let Some(r) = redis {
         env.push(format!("REDIS_URL=redis://{}:{}", domain(&r.name), r.http_port));
+    }
+    // The Playwright server the lab's browser steps connect to. The path is
+    // the secret half of the address (see `browser.rs`).
+    if let Some(b) = browser {
+        env.push(format!("BROWSER_WS_URL={}", b.ws_url()));
+        env.push(format!("BROWSER_WS_PATH={}", b.ws_path));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -228,6 +240,18 @@ fn repo2graph(
     if let Some(host) = &img.host {
         c.labels = Some(traefik_labels(&img.name, &host, &img.port, false))
     }
+    if browser.is_some() {
+        // The browser is on a network of its own; join it as a second one.
+        c.networking_config = extra_networks(vec![BROWSER_NETWORK]);
+        // Traefik is on the default network only. With two to choose from it
+        // would pick either address, so name the one it can reach.
+        if let Some(labels) = c.labels.as_mut() {
+            labels.insert(
+                "traefik.docker.network".to_string(),
+                DEFAULT_NETWORK.to_string(),
+            );
+        }
+    }
     Ok(c)
 }
 
@@ -257,7 +281,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -278,7 +302,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -306,7 +330,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_CACHE_DIR", "STRUT_CACHE_DIR"] {
@@ -340,7 +364,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_LAB_WORKSPACE", "STRUT_LAB_WORKSPACE"] {
@@ -369,7 +393,7 @@ mod tests {
         // env vars, and the assertions only look at STRUT_MOTHERSHIP_REQUIRED.
         let neo4j = test_neo4j_image();
         let flag = |img: &Repo2GraphImage| -> Option<String> {
-            repo2graph(img, &neo4j, &None, &None, &None, &None)
+            repo2graph(img, &neo4j, &None, &None, &None, &None, &None)
                 .unwrap()
                 .env
                 .unwrap()
@@ -418,7 +442,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -429,7 +453,7 @@ mod tests {
         );
 
         let hermes = HermesImage::new("hermes", "latest", "8645");
-        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -445,7 +469,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -456,7 +480,7 @@ mod tests {
         );
 
         let redis = RedisImage::new("redis", "latest");
-        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis)).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -476,7 +500,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
@@ -501,6 +525,117 @@ mod tests {
                 .any(|b| b == "repo2graph-artifacts.sphinx:/usr/src/app/artifacts:rw"),
             "artifacts vol missing from binds: {:?}",
             binds
+        );
+    }
+
+    #[test]
+    fn test_browser_address_is_emitted_only_when_linked() {
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at BROWSER_*.
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        assert!(
+            !without
+                .env
+                .unwrap()
+                .iter()
+                .any(|e| e.starts_with("BROWSER_")),
+            "BROWSER_* should be absent when the browser isn't linked"
+        );
+        assert!(
+            without.networking_config.is_none(),
+            "no second network without a browser"
+        );
+
+        let browser = BrowserImage::new("browser", "latest", "3000");
+        let with = repo2graph(
+            &img,
+            &neo4j,
+            &None,
+            &None,
+            &None,
+            &None,
+            &Some(browser.clone()),
+        )
+        .unwrap();
+        let env = with.env.unwrap();
+        assert!(
+            env.contains(&"BROWSER_WS_URL=ws://browser.sphinx:3000".to_string()),
+            "got: {:?}",
+            env
+        );
+        assert!(
+            env.contains(&format!("BROWSER_WS_PATH={}", browser.ws_path)),
+            "the path must be the browser's own"
+        );
+    }
+
+    #[test]
+    fn test_a_linked_browser_adds_its_network_as_a_second_one() {
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let browser = BrowserImage::new("browser", "latest", "3000");
+        let config = repo2graph(
+            &img,
+            &neo4j,
+            &None,
+            &None,
+            &None,
+            &None,
+            &Some(browser),
+        )
+        .unwrap();
+
+        // still on the default network, where neo4j and traefik are
+        assert_eq!(
+            config.host_config.unwrap().network_mode.unwrap(),
+            "sphinx-swarm"
+        );
+        let extra: Vec<String> = config
+            .networking_config
+            .expect("the browser's network")
+            .endpoints_config
+            .into_keys()
+            .collect();
+        assert_eq!(extra, vec!["sphinx-browser".to_string()]);
+    }
+
+    #[test]
+    fn test_traefik_is_told_which_network_to_use_with_a_browser() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("PORT_BASED_SSL");
+        std::env::remove_var("NAV_BOLTWALL_SHARED_HOST");
+
+        let mut img = test_repo2graph_image();
+        img.host(Some("swarm1.sphinx.chat".to_string()));
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        assert!(
+            !without
+                .labels
+                .unwrap()
+                .contains_key("traefik.docker.network"),
+            "one network: nothing to choose"
+        );
+
+        let browser = BrowserImage::new("browser", "latest", "3000");
+        let with = repo2graph(
+            &img,
+            &neo4j,
+            &None,
+            &None,
+            &None,
+            &None,
+            &Some(browser),
+        )
+        .unwrap();
+        assert_eq!(
+            with.labels.unwrap().get("traefik.docker.network"),
+            Some(&"sphinx-swarm".to_string()),
+            "traefik is on the default network only"
         );
     }
 }

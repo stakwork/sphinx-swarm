@@ -3,6 +3,7 @@ pub mod bifrost;
 pub mod boltwall;
 pub mod bot;
 pub mod broker;
+pub mod browser;
 pub mod btc;
 pub mod builtin;
 pub mod cache;
@@ -87,6 +88,7 @@ pub enum Image {
     HiveRelay(hive_relay::HiveRelayImage),
     Bifrost(bifrost::BifrostImage),
     Hermes(hermes::HermesImage),
+    Browser(browser::BrowserImage),
 }
 
 pub enum Registry {
@@ -170,6 +172,7 @@ impl Image {
             Image::HiveRelay(n) => n.name.clone(),
             Image::Bifrost(n) => n.name.clone(),
             Image::Hermes(n) => n.name.clone(),
+            Image::Browser(n) => n.name.clone(),
         }
     }
 
@@ -214,6 +217,7 @@ impl Image {
             Image::Bifrost(n) => n.host.clone(),
             // internal only: never fronted by traefik
             Image::Hermes(_) => None,
+            Image::Browser(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -256,6 +260,7 @@ impl Image {
             Image::HiveRelay(_n) => "HiveRelay",
             Image::Bifrost(_n) => "Bifrost",
             Image::Hermes(_n) => "Hermes",
+            Image::Browser(_n) => "Browser",
         }
         .to_string()
     }
@@ -299,6 +304,7 @@ impl Image {
             Image::HiveRelay(n) => n.version = version.to_string(),
             Image::Bifrost(n) => n.version = version.to_string(),
             Image::Hermes(n) => n.version = version.to_string(),
+            Image::Browser(n) => n.version = version.to_string(),
         }
     }
 
@@ -342,6 +348,7 @@ impl Image {
             Image::HiveRelay(n) => n.host(Some(host.to_string())),
             Image::Bifrost(n) => n.host(Some(host.to_string())),
             Image::Hermes(_) => (),
+            Image::Browser(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -446,6 +453,7 @@ impl DockerConfig for Image {
             Image::HiveRelay(n) => n.make_config(nodes, docker).await,
             Image::Bifrost(n) => n.make_config(nodes, docker).await,
             Image::Hermes(n) => n.make_config(nodes, docker).await,
+            Image::Browser(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -491,6 +499,7 @@ impl DockerHubImage for Image {
             Image::HiveRelay(n) => n.repo(),
             Image::Bifrost(n) => n.repo(),
             Image::Hermes(n) => n.repo(),
+            Image::Browser(n) => n.repo(),
         }
     }
 }
@@ -577,6 +586,14 @@ impl LinkedImages {
     pub fn find_hermes(&self) -> Option<hermes::HermesImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_hermes() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_browser(&self) -> Option<browser::BrowserImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_browser() {
                 return Some(i);
             }
         }
@@ -865,6 +882,12 @@ impl Image {
         match self {
             Image::Hermes(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Hermes".to_string())),
+        }
+    }
+    pub fn as_browser(&self) -> anyhow::Result<browser::BrowserImage> {
+        match self {
+            Image::Browser(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Browser".to_string())),
         }
     }
 }
