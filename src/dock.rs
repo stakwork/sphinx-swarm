@@ -12,7 +12,7 @@ use bollard::container::{
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::{CreateImageOptions, PruneImagesOptions};
-use bollard::network::CreateNetworkOptions;
+use bollard::network::{ConnectNetworkOptions, CreateNetworkOptions};
 use bollard::service::{ContainerSummary, VolumeListResponse};
 use bollard::volume::CreateVolumeOptions;
 use bollard::Docker;
@@ -145,8 +145,40 @@ pub async fn create_image(docker: &Docker, c: &Config<String>) -> Result<()> {
     Ok(())
 }
 
-pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<String> {
+/// Takes the extra networks off a config (`utils::extra_networks` put them on
+/// its `networking_config`), sorted, so the create itself carries none.
+fn take_extra_networks(c: &mut Config<String>) -> Vec<String> {
+    let mut nets: Vec<String> = c
+        .networking_config
+        .take()
+        .map(|n| n.endpoints_config.into_keys().collect())
+        .unwrap_or_default();
+    nets.sort();
+    nets
+}
+
+/// The config's `network_mode` when it names a network other than the default
+/// one, which `build_stack` creates.
+fn own_network(c: &Config<String>) -> Option<String> {
+    let mode = c.host_config.as_ref()?.network_mode.clone()?;
+    let builtin = matches!(mode.as_str(), "" | "bridge" | "host" | "none" | "default")
+        || mode.starts_with("container:");
+    if builtin || mode == DEFAULT_NETWORK {
+        return None;
+    }
+    Some(mode)
+}
+
+pub async fn create_container(docker: &Docker, mut c: Config<String>) -> Result<String> {
     let name: String = c.hostname.clone().context("expected hostname")?.into();
+    // Extra networks are connected one at a time once the container exists: an
+    // engine older than 25 refuses a create that carries more than one. Every
+    // path that makes a container comes through here, so a recreate (an image
+    // update, a restart) joins them again.
+    let extra_networks = take_extra_networks(&mut c);
+    if let Some(net) = own_network(&c) {
+        create_network(docker, Some(&net)).await?;
+    }
     // Images in the m1_not_supported list are pulled as linux/x86_64 (see create_image). On an
     // arm64 host Docker would otherwise pick a locally cached arm64 variant of the same tag at
     // create time, so pin the container to the platform we pulled.
@@ -159,7 +191,29 @@ pub async fn create_container(docker: &Docker, c: Config<String>) -> Result<Stri
         .create_container::<String, String>(Some(create_opts), c)
         .await?
         .id;
+    for net in extra_networks {
+        if let Err(e) = connect_network(docker, &net, &id).await {
+            // A container left behind here would be found "already exists" by
+            // the next build and started without the network.
+            let _ = remove_container(docker, &id).await;
+            return Err(e.context(format!("connecting to network {}", net)));
+        }
+    }
     Ok(id)
+}
+
+async fn connect_network(docker: &Docker, net: &str, id: &str) -> Result<()> {
+    create_network(docker, Some(net)).await?;
+    docker
+        .connect_network(
+            net,
+            ConnectNetworkOptions {
+                container: id.to_string(),
+                endpoint_config: Default::default(),
+            },
+        )
+        .await?;
+    Ok(())
 }
 
 pub async fn start_container(docker: &Docker, id: &str) -> Result<()> {
@@ -721,6 +775,10 @@ pub async fn list_volumes(docker: &Docker) -> Result<VolumeListResponse> {
 }
 
 pub const DEFAULT_NETWORK: &str = "sphinx-swarm";
+
+/// The browser's own network, which repo2graph joins as a second one (see
+/// `images/browser.rs`).
+pub const BROWSER_NETWORK: &str = "sphinx-browser";
 
 pub async fn create_network(docker: &Docker, name: Option<&str>) -> Result<String> {
     let name = name.unwrap_or(DEFAULT_NETWORK);
@@ -1614,6 +1672,37 @@ pub async fn get_env_variables_by_container_name(docker: &Docker, id: &str) -> S
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extra_networks_come_off_the_config_before_the_create() {
+        let mut c = Config::<String> {
+            networking_config: crate::utils::extra_networks(vec!["net-b", "net-a"]),
+            ..Default::default()
+        };
+        assert_eq!(take_extra_networks(&mut c), vec!["net-a", "net-b"]);
+        assert!(c.networking_config.is_none());
+        // a config without any is left alone
+        assert!(take_extra_networks(&mut c).is_empty());
+    }
+
+    #[test]
+    fn only_a_network_of_our_own_is_created_for_a_container() {
+        let with_mode = |mode: &str| Config::<String> {
+            host_config: Some(bollard::models::HostConfig {
+                network_mode: Some(mode.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(
+            own_network(&with_mode(BROWSER_NETWORK)),
+            Some(BROWSER_NETWORK.to_string())
+        );
+        for mode in [DEFAULT_NETWORK, "bridge", "host", "none", "container:abc"] {
+            assert_eq!(own_network(&with_mode(mode)), None, "mode {}", mode);
+        }
+        assert_eq!(own_network(&Config::<String>::default()), None);
+    }
 
     fn server_err(status_code: u16) -> bollard::errors::Error {
         bollard::errors::Error::DockerResponseServerError {

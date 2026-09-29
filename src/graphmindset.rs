@@ -3,6 +3,7 @@ use crate::defaults::*;
 use crate::images::advisor::AdvisorImage;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::bot::BotImage;
+use crate::images::browser::BrowserImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::graphmindset::GraphMindsetImage;
@@ -37,6 +38,7 @@ pub fn only_graph_mindset(network: &str, host: Option<String>) -> Stack {
             "stakgraph".to_string(),
             "bot".to_string(),
             "advisor".to_string(),
+            "browser".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -91,11 +93,15 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
     v = "latest";
     let hermes = HermesImage::new("hermes", v, "8645");
 
+    // browser (Playwright server for repo2graph's browser steps, on its own network)
+    v = "latest";
+    let browser = BrowserImage::new("browser", v, "3000");
+
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
-    repo2graph.links(vec!["neo4j", "boltwall", "jarvis", "hermes", "redis"]);
+    repo2graph.links(vec!["neo4j", "boltwall", "jarvis", "hermes", "redis", "browser"]);
 
     // stakgraph
     v = "latest";
@@ -113,6 +119,7 @@ pub fn graph_mindset_imgs(_network: &str, host: Option<String>) -> Vec<Image> {
         Image::Redis(redis),
         Image::Repo2Graph(repo2graph),
         Image::Hermes(hermes),
+        Image::Browser(browser),
         Image::Stakgraph(stakgraph),
     ];
 
