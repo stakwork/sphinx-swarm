@@ -10,12 +10,19 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
+/// The doorman's port inside the container and on the host (aws-advisor DOORMAN_PORT).
+pub const DOORMAN_PORT: &str = "9035";
+
 /// aws-advisor: the AWS cost advisor (Steampipe + Powerpipe + rules + the repo2graph agent + a React UI),
 /// added to the graph-mindset stack when DEVOPS=1. Read-only towards AWS by design: the container gets no
 /// AWS credentials from the swarm; they are entered in its Settings page (or come from the host's instance role).
 ///
 /// Private, like neo4j: no Traefik route and no public hostname. The UI lists the account's instances, probes,
 /// costs and decisions, so it is reachable only on the host's private IP (port 9034), the way the Neo4j browser is.
+///
+/// The doorman (aws-advisor src/doorman.ts) listens on a second port, DOORMAN_PORT (9035): the waiting page and
+/// wake-on-traffic proxy for parked instances, and its test page /__wake/test/<instance-id>, which it answers only
+/// to private addresses. Published next to the UI so it can be tried over the VPN; Traefik routes come later.
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct AdvisorImage {
     pub name: String,
@@ -84,10 +91,11 @@ fn advisor(
     let repo = img.repo();
     let image = img.image();
     let root_vol = &repo.root_volume;
-    let ports = vec![img.port.clone()];
+    let ports = vec![img.port.clone(), DOORMAN_PORT.to_string()];
 
     let mut env = vec![
         format!("PORT={}", img.port),
+        format!("DOORMAN_PORT={}", DOORMAN_PORT),
         // the address repo2graph's container uses for the webhook and the /mcp fact server
         format!("PUBLIC_URL=http://{}:{}", domain(&img.name), img.port),
     ];
@@ -152,6 +160,18 @@ mod tests {
         assert!(env.iter().any(|e| e.starts_with("NEO4J_URI=bolt://neo4j.sphinx:")));
         assert_eq!(c.image.unwrap(), "ghcr.io/stakwork/aws-advisor:latest");
         assert!(c.labels.is_none(), "no traefik route: the advisor is private, like neo4j");
+    }
+
+    #[test]
+    fn advisor_publishes_the_doorman_port_next_to_the_ui() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let img = AdvisorImage::new("advisor", "latest", "9034");
+        let c = advisor(&img, &None, &None, &None);
+        assert!(c.env.unwrap().contains(&"DOORMAN_PORT=9035".to_string()));
+        let exposed = c.exposed_ports.unwrap();
+        assert!(exposed.contains_key("9034/tcp") && exposed.contains_key("9035/tcp"));
+        let bindings = c.host_config.unwrap().port_bindings.unwrap();
+        assert!(bindings.contains_key("9035/tcp"));
     }
 
     #[test]
