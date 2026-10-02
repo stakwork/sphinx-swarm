@@ -7,8 +7,9 @@ use aws_config::Region;
 use aws_sdk_ec2::client::Waiters;
 use aws_sdk_ec2::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_ec2::types::{
-    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice, HttpTokensState,
-    InstanceMetadataOptionsRequest, InstanceType, Tag, TagSpecification,
+    AttributeBooleanValue, AttributeValue, BlockDeviceMapping, EbsBlockDevice,
+    HibernationOptionsRequest, HttpTokensState, InstanceMetadataOptionsRequest, InstanceType, Tag,
+    TagSpecification,
 };
 use aws_sdk_ec2::Client;
 use aws_smithy_types::retry::RetryConfig;
@@ -687,7 +688,7 @@ pub async fn create_ec2_instance(
 
     let block_device = BlockDeviceMapping::builder()
         .device_name(device_name) // Valid for Debian
-        .ebs(EbsBlockDevice::builder().volume_size(100).build())
+        .ebs(EbsBlockDevice::builder().volume_size(120).build())
         .build();
 
     let instance_type = InstanceType::from_str(&instance_type_name).map_err(|err| {
@@ -720,6 +721,7 @@ pub async fn create_ec2_instance(
         .disable_api_termination(true)
         .iam_instance_profile(instance_profile_spec)
         .metadata_options(metadata_options)
+        .hibernation_options(HibernationOptionsRequest::builder().configured(true).build())
         .send()
         // .map_err(|err| {
         //     log::error!("Error Creating instance instance: {}", err);
