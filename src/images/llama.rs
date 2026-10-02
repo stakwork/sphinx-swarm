@@ -21,7 +21,7 @@ pub struct LlamaImage {
 
 // https://huggingface.co/TheBloke/Llama-2-7B-GGUF
 const DEFAULT_MODEL: &str = "llama-2-7b.Q4_K_M.gguf";
-const VERSION: &str = "server-cuda";
+pub const VERSION: &str = "server-cuda";
 
 // pwd: /home/admin/sphinx-swarm
 // to dl: wget -b url

@@ -122,3 +122,7 @@ path = "src/bin/v1/mod.rs"
 [[bin]]
 name = "tome"
 path = "src/bin/tome/mod.rs"
+
+[[bin]]
+name = "sup"
+path = "src/bin/sup.rs"

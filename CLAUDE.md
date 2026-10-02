@@ -27,7 +27,8 @@ This repository contains two separate projects:
 - **SuperAdmin frontend build**: `cd src/bin/super/superapp && yarn build`
 - **SuperAdmin frontend type check**: `cd src/bin/super/superapp && yarn check`
 - **Rust build**: `cargo build`
-- **Rust specific binary**: `cargo run --bin <binary_name>` (available: stack, super, cln, down, btc, sphinx, tome)
+- **Rust specific binary**: `cargo run --bin <binary_name>` (available: stack, super, cln, down, btc, sphinx, tome, sup)
+- **Regenerate `scripts/sup.sh`**: `cargo run --bin sup` — rebuilds the second-brain container update script from `src/secondbrain.rs`; run it after adding or changing a second-brain image
 
 ## Architecture Overview
 

@@ -22,7 +22,7 @@ pub struct WhisperImage {
     pub links: Links,
 }
 
-const VERSION: &str = "latest-cuda";
+pub const VERSION: &str = "latest-cuda";
 
 impl WhisperImage {
     pub fn new(name: &str, port: &str) -> Self {
