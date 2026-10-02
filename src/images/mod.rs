@@ -264,6 +264,51 @@ impl Image {
         }
         .to_string()
     }
+    /// The image tag this node runs, i.e. the part after the colon in
+    /// `docker pull <image>:<version>`. Mirrors `set_version`.
+    pub fn version(&self) -> String {
+        match self {
+            Image::Btc(n) => n.version.clone(),
+            Image::Cln(n) => n.version.clone(),
+            Image::Lnd(n) => n.version.clone(),
+            Image::Relay(n) => n.version.clone(),
+            Image::Proxy(n) => n.version.clone(),
+            Image::Cache(n) => n.version.clone(),
+            Image::Neo4j(n) => n.version.clone(),
+            Image::Elastic(n) => n.version.clone(),
+            Image::NavFiber(n) => n.version.clone(),
+            Image::GraphMindset(n) => n.version.clone(),
+            Image::Jarvis(n) => n.version.clone(),
+            Image::BoltWall(n) => n.version.clone(),
+            Image::Lss(n) => n.version.clone(),
+            Image::Broker(n) => n.version.clone(),
+            Image::Mixer(n) => n.version.clone(),
+            Image::Tribes(n) => n.version.clone(),
+            Image::Config(n) => n.version.clone(),
+            Image::Bot(n) => n.version.clone(),
+            Image::Builtin(n) => n.version.clone(),
+            Image::Dufs(n) => n.version.clone(),
+            Image::Tome(n) => n.version.clone(),
+            Image::Rqbit(n) => n.version.clone(),
+            Image::Llama(_n) => llama::VERSION.to_string(),
+            Image::Whisper(_n) => whisper::VERSION.to_string(),
+            Image::Whisker(n) => n.version.clone(),
+            Image::Runner(n) => n.version.clone(),
+            Image::Mongo(n) => n.version.clone(),
+            Image::Jamie(n) => n.version.clone(),
+            Image::Repo2Graph(n) => n.version.clone(),
+            Image::Advisor(n) => n.version.clone(),
+            Image::Redis(n) => n.version.clone(),
+            Image::Chrome(n) => n.version.clone(),
+            Image::Stakgraph(n) => n.version.clone(),
+            Image::Quickwit(n) => n.version.clone(),
+            Image::Vector(n) => n.version.clone(),
+            Image::HiveRelay(n) => n.version.clone(),
+            Image::Bifrost(n) => n.version.clone(),
+            Image::Hermes(n) => n.version.clone(),
+            Image::Browser(n) => n.version.clone(),
+        }
+    }
     pub fn set_version(&mut self, version: &str) {
         match self {
             Image::Btc(n) => n.version = version.to_string(),
