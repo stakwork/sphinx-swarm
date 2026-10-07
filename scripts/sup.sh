@@ -98,7 +98,7 @@ docker-compose -f second-brain-2.yml up sphinx-swarm -d
 # the swarm recreates the container on startup; wait for it before tailing
 echo "=> waiting for $CONTAINER"
 for _ in $(seq 1 120); do
-  docker inspect "$CONTAINER" >/dev/null 2>&1 && break
+  docker container inspect "$CONTAINER" >/dev/null 2>&1 && break
   sleep 1
 done
 
