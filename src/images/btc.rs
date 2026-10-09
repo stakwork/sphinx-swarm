@@ -20,6 +20,8 @@ pub struct BtcImage {
     pub user: Option<String>,
     pub pass: Option<String>,
     pub host: Option<String>,
+    // prune target in MiB; when set, txindex is disabled (they are incompatible)
+    pub prune: Option<u32>,
 }
 
 impl BtcImage {
@@ -31,6 +33,7 @@ impl BtcImage {
             user: None,
             pass: None,
             host: None,
+            prune: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -103,7 +106,6 @@ pub fn btc(node: &BtcImage) -> Config<String> {
         "-rpcallowip=0.0.0.0/0".to_string(),
         "-rpcport=18443".to_string(),
         "-server=1".to_string(),
-        "-txindex=1".to_string(),
         "-fallbackfee=0.0002".to_string(),
         "-zmqpubrawblock=tcp://0.0.0.0:28332".to_string(),
         "-zmqpubrawtx=tcp://0.0.0.0:28333".to_string(),
@@ -112,6 +114,10 @@ pub fn btc(node: &BtcImage) -> Config<String> {
         "-minrelaytxfee=0.00000000".to_string(),
         "-incrementalrelayfee=0.00000010".to_string(),
     ];
+    match node.prune {
+        Some(p) => cmd.push(format!("-prune={}", p)),
+        None => cmd.push("-txindex=1".to_string()),
+    }
     if let Some(u) = &node.user {
         if let Some(p) = &node.pass {
             cmd.push(format!("-rpcuser={}", u));
