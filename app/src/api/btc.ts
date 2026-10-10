@@ -19,6 +19,11 @@ export interface BtcInfo {
   warnings: string;
 }
 
+export interface BtcTransactionStatus {
+  confirmed: boolean;
+  block_height?: number | null;
+}
+
 async function btcCmd(cmd: Cmd, tag: string, content?: any) {
   return await send_cmd("Bitcoind", { cmd, content }, tag);
 }
@@ -35,3 +40,6 @@ export async function get_balance(tag: string) {
   return await btcCmd("GetBalance", tag);
 }
 
+export async function get_transaction_status(tag: string, txid: string) {
+  return await btcCmd("GetTransactionStatus", tag, { txid });
+}
