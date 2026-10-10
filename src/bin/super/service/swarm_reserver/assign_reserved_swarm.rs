@@ -124,6 +124,7 @@ pub async fn handle_assign_reserved_swarm(
         owner_pubkey: info.owner_pubkey.clone(),
         workspace_type: info.workspace_type.clone(),
         cln_pubkey: None,
+        last_heartbeat_at: None,
     };
 
     // Call child swarm to activate (I/O — no lock)
@@ -209,6 +210,7 @@ pub async fn handle_assign_reserved_swarm(
         owner_pubkey: info.owner_pubkey.clone(),
         workspace_type: info.workspace_type.clone(),
         cln_pubkey: None,
+        last_heartbeat_at: None,
     };
     let x_api_key = selected_reserved_instance.x_api_key.clone();
     let ec2_id = selected_reserved_instance.instance_id.clone();
