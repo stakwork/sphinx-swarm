@@ -58,6 +58,7 @@ export type NodeType =
   | "Hermes"
   | "Browser"
   | "Stakgraph"
+  | "HiveRelay"
   | "Bot";
 
 export const allNodeTypes: NodeType[] = [
@@ -216,6 +217,7 @@ const defpos = {
   tribes_1: [1160, 175],
   tribes_2: [1160, 425],
   tribes_3: [1160, 675],
+  hive_relay: [1150, 675],
 };
 
 export const smalls = ["lss", "neo4j", "elastic", "cache", "lss_1"];
