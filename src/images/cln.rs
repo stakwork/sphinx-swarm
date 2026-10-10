@@ -320,17 +320,28 @@ fn cln(img: &ClnImage, btc: ClnBtcArgs, lss: Option<lss::LssImage>) -> Config<St
     if img.offline.unwrap_or(false) {
         cmd.push("--offline".to_string());
     }
+    // CLN_ALLOW_DEPRECATED_APIS=false turns off pay, getroute and keysend
+    // (removed in CLN v27.03) so anything still calling them fails loudly.
+    // Only applied when the container is created.
+    let deprecated_apis_off = getenv("CLN_ALLOW_DEPRECATED_APIS")
+        .map(|v| v == "false")
+        .unwrap_or(false);
     if let Some(hsms) = &img.seed {
         // CLN 26.06+ only accepts dev-force-* options under --developer, and
-        // --developer disables deprecated RPCs (pay, getroute) that the mixer
-        // still uses, so re-enable them explicitly.
+        // --developer disables deprecated RPCs (pay, getroute, keysend) that the
+        // mixer and swarm still use, so re-enable them unless told not to.
         if !cmd.iter().any(|c| c == "--developer") {
             cmd.push("--developer".to_string());
         }
-        cmd.push("--allow-deprecated-apis=true".to_string());
+        if !deprecated_apis_off {
+            cmd.push("--allow-deprecated-apis=true".to_string());
+        }
         cmd.push(format!("--dev-force-bip32-seed={}", hsms));
         let privkey = privkey_from_seed(&hsms).expect("bad seed");
         cmd.push(format!("--dev-force-privkey={}", privkey));
+    }
+    if deprecated_apis_off {
+        cmd.push("--allow-deprecated-apis=false".to_string());
     }
     if let Some(u) = &btc.user {
         if let Some(p) = &btc.pass {

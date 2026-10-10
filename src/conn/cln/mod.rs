@@ -234,50 +234,28 @@ impl ClnRPC {
         maxfeepercent: Option<f64>,
         exemptfee: Option<u64>,
         extratlvs: Option<HashMap<u64, Vec<u8>>>,
-    ) -> Result<pb::KeysendResponse> {
-        let id = hex::decode(id)?;
-        let mut req = pb::KeysendRequest {
-            destination: id,
+    ) -> Result<pb::XkeysendResponse> {
+        // xkeysend has no routehints (a hint would have to become an askrene layer)
+        if route_hint.is_some() {
+            return Err(anyhow!("route hints are not supported by xkeysend"));
+        }
+        let req = pb::XkeysendRequest {
+            destination: hex::decode(id)?,
             amount_msat: Some(amount(amt)),
+            maxfee: keysend_maxfee(amt, maxfeepercent, exemptfee).map(amount),
+            // TLV type number -> hex value
+            extratlvs: extratlvs
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), hex::encode(v)))
+                .collect(),
             ..Default::default()
         };
-        if let Some(mfp) = maxfeepercent {
-            req.maxfeepercent = Some(mfp);
-        }
-        if let Some(ef) = exemptfee {
-            req.exemptfee = Some(amount(ef));
-        }
-        if let Some(tlvs) = extratlvs {
-            let mut entries: Vec<pb::TlvEntry> = Vec::new();
-            for (k, value) in tlvs {
-                entries.push(pb::TlvEntry { r#type: k, value })
-            }
-            req.extratlvs = Some(pb::TlvStream { entries });
-        }
-        if let Some(rh) = route_hint {
-            if let Some(pos) = rh.chars().position(|c| c == ':') {
-                let (pk, scid_str) = rh.split_at(pos);
-                let mut scid_string = scid_str.to_string();
-                scid_string.remove(0); // drop the ":"
-                let mut routehints = pb::RoutehintList { hints: vec![] };
-                let mut hint1 = pb::Routehint { hops: vec![] };
-                let scid = scid_string.parse::<u64>()?;
-                let hop1 = pb::RouteHop {
-                    id: hex::decode(pk)?,
-                    scid: ShortChannelId(scid).to_string(),
-                    feebase: Some(amount(0)),
-                    ..Default::default()
-                };
-                hint1.hops.push(hop1);
-                routehints.hints.push(hint1);
-                req.routehints = Some(routehints);
-            }
-        }
-        log::info!("=======> CLN KEYSEND REQ: {:?}", req);
-        let response = match self.client.clone().key_send(req).await {
+        log::info!("=======> CLN XKEYSEND REQ: {:?}", req);
+        let response = match self.client.clone().xkeysend(req).await {
             Ok(res) => res,
             Err(err) => {
-                log::error!("Error executing keysend: {:?}", err.message());
+                log::error!("Error executing xkeysend: {:?}", err.message());
                 return Err(anyhow!(extract_cln_error_msg(err.message())));
             }
         };
@@ -306,12 +284,12 @@ impl ClnRPC {
         Ok(response.into_inner())
     }
 
-    pub async fn pay(&self, bolt11: &str) -> Result<pb::PayResponse> {
+    pub async fn pay(&self, bolt11: &str) -> Result<pb::XpayResponse> {
         let response = match self
             .client
             .clone()
-            .pay(pb::PayRequest {
-                bolt11: bolt11.to_string(),
+            .xpay(pb::XpayRequest {
+                invstring: bolt11.to_string(),
                 ..Default::default()
             })
             .await
@@ -432,14 +410,21 @@ impl ClnRPC {
         }
     }
 
-    pub async fn get_route(&self, dest: &str, amt_msat: u64) -> Result<pb::GetrouteResponse> {
-        let req = pb::GetrouteRequest {
-            id: hex::decode(dest)?,
+    /// One route to `dest` from this node (same layers and limits as the mixer).
+    pub async fn get_routes(&self, dest: &str, amt_msat: u64) -> Result<pb::GetroutesResponse> {
+        let req = pb::GetroutesRequest {
+            source: self.get_info().await?.id,
+            destination: hex::decode(dest)?,
             amount_msat: Some(pb::Amount { msat: amt_msat }),
-            riskfactor: 10,
+            layers: vec!["auto.localchans".to_string(), "auto.sourcefree".to_string()],
+            maxfee_msat: Some(pb::Amount {
+                msat: std::cmp::max(5_000, amt_msat / 100),
+            }),
+            final_cltv: 9,
+            maxparts: Some(1),
             ..Default::default()
         };
-        let response = match self.client.clone().get_route(req).await {
+        let response = match self.client.clone().get_routes(req).await {
             Ok(res) => res,
             Err(err) => {
                 log::error!("Error getting route: {:?}", err.message());
@@ -460,6 +445,16 @@ fn amount_or_all(msat: u64) -> Option<pb::AmountOrAll> {
         value: Some(pb::amount_or_all::Value::Amount(amount(msat))),
     })
 }
+// keysend's maxfeepercent (default 0.5) and exemptfee (default 5000 msat) as
+// xkeysend's single maxfee; None keeps xkeysend's own default
+fn keysend_maxfee(amt_msat: u64, maxfeepercent: Option<f64>, exemptfee: Option<u64>) -> Option<u64> {
+    if maxfeepercent.is_none() && exemptfee.is_none() {
+        return None;
+    }
+    let percent_fee = (amt_msat as f64 * maxfeepercent.unwrap_or(0.5) / 100.0) as u64;
+    Some(std::cmp::max(exemptfee.unwrap_or(5_000), percent_fee))
+}
+
 fn amount(msat: u64) -> pb::Amount {
     pb::Amount { msat }
 }
