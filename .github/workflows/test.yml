@@ -1,0 +1,54 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: cargo test
+    # GitHub-hosted ubuntu runners ship with a Docker daemon preinstalled,
+    # which the integration tests below need.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pin to the same Rust version the swarm image builds with
+      # (src/bin/stack/Dockerfile: rust:1.88-slim-bullseye).
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@1.88.0
+
+      - name: Cache cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      # Required for tonic/prost codegen (same dependency as src/bin/stack/Dockerfile).
+      - name: Install protobuf compiler
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      # Fast unit tests: #[cfg(test)] modules in the library and bin targets.
+      - name: Run unit tests (lib + bins)
+        run: cargo test --locked --lib --bins
+
+      # tests/handler_test.rs spins up real bitcoind containers and therefore
+      # requires a Docker daemon. Run it whenever a daemon is available
+      # (always the case on GitHub-hosted ubuntu runners); otherwise fall back
+      # to unit tests only so the job still enforces them.
+      - name: Run integration tests (requires Docker)
+        run: |
+          if docker info >/dev/null 2>&1; then
+            cargo test --locked --test handler_test -- --nocapture
+          else
+            echo "::warning::No Docker daemon available on this runner - skipping Docker-requiring integration tests (tests/handler_test.rs)"
+          fi
