@@ -1004,7 +1004,11 @@ pub async fn handle(
                 }
                 ClnCmd::PayInvoice(i) => {
                     let paid = client.pay(&i.payment_request).await?;
-                    Some(serde_json::to_string(&paid)?)
+                    // xpay has no status: it only returns once paid, and failures
+                    // are errors. The admin UI checks for pay's status 0 (COMPLETE).
+                    let mut res = serde_json::to_value(&paid)?;
+                    res["status"] = serde_json::json!(0);
+                    Some(serde_json::to_string(&res)?)
                 }
                 ClnCmd::PayKeysend(i) => {
                     let paid = client.keysend(&i.dest, i.amt as u64, i.route_hint, i.maxfeepercent, i.exemptfee, None).await?;
@@ -1014,8 +1018,11 @@ pub async fn handle(
                     let closed = client.close(&i.id, &i.destination).await?;
                     let mut hm = HashMap::new();
                     hm.insert("type", closed.item_type.to_string());
-                    hm.insert("txid", hex::encode(closed.txid()));
-                    hm.insert("tx", hex::encode(closed.tx()));
+                    // tx/txid were the final close tx, now the last of txs/txids
+                    let txid = closed.txids.last().map(hex::encode).unwrap_or_default();
+                    let tx = closed.txs.last().map(hex::encode).unwrap_or_default();
+                    hm.insert("txid", txid);
+                    hm.insert("tx", tx);
                     Some(serde_json::to_string(&hm)?)
                 }
                 ClnCmd::ListInvoices(i) => match i {
