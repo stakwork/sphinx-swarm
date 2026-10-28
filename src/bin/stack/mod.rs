@@ -6,6 +6,7 @@ use sphinx_swarm::backup::{
 };
 use sphinx_swarm::builder;
 use sphinx_swarm::config::{load_config_file, migrate_stack, put_config_file, Stack};
+use sphinx_swarm::cron_jobs::memory_log::memory_log_cron;
 use sphinx_swarm::cron_jobs::public_ip::check_public_ip;
 use sphinx_swarm::handler;
 use sphinx_swarm::mount_backedup_volume::delete_zip_and_upzipped_files;
@@ -122,6 +123,11 @@ async fn main() -> Result<()> {
     let public_ip_check_cron_res = check_public_ip(proj).await;
     if let Err(e) = public_ip_check_cron_res {
         log::error!("CHECK PUBLIC IP CRON failed {:?}", e);
+    }
+
+    let memory_log_cron_res = memory_log_cron(docker.clone()).await;
+    if let Err(e) = memory_log_cron_res {
+        log::error!("MEMORY LOG CRON failed {:?}", e);
     }
 
     tokio::signal::ctrl_c().await?;
