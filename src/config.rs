@@ -564,7 +564,10 @@ impl Stack {
                     b.seed = "".to_string();
                     Node::Internal(Image::Broker(b))
                 }
-                Image::Mixer(m) => Node::Internal(Image::Mixer(m)),
+                Image::Mixer(mut m) => {
+                    m.push_workflow_key = None;
+                    Node::Internal(Image::Mixer(m))
+                }
                 Image::Tribes(t) => Node::Internal(Image::Tribes(t)),
                 Image::Config(c) => Node::Internal(Image::Config(c)),
                 Image::Bot(mut b) => {

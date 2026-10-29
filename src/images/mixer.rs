@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct MixerImage {
     pub name: String,
     pub version: String,
@@ -41,6 +41,37 @@ pub struct MixerImage {
     pub push_workflow_timeout_secs: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub push_workflow_app_ids: Option<String>,
+}
+
+impl std::fmt::Debug for MixerImage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = self.push_workflow_key.as_ref().map(|_| "<redacted>");
+        f.debug_struct("MixerImage")
+            .field("name", &self.name)
+            .field("version", &self.version)
+            .field("network", &self.network)
+            .field("port", &self.port)
+            .field("no_lightning", &self.no_lightning)
+            .field("no_gateway", &self.no_gateway)
+            .field("no_mqtt", &self.no_mqtt)
+            .field("host", &self.host)
+            .field("links", &self.links)
+            .field("log_level", &self.log_level)
+            .field("initial_peers", &self.initial_peers)
+            .field("default_tribe_pubkey", &self.default_tribe_pubkey)
+            .field("default_router", &self.default_router)
+            .field("hub_url", &self.hub_url)
+            .field("invite_price", &self.invite_price)
+            .field("timeout_ms", &self.timeout_ms)
+            .field("purge_msgs_days", &self.purge_msgs_days)
+            .field("db_compact", &self.db_compact)
+            .field("db_integrity_check", &self.db_integrity_check)
+            .field("push_workflow_url", &self.push_workflow_url)
+            .field("push_workflow_key", &key)
+            .field("push_workflow_timeout_secs", &self.push_workflow_timeout_secs)
+            .field("push_workflow_app_ids", &self.push_workflow_app_ids)
+            .finish()
+    }
 }
 
 impl MixerImage {
@@ -274,5 +305,22 @@ fn bool_arg(arg: &Option<bool>) -> bool {
         return nl.clone();
     } else {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_redacts_push_workflow_key() {
+        let mut img = MixerImage::new("mixer", "v1", "regtest", "8080");
+        img.push_workflow_key = Some("supersecret".to_string());
+        let out = format!("{:?}", img);
+        assert!(!out.contains("supersecret"));
+        assert!(out.contains("<redacted>"));
+        img.push_workflow_key = None;
+        let out = format!("{:?}", img);
+        assert!(out.contains("push_workflow_key: None"));
     }
 }
