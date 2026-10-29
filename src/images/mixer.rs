@@ -33,6 +33,14 @@ pub struct MixerImage {
     pub db_compact: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub db_integrity_check: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_workflow_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_workflow_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_workflow_timeout_secs: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_workflow_app_ids: Option<String>,
 }
 
 impl MixerImage {
@@ -57,6 +65,10 @@ impl MixerImage {
             purge_msgs_days: None,
             db_compact: None,
             db_integrity_check: None,
+            push_workflow_url: None,
+            push_workflow_key: None,
+            push_workflow_timeout_secs: None,
+            push_workflow_app_ids: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -90,6 +102,18 @@ impl MixerImage {
     }
     pub fn set_hub_url(&mut self, hu: &str) {
         self.hub_url = Some(hu.to_string())
+    }
+    pub fn set_push_workflow_url(&mut self, v: &str) {
+        self.push_workflow_url = Some(v.to_string())
+    }
+    pub fn set_push_workflow_key(&mut self, v: &str) {
+        self.push_workflow_key = Some(v.to_string())
+    }
+    pub fn set_push_workflow_timeout_secs(&mut self, v: &str) {
+        self.push_workflow_timeout_secs = Some(v.to_string())
+    }
+    pub fn set_push_workflow_app_ids(&mut self, v: &str) {
+        self.push_workflow_app_ids = Some(v.to_string())
     }
     pub fn set_purge_msgs_days(&mut self, days: &str) {
         self.purge_msgs_days = Some(days.to_string())
@@ -211,6 +235,18 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
     }
     if let Some(hu) = &img.hub_url {
         env.push(format!("HUB_URL={}", hu));
+    }
+    if let Some(v) = &img.push_workflow_url {
+        env.push(format!("PUSH_WORKFLOW_URL={}", v));
+    }
+    if let Some(v) = &img.push_workflow_key {
+        env.push(format!("PUSH_WORKFLOW_KEY={}", v));
+    }
+    if let Some(v) = &img.push_workflow_timeout_secs {
+        env.push(format!("PUSH_WORKFLOW_TIMEOUT_SECS={}", v));
+    }
+    if let Some(v) = &img.push_workflow_app_ids {
+        env.push(format!("PUSH_WORKFLOW_APP_IDS={}", v));
     }
 
     let mut image = format!("{}:{}", image, img.version);
