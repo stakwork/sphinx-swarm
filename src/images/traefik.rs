@@ -366,7 +366,7 @@ pub fn broker_traefik_labels(
         let ws_name = name;
         let ws_host = host;
         let more = vec![
-            format!("traefik.http.routers.{}.service={}", ws_name, ws_host),
+            format!("traefik.http.routers.{}.service={}", ws_name, ws_name),
             format!(
                 "traefik.http.services.{}.loadbalancer.server.port={}",
                 ws_name, wsp
@@ -378,6 +378,21 @@ pub fn broker_traefik_labels(
                 ws_name
             ),
             format!("traefik.http.routers.{}.entrypoints=websecure", ws_name),
+            // second router: mqtt host over websocket, sharing the ws service
+            format!("traefik.http.routers.{}-mqtt-ws.service={}", name, ws_name),
+            format!(
+                "traefik.http.routers.{}-mqtt-ws.rule=Host(`{}`)",
+                name, mqtt_host
+            ),
+            format!("traefik.http.routers.{}-mqtt-ws.tls=true", name),
+            format!(
+                "traefik.http.routers.{}-mqtt-ws.tls.certresolver=myresolver",
+                name
+            ),
+            format!(
+                "traefik.http.routers.{}-mqtt-ws.entrypoints=websecure",
+                name
+            ),
         ];
         def.extend_from_slice(&more);
     }
@@ -462,4 +477,47 @@ fn to_labels(def: Vec<String>) -> HashMap<String, String> {
         };
     });
     labels
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn broker_labels_with_ws_port() {
+        let l = broker_traefik_labels("broker", "broker.v2.example.com", "1883", Some("5005"));
+        assert_eq!(l["traefik.http.routers.broker.service"], "broker");
+        assert_eq!(
+            l["traefik.http.services.broker.loadbalancer.server.port"],
+            "5005"
+        );
+        let r = "traefik.http.routers.broker-mqtt-ws";
+        assert_eq!(
+            l[&format!("{}.rule", r)],
+            "Host(`mqtt-broker.v2.example.com`)"
+        );
+        assert_eq!(l[&format!("{}.service", r)], "broker");
+        assert_eq!(l[&format!("{}.entrypoints", r)], "websecure");
+        assert_eq!(l[&format!("{}.tls", r)], "true");
+        assert_eq!(l[&format!("{}.tls.certresolver", r)], "myresolver");
+        // tcp router unchanged
+        let t = "traefik.tcp.routers.broker-mqtt";
+        assert_eq!(l[&format!("{}.service", t)], "broker-mqtt");
+        assert_eq!(
+            l[&format!("{}.rule", t)],
+            "HostSNI(`mqtt-broker.v2.example.com`)"
+        );
+        assert_eq!(l[&format!("{}.entrypoints", t)], "mqttsecure");
+        assert_eq!(
+            l["traefik.tcp.services.broker-mqtt.loadbalancer.server.port"],
+            "1883"
+        );
+    }
+
+    #[test]
+    fn broker_labels_without_ws_port() {
+        let l = broker_traefik_labels("broker", "broker.v2.example.com", "1883", None);
+        assert!(!l.keys().any(|k| k.starts_with("traefik.http.")));
+        assert!(l.contains_key("traefik.tcp.routers.broker-mqtt.rule"));
+    }
 }
