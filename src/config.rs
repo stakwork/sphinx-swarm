@@ -351,6 +351,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::images::hive_relay::HiveRelayImage;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
+    use crate::images::voice::{livekit_configured, VoiceImage};
 
     // Only migrate second-brain stacks
     let has_boltwall = stack.nodes.iter().any(|n| n.name() == "boltwall");
@@ -458,6 +459,23 @@ pub fn migrate_stack(stack: &mut Stack) {
         log::info!("=> added browser node");
     }
 
+    // The 1:1 voice service (see images/voice.rs), once the swarm's .env has
+    // the central LiveKit's keys: without them it cannot start. Like the
+    // browser, `new` makes its secret token and the saved config keeps it.
+    let mut has_voice = stack.nodes.iter().any(|n| n.name() == "voice");
+    if has_repo2graph && !has_voice && livekit_configured() {
+        let mut voice = VoiceImage::new("voice", "latest", "8080");
+        voice.links(vec!["repo2graph", "boltwall"]);
+        stack.nodes.push(Node::Internal(Image::Voice(voice)));
+        if let Some(list) = stack.auto_update.as_mut() {
+            if !list.iter().any(|n| n == "voice") {
+                list.push("voice".to_string());
+            }
+        }
+        has_voice = true;
+        log::info!("=> added voice node");
+    }
+
     // Update existing Repo2Graph and Stakgraph links to include bifrost
     for node in &mut stack.nodes {
         match node {
@@ -486,6 +504,11 @@ pub fn migrate_stack(stack: &mut Stack) {
                 if !img.links.contains(&"browser".to_string()) {
                     img.links.push("browser".to_string());
                     log::info!("=> added browser link to repo2graph");
+                }
+                // The link gives strut STRUT_VOICE_URL and the shared token.
+                if has_voice && !img.links.contains(&"voice".to_string()) {
+                    img.links.push("voice".to_string());
+                    log::info!("=> added voice link to repo2graph");
                 }
             }
             Node::Internal(Image::Stakgraph(ref mut img)) => {
@@ -605,6 +628,10 @@ impl Stack {
                 Image::Browser(mut b) => {
                     b.ws_path = "".to_string();
                     Node::Internal(Image::Browser(b))
+                }
+                Image::Voice(mut v) => {
+                    v.token = "".to_string();
+                    Node::Internal(Image::Voice(v))
                 }
             },
         });
@@ -774,5 +801,104 @@ mod migrate_tests {
         let mut stack = graph_mindset_stack();
         migrate_stack(&mut stack);
         assert!(!stack.nodes.iter().any(|n| n.name() == "advisor"));
+    }
+
+    /// A stack saved before the voice service existed.
+    fn stack_before_voice() -> Stack {
+        let mut stack = graph_mindset_stack();
+        stack.nodes.retain(|n| n.name() != "voice");
+        for node in &mut stack.nodes {
+            if let Node::Internal(Image::Repo2Graph(r)) = node {
+                r.links.retain(|l| l != "voice");
+            }
+        }
+        stack
+    }
+
+    fn set_livekit_keys(on: bool) {
+        for key in ["LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"] {
+            if on {
+                std::env::set_var(key, "test");
+            } else {
+                std::env::remove_var(key);
+            }
+        }
+    }
+
+    fn voice_links(stack: &Stack) -> usize {
+        stack
+            .nodes
+            .iter()
+            .map(|n| match n {
+                Node::Internal(Image::Repo2Graph(r)) => {
+                    r.links.iter().filter(|l| *l == "voice").count()
+                }
+                _ => 0,
+            })
+            .sum()
+    }
+
+    #[tokio::test]
+    async fn migration_adds_the_voice_service_once_livekit_is_configured() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        set_livekit_keys(true);
+        let mut stack = stack_before_voice();
+        migrate_stack(&mut stack);
+
+        let token = |stack: &Stack| -> String {
+            let voices: Vec<&Node> = stack.nodes.iter().filter(|n| n.name() == "voice").collect();
+            assert_eq!(voices.len(), 1, "added once");
+            match voices[0] {
+                Node::Internal(Image::Voice(v)) => {
+                    assert_eq!(v.version, "latest");
+                    assert_eq!(v.port, "8080");
+                    assert!(v.links.contains(&"repo2graph".to_string()));
+                    assert!(v.links.contains(&"boltwall".to_string()));
+                    v.token.clone()
+                }
+                other => panic!("not a voice image: {:?}", other),
+            }
+        };
+        let first = token(&stack);
+        assert_eq!(first.len(), 64);
+
+        // what the stack binary does on every start: save, load, migrate again
+        let saved = serde_json::to_string(&stack).unwrap();
+        let mut stack: Stack = serde_json::from_str(&saved).unwrap();
+        migrate_stack(&mut stack);
+        set_livekit_keys(false);
+        assert_eq!(token(&stack), first, "a restart keeps the token");
+
+        let repo2graphs = stack.nodes.iter().filter(|n| n.name() == "repo2graph").count();
+        assert_eq!(voice_links(&stack), repo2graphs, "every repo2graph linked once");
+        let updates = stack.auto_update.as_ref().unwrap();
+        assert_eq!(updates.iter().filter(|n| *n == "voice").count(), 1, "auto-updated, listed once");
+    }
+
+    #[tokio::test]
+    async fn migration_adds_no_voice_service_without_the_livekit_keys() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        set_livekit_keys(false);
+        let mut stack = stack_before_voice();
+        migrate_stack(&mut stack);
+        assert!(!stack.nodes.iter().any(|n| n.name() == "voice"));
+        assert_eq!(voice_links(&stack), 0, "no link to a node that is not there");
+    }
+
+    #[tokio::test]
+    async fn the_voice_token_is_not_sent_over_the_wire() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("DEVOPS");
+        set_livekit_keys(true);
+        let mut stack = stack_before_voice();
+        migrate_stack(&mut stack);
+        set_livekit_keys(false);
+        let sent = stack.remove_tokens();
+        match sent.nodes.iter().find(|n| n.name() == "voice").unwrap() {
+            Node::Internal(Image::Voice(v)) => assert_eq!(v.token, ""),
+            other => panic!("not a voice image: {:?}", other),
+        }
     }
 }

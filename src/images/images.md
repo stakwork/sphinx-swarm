@@ -27,3 +27,17 @@ sphinxlightning/sphinx-nav-fiber:latest
 The browser is on a network of its own, `sphinx-browser`, and repo2graph joins that network as a second one. A page can reach whatever the browser's network reaches, so the browser is kept off `sphinx-swarm`, where neo4j, redis and the others answer by name. Because repo2graph is then on two networks, its Traefik labels name `sphinx-swarm` (`traefik.docker.network`). What the second network does not cover: a port another service publishes on the host is still reachable from the browser at the host's own address.
 
 On `latest` and in `auto_update`. The server refuses a client whose Playwright major.minor differs from its own, so the image and repo2graph's `playwright-core` are released together. An existing repo2graph container gets the link's env and network when it is next recreated, which its next image update does.
+
+## voice
+
+`sphinxlightning/sphinx-voice`, port 8080, run as `node dist/one-to-one.js`: the member ("1:1") mode of sphinx-voice, where a member talks to the org's agent (Jamie) by voice from the Peel app. The same image as meeting-mode Jamie, whose own command is replaced. Internal only: no Traefik route, no host port.
+
+- **Strut calls it.** A member's `POST /lab/voice/calls` reaches repo2graph's strut, which forwards it to `http://voice.sphinx:8080/calls` with the member as `x-strut-actor`. repo2graph gets `STRUT_VOICE_URL` and `STRUT_VOICE_TOKEN` through a `voice` link. The token is the secret the two share, generated when the node is created and saved with the stack.
+- **It calls strut back.** Every turn runs the orchestrator as the member, on `STRUT_URL=http://repo2graph.sphinx:3355/lab`. Its credential, `STRUT_API_KEY`, is boltwall's `stakwork_secret`, which is repo2graph's `API_TOKEN`. Strut posts run ends to `CALLBACK_URL_BASE=http://voice.sphinx:8080`.
+- **It connects out to LiveKit.** It joins each call's room on the central LiveKit, `wss://livekit.sphinx.chat`. `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` come from the swarm's `.env`, and so does `LIVEKIT_URL` when it is not the central one.
+  - The super writes the keys into a new swarm's `.env` when they are set in its own (`LIVEKIT_ENV` in `src/bin/super/util.rs`).
+  - An operator sets them on a running swarm through the super's env update.
+  - The node exists only once the keys are there: `second_brain_imgs` adds it to a new stack, and `migrate_stack` adds the node, the link on repo2graph and the `auto_update` entry on the next start.
+- **Optional `.env` values.** `VOICE_MODEL` is the model a voice turn asks for; unset, the service's default `haiku` stands, which the swarm's gateway allows (every user's virtual key allows all models of its providers). `STRUT_TTS_VOICE` is the voice a call starts in.
+
+On `latest` and in `auto_update`, like repo2graph: the two speak strut's contract (the orchestrator turn, `/audio/*`, `/voice/calls`). The image is published for linux/amd64 only. Nothing is kept, so there is no backup.

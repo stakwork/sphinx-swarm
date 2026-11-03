@@ -9,6 +9,7 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::traefik::shared_host;
+use crate::images::voice::VoiceImage;
 use crate::utils::{domain, exposed_ports, extra_networks, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -75,8 +76,9 @@ impl DockerConfig for Repo2GraphImage {
         let hermes = li.find_hermes();
         let redis = li.find_redis();
         let browser = li.find_browser();
+        let voice = li.find_voice();
         Ok(repo2graph(
-            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser,
+            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser, &voice,
         )?)
     }
 }
@@ -100,6 +102,7 @@ fn repo2graph(
     hermes: &Option<HermesImage>,
     redis: &Option<RedisImage>,
     browser: &Option<BrowserImage>,
+    voice: &Option<VoiceImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -140,6 +143,12 @@ fn repo2graph(
     if let Some(b) = browser {
         env.push(format!("BROWSER_WS_URL={}", b.ws_url()));
         env.push(format!("BROWSER_WS_PATH={}", b.ws_path));
+    }
+    // The 1:1 voice service a member's `POST /lab/voice/calls` is handed to,
+    // and the secret the two share (see `voice.rs`).
+    if let Some(v) = voice {
+        env.push(format!("STRUT_VOICE_URL={}", v.url()));
+        env.push(format!("STRUT_VOICE_TOKEN={}", v.token));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -281,7 +290,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -302,7 +311,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -330,7 +339,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_CACHE_DIR", "STRUT_CACHE_DIR"] {
@@ -364,7 +373,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_LAB_WORKSPACE", "STRUT_LAB_WORKSPACE"] {
@@ -393,7 +402,7 @@ mod tests {
         // env vars, and the assertions only look at STRUT_MOTHERSHIP_REQUIRED.
         let neo4j = test_neo4j_image();
         let flag = |img: &Repo2GraphImage| -> Option<String> {
-            repo2graph(img, &neo4j, &None, &None, &None, &None, &None)
+            repo2graph(img, &neo4j, &None, &None, &None, &None, &None, &None)
                 .unwrap()
                 .env
                 .unwrap()
@@ -442,7 +451,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -453,7 +462,7 @@ mod tests {
         );
 
         let hermes = HermesImage::new("hermes", "latest", "8645");
-        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -469,7 +478,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -480,7 +489,7 @@ mod tests {
         );
 
         let redis = RedisImage::new("redis", "latest");
-        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -500,7 +509,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
@@ -535,7 +544,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -558,6 +567,7 @@ mod tests {
             &None,
             &None,
             &Some(browser.clone()),
+            &None,
         )
         .unwrap();
         let env = with.env.unwrap();
@@ -569,6 +579,47 @@ mod tests {
         assert!(
             env.contains(&format!("BROWSER_WS_PATH={}", browser.ws_path)),
             "the path must be the browser's own"
+        );
+    }
+
+    #[test]
+    fn test_voice_address_and_token_are_emitted_only_when_linked() {
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at STRUT_VOICE_*.
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        assert!(
+            !without
+                .env
+                .unwrap()
+                .iter()
+                .any(|e| e.starts_with("STRUT_VOICE_")),
+            "STRUT_VOICE_* should be absent when the voice service isn't linked"
+        );
+
+        let voice = VoiceImage::new("voice", "latest", "8080");
+        let with = repo2graph(
+            &img,
+            &neo4j,
+            &None,
+            &None,
+            &None,
+            &None,
+            &None,
+            &Some(voice.clone()),
+        )
+        .unwrap();
+        let env = with.env.unwrap();
+        assert!(
+            env.contains(&"STRUT_VOICE_URL=http://voice.sphinx:8080".to_string()),
+            "got: {:?}",
+            env
+        );
+        assert!(
+            env.contains(&format!("STRUT_VOICE_TOKEN={}", voice.token)),
+            "the token must be the voice node's own"
         );
     }
 
@@ -585,6 +636,7 @@ mod tests {
             &None,
             &None,
             &Some(browser),
+            &None,
         )
         .unwrap();
 
@@ -612,7 +664,7 @@ mod tests {
         img.host(Some("swarm1.sphinx.chat".to_string()));
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .labels
@@ -630,6 +682,7 @@ mod tests {
             &None,
             &None,
             &Some(browser),
+            &None,
         )
         .unwrap();
         assert_eq!(

@@ -118,6 +118,8 @@ fn m1_not_supported(from_image: &str) -> bool {
         "/sphinx-lss".to_string(),
         "/sphinx-nav-fiber".to_string(),
         "/stakgraph-mcp".to_string(),
+        // published for linux/amd64 only (sphinx-voice's docker-release.yml)
+        "/sphinx-voice".to_string(),
     ];
     let mut b = false;
     for v in vs {

@@ -57,6 +57,7 @@ export type NodeType =
   | "Repo2Graph"
   | "Hermes"
   | "Browser"
+  | "Voice"
   | "Stakgraph"
   | "Bot";
 

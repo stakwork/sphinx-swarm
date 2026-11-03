@@ -422,6 +422,22 @@ pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
     }
 }
 
+/// What a new swarm's .env gets of the super's LiveKit settings: each of
+/// `LIVEKIT_ENV` this super has set, as a user-data line.
+fn livekit_env_lines() -> String {
+    LIVEKIT_ENV
+        .iter()
+        .filter_map(|key| getenv(key).ok().map(|value| (key, value)))
+        .map(|(key, value)| format!(r#"echo "{key}={value}" >> .env && \"#))
+        .collect::<Vec<_>>()
+        .join("\n          ")
+}
+
+/// The central LiveKit's URL and keys, passed from the super to every swarm it
+/// creates (and kept when a warm swarm is nuked): the swarm's voice service
+/// joins calls on it.
+pub const LIVEKIT_ENV: [&str; 3] = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"];
+
 pub async fn create_ec2_instance(
     swarm_name: Option<String>,
     vanity_address: Option<String>,
@@ -492,6 +508,11 @@ pub async fn create_ec2_instance(
     }
 
     let boltwall_api_secret = generate_random_secret(32);
+
+    // The central LiveKit's keys, for the swarm's 1:1 voice service
+    // (src/images/voice.rs), when this super has them. A swarm whose .env has
+    // none runs without the service.
+    let livekit_env_lines = livekit_env_lines();
 
     let workspace_env_lines = r#"echo "SECOND_BRAIN_ONLY=true" >> .env && \"#.to_string();
 
@@ -623,6 +644,7 @@ pub async fn create_ec2_instance(
           echo "JARVIS_FEATURE_FLAG_WFA_SCHEMAS=true" >> .env && \
           echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env && \
           {anthropic_api_key_env}
+          {livekit_env_lines}
           {port_based_ssl}
           
           sleep 60 && \
@@ -1914,5 +1936,25 @@ mod tests {
         let res = get_child_swarm_credentials(req, &state);
         assert!(!res.success);
         assert_eq!(res.message, "Swarm not found");
+    }
+
+    #[test]
+    fn livekit_keys_reach_a_new_swarm_env_only_when_the_super_has_them() {
+        // the only test that touches these variables
+        for key in LIVEKIT_ENV {
+            std::env::remove_var(key);
+        }
+        assert_eq!(livekit_env_lines(), "", "nothing set, nothing written");
+
+        std::env::set_var("LIVEKIT_API_KEY", "APIkey");
+        std::env::set_var("LIVEKIT_API_SECRET", "secret");
+        let lines = livekit_env_lines();
+        for key in LIVEKIT_ENV {
+            std::env::remove_var(key);
+        }
+        assert_eq!(
+            lines,
+            "echo \"LIVEKIT_API_KEY=APIkey\" >> .env && \\\n          echo \"LIVEKIT_API_SECRET=secret\" >> .env && \\"
+        );
     }
 }

@@ -16,6 +16,7 @@ use crate::images::redis::RedisImage;
 use crate::images::repo2graph::Repo2GraphImage;
 use crate::images::stakgraph::StakgraphImage;
 use crate::images::vector::VectorImage;
+use crate::images::voice::{livekit_configured, VoiceImage};
 use crate::images::Image;
 use crate::secrets;
 
@@ -44,6 +45,7 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "bot".to_string(),
             "bifrost".to_string(),
             "browser".to_string(),
+            "voice".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
@@ -84,6 +86,14 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     v = "latest";
     let browser = BrowserImage::new("browser", v, "3000");
 
+    // voice (the 1:1 voice service: a member's private call with the agent),
+    // only when the swarm's .env has the central LiveKit's keys
+    let voice = livekit_configured().then(|| {
+        let mut voice = VoiceImage::new("voice", "latest", "8080");
+        voice.links(vec!["repo2graph", "boltwall"]);
+        voice
+    });
+
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
@@ -91,6 +101,9 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     repo2graph.links(vec![
         "neo4j", "boltwall", "bifrost", "jarvis", "hermes", "redis", "browser",
     ]);
+    if voice.is_some() {
+        repo2graph.links.push("voice".to_string());
+    }
 
     // stakgraph
     v = "latest";
@@ -170,6 +183,10 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::HiveRelay(hive_relay),
         Image::Bifrost(bifrost),
     ];
+
+    if let Some(voice) = voice {
+        imgs.push(Image::Voice(voice));
+    }
 
     if lightning_provider == "bot" {
         let mut bot = BotImage::new("bot", "latest", "3000");
