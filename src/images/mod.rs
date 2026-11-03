@@ -37,6 +37,7 @@ pub mod tome;
 pub mod traefik;
 pub mod tribes;
 pub mod vector;
+pub mod voice;
 pub mod whisker;
 pub mod whisper;
 
@@ -89,6 +90,7 @@ pub enum Image {
     Bifrost(bifrost::BifrostImage),
     Hermes(hermes::HermesImage),
     Browser(browser::BrowserImage),
+    Voice(voice::VoiceImage),
 }
 
 pub enum Registry {
@@ -173,6 +175,7 @@ impl Image {
             Image::Bifrost(n) => n.name.clone(),
             Image::Hermes(n) => n.name.clone(),
             Image::Browser(n) => n.name.clone(),
+            Image::Voice(n) => n.name.clone(),
         }
     }
 
@@ -218,6 +221,7 @@ impl Image {
             // internal only: never fronted by traefik
             Image::Hermes(_) => None,
             Image::Browser(_) => None,
+            Image::Voice(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -261,6 +265,7 @@ impl Image {
             Image::Bifrost(_n) => "Bifrost",
             Image::Hermes(_n) => "Hermes",
             Image::Browser(_n) => "Browser",
+            Image::Voice(_n) => "Voice",
         }
         .to_string()
     }
@@ -307,6 +312,7 @@ impl Image {
             Image::Bifrost(n) => n.version.clone(),
             Image::Hermes(n) => n.version.clone(),
             Image::Browser(n) => n.version.clone(),
+            Image::Voice(n) => n.version.clone(),
         }
     }
     pub fn set_version(&mut self, version: &str) {
@@ -350,6 +356,7 @@ impl Image {
             Image::Bifrost(n) => n.version = version.to_string(),
             Image::Hermes(n) => n.version = version.to_string(),
             Image::Browser(n) => n.version = version.to_string(),
+            Image::Voice(n) => n.version = version.to_string(),
         }
     }
 
@@ -394,6 +401,7 @@ impl Image {
             Image::Bifrost(n) => n.host(Some(host.to_string())),
             Image::Hermes(_) => (),
             Image::Browser(_) => (),
+            Image::Voice(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -499,6 +507,7 @@ impl DockerConfig for Image {
             Image::Bifrost(n) => n.make_config(nodes, docker).await,
             Image::Hermes(n) => n.make_config(nodes, docker).await,
             Image::Browser(n) => n.make_config(nodes, docker).await,
+            Image::Voice(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -545,6 +554,7 @@ impl DockerHubImage for Image {
             Image::Bifrost(n) => n.repo(),
             Image::Hermes(n) => n.repo(),
             Image::Browser(n) => n.repo(),
+            Image::Voice(n) => n.repo(),
         }
     }
 }
@@ -639,6 +649,14 @@ impl LinkedImages {
     pub fn find_browser(&self) -> Option<browser::BrowserImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_browser() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_voice(&self) -> Option<voice::VoiceImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_voice() {
                 return Some(i);
             }
         }
@@ -933,6 +951,12 @@ impl Image {
         match self {
             Image::Browser(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Browser".to_string())),
+        }
+    }
+    pub fn as_voice(&self) -> anyhow::Result<voice::VoiceImage> {
+        match self {
+            Image::Voice(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Voice".to_string())),
         }
     }
 }

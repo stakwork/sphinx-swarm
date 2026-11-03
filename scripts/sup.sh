@@ -76,9 +76,13 @@ case "$1" in
     IMAGE="timberio/vector:latest-distroless-libc"
     CONTAINER="vector.sphinx"
     ;;
+  voice)
+    IMAGE="sphinxlightning/sphinx-voice:latest"
+    CONTAINER="voice.sphinx"
+    ;;
   *)
     echo "=> invalid service name! '$1'"
-    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama navfiber neo4j quickwit redis repo2graph stakgraph vector"
+    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama navfiber neo4j quickwit redis repo2graph stakgraph vector voice"
     exit 1
     ;;
 esac

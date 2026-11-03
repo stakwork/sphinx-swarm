@@ -226,5 +226,9 @@ Backup of previous configs: $(pwd)/$BACKUP_DIR
 
 Update any external clients (sphinx-relay, meet frontend,
 mobile apps, etc.) with the new key/secret.
+
+Every swarm's voice service holds them too: set LIVEKIT_API_KEY
+and LIVEKIT_API_SECRET on each swarm through the super's env
+update, and in the super's own .env for new swarms.
 ==========================================================
 EOF
