@@ -20,6 +20,7 @@ pub mod jarvis;
 pub mod llama;
 pub mod lnd;
 pub mod lss;
+pub mod maple;
 pub mod mixer;
 pub mod mongo;
 pub mod navfiber;
@@ -91,6 +92,7 @@ pub enum Image {
     Hermes(hermes::HermesImage),
     Browser(browser::BrowserImage),
     Voice(voice::VoiceImage),
+    Maple(maple::MapleImage),
 }
 
 pub enum Registry {
@@ -176,6 +178,7 @@ impl Image {
             Image::Hermes(n) => n.name.clone(),
             Image::Browser(n) => n.name.clone(),
             Image::Voice(n) => n.name.clone(),
+            Image::Maple(n) => n.name.clone(),
         }
     }
 
@@ -222,6 +225,7 @@ impl Image {
             Image::Hermes(_) => None,
             Image::Browser(_) => None,
             Image::Voice(_) => None,
+            Image::Maple(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -266,6 +270,7 @@ impl Image {
             Image::Hermes(_n) => "Hermes",
             Image::Browser(_n) => "Browser",
             Image::Voice(_n) => "Voice",
+            Image::Maple(_n) => "Maple",
         }
         .to_string()
     }
@@ -313,6 +318,7 @@ impl Image {
             Image::Hermes(n) => n.version.clone(),
             Image::Browser(n) => n.version.clone(),
             Image::Voice(n) => n.version.clone(),
+            Image::Maple(n) => n.version.clone(),
         }
     }
     pub fn set_version(&mut self, version: &str) {
@@ -357,6 +363,7 @@ impl Image {
             Image::Hermes(n) => n.version = version.to_string(),
             Image::Browser(n) => n.version = version.to_string(),
             Image::Voice(n) => n.version = version.to_string(),
+            Image::Maple(n) => n.version = version.to_string(),
         }
     }
 
@@ -402,6 +409,7 @@ impl Image {
             Image::Hermes(_) => (),
             Image::Browser(_) => (),
             Image::Voice(_) => (),
+            Image::Maple(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -508,6 +516,7 @@ impl DockerConfig for Image {
             Image::Hermes(n) => n.make_config(nodes, docker).await,
             Image::Browser(n) => n.make_config(nodes, docker).await,
             Image::Voice(n) => n.make_config(nodes, docker).await,
+            Image::Maple(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -555,6 +564,7 @@ impl DockerHubImage for Image {
             Image::Hermes(n) => n.repo(),
             Image::Browser(n) => n.repo(),
             Image::Voice(n) => n.repo(),
+            Image::Maple(n) => n.repo(),
         }
     }
 }
@@ -657,6 +667,14 @@ impl LinkedImages {
     pub fn find_voice(&self) -> Option<voice::VoiceImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_voice() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_maple(&self) -> Option<maple::MapleImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_maple() {
                 return Some(i);
             }
         }
@@ -957,6 +975,12 @@ impl Image {
         match self {
             Image::Voice(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Voice".to_string())),
+        }
+    }
+    pub fn as_maple(&self) -> anyhow::Result<maple::MapleImage> {
+        match self {
+            Image::Maple(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Maple".to_string())),
         }
     }
 }

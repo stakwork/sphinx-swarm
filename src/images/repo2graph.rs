@@ -6,6 +6,7 @@ use crate::images::boltwall::BoltwallImage;
 use crate::images::browser::BrowserImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
+use crate::images::maple::MapleImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::traefik::shared_host;
@@ -77,8 +78,9 @@ impl DockerConfig for Repo2GraphImage {
         let redis = li.find_redis();
         let browser = li.find_browser();
         let voice = li.find_voice();
+        let maple = li.find_maple();
         Ok(repo2graph(
-            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser, &voice,
+            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser, &voice, &maple,
         )?)
     }
 }
@@ -103,6 +105,7 @@ fn repo2graph(
     redis: &Option<RedisImage>,
     browser: &Option<BrowserImage>,
     voice: &Option<VoiceImage>,
+    maple: &Option<MapleImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -149,6 +152,14 @@ fn repo2graph(
     if let Some(v) = voice {
         env.push(format!("STRUT_VOICE_URL={}", v.url()));
         env.push(format!("STRUT_VOICE_TOKEN={}", v.token));
+    }
+    // Maple's inference proxy (see `maple.rs`), for `maple/<id>` models: the
+    // proxy's address, and the key strut sends it on every request.
+    if let Some(m) = maple {
+        env.push(format!("MAPLE_BASE_URL={}", m.base_url()));
+        if let Ok(maple_api_key) = getenv("MAPLE_API_KEY") {
+            env.push(format!("MAPLE_API_KEY={}", maple_api_key));
+        }
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -290,7 +301,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -311,7 +322,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -339,7 +350,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_CACHE_DIR", "STRUT_CACHE_DIR"] {
@@ -373,7 +384,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_LAB_WORKSPACE", "STRUT_LAB_WORKSPACE"] {
@@ -402,7 +413,7 @@ mod tests {
         // env vars, and the assertions only look at STRUT_MOTHERSHIP_REQUIRED.
         let neo4j = test_neo4j_image();
         let flag = |img: &Repo2GraphImage| -> Option<String> {
-            repo2graph(img, &neo4j, &None, &None, &None, &None, &None, &None)
+            repo2graph(img, &neo4j, &None, &None, &None, &None, &None, &None, &None)
                 .unwrap()
                 .env
                 .unwrap()
@@ -451,7 +462,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -462,7 +473,7 @@ mod tests {
         );
 
         let hermes = HermesImage::new("hermes", "latest", "8645");
-        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None, &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None, &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -478,7 +489,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -489,7 +500,7 @@ mod tests {
         );
 
         let redis = RedisImage::new("redis", "latest");
-        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None, &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None, &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -509,7 +520,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
@@ -544,7 +555,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -568,6 +579,7 @@ mod tests {
             &None,
             &Some(browser.clone()),
             &None,
+            &None,
         )
         .unwrap();
         let env = with.env.unwrap();
@@ -589,7 +601,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -609,6 +621,7 @@ mod tests {
             &None,
             &None,
             &Some(voice.clone()),
+            &None,
         )
         .unwrap();
         let env = with.env.unwrap();
@@ -624,6 +637,42 @@ mod tests {
     }
 
     #[test]
+    fn test_maple_base_url_and_key_are_emitted_only_when_linked() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::set_var("MAPLE_API_KEY", "maple-key");
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None)
+            .unwrap()
+            .env
+            .unwrap();
+        let maple = MapleImage::new("maple", "0.4.5", "8080");
+        let with = repo2graph(
+            &img,
+            &neo4j,
+            &None,
+            &None,
+            &None,
+            &None,
+            &None,
+            &None,
+            &Some(maple),
+        )
+        .unwrap()
+        .env
+        .unwrap();
+        std::env::remove_var("MAPLE_API_KEY");
+
+        assert!(
+            !without.iter().any(|e| e.starts_with("MAPLE_")),
+            "MAPLE_* should be absent when the proxy isn't linked"
+        );
+        assert!(with.contains(&"MAPLE_BASE_URL=http://maple.sphinx:8080/v1".to_string()));
+        assert!(with.contains(&"MAPLE_API_KEY=maple-key".to_string()));
+    }
+
+    #[test]
     fn test_a_linked_browser_adds_its_network_as_a_second_one() {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
@@ -636,6 +685,7 @@ mod tests {
             &None,
             &None,
             &Some(browser),
+            &None,
             &None,
         )
         .unwrap();
@@ -664,7 +714,7 @@ mod tests {
         img.host(Some("swarm1.sphinx.chat".to_string()));
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .labels
@@ -682,6 +732,7 @@ mod tests {
             &None,
             &None,
             &Some(browser),
+            &None,
             &None,
         )
         .unwrap();

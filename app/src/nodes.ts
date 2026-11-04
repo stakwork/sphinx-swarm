@@ -58,6 +58,7 @@ export type NodeType =
   | "Hermes"
   | "Browser"
   | "Voice"
+  | "Maple"
   | "Stakgraph"
   | "Bot";
 
