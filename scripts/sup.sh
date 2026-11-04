@@ -48,6 +48,10 @@ case "$1" in
     IMAGE="ghcr.io/ggerganov/llama.cpp:server-cuda"
     CONTAINER="llama.sphinx"
     ;;
+  maple)
+    IMAGE="ghcr.io/mapleprivacylabs/maple-proxy:0.4.5"
+    CONTAINER="maple.sphinx"
+    ;;
   navfiber)
     IMAGE="sphinxlightning/sphinx-nav-fiber:latest"
     CONTAINER="navfiber.sphinx"
@@ -82,7 +86,7 @@ case "$1" in
     ;;
   *)
     echo "=> invalid service name! '$1'"
-    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama navfiber neo4j quickwit redis repo2graph stakgraph vector voice"
+    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama maple navfiber neo4j quickwit redis repo2graph stakgraph vector voice"
     exit 1
     ;;
 esac

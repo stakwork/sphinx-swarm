@@ -9,6 +9,7 @@ use crate::images::hive_relay::HiveRelayImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
+use crate::images::maple::{maple_configured, MapleImage, MAPLE_PROXY_VERSION};
 use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::quickwit::QuickwitImage;
@@ -94,6 +95,10 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         voice
     });
 
+    // maple (Maple's inference proxy, for strut's private `maple/<id>` models),
+    // only when the swarm's .env has MAPLE_API_KEY. Pinned, not auto-updated.
+    let maple = maple_configured().then(|| MapleImage::new("maple", MAPLE_PROXY_VERSION, "8080"));
+
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
@@ -103,6 +108,9 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     ]);
     if voice.is_some() {
         repo2graph.links.push("voice".to_string());
+    }
+    if maple.is_some() {
+        repo2graph.links.push("maple".to_string());
     }
 
     // stakgraph
@@ -186,6 +194,10 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
 
     if let Some(voice) = voice {
         imgs.push(Image::Voice(voice));
+    }
+
+    if let Some(maple) = maple {
+        imgs.push(Image::Maple(maple));
     }
 
     if lightning_provider == "bot" {

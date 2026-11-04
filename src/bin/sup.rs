@@ -42,13 +42,14 @@ impl Service {
 
 /// Every service a second-brain swarm could be running, sorted by name.
 fn second_brain_services() -> Vec<Service> {
-    // bot, llama and voice are optional members of the stack, gated on the
-    // lightning provider, LOCAL_LLAMA and the LiveKit keys. Turn them all on so
-    // the script knows about them (the keys are placeholders: only the gate
-    // reads them here).
+    // bot, llama, voice and maple are optional members of the stack, gated on
+    // the lightning provider, LOCAL_LLAMA, the LiveKit keys and Maple's key.
+    // Turn them all on so the script knows about them (the keys are
+    // placeholders: only the gates read them here).
     std::env::set_var("LOCAL_LLAMA", "true");
     std::env::set_var("LIVEKIT_API_KEY", "sup");
     std::env::set_var("LIVEKIT_API_SECRET", "sup");
+    std::env::set_var("MAPLE_API_KEY", "sup");
     let mut services: Vec<Service> = second_brain_imgs(None, "bot")
         .iter()
         .map(Service::from_image)

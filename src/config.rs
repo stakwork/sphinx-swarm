@@ -351,6 +351,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::images::hive_relay::HiveRelayImage;
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
+    use crate::images::maple::{maple_configured, MapleImage, MAPLE_PROXY_VERSION};
     use crate::images::voice::{livekit_configured, VoiceImage};
 
     // Only migrate second-brain stacks
@@ -476,6 +477,17 @@ pub fn migrate_stack(stack: &mut Stack) {
         log::info!("=> added voice node");
     }
 
+    // Maple's inference proxy (see images/maple.rs), once the swarm's .env has
+    // MAPLE_API_KEY. Pinned and kept out of auto_update. `new` makes its cache
+    // secret and the saved config keeps it.
+    let mut has_maple = stack.nodes.iter().any(|n| n.name() == "maple");
+    if has_repo2graph && !has_maple && maple_configured() {
+        let maple = MapleImage::new("maple", MAPLE_PROXY_VERSION, "8080");
+        stack.nodes.push(Node::Internal(Image::Maple(maple)));
+        has_maple = true;
+        log::info!("=> added maple node");
+    }
+
     // Update existing Repo2Graph and Stakgraph links to include bifrost
     for node in &mut stack.nodes {
         match node {
@@ -509,6 +521,11 @@ pub fn migrate_stack(stack: &mut Stack) {
                 if has_voice && !img.links.contains(&"voice".to_string()) {
                     img.links.push("voice".to_string());
                     log::info!("=> added voice link to repo2graph");
+                }
+                // The link gives strut MAPLE_BASE_URL and MAPLE_API_KEY.
+                if has_maple && !img.links.contains(&"maple".to_string()) {
+                    img.links.push("maple".to_string());
+                    log::info!("=> added maple link to repo2graph");
                 }
             }
             Node::Internal(Image::Stakgraph(ref mut img)) => {
@@ -632,6 +649,10 @@ impl Stack {
                 Image::Voice(mut v) => {
                     v.token = "".to_string();
                     Node::Internal(Image::Voice(v))
+                }
+                Image::Maple(mut m) => {
+                    m.cache_root = "".to_string();
+                    Node::Internal(Image::Maple(m))
                 }
             },
         });

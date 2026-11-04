@@ -41,3 +41,15 @@ On `latest` and in `auto_update`. The server refuses a client whose Playwright m
 - **Optional `.env` values.** `VOICE_MODEL` is the model a voice turn asks for; unset, the service's default `haiku` stands, which the swarm's gateway allows (every user's virtual key allows all models of its providers). `STRUT_TTS_VOICE` is the voice a call starts in.
 
 On `latest` and in `auto_update`, like repo2graph: the two speak strut's contract (the orchestrator turn, `/audio/*`, `/voice/calls`). The image is published for linux/amd64 only. Nothing is kept, so there is no backup.
+
+## maple
+
+`ghcr.io/mapleprivacylabs/maple-proxy`, port 8080: Maple's OpenAI-compatible proxy for the open models Maple (maple.ai) serves from attested enclaves, so strut can run a turn on a private model (`maple/gemma4-31b`). It attests Maple's AWS Nitro enclave (`https://enclave.trymaple.ai`, the image's default) and encrypts every request to it. Upstream docs: https://github.com/MaplePrivacyLabs/Maple/blob/master/proxy/README.md.
+
+- **It reads every prompt in plaintext.** So it sits beside strut on the swarm network: internal only, no Traefik route, no host port, CORS off.
+- **Strut calls it.** repo2graph gets `MAPLE_BASE_URL=http://maple.sphinx:8080/v1` and `MAPLE_API_KEY` through a `maple` link, and sends the key on every request as the bearer. The proxy itself holds no key.
+- **The key gates the node.** `MAPLE_API_KEY` comes from the swarm's `.env`. The super writes it into a new swarm's `.env` when it is set in its own (`MAPLE_ENV` in `src/bin/super/util.rs`), and keeps it when a warm swarm is nuked. `second_brain_imgs` adds the node to a new stack, and `migrate_stack` adds the node and the link on repo2graph on the next start.
+- **Its cache secret.** `MAPLE_CACHE_NAMESPACE_ROOT` keeps the provider's prompt cache across proxy restarts. It is 32 random bytes in padded base64 (the proxy refuses to start on anything else), generated when the node is created, saved with the stack and blanked by `remove_tokens`.
+- **The voice model.** The voice service's `VOICE_MODEL` stays `haiku` by default. Set `VOICE_MODEL=maple/gemma4-31b` in the `.env` once the swarm's strut has the `maple` provider.
+
+Pinned (`MAPLE_PROXY_VERSION`, 0.4.5) and not in `auto_update`: third-party code that holds plaintext and decides whether the enclave is genuine. Maple's exact version tags are immutable; `latest`, `0.4` and `0` move. Upgrade on purpose: bump the constant for new stacks, and update a running swarm's node to the new version. Read-only root filesystem, every capability dropped, no-new-privileges, 256 MB of memory. Published for linux/amd64 and linux/arm64. Nothing is kept, so there is no backup.

@@ -422,11 +422,10 @@ pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
     }
 }
 
-/// What a new swarm's .env gets of the super's LiveKit settings: each of
-/// `LIVEKIT_ENV` this super has set, as a user-data line.
-fn livekit_env_lines() -> String {
-    LIVEKIT_ENV
-        .iter()
+/// What a new swarm's .env gets of the super's own settings: each of `keys`
+/// this super has set, as a user-data line.
+fn passed_env_lines(keys: &[&str]) -> String {
+    keys.iter()
         .filter_map(|key| getenv(key).ok().map(|value| (key, value)))
         .map(|(key, value)| format!(r#"echo "{key}={value}" >> .env && \"#))
         .collect::<Vec<_>>()
@@ -437,6 +436,11 @@ fn livekit_env_lines() -> String {
 /// creates (and kept when a warm swarm is nuked): the swarm's voice service
 /// joins calls on it.
 pub const LIVEKIT_ENV: [&str; 3] = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"];
+
+/// Maple's API key, passed from the super to every swarm it creates (and kept
+/// when a warm swarm is nuked): with it the swarm runs Maple's inference proxy
+/// beside strut (src/images/maple.rs), and strut sends the key per request.
+pub const MAPLE_ENV: [&str; 1] = ["MAPLE_API_KEY"];
 
 pub async fn create_ec2_instance(
     swarm_name: Option<String>,
@@ -512,7 +516,11 @@ pub async fn create_ec2_instance(
     // The central LiveKit's keys, for the swarm's 1:1 voice service
     // (src/images/voice.rs), when this super has them. A swarm whose .env has
     // none runs without the service.
-    let livekit_env_lines = livekit_env_lines();
+    let livekit_env_lines = passed_env_lines(&LIVEKIT_ENV);
+
+    // Maple's API key, for the swarm's inference proxy (src/images/maple.rs),
+    // when this super has one. A swarm whose .env has none runs without it.
+    let maple_env_lines = passed_env_lines(&MAPLE_ENV);
 
     let workspace_env_lines = r#"echo "SECOND_BRAIN_ONLY=true" >> .env && \"#.to_string();
 
@@ -645,6 +653,7 @@ pub async fn create_ec2_instance(
           echo "JARVIS_FEATURE_FLAG_CODEGRAPH_SCHEMAS=true" >> .env && \
           {anthropic_api_key_env}
           {livekit_env_lines}
+          {maple_env_lines}
           {port_based_ssl}
           
           sleep 60 && \
@@ -1944,11 +1953,11 @@ mod tests {
         for key in LIVEKIT_ENV {
             std::env::remove_var(key);
         }
-        assert_eq!(livekit_env_lines(), "", "nothing set, nothing written");
+        assert_eq!(passed_env_lines(&LIVEKIT_ENV), "", "nothing set, nothing written");
 
         std::env::set_var("LIVEKIT_API_KEY", "APIkey");
         std::env::set_var("LIVEKIT_API_SECRET", "secret");
-        let lines = livekit_env_lines();
+        let lines = passed_env_lines(&LIVEKIT_ENV);
         for key in LIVEKIT_ENV {
             std::env::remove_var(key);
         }

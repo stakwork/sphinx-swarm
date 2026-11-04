@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::cmd::SuperSwarmResponse;
 use crate::state::{AvailableInstances, Super};
-use crate::util::LIVEKIT_ENV;
+use crate::util::{LIVEKIT_ENV, MAPLE_ENV};
 
 pub async fn nuke_single_warm_swarm(
     swarm: &AvailableInstances,
@@ -45,8 +45,13 @@ pub async fn nuke_single_warm_swarm(
         "BACKUP_KEY",
     ];
 
-    // and the central LiveKit's, for the swarm's voice service, when set here
-    for key in env_keys.iter().chain(LIVEKIT_ENV.iter()) {
+    // and the central LiveKit's, for the swarm's voice service, and Maple's
+    // key, for its inference proxy, when set here
+    for key in env_keys
+        .iter()
+        .chain(LIVEKIT_ENV.iter())
+        .chain(MAPLE_ENV.iter())
+    {
         if let Ok(val) = getenv(key) {
             env_vars.insert(key.to_string(), val);
         } else if *key == "BACKUP_KEY" {
