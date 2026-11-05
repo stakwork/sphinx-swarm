@@ -12,6 +12,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Build and push sphinx swarm image
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
@@ -58,21 +63,42 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             docker buildx build \
             -f src/bin/stack/Dockerfile \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
             --build-arg CARGO_PROFILE_RELEASE_OPT_LEVEL=0 \
             --no-cache \
             --platform linux/amd64 ./
           else
             docker buildx build \
             -f src/bin/stack/Dockerfile \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
             --cache-to "type=local,dest=/tmp/.buildx-cache" \
             --platform linux/amd64 \
             --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:${{ env.RELEASE_TAG }}" \
             --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:latest" \
             --output "type=registry" ./
           fi
+      - name: Get image digest
+        if: github.event_name != 'pull_request'
+        id: digest
+        run: echo "digest=$(docker buildx imagetools inspect "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm:${{ env.RELEASE_TAG }}" --format '{{.Manifest.Digest}}')" >> "$GITHUB_OUTPUT"
+      # Verify with: gh attestation verify oci://index.docker.io/<namespace>/sphinx-swarm@sha256:<digest> --owner stakwork
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: index.docker.io/${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
   build_superadmin:
     runs-on: ubuntu-latest
     name: Build and push superadmin image
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
@@ -124,15 +150,31 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             docker buildx build \
             -f src/bin/super/Dockerfile \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
             --build-arg CARGO_PROFILE_RELEASE_OPT_LEVEL=0 \
             --no-cache \
             --platform linux/amd64 ./
           else
             docker buildx build \
             -f src/bin/super/Dockerfile \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
             --cache-to "type=local,dest=/tmp/.buildx-cache" \
             --platform linux/amd64 \
             --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:${{ env.RELEASE_TAG }}" \
             --tag "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:latest" \
             --output "type=registry" ./
           fi
+      - name: Get image digest
+        if: github.event_name != 'pull_request'
+        id: digest
+        run: echo "digest=$(docker buildx imagetools inspect "${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin:${{ env.RELEASE_TAG }}" --format '{{.Manifest.Digest}}')" >> "$GITHUB_OUTPUT"
+      # Verify with: gh attestation verify oci://index.docker.io/<namespace>/sphinx-swarm-superadmin@sha256:<digest> --owner stakwork
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: index.docker.io/${{ secrets.DOCKER_HUB_USER }}/sphinx-swarm-superadmin
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
