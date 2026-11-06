@@ -41,6 +41,8 @@ pub struct MixerImage {
     pub push_workflow_timeout_secs: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub push_workflow_app_ids: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub push_presence_suppress: Option<String>,
 }
 
 impl std::fmt::Debug for MixerImage {
@@ -70,6 +72,7 @@ impl std::fmt::Debug for MixerImage {
             .field("push_workflow_key", &key)
             .field("push_workflow_timeout_secs", &self.push_workflow_timeout_secs)
             .field("push_workflow_app_ids", &self.push_workflow_app_ids)
+            .field("push_presence_suppress", &self.push_presence_suppress)
             .finish()
     }
 }
@@ -100,6 +103,7 @@ impl MixerImage {
             push_workflow_key: None,
             push_workflow_timeout_secs: None,
             push_workflow_app_ids: None,
+            push_presence_suppress: None,
         }
     }
     pub fn host(&mut self, eh: Option<String>) {
@@ -145,6 +149,9 @@ impl MixerImage {
     }
     pub fn set_push_workflow_app_ids(&mut self, v: &str) {
         self.push_workflow_app_ids = Some(v.to_string())
+    }
+    pub fn set_push_presence_suppress(&mut self, v: &str) {
+        self.push_presence_suppress = Some(v.to_string())
     }
     pub fn set_purge_msgs_days(&mut self, days: &str) {
         self.purge_msgs_days = Some(days.to_string())
@@ -279,6 +286,9 @@ fn mixer(img: &MixerImage, broker: &BrokerImage, cln: &Option<ClnImage>) -> Resu
     if let Some(v) = &img.push_workflow_app_ids {
         env.push(format!("PUSH_WORKFLOW_APP_IDS={}", v));
     }
+    if let Some(v) = &img.push_presence_suppress {
+        env.push(format!("PUSH_PRESENCE_SUPPRESS={}", v));
+    }
 
     let mut image = format!("{}:{}", image, img.version);
     if let Ok(ci) = getenv("LOCAL_MIXER_IMG") {
@@ -322,5 +332,17 @@ mod tests {
         img.push_workflow_key = None;
         let out = format!("{:?}", img);
         assert!(out.contains("push_workflow_key: None"));
+    }
+
+    #[test]
+    fn push_presence_suppress_is_optional() {
+        let mut img = MixerImage::new("mixer", "v1", "regtest", "8080");
+        let out = serde_json::to_string(&img).unwrap();
+        assert!(!out.contains("push_presence_suppress"));
+        img.set_push_presence_suppress("1");
+        let out = serde_json::to_string(&img).unwrap();
+        assert!(out.contains("push_presence_suppress"));
+        let out = format!("{:?}", img);
+        assert!(out.contains("push_presence_suppress"));
     }
 }
