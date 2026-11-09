@@ -99,6 +99,10 @@ for _ in $(seq 1 120); do
   sleep 1
 done
 
+# drop the untagged images left behind by the pull (before tailing, which blocks)
+echo "=> prune old images"
+docker image prune -f
+
 docker logs "$CONTAINER" --follow
 "#;
 
