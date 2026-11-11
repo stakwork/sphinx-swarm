@@ -25,15 +25,14 @@
 //!     payments it took. So the node is in `backup_services`, and losing the
 //!     volume loses the sats. One container per account: a second on the
 //!     same volume would knock the first off the broker.
-//!   - Opt-in: the node exists only once the swarm's `.env` has
-//!     `TREASURY=true` (`second_brain_imgs`, `migrate_stack`). Free public
-//!     runs need no wallet; a swarm that sells nothing makes no account.
+//!   - Part of every stack that has a repo2graph, new or existing:
+//!     `second_brain_imgs` adds it to a new stack, and `migrate_stack` to an
+//!     existing one on its next start.
 //!   - On `latest` and in `auto_update`: strut's payer and the daemon's wallet
 //!     routes move together. A recreate keeps the volume.
 
 use super::*;
 use crate::config::Node;
-use crate::defaults::env_is_true;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, host_config};
 use anyhow::Result;
@@ -86,12 +85,6 @@ impl TreasuryImage {
     pub fn url(&self) -> String {
         format!("http://{}:{}", domain(&self.name), self.port)
     }
-}
-
-/// Whether the swarm's `.env` asks for a treasury: the node is added to a
-/// stack only then (`second_brain_imgs`, `migrate_stack`).
-pub fn treasury_configured() -> bool {
-    env_is_true("TREASURY")
 }
 
 #[async_trait]

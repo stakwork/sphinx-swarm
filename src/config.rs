@@ -352,7 +352,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
     use crate::images::maple::{maple_configured, MapleImage, MAPLE_PROXY_VERSION};
-    use crate::images::treasury::{treasury_configured, TreasuryImage};
+    use crate::images::treasury::TreasuryImage;
     use crate::images::voice::{livekit_configured, VoiceImage};
 
     // Only migrate second-brain stacks
@@ -490,11 +490,12 @@ pub fn migrate_stack(stack: &mut Stack) {
     }
 
     // The treasury (see images/treasury.rs), the wallet strut sells paid public
-    // runs through, once the swarm's .env has TREASURY=true. `new` makes its
-    // three tokens and the saved config keeps them. Its volume holds the
-    // account's seed, so it joins the backups when the stack has them.
+    // runs through. Like the browser, its only client is repo2graph, so a stack
+    // without one gets none. `new` makes its three tokens and the saved config
+    // keeps them. Its volume holds the account's seed, so it joins the backups
+    // when the stack has them.
     let mut has_treasury = stack.nodes.iter().any(|n| n.name() == "treasury");
-    if has_repo2graph && !has_treasury && treasury_configured() {
+    if has_repo2graph && !has_treasury {
         let treasury = TreasuryImage::new("treasury", "latest", "8095");
         stack.nodes.push(Node::Internal(Image::Treasury(treasury)));
         if let Some(list) = stack.auto_update.as_mut() {
@@ -958,16 +959,8 @@ mod migrate_tests {
         }
     }
 
-    fn set_treasury(on: bool) {
-        if on {
-            std::env::set_var("TREASURY", "true");
-        } else {
-            std::env::remove_var("TREASURY");
-        }
-    }
-
     /// A second-brain stack saved before the treasury existed, backups on.
-    /// (`Stack::default` builds the full stack, which has one when asked.)
+    /// (`Stack::default` builds the full stack, which now has one.)
     fn stack_before_treasury() -> Stack {
         let mut stack = graph_mindset_stack();
         stack.nodes.retain(|n| n.name() != "treasury");
@@ -993,12 +986,16 @@ mod migrate_tests {
             .sum()
     }
 
+    fn listed(list: &Option<Vec<String>>, name: &str) -> usize {
+        list.iter().flatten().filter(|n| *n == name).count()
+    }
+
     #[tokio::test]
-    async fn migration_adds_the_treasury_once_asked() {
+    async fn migration_adds_the_treasury_to_an_existing_second_brain_stack_once() {
         let _lock = ENV_LOCK.lock().unwrap();
         std::env::remove_var("DEVOPS");
-        set_treasury(true);
         let mut stack = stack_before_treasury();
+        assert!(!stack.nodes.iter().any(|n| n.name() == "treasury"));
         migrate_stack(&mut stack);
 
         let tokens = |stack: &Stack| -> (String, String, String) {
@@ -1020,50 +1017,47 @@ mod migrate_tests {
         let saved = serde_json::to_string(&stack).unwrap();
         let mut stack: Stack = serde_json::from_str(&saved).unwrap();
         migrate_stack(&mut stack);
-        set_treasury(false);
         assert_eq!(tokens(&stack), first, "a restart keeps the tokens");
 
         let repo2graphs = stack.nodes.iter().filter(|n| n.name() == "repo2graph").count();
         assert_eq!(treasury_links(&stack), repo2graphs, "every repo2graph linked once");
-        let updates = stack.auto_update.as_ref().unwrap();
-        assert_eq!(updates.iter().filter(|n| *n == "treasury").count(), 1, "auto-updated, listed once");
-        let backups = stack.backup_services.as_ref().unwrap();
-        assert_eq!(backups.iter().filter(|n| *n == "treasury").count(), 1, "backed up, listed once");
+        assert_eq!(listed(&stack.auto_update, "treasury"), 1, "auto-updated, listed once");
+        assert_eq!(listed(&stack.backup_services, "treasury"), 1, "backed up, listed once");
     }
 
     #[tokio::test]
     async fn migration_turns_on_no_backups_for_the_treasury() {
         let _lock = ENV_LOCK.lock().unwrap();
         std::env::remove_var("DEVOPS");
-        set_treasury(true);
         let mut stack = stack_before_treasury();
         stack.backup_services = None;
         migrate_stack(&mut stack);
-        set_treasury(false);
         assert!(stack.nodes.iter().any(|n| n.name() == "treasury"));
         assert_eq!(stack.backup_services, None, "a stack without backups keeps none");
     }
 
     #[tokio::test]
-    async fn migration_adds_no_treasury_unless_asked() {
+    async fn migration_adds_no_treasury_without_a_repo2graph() {
         let _lock = ENV_LOCK.lock().unwrap();
         std::env::remove_var("DEVOPS");
-        set_treasury(false);
-        let mut stack = stack_before_treasury();
+        let mut stack = Stack::default();
+        stack.nodes = vec![Node::Internal(Image::BoltWall(BoltwallImage::new(
+            "boltwall", "latest", "8444",
+        )))];
+        stack.auto_update = Some(vec![]);
+        stack.backup_services = Some(vec!["boltwall".to_string()]);
         migrate_stack(&mut stack);
         assert!(!stack.nodes.iter().any(|n| n.name() == "treasury"));
-        assert_eq!(treasury_links(&stack), 0, "no link to a node that is not there");
-        assert!(!stack.backup_services.unwrap().contains(&"treasury".to_string()));
+        assert_eq!(listed(&stack.auto_update, "treasury"), 0);
+        assert_eq!(listed(&stack.backup_services, "treasury"), 0);
     }
 
     #[tokio::test]
     async fn the_treasury_tokens_are_not_sent_over_the_wire() {
         let _lock = ENV_LOCK.lock().unwrap();
         std::env::remove_var("DEVOPS");
-        set_treasury(true);
         let mut stack = stack_before_treasury();
         migrate_stack(&mut stack);
-        set_treasury(false);
         let sent = stack.remove_tokens();
         match sent.nodes.iter().find(|n| n.name() == "treasury").unwrap() {
             Node::Internal(Image::Treasury(t)) => {

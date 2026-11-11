@@ -16,7 +16,7 @@ use crate::images::quickwit::QuickwitImage;
 use crate::images::redis::RedisImage;
 use crate::images::repo2graph::Repo2GraphImage;
 use crate::images::stakgraph::StakgraphImage;
-use crate::images::treasury::{treasury_configured, TreasuryImage};
+use crate::images::treasury::TreasuryImage;
 use crate::images::vector::VectorImage;
 use crate::images::voice::{livekit_configured, VoiceImage};
 use crate::images::Image;
@@ -107,25 +107,22 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     // only when the swarm's .env has MAPLE_API_KEY. Pinned, not auto-updated.
     let maple = maple_configured().then(|| MapleImage::new("maple", MAPLE_PROXY_VERSION, "8080"));
 
-    // treasury (the wallet strut sells paid public runs through), only when the
-    // swarm's .env has TREASURY=true. Its volume holds the account's seed.
-    let treasury = treasury_configured().then(|| TreasuryImage::new("treasury", "latest", "8095"));
+    // treasury (the wallet strut sells paid public runs through). Its volume
+    // holds the account's seed.
+    let treasury = TreasuryImage::new("treasury", "latest", "8095");
 
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
     repo2graph.links(vec![
-        "neo4j", "boltwall", "bifrost", "jarvis", "hermes", "redis", "browser",
+        "neo4j", "boltwall", "bifrost", "jarvis", "hermes", "redis", "browser", "treasury",
     ]);
     if voice.is_some() {
         repo2graph.links.push("voice".to_string());
     }
     if maple.is_some() {
         repo2graph.links.push("maple".to_string());
-    }
-    if treasury.is_some() {
-        repo2graph.links.push("treasury".to_string());
     }
 
     // stakgraph
@@ -205,6 +202,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Vector(vector),
         Image::HiveRelay(hive_relay),
         Image::Bifrost(bifrost),
+        Image::Treasury(treasury),
     ];
 
     if let Some(voice) = voice {
@@ -213,10 +211,6 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
 
     if let Some(maple) = maple {
         imgs.push(Image::Maple(maple));
-    }
-
-    if let Some(treasury) = treasury {
-        imgs.push(Image::Treasury(treasury));
     }
 
     if lightning_provider == "bot" {
