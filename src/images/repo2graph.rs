@@ -10,6 +10,7 @@ use crate::images::maple::MapleImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::traefik::shared_host;
+use crate::images::treasury::TreasuryImage;
 use crate::images::voice::VoiceImage;
 use crate::utils::{domain, exposed_ports, extra_networks, getenv, host_config, volume_string};
 use anyhow::{Context, Result};
@@ -79,8 +80,10 @@ impl DockerConfig for Repo2GraphImage {
         let browser = li.find_browser();
         let voice = li.find_voice();
         let maple = li.find_maple();
+        let treasury = li.find_treasury();
         Ok(repo2graph(
             self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser, &voice, &maple,
+            &treasury,
         )?)
     }
 }
@@ -106,6 +109,7 @@ fn repo2graph(
     browser: &Option<BrowserImage>,
     voice: &Option<VoiceImage>,
     maple: &Option<MapleImage>,
+    treasury: &Option<TreasuryImage>,
 ) -> Result<Config<String>> {
     let repo = img.repo();
     let image = img.image();
@@ -160,6 +164,14 @@ fn repo2graph(
         if let Ok(maple_api_key) = getenv("MAPLE_API_KEY") {
             env.push(format!("MAPLE_API_KEY={}", maple_api_key));
         }
+    }
+    // The treasury (see `treasury.rs`), the wallet strut sells paid public
+    // runs through: its address, the receive token and, for withdrawals, the
+    // pay token. Strut refuses to boot on two equal tokens.
+    if let Some(t) = treasury {
+        env.push(format!("LIGHTNING_DAEMON_URL={}", t.url()));
+        env.push(format!("LIGHTNING_DAEMON_TOKEN={}", t.receive_token));
+        env.push(format!("LIGHTNING_DAEMON_PAY_TOKEN={}", t.pay_token));
     }
 
     if let Ok(openai_api_key) = getenv("OPENAI_API_KEY") {
@@ -301,7 +313,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
         let env = config.env.unwrap();
 
         assert!(
@@ -322,7 +334,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let binds = config
             .host_config
@@ -350,7 +362,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_CACHE_DIR", "STRUT_CACHE_DIR"] {
@@ -384,7 +396,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         for key in ["VEIN_LAB_WORKSPACE", "STRUT_LAB_WORKSPACE"] {
@@ -413,7 +425,7 @@ mod tests {
         // env vars, and the assertions only look at STRUT_MOTHERSHIP_REQUIRED.
         let neo4j = test_neo4j_image();
         let flag = |img: &Repo2GraphImage| -> Option<String> {
-            repo2graph(img, &neo4j, &None, &None, &None, &None, &None, &None, &None)
+            repo2graph(img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None)
                 .unwrap()
                 .env
                 .unwrap()
@@ -462,7 +474,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -473,7 +485,7 @@ mod tests {
         );
 
         let hermes = HermesImage::new("hermes", "latest", "8645");
-        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None, &None, &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &Some(hermes), &None, &None, &None, &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -489,7 +501,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -500,7 +512,7 @@ mod tests {
         );
 
         let redis = RedisImage::new("redis", "latest");
-        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None, &None, &None).unwrap();
+        let with = repo2graph(&img, &neo4j, &None, &None, &None, &Some(redis), &None, &None, &None, &None).unwrap();
         assert!(
             with.env
                 .unwrap()
@@ -520,7 +532,7 @@ mod tests {
 
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
-        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let config = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
 
         let env = config.env.as_ref().unwrap();
         assert!(env.contains(&"SESSIONS_DIR=/usr/src/app/sessions".to_string()));
@@ -555,7 +567,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -580,6 +592,7 @@ mod tests {
             &Some(browser.clone()),
             &None,
             &None,
+            &None,
         )
         .unwrap();
         let env = with.env.unwrap();
@@ -601,7 +614,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .env
@@ -621,6 +634,7 @@ mod tests {
             &None,
             &None,
             &Some(voice.clone()),
+            &None,
             &None,
         )
         .unwrap();
@@ -643,7 +657,7 @@ mod tests {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None)
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None)
             .unwrap()
             .env
             .unwrap();
@@ -658,6 +672,7 @@ mod tests {
             &None,
             &None,
             &Some(maple),
+            &None,
         )
         .unwrap()
         .env
@@ -673,6 +688,56 @@ mod tests {
     }
 
     #[test]
+    fn test_the_treasury_address_and_tokens_are_emitted_only_when_linked() {
+        // Deliberately does not take ENV_LOCK: nothing here reads or writes
+        // env vars, and the assertions only look at LIGHTNING_*.
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None)
+            .unwrap()
+            .env
+            .unwrap();
+        assert!(
+            !without.iter().any(|e| e.starts_with("LIGHTNING_")),
+            "LIGHTNING_* should be absent when the treasury isn't linked"
+        );
+
+        let treasury = TreasuryImage::new("treasury", "latest", "8095");
+        let with = repo2graph(
+            &img,
+            &neo4j,
+            &None,
+            &None,
+            &None,
+            &None,
+            &None,
+            &None,
+            &None,
+            &Some(treasury.clone()),
+        )
+        .unwrap()
+        .env
+        .unwrap();
+        let value = |key: &str| {
+            let prefix = format!("{}=", key);
+            let found: Vec<&String> = with.iter().filter(|e| e.starts_with(&prefix)).collect();
+            assert_eq!(found.len(), 1, "one {} expected, got: {:?}", key, with);
+            found[0][prefix.len()..].to_string()
+        };
+        assert_eq!(value("LIGHTNING_DAEMON_URL"), "http://treasury.sphinx:8095");
+        let receive = value("LIGHTNING_DAEMON_TOKEN");
+        let pay = value("LIGHTNING_DAEMON_PAY_TOKEN");
+        assert_eq!(receive, treasury.receive_token, "the receive token must be the treasury's own");
+        assert_eq!(pay, treasury.pay_token, "the pay token must be the treasury's own");
+        assert_ne!(receive, pay, "strut refuses to boot on equal tokens");
+        assert!(
+            !with.iter().any(|e| e.contains(&treasury.admin_token)),
+            "the admin token is handed to nobody"
+        );
+    }
+
+    #[test]
     fn test_a_linked_browser_adds_its_network_as_a_second_one() {
         let img = test_repo2graph_image();
         let neo4j = test_neo4j_image();
@@ -685,6 +750,7 @@ mod tests {
             &None,
             &None,
             &Some(browser),
+            &None,
             &None,
             &None,
         )
@@ -714,7 +780,7 @@ mod tests {
         img.host(Some("swarm1.sphinx.chat".to_string()));
         let neo4j = test_neo4j_image();
 
-        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None).unwrap();
+        let without = repo2graph(&img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None).unwrap();
         assert!(
             !without
                 .labels
@@ -732,6 +798,7 @@ mod tests {
             &None,
             &None,
             &Some(browser),
+            &None,
             &None,
             &None,
         )

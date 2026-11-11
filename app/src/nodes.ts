@@ -59,6 +59,7 @@ export type NodeType =
   | "Browser"
   | "Voice"
   | "Maple"
+  | "Treasury"
   | "Stakgraph"
   | "Bot";
 
