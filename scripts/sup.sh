@@ -76,6 +76,10 @@ case "$1" in
     IMAGE="ghcr.io/stakwork/stakgraph-standalone:latest"
     CONTAINER="stakgraph.sphinx"
     ;;
+  treasury)
+    IMAGE="ghcr.io/stakwork/sphinx-daemon:latest"
+    CONTAINER="treasury.sphinx"
+    ;;
   vector)
     IMAGE="timberio/vector:latest-distroless-libc"
     CONTAINER="vector.sphinx"
@@ -86,7 +90,7 @@ case "$1" in
     ;;
   *)
     echo "=> invalid service name! '$1'"
-    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama maple navfiber neo4j quickwit redis repo2graph stakgraph vector voice"
+    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama maple navfiber neo4j quickwit redis repo2graph stakgraph treasury vector voice"
     exit 1
     ;;
 esac

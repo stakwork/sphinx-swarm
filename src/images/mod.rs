@@ -36,6 +36,7 @@ pub mod runner;
 pub mod stakgraph;
 pub mod tome;
 pub mod traefik;
+pub mod treasury;
 pub mod tribes;
 pub mod vector;
 pub mod voice;
@@ -93,6 +94,7 @@ pub enum Image {
     Browser(browser::BrowserImage),
     Voice(voice::VoiceImage),
     Maple(maple::MapleImage),
+    Treasury(treasury::TreasuryImage),
 }
 
 pub enum Registry {
@@ -179,6 +181,7 @@ impl Image {
             Image::Browser(n) => n.name.clone(),
             Image::Voice(n) => n.name.clone(),
             Image::Maple(n) => n.name.clone(),
+            Image::Treasury(n) => n.name.clone(),
         }
     }
 
@@ -226,6 +229,7 @@ impl Image {
             Image::Browser(_) => None,
             Image::Voice(_) => None,
             Image::Maple(_) => None,
+            Image::Treasury(_) => None,
         }
     }
     pub fn typ(&self) -> String {
@@ -271,6 +275,7 @@ impl Image {
             Image::Browser(_n) => "Browser",
             Image::Voice(_n) => "Voice",
             Image::Maple(_n) => "Maple",
+            Image::Treasury(_n) => "Treasury",
         }
         .to_string()
     }
@@ -319,6 +324,7 @@ impl Image {
             Image::Browser(n) => n.version.clone(),
             Image::Voice(n) => n.version.clone(),
             Image::Maple(n) => n.version.clone(),
+            Image::Treasury(n) => n.version.clone(),
         }
     }
     pub fn set_version(&mut self, version: &str) {
@@ -364,6 +370,7 @@ impl Image {
             Image::Browser(n) => n.version = version.to_string(),
             Image::Voice(n) => n.version = version.to_string(),
             Image::Maple(n) => n.version = version.to_string(),
+            Image::Treasury(n) => n.version = version.to_string(),
         }
     }
 
@@ -410,6 +417,7 @@ impl Image {
             Image::Browser(_) => (),
             Image::Voice(_) => (),
             Image::Maple(_) => (),
+            Image::Treasury(_) => (),
         }
     }
     pub async fn pre_startup(&self, docker: &Docker, nodes: &Vec<config::Node>) -> Result<()> {
@@ -517,6 +525,7 @@ impl DockerConfig for Image {
             Image::Browser(n) => n.make_config(nodes, docker).await,
             Image::Voice(n) => n.make_config(nodes, docker).await,
             Image::Maple(n) => n.make_config(nodes, docker).await,
+            Image::Treasury(n) => n.make_config(nodes, docker).await,
         }
     }
 }
@@ -565,6 +574,7 @@ impl DockerHubImage for Image {
             Image::Browser(n) => n.repo(),
             Image::Voice(n) => n.repo(),
             Image::Maple(n) => n.repo(),
+            Image::Treasury(n) => n.repo(),
         }
     }
 }
@@ -675,6 +685,14 @@ impl LinkedImages {
     pub fn find_maple(&self) -> Option<maple::MapleImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_maple() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    pub fn find_treasury(&self) -> Option<treasury::TreasuryImage> {
+        for img in self.0.iter() {
+            if let Ok(i) = img.as_treasury() {
                 return Some(i);
             }
         }
@@ -981,6 +999,12 @@ impl Image {
         match self {
             Image::Maple(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Maple".to_string())),
+        }
+    }
+    pub fn as_treasury(&self) -> anyhow::Result<treasury::TreasuryImage> {
+        match self {
+            Image::Treasury(i) => Ok(i.clone()),
+            _ => Err(anyhow::anyhow!("Not Treasury".to_string())),
         }
     }
 }

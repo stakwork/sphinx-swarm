@@ -16,6 +16,7 @@ use crate::images::quickwit::QuickwitImage;
 use crate::images::redis::RedisImage;
 use crate::images::repo2graph::Repo2GraphImage;
 use crate::images::stakgraph::StakgraphImage;
+use crate::images::treasury::TreasuryImage;
 use crate::images::vector::VectorImage;
 use crate::images::voice::{livekit_configured, VoiceImage};
 use crate::images::Image;
@@ -47,11 +48,18 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
             "bifrost".to_string(),
             "browser".to_string(),
             "voice".to_string(),
+            "treasury".to_string(),
         ]),
         auto_restart: None,
         custom_2b_domain: env_no_empty("NAV_BOLTWALL_SHARED_HOST"),
         global_mem_limit: None,
-        backup_services: Some(vec!["boltwall".to_string(), "neo4j".to_string()]),
+        // treasury: its volume holds the wallet's seed (see images/treasury.rs).
+        // Naming a node the stack lacks backs up nothing.
+        backup_services: Some(vec![
+            "boltwall".to_string(),
+            "neo4j".to_string(),
+            "treasury".to_string(),
+        ]),
         backup_files: None,
         lightning_peers: None,
         ssl_cert_last_modified: None,
@@ -99,12 +107,16 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     // only when the swarm's .env has MAPLE_API_KEY. Pinned, not auto-updated.
     let maple = maple_configured().then(|| MapleImage::new("maple", MAPLE_PROXY_VERSION, "8080"));
 
+    // treasury (the wallet strut sells paid public runs through). Its volume
+    // holds the account's seed.
+    let treasury = TreasuryImage::new("treasury", "latest", "8095");
+
     // repo2graph
     v = "latest";
     let mut repo2graph = Repo2GraphImage::new("repo2graph", v, "3355");
     repo2graph.host(host.clone());
     repo2graph.links(vec![
-        "neo4j", "boltwall", "bifrost", "jarvis", "hermes", "redis", "browser",
+        "neo4j", "boltwall", "bifrost", "jarvis", "hermes", "redis", "browser", "treasury",
     ]);
     if voice.is_some() {
         repo2graph.links.push("voice".to_string());
@@ -190,6 +202,7 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Vector(vector),
         Image::HiveRelay(hive_relay),
         Image::Bifrost(bifrost),
+        Image::Treasury(treasury),
     ];
 
     if let Some(voice) = voice {

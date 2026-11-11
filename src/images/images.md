@@ -53,3 +53,15 @@ On `latest` and in `auto_update`, like repo2graph: the two speak strut's contrac
 - **The voice model.** The voice service's `VOICE_MODEL` stays `haiku` by default. Set `VOICE_MODEL=maple/gemma4-31b` in the `.env` once the swarm's strut has the `maple` provider.
 
 Pinned (`MAPLE_PROXY_VERSION`, 0.4.5) and not in `auto_update`: third-party code that holds plaintext and decides whether the enclave is genuine. Maple's exact version tags are immutable; `latest`, `0.4` and `0` move. Upgrade on purpose: bump the constant for new stacks, and update a running swarm's node to the new version. Read-only root filesystem, every capability dropped, no-new-privileges, 256 MB of memory. Published for linux/amd64 and linux/arm64. Nothing is kept, so there is no backup.
+
+## treasury
+
+`ghcr.io/stakwork/sphinx-daemon`, port 8095, built from `wasm/daemon` in stakwork/sphinx: a Sphinx daemon on an account of its own, the Lightning wallet strut sells paid public runs through (strut `plans/paid-runs.md` §9, §11; `specs/LIGHTNING.md`). Not the swarm's `bot`, which is boltwall's wallet and has no wallet routes. Internal only: no Traefik route, no host port.
+
+- **Strut calls it.** repo2graph gets `LIGHTNING_DAEMON_URL=http://treasury.sphinx:8095`, the receive token as `LIGHTNING_DAEMON_TOKEN` (invoices, lookups, payments in, the balance) and the pay token as `LIGHTNING_DAEMON_PAY_TOKEN` (withdrawals) through a `treasury` link. Strut writes them into its encrypted `payments.json` at boot and refuses to boot on two equal tokens.
+- **Three tokens.** `DAEMON_ADMIN_TOKEN`, `DAEMON_RECEIVE_TOKEN` and `DAEMON_PAY_TOKEN`, generated when the node is created, saved with the stack and blanked by `remove_tokens`. The daemon refuses to start when any two are equal. Nobody in the stack holds the admin token (posting, tribes); it is there for an operator.
+- **It talks to nobody.** `DAEMON_REPLY=none` and no `DAEMON_SERVICE_URL`: it answers no mention and joins no tribe. It only connects out to its LSP, the image's default `broker.v2.sphinx.chat`.
+- **`/data` is the money.** The account's seed is made there on the first start (never passed in, unlike the bot's), beside `wallet.jsonl`, the payments it took. So the node is in `backup_services`: the daily backup streams the volume, seed included, to the swarm's S3 bucket. Lose the volume and the sats are gone. Run one container per account: a second on the same volume knocks the first off the broker.
+- **Part of every stack that has a repo2graph, new or existing.** `second_brain_imgs` adds it to a new stack, and `migrate_stack` adds the node, the link on repo2graph, the `auto_update` entry and the `backup_services` entry (when the stack has backups) on the next start.
+
+On `latest` and in `auto_update`: strut's payer and the daemon's wallet routes move together, and a recreate keeps the volume. The image runs as its own `node` user; every capability dropped, no-new-privileges. Published for linux/amd64 and linux/arm64.
