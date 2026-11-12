@@ -195,6 +195,9 @@ fn repo2graph(
     if let Ok(strut_llm_model) = getenv("STRUT_LLM_MODEL") {
         env.push(format!("STRUT_LLM_MODEL={}", strut_llm_model));
     }
+    if let Ok(node_options) = getenv("REPO2GRAPH_NODE_OPTIONS") {
+        env.push(format!("NODE_OPTIONS={}", node_options));
+    }
     if let Some(hf_token) = img.hf_token.clone().or_else(|| getenv("HF_TOKEN").ok()) {
         env.push(format!("HF_TOKEN={}", hf_token));
     }
