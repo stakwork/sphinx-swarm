@@ -8,7 +8,6 @@
   import Lnd from "../lnd/Lnd.svelte";
   import Bitcoin from "../btc/Bitcoin.svelte";
   import Proxy from "../Proxy.svelte";
-  import NavFiber from "../NavFiber.svelte";
   import GraphMindset from "../GraphMindset.svelte";
   import Boltwall from "../Boltwall.svelte";
   import { IS_DEV } from "../api/cmd";
@@ -64,7 +63,7 @@
       </button>
     </section>
 
-    {#if $selectedNode.name !== "navfiber" && $selectedNode.name !== "graphmindset"}
+    {#if $selectedNode.name !== "graphmindset"}
       <header>
         <img
           src={`swarm/${type.toLowerCase()}.png`}
@@ -98,8 +97,6 @@
         <Bitcoin {tag} />
       {:else if type === "Proxy"}
         <Proxy {tag} />
-      {:else if type === "NavFiber"}
-        <NavFiber host={$selectedNode.host} {updateBody} />
       {:else if type === "GraphMindset"}
         <GraphMindset host={$selectedNode.host} {updateBody} />
       {:else if type === "BoltWall"}

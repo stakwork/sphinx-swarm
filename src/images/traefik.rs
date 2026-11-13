@@ -123,7 +123,7 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
 pub fn traefik_labels(
     name: &str,
     host: &str, // stakgraph.swarm38.sphinx.chat
-    port: &str, // inner port (like 80 for navfiber nginx, not 8000)
+    port: &str, // inner port
     websockets: bool,
 ) -> HashMap<String, String> {
     if let Ok(pbs) = getenv("PORT_BASED_SSL") {
@@ -148,12 +148,6 @@ pub fn traefik_labels(
                 name, shared_host
             ));
             def.push(format!("traefik.http.routers.{}.priority=2", name));
-        } else if name == "navfiber" {
-            def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`)",
-                name, shared_host
-            ));
-            def.push(format!("traefik.http.routers.{}.priority=1", name));
         } else {
             // boltwall: /api and /socket.io paths
             def.push(format!(
@@ -193,13 +187,7 @@ pub fn traefik_labels_port_based_ssl(
 ) -> HashMap<String, String> {
     let base_host = extract_base_domain(host);
 
-    // navfiber serves on internal port 80, but uses external entrypoint 8000
-    let entrypoint_port = if port == "80" {
-        "8000"
-    } else {
-        port
-    };
-    let entrypoint_name = format!("port{}", entrypoint_port);
+    let entrypoint_name = format!("port{}", port);
     let lb = format!("traefik.http.services.{}.loadbalancer.server.port", name);
 
     let mut def = vec![
@@ -228,12 +216,6 @@ pub fn traefik_labels_port_based_ssl(
                 shared_router, shared_host
             ));
             def.push(format!("traefik.http.routers.{}.priority=2", shared_router));
-        } else if name == "navfiber" {
-            def.push(format!(
-                "traefik.http.routers.{}.rule=Host(`{}`)",
-                shared_router, shared_host
-            ));
-            def.push(format!("traefik.http.routers.{}.priority=1", shared_router));
         } else {
             def.push(format!(
                 "traefik.http.routers.{}.rule=Host(`{}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))",
@@ -251,7 +233,7 @@ pub fn traefik_labels_port_based_ssl(
 }
 
 fn is_shared_host_service(name: &str) -> bool {
-    name == "navfiber" || name == "graphmindset" || name == "boltwall"
+    name == "graphmindset" || name == "boltwall"
 }
 pub fn shared_host() -> Option<String> {
     let sh = std::env::var("NAV_BOLTWALL_SHARED_HOST").ok();

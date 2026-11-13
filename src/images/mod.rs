@@ -14,7 +14,6 @@ pub mod dufs;
 pub mod elastic;
 pub mod graphmindset;
 pub mod hermes;
-pub mod hive_relay;
 pub mod jamie;
 pub mod jarvis;
 pub mod llama;
@@ -23,7 +22,6 @@ pub mod lss;
 pub mod maple;
 pub mod mixer;
 pub mod mongo;
-pub mod navfiber;
 pub mod neo4j;
 pub mod postgres;
 pub mod proxy;
@@ -61,7 +59,6 @@ pub enum Image {
     Cache(cache::CacheImage),
     Neo4j(neo4j::Neo4jImage),
     Elastic(elastic::ElasticImage),
-    NavFiber(navfiber::NavFiberImage),
     GraphMindset(graphmindset::GraphMindsetImage),
     BoltWall(boltwall::BoltwallImage),
     Jarvis(jarvis::JarvisImage),
@@ -88,7 +85,6 @@ pub enum Image {
     Stakgraph(stakgraph::StakgraphImage),
     Quickwit(quickwit::QuickwitImage),
     Vector(vector::VectorImage),
-    HiveRelay(hive_relay::HiveRelayImage),
     Bifrost(bifrost::BifrostImage),
     Hermes(hermes::HermesImage),
     Browser(browser::BrowserImage),
@@ -148,7 +144,6 @@ impl Image {
             Image::Cache(n) => n.name.clone(),
             Image::Neo4j(n) => n.name.clone(),
             Image::Elastic(n) => n.name.clone(),
-            Image::NavFiber(n) => n.name.clone(),
             Image::GraphMindset(n) => n.name.clone(),
             Image::Jarvis(n) => n.name.clone(),
             Image::BoltWall(n) => n.name.clone(),
@@ -175,7 +170,6 @@ impl Image {
             Image::Stakgraph(n) => n.name.clone(),
             Image::Quickwit(n) => n.name.clone(),
             Image::Vector(n) => n.name.clone(),
-            Image::HiveRelay(n) => n.name.clone(),
             Image::Bifrost(n) => n.name.clone(),
             Image::Hermes(n) => n.name.clone(),
             Image::Browser(n) => n.name.clone(),
@@ -195,7 +189,6 @@ impl Image {
             Image::Cache(_) => None,
             Image::Neo4j(n) => n.host.clone(),
             Image::Elastic(n) => n.host.clone(),
-            Image::NavFiber(n) => n.host.clone(),
             Image::GraphMindset(n) => n.host.clone(),
             Image::Jarvis(_) => None,
             Image::BoltWall(n) => n.host.clone(),
@@ -222,7 +215,6 @@ impl Image {
             Image::Stakgraph(n) => n.host.clone(),
             Image::Quickwit(n) => n.host.clone(),
             Image::Vector(n) => n.host.clone(),
-            Image::HiveRelay(n) => n.host.clone(),
             Image::Bifrost(n) => n.host.clone(),
             // internal only: never fronted by traefik
             Image::Hermes(_) => None,
@@ -242,7 +234,6 @@ impl Image {
             Image::Cache(_n) => "Cache",
             Image::Neo4j(_n) => "Neo4j",
             Image::Elastic(_n) => "Elastic",
-            Image::NavFiber(_n) => "NavFiber",
             Image::GraphMindset(_n) => "GraphMindset",
             Image::Jarvis(_n) => "JarvisBackend",
             Image::BoltWall(_n) => "BoltWall",
@@ -269,7 +260,6 @@ impl Image {
             Image::Stakgraph(_n) => "Stakgraph",
             Image::Quickwit(_n) => "Quickwit",
             Image::Vector(_n) => "Vector",
-            Image::HiveRelay(_n) => "HiveRelay",
             Image::Bifrost(_n) => "Bifrost",
             Image::Hermes(_n) => "Hermes",
             Image::Browser(_n) => "Browser",
@@ -291,7 +281,6 @@ impl Image {
             Image::Cache(n) => n.version.clone(),
             Image::Neo4j(n) => n.version.clone(),
             Image::Elastic(n) => n.version.clone(),
-            Image::NavFiber(n) => n.version.clone(),
             Image::GraphMindset(n) => n.version.clone(),
             Image::Jarvis(n) => n.version.clone(),
             Image::BoltWall(n) => n.version.clone(),
@@ -318,7 +307,6 @@ impl Image {
             Image::Stakgraph(n) => n.version.clone(),
             Image::Quickwit(n) => n.version.clone(),
             Image::Vector(n) => n.version.clone(),
-            Image::HiveRelay(n) => n.version.clone(),
             Image::Bifrost(n) => n.version.clone(),
             Image::Hermes(n) => n.version.clone(),
             Image::Browser(n) => n.version.clone(),
@@ -337,7 +325,6 @@ impl Image {
             Image::Cache(n) => n.version = version.to_string(),
             Image::Neo4j(n) => n.version = version.to_string(),
             Image::Elastic(n) => n.version = version.to_string(),
-            Image::NavFiber(n) => n.version = version.to_string(),
             Image::GraphMindset(n) => n.version = version.to_string(),
             Image::Jarvis(n) => n.version = version.to_string(),
             Image::BoltWall(n) => n.version = version.to_string(),
@@ -364,7 +351,6 @@ impl Image {
             Image::Stakgraph(n) => n.version = version.to_string(),
             Image::Quickwit(n) => n.version = version.to_string(),
             Image::Vector(n) => n.version = version.to_string(),
-            Image::HiveRelay(n) => n.version = version.to_string(),
             Image::Bifrost(n) => n.version = version.to_string(),
             Image::Hermes(n) => n.version = version.to_string(),
             Image::Browser(n) => n.version = version.to_string(),
@@ -384,7 +370,6 @@ impl Image {
             Image::Cache(_) => (),
             Image::Neo4j(n) => n.host(Some(host.to_string())),
             Image::Elastic(n) => n.host(Some(host.to_string())),
-            Image::NavFiber(n) => n.host(Some(host.to_string())),
             Image::GraphMindset(n) => n.host(Some(host.to_string())),
             Image::Jarvis(_) => (),
             Image::BoltWall(n) => n.host(Some(host.to_string())),
@@ -411,7 +396,6 @@ impl Image {
             Image::Stakgraph(n) => n.host(Some(host.to_string())),
             Image::Quickwit(n) => n.host(Some(host.to_string())),
             Image::Vector(n) => n.host(Some(host.to_string())),
-            Image::HiveRelay(n) => n.host(Some(host.to_string())),
             Image::Bifrost(n) => n.host(Some(host.to_string())),
             Image::Hermes(_) => (),
             Image::Browser(_) => (),
@@ -492,7 +476,6 @@ impl DockerConfig for Image {
             Image::Cache(n) => n.make_config(nodes, docker).await,
             Image::Neo4j(n) => n.make_config(nodes, docker).await,
             Image::Elastic(n) => n.make_config(nodes, docker).await,
-            Image::NavFiber(n) => n.make_config(nodes, docker).await,
             Image::GraphMindset(n) => n.make_config(nodes, docker).await,
             Image::Jarvis(n) => n.make_config(nodes, docker).await,
             Image::BoltWall(n) => n.make_config(nodes, docker).await,
@@ -519,7 +502,6 @@ impl DockerConfig for Image {
             Image::Stakgraph(n) => n.make_config(nodes, docker).await,
             Image::Quickwit(n) => n.make_config(nodes, docker).await,
             Image::Vector(n) => n.make_config(nodes, docker).await,
-            Image::HiveRelay(n) => n.make_config(nodes, docker).await,
             Image::Bifrost(n) => n.make_config(nodes, docker).await,
             Image::Hermes(n) => n.make_config(nodes, docker).await,
             Image::Browser(n) => n.make_config(nodes, docker).await,
@@ -541,7 +523,6 @@ impl DockerHubImage for Image {
             Image::Cache(n) => n.repo(),
             Image::Neo4j(n) => n.repo(),
             Image::Elastic(n) => n.repo(),
-            Image::NavFiber(n) => n.repo(),
             Image::GraphMindset(n) => n.repo(),
             Image::Jarvis(n) => n.repo(),
             Image::BoltWall(n) => n.repo(),
@@ -568,7 +549,6 @@ impl DockerHubImage for Image {
             Image::Stakgraph(n) => n.repo(),
             Image::Quickwit(n) => n.repo(),
             Image::Vector(n) => n.repo(),
-            Image::HiveRelay(n) => n.repo(),
             Image::Bifrost(n) => n.repo(),
             Image::Hermes(n) => n.repo(),
             Image::Browser(n) => n.repo(),
@@ -802,14 +782,6 @@ impl LinkedImages {
         }
         None
     }
-    pub fn find_hive_relay(&self) -> Option<hive_relay::HiveRelayImage> {
-        for img in self.0.iter() {
-            if let Ok(i) = img.as_hive_relay() {
-                return Some(i);
-            }
-        }
-        None
-    }
     pub fn find_bifrost(&self) -> Option<bifrost::BifrostImage> {
         for img in self.0.iter() {
             if let Ok(i) = img.as_bifrost() {
@@ -855,12 +827,6 @@ impl Image {
         match self {
             Image::Elastic(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Elastic".to_string())),
-        }
-    }
-    pub fn as_navfiber(&self) -> anyhow::Result<navfiber::NavFiberImage> {
-        match self {
-            Image::NavFiber(i) => Ok(i.clone()),
-            _ => Err(anyhow::anyhow!("Not NavFiber".to_string())),
         }
     }
     pub fn as_boltwall(&self) -> anyhow::Result<boltwall::BoltwallImage> {
@@ -963,12 +929,6 @@ impl Image {
         match self {
             Image::Vector(i) => Ok(i.clone()),
             _ => Err(anyhow::anyhow!("Not Vector".to_string())),
-        }
-    }
-    pub fn as_hive_relay(&self) -> anyhow::Result<hive_relay::HiveRelayImage> {
-        match self {
-            Image::HiveRelay(i) => Ok(i.clone()),
-            _ => Err(anyhow::anyhow!("Not HiveRelay".to_string())),
         }
     }
     pub fn as_bifrost(&self) -> anyhow::Result<bifrost::BifrostImage> {

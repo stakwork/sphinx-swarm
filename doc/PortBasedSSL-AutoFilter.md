@@ -90,14 +90,14 @@ hard-coded list entirely.
 `PORT_BASED_SSL=1` is only used by the `second_brain` and `graph_mindset`
 stacks (`secondbrain.rs` and `graphmindset.rs`). Their full image set is:
 
-- second_brain: navfiber, graphmindset, neo4j, boltwall, jarvis, redis,
-  repo2graph, stakgraph, quickwit, vector, hive-relay, optional bot, optional
+- second_brain: graphmindset, neo4j, boltwall, jarvis, redis,
+  repo2graph, stakgraph, quickwit, vector, optional bot, optional
   llama.
-- graph_mindset: bot, navfiber, graphmindset, neo4j, boltwall, jarvis, redis,
+- graph_mindset: bot, graphmindset, neo4j, boltwall, jarvis, redis,
   repo2graph, stakgraph.
 
 Every public-facing one has Traefik labels (boltwall, stakgraph, repo2graph,
-graphmindset, navfiber, hive-relay, vector). The rest (neo4j, redis, quickwit,
+graphmindset, vector). The rest (neo4j, redis, quickwit,
 jarvis, bot, llama) are only ever reached on the docker network — they don't
 need a host port at all.
 

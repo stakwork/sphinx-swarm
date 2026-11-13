@@ -33,6 +33,5 @@ Other "stop" services are:
 - neo4j
 - elastic
 - boltwall
-- navfiber
 
 For the whole list, you can do a `cat stop.sh` to see what's listed
