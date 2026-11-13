@@ -339,7 +339,7 @@ pub async fn put_config_file(project: &str, rs: &Stack) {
 }
 
 /// Migrate an existing Stack config to include new required nodes.
-/// Currently adds Quickwit, Vector, and HiveRelay to second-brain stacks that lack them.
+/// Currently adds Quickwit and Vector to second-brain stacks that lack them.
 /// This is safe to call on every startup — it's a no-op if the nodes already exist.
 pub fn migrate_stack(stack: &mut Stack) {
     use crate::defaults::env_is_true;
@@ -348,8 +348,7 @@ pub fn migrate_stack(stack: &mut Stack) {
     use crate::images::browser::BrowserImage;
     use crate::images::graphmindset::GraphMindsetImage;
     use crate::images::hermes::HermesImage;
-    use crate::images::hive_relay::HiveRelayImage;
-    use crate::images::quickwit::QuickwitImage;
+        use crate::images::quickwit::QuickwitImage;
     use crate::images::vector::VectorImage;
     use crate::images::maple::{maple_configured, MapleImage, MAPLE_PROXY_VERSION};
     use crate::images::treasury::TreasuryImage;
@@ -363,7 +362,6 @@ pub fn migrate_stack(stack: &mut Stack) {
 
     let has_quickwit = stack.nodes.iter().any(|n| n.name() == "quickwit");
     let has_vector = stack.nodes.iter().any(|n| n.name() == "vector");
-    let has_hive_relay = stack.nodes.iter().any(|n| n.name() == "hive-relay");
     let has_bifrost = stack.nodes.iter().any(|n| n.name() == "bifrost");
     let has_hermes = stack.nodes.iter().any(|n| n.name() == "hermes");
     let has_graphmindset = stack.nodes.iter().any(|n| n.name() == "graphmindset");
@@ -395,16 +393,6 @@ pub fn migrate_stack(stack: &mut Stack) {
         vector.links(vec!["quickwit", "boltwall"]);
         stack.nodes.push(Node::Internal(Image::Vector(vector)));
         log::info!("=> added vector node");
-    }
-
-    if !has_hive_relay {
-        let mut hive_relay = HiveRelayImage::new("hive-relay", "latest");
-        hive_relay.host(stack.host.clone());
-        hive_relay.links(vec!["boltwall"]);
-        stack
-            .nodes
-            .push(Node::Internal(Image::HiveRelay(hive_relay)));
-        log::info!("=> added hive-relay node");
     }
 
     if !has_bifrost {
@@ -622,7 +610,6 @@ impl Stack {
                 Image::Cache(c) => Node::Internal(Image::Cache(c)),
                 Image::Neo4j(n) => Node::Internal(Image::Neo4j(n)),
                 Image::Elastic(n) => Node::Internal(Image::Elastic(n)),
-                Image::NavFiber(nf) => Node::Internal(Image::NavFiber(nf)),
                 Image::GraphMindset(gm) => Node::Internal(Image::GraphMindset(gm)),
                 Image::Jarvis(j) => Node::Internal(Image::Jarvis(j)),
                 Image::BoltWall(mut b) => {
@@ -668,7 +655,6 @@ impl Stack {
                 Image::Stakgraph(p) => Node::Internal(Image::Stakgraph(p)),
                 Image::Quickwit(q) => Node::Internal(Image::Quickwit(q)),
                 Image::Vector(v) => Node::Internal(Image::Vector(v)),
-                Image::HiveRelay(h) => Node::Internal(Image::HiveRelay(h)),
                 Image::Bifrost(b) => Node::Internal(Image::Bifrost(b)),
                 Image::Hermes(h) => Node::Internal(Image::Hermes(h)),
                 Image::Advisor(a) => Node::Internal(Image::Advisor(a)),

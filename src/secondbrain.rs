@@ -5,12 +5,10 @@ use crate::images::bot::BotImage;
 use crate::images::browser::BrowserImage;
 use crate::images::graphmindset::GraphMindsetImage;
 use crate::images::bifrost::BifrostImage;
-use crate::images::hive_relay::HiveRelayImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
 use crate::images::llama::LlamaImage;
 use crate::images::maple::{maple_configured, MapleImage, MAPLE_PROXY_VERSION};
-use crate::images::navfiber::NavFiberImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::quickwit::QuickwitImage;
 use crate::images::redis::RedisImage;
@@ -37,13 +35,11 @@ pub fn only_second_brain(network: &str, host: Option<String>, lightning_provider
         auto_update: Some(vec![
             "jarvis".to_string(),
             "boltwall".to_string(),
-            "navfiber".to_string(),
             "graphmindset".to_string(),
             "repo2graph".to_string(),
             "stakgraph".to_string(),
             "quickwit".to_string(),
             "vector".to_string(),
-            "hive-relay".to_string(),
             "bot".to_string(),
             "bifrost".to_string(),
             "browser".to_string(),
@@ -146,12 +142,6 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     }
     bolt.host(host.clone());
 
-    // navfiber
-    v = "latest";
-    let mut nav = NavFiberImage::new("navfiber", v, "8000");
-    nav.links(vec!["jarvis"]);
-    nav.host(host.clone());
-
     // graphmindset (v2 frontend)
     v = "latest";
     let mut gm = GraphMindsetImage::new("graphmindset", v, "3100");
@@ -165,11 +155,6 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     let mut vector = VectorImage::new("vector", "latest-distroless-libc");
     vector.host(host.clone());
     vector.links(vec!["quickwit", "boltwall"]);
-
-    // hive-relay
-    let mut hive_relay = HiveRelayImage::new("hive-relay", "latest");
-    hive_relay.host(host.clone());
-    hive_relay.links(vec!["boltwall"]);
 
     // bifrost - LLM gateway
     //
@@ -188,7 +173,6 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
     bifrost.links(vec!["boltwall", "redis", "neo4j"]);
 
     let mut imgs = vec![
-        Image::NavFiber(nav),
         Image::GraphMindset(gm),
         Image::Neo4j(neo4j),
         Image::BoltWall(bolt),
@@ -200,7 +184,6 @@ pub fn second_brain_imgs(host: Option<String>, lightning_provider: &str) -> Vec<
         Image::Stakgraph(stakgraph),
         Image::Quickwit(quickwit),
         Image::Vector(vector),
-        Image::HiveRelay(hive_relay),
         Image::Bifrost(bifrost),
         Image::Treasury(treasury),
     ];

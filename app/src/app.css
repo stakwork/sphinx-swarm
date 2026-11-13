@@ -412,7 +412,6 @@ html {
 }
 
 .selected-neo4j .node-neo4j,
-.selected-navfiber .node-navfiber,
 .selected-boltwall .node-boltwall,
 .selected-cln .node-cln,
 .selected-lss .node-lss,
@@ -426,14 +425,6 @@ html {
 }
 
 .selected-neo4j.neo4j-stopped .node-neo4j .node-html .node-text {
-  color: #6a6c6d;
-}
-
-.selected-navfiber.navfiber-stopped .node-navfiber {
-  border: 3px solid #6a6c6d !important;
-}
-
-.selected-navfiber.navfiber-stopped .node-navfiber.node-html .node-text {
   color: #6a6c6d;
 }
 

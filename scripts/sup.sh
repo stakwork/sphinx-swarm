@@ -36,10 +36,6 @@ case "$1" in
     IMAGE="nousresearch/hermes-agent:latest"
     CONTAINER="hermes.sphinx"
     ;;
-  hive-relay)
-    IMAGE="sphinxlightning/hive-relay:latest"
-    CONTAINER="hive-relay.sphinx"
-    ;;
   jarvis)
     IMAGE="sphinxlightning/sphinx-jarvis-backend:latest"
     CONTAINER="jarvis.sphinx"
@@ -51,10 +47,6 @@ case "$1" in
   maple)
     IMAGE="ghcr.io/mapleprivacylabs/maple-proxy:0.4.5"
     CONTAINER="maple.sphinx"
-    ;;
-  navfiber)
-    IMAGE="sphinxlightning/sphinx-nav-fiber:latest"
-    CONTAINER="navfiber.sphinx"
     ;;
   neo4j)
     IMAGE="neo4j:5.19.0"
@@ -90,7 +82,7 @@ case "$1" in
     ;;
   *)
     echo "=> invalid service name! '$1'"
-    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes hive-relay jarvis llama maple navfiber neo4j quickwit redis repo2graph stakgraph treasury vector voice"
+    echo "=> valid services: bifrost boltwall bot browser graphmindset hermes jarvis llama maple neo4j quickwit redis repo2graph stakgraph treasury vector voice"
     exit 1
     ;;
 esac
