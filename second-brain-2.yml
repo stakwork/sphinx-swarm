@@ -25,12 +25,10 @@ services:
       - "--entrypoints.port7799.address=:7799"
       - "--entrypoints.port3355.address=:3355"
       - "--entrypoints.port6000.address=:6000"
-      - "--entrypoints.port8000.address=:8000"
       - "--entrypoints.port3100.address=:3100"
       - "--entrypoints.port8444.address=:8444"
       - "--entrypoints.port8800.address=:8800"
       - "--entrypoints.port9000.address=:9000"
-      - "--entrypoints.port3333.address=:3333"
       - "--entrypoints.port8181.address=:8181"
     ports:
       # The HTTP port
