@@ -322,10 +322,42 @@ pub async fn load_config_file(project: &str) -> Result<Stack> {
         let _ = tokio::fs::remove_file(path).await;
         Ok(stack)
     } else {
-        let s = utils::load_yaml(&yaml_path, Default::default()).await?;
+        let s = match utils::load_yaml(&yaml_path, Stack::default()).await {
+            Ok(s) => s,
+            // e.g. a node whose image type was removed from the codebase:
+            // drop just those nodes, rewrite the file, and carry on
+            Err(e) => match load_stack_skipping_unknown_nodes(&yaml_path).await {
+                Some(s) => s,
+                None => return Err(e),
+            },
+        };
         println!("STACK! {:?}", s);
         Ok(s)
     }
+}
+
+/// Parse the stack YAML leniently: any node that no longer deserializes
+/// (unknown image variant, etc.) is skipped, and the cleaned config is
+/// written back to disk. Returns None if the file is broken in other ways.
+async fn load_stack_skipping_unknown_nodes(yaml_path: &str) -> Option<Stack> {
+    let data = tokio::fs::read(yaml_path).await.ok()?;
+    let mut value: serde_yaml::Value = serde_yaml::from_slice(&data).ok()?;
+    let nodes = value.get_mut("nodes")?.as_sequence_mut()?;
+    let before = nodes.len();
+    nodes.retain(|n| match serde_yaml::from_value::<Node>(n.clone()) {
+        Ok(_) => true,
+        Err(e) => {
+            let name = n.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+            log::warn!("skipping unknown node {:?} in config: {:?}", name, e);
+            false
+        }
+    });
+    if nodes.len() == before {
+        return None;
+    }
+    let stack: Stack = serde_yaml::from_value(value).ok()?;
+    utils::put_yaml(yaml_path, &stack).await;
+    Some(stack)
 }
 
 pub async fn put_config_file(project: &str, rs: &Stack) {
@@ -1053,5 +1085,29 @@ mod migrate_tests {
             }
             other => panic!("not a treasury image: {:?}", other),
         }
+    }
+}
+
+#[cfg(test)]
+mod unknown_node_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn unknown_nodes_are_dropped_and_file_rewritten() {
+        let dir = std::env::temp_dir().join("swarm_unknown_node_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("config.yaml");
+        let mut v = serde_yaml::to_value(Stack::default()).unwrap();
+        let good = v["nodes"].as_sequence().unwrap().len();
+        let mut bad = serde_yaml::Mapping::new();
+        bad.insert("place".into(), "Internal".into());
+        bad.insert("type".into(), "HiveRelay".into());
+        v["nodes"].as_sequence_mut().unwrap().push(bad.into());
+        std::fs::write(&path, serde_yaml::to_string(&v).unwrap()).unwrap();
+        let p = path.to_str().unwrap();
+        let s = load_stack_skipping_unknown_nodes(p).await.expect("lenient load");
+        assert_eq!(s.nodes.len(), good);
+        let again: Stack = serde_yaml::from_slice(&std::fs::read(p).unwrap()).unwrap();
+        assert_eq!(again.nodes.len(), good);
     }
 }
