@@ -34,9 +34,15 @@ pub fn bucket_name() -> String {
 }
 
 fn swarm_prefix_from_host() -> Result<String> {
-    let host = getenv("HOST")?;
-    let host_slug = host.replace('.', "-");
-    Ok(format!("swarm-{}", host_slug))
+    Ok(swarm_prefix_for_host(&getenv("HOST")?))
+}
+
+/// This swarm's per-host S3 key segment, `swarm-<HOST with dots as dashes>`.
+/// Backups live directly under it, and backup retention deletes old objects
+/// under it, so anything meant to outlive backups must nest it under a
+/// top-level prefix of its own (as the gateway logs do).
+pub fn swarm_prefix_for_host(host: &str) -> String {
+    format!("swarm-{}", host.replace('.', "-"))
 }
 
 fn backup_retention_days() -> i64 {
