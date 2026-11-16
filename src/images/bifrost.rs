@@ -1,10 +1,10 @@
 use super::traefik::traefik_labels;
 use super::*;
-use crate::backup::swarm_prefix_for_host;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
+use crate::images::s3_offload::S3Offload;
 use crate::secrets;
 use crate::utils::{domain, exposed_ports, getenv, host_config};
 use anyhow::Result;
@@ -239,26 +239,9 @@ pub fn bifrost(
         env.push(format!("XAI_API_KEY={}", xai_api_key));
     }
 
-    // Request/response payload offload to S3 (see `logs_s3_env`). Off
+    // Request/response payload offload to S3 (see `GATEWAY_LOGS`). Off
     // unless this host's env has BIFROST_LOGS_S3_BUCKET.
-    match logs_s3_env(|key| getenv(key).ok()) {
-        Ok(vars) => {
-            if let Some(dest) = vars
-                .iter()
-                .find_map(|v| v.strip_prefix("BIFROST_LOGS_S3_PREFIX="))
-            {
-                log::info!(
-                    "bifrost: offloading gateway log payloads to S3 under {}/",
-                    dest
-                );
-            }
-            env.extend(vars);
-        }
-        Err(why) => log::error!(
-            "bifrost: NOT offloading gateway log payloads to S3, they stay in logs.db: {}",
-            why
-        ),
-    }
+    env.extend(GATEWAY_LOGS.host_env());
 
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
@@ -280,101 +263,25 @@ pub fn bifrost(
     c
 }
 
-/// Top-level S3 prefix that each swarm's gateway log payloads go under, as
-/// `bifrost-logs/swarm-<host-slug>`. It must stay apart from the backup
-/// prefixes (`swarm<N>/`, `swarm-<host-slug>/`) because backup retention
-/// deletes every old object under those. How long logs live is a bucket
-/// lifecycle rule on this prefix.
-const LOGS_S3_ROOT: &str = "bifrost-logs";
-
-/// The gateway's log offload env (contract owned by stakgraph `gateway/`):
-/// with a bucket set, each request's payload is gzipped to
+/// The gateway's log offload (contract owned by stakgraph `gateway/`): with
+/// a bucket set, each request's payload is gzipped to
 /// `<prefix>/logs/YYYY/MM/DD/HH/<id>.json.gz` and logs.db keeps only an
-/// index row. `lookup` reads this host's env.
+/// index row. Rules in `S3Offload::env`; the default prefix is
+/// `bifrost-logs/swarm-<host-slug>`.
 ///
-/// - Off (`Ok(vec![])`) unless `BIFROST_LOGS_S3_BUCKET` is set. It is never
-///   derived from `AWS_S3_BUCKET_NAME`. A bucket the gateway can't reach at
-///   boot only makes it fall back to no offload, but uploads after that are
-///   fire-and-forget, so a role that passes the boot check yet can't write
-///   or tag objects loses every payload while the gateway looks healthy.
-///   Switching it on is a deliberate per-host act.
-/// - The prefix is the host's `BIFROST_LOGS_S3_PREFIX`, else
-///   `bifrost-logs/swarm-<host-slug>` from `HOST`.
-/// - The region is the host's `BIFROST_LOGS_S3_REGION`, else `AWS_REGION`.
-///   The gateway's S3 client needs one even with an endpoint (R2 takes
-///   `auto`); without it the gateway would fail its boot check and run
-///   without offload on every start, so it is refused here instead.
-/// - Endpoint and access keys pass through only when set (hosts not on
-///   AWS); neither key means the instance role.
-///
-/// `Err(reason)` when it is asked for but can't be done safely; the caller
-/// then passes none of the vars, so payloads stay local rather than being
-/// mixed with another swarm's or dropped.
-fn logs_s3_env(lookup: impl Fn(&str) -> Option<String>) -> Result<Vec<String>, String> {
-    let get = |key: &str| {
-        lookup(key)
-            .map(|v| v.trim().to_string())
-            .filter(|v| !v.is_empty())
-    };
-
-    let Some(bucket) = get("BIFROST_LOGS_S3_BUCKET") else {
-        return Ok(vec![]);
-    };
-
-    let prefix = match get("BIFROST_LOGS_S3_PREFIX") {
-        Some(explicit) => {
-            let explicit = explicit.trim_matches('/').to_string();
-            // `swarm7/...` or `swarm-host/...` would be swept by backup
-            // retention (see LOGS_S3_ROOT).
-            if explicit.is_empty() || explicit.starts_with("swarm") {
-                return Err(format!(
-                    "BIFROST_LOGS_S3_PREFIX {:?} is empty or under a backup prefix \
-                     (swarm...), whose old objects backup retention deletes",
-                    explicit
-                ));
-            }
-            explicit
-        }
-        None => match get("HOST") {
-            Some(host) => format!("{}/{}", LOGS_S3_ROOT, swarm_prefix_for_host(&host)),
-            None => {
-                return Err("BIFROST_LOGS_S3_BUCKET is set but neither \
-                     BIFROST_LOGS_S3_PREFIX nor HOST is, and a shared default \
-                     prefix would mix swarms' logs"
-                    .to_string())
-            }
-        },
-    };
-
-    let access_key_id = get("BIFROST_LOGS_S3_ACCESS_KEY_ID");
-    let secret_access_key = get("BIFROST_LOGS_S3_SECRET_ACCESS_KEY");
-    if access_key_id.is_some() != secret_access_key.is_some() {
-        return Err("only one of BIFROST_LOGS_S3_ACCESS_KEY_ID / \
-             BIFROST_LOGS_S3_SECRET_ACCESS_KEY is set (both or neither)"
-            .to_string());
-    }
-
-    let Some(region) = get("BIFROST_LOGS_S3_REGION").or_else(|| get("AWS_REGION")) else {
-        return Err("BIFROST_LOGS_S3_BUCKET is set but neither \
-             BIFROST_LOGS_S3_REGION nor AWS_REGION is, and the gateway's S3 \
-             client needs a region"
-            .to_string());
-    };
-
-    let mut env = vec![
-        format!("BIFROST_LOGS_S3_BUCKET={}", bucket),
-        format!("BIFROST_LOGS_S3_PREFIX={}", prefix),
-        format!("BIFROST_LOGS_S3_REGION={}", region),
-    ];
-    if let Some(endpoint) = get("BIFROST_LOGS_S3_ENDPOINT") {
-        env.push(format!("BIFROST_LOGS_S3_ENDPOINT={}", endpoint));
-    }
-    if let (Some(id), Some(secret)) = (access_key_id, secret_access_key) {
-        env.push(format!("BIFROST_LOGS_S3_ACCESS_KEY_ID={}", id));
-        env.push(format!("BIFROST_LOGS_S3_SECRET_ACCESS_KEY={}", secret));
-    }
-    Ok(env)
-}
+/// Off unless the host sets `BIFROST_LOGS_S3_BUCKET`. A bucket the gateway
+/// can't reach at boot only makes it fall back to no offload, but uploads
+/// after that are fire-and-forget, so a role that passes the boot check yet
+/// can't write or tag objects loses every payload while the gateway looks
+/// healthy. The gateway also fails its boot check without a region, which
+/// is why a missing one is refused rather than passed on.
+pub const GATEWAY_LOGS: S3Offload = S3Offload {
+    vars: "BIFROST_LOGS_S3",
+    root: "bifrost-logs",
+    service: "bifrost",
+    what: "gateway log payloads",
+    if_off: "they stay in logs.db",
+};
 
 fn strarr(i: Vec<&str>) -> Vec<String> {
     i.iter().map(|s| s.to_string()).collect()
@@ -733,14 +640,14 @@ mod tests {
         assert_eq!(back.enforce_budgets, Some(true));
     }
 
-    // logs_s3_env tests read a fixed map, not the process env, so they
+    // GATEWAY_LOGS tests read a fixed map, not the process env, so they
     // don't race the tests above (or other modules reading HOST).
     fn logs_env(pairs: &[(&str, &str)]) -> Result<Vec<String>, String> {
         let map: std::collections::HashMap<String, String> = pairs
             .iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        logs_s3_env(|key| map.get(key).cloned())
+        GATEWAY_LOGS.env(|key| map.get(key).cloned())
     }
 
     const HOST_ENV: [(&str, &str); 2] =
