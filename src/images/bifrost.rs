@@ -1,5 +1,6 @@
 use super::traefik::traefik_labels;
 use super::*;
+use crate::backup::swarm_prefix_for_host;
 use crate::config::Node;
 use crate::images::boltwall::BoltwallImage;
 use crate::images::neo4j::Neo4jImage;
@@ -238,6 +239,27 @@ pub fn bifrost(
         env.push(format!("XAI_API_KEY={}", xai_api_key));
     }
 
+    // Request/response payload offload to S3 (see `logs_s3_env`). Off
+    // unless this host's env has BIFROST_LOGS_S3_BUCKET.
+    match logs_s3_env(|key| getenv(key).ok()) {
+        Ok(vars) => {
+            if let Some(dest) = vars
+                .iter()
+                .find_map(|v| v.strip_prefix("BIFROST_LOGS_S3_PREFIX="))
+            {
+                log::info!(
+                    "bifrost: offloading gateway log payloads to S3 under {}/",
+                    dest
+                );
+            }
+            env.extend(vars);
+        }
+        Err(why) => log::error!(
+            "bifrost: NOT offloading gateway log payloads to S3, they stay in logs.db: {}",
+            why
+        ),
+    }
+
     let mut c = Config {
         image: Some(format!("{}:{}", image, img.version)),
         hostname: Some(domain(&name)),
@@ -256,6 +278,93 @@ pub fn bifrost(
     }
 
     c
+}
+
+/// Top-level S3 prefix that each swarm's gateway log payloads go under, as
+/// `bifrost-logs/swarm-<host-slug>`. It must stay apart from the backup
+/// prefixes (`swarm<N>/`, `swarm-<host-slug>/`) because backup retention
+/// deletes every old object under those. How long logs live is a bucket
+/// lifecycle rule on this prefix.
+const LOGS_S3_ROOT: &str = "bifrost-logs";
+
+/// The gateway's log offload env (contract owned by stakgraph `gateway/`):
+/// with a bucket set, each request's payload is gzipped to
+/// `<prefix>/logs/YYYY/MM/DD/HH/<id>.json.gz` and logs.db keeps only an
+/// index row. `lookup` reads this host's env.
+///
+/// - Off (`Ok(vec![])`) unless `BIFROST_LOGS_S3_BUCKET` is set. It is never
+///   derived from `AWS_S3_BUCKET_NAME`: the gateway's uploads are
+///   fire-and-forget, so a role without the bucket permissions loses every
+///   payload while the gateway looks healthy. Switching it on is a
+///   deliberate per-host act.
+/// - The prefix is the host's `BIFROST_LOGS_S3_PREFIX`, else
+///   `bifrost-logs/swarm-<host-slug>` from `HOST`.
+/// - The region is the host's `BIFROST_LOGS_S3_REGION`, else `AWS_REGION`.
+/// - Endpoint and access keys pass through only when set (hosts not on
+///   AWS); neither key means the instance role.
+///
+/// `Err(reason)` when it is asked for but can't be done safely; the caller
+/// then passes none of the vars, so payloads stay local rather than being
+/// mixed with another swarm's or dropped.
+fn logs_s3_env(lookup: impl Fn(&str) -> Option<String>) -> Result<Vec<String>, String> {
+    let get = |key: &str| {
+        lookup(key)
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+    };
+
+    let Some(bucket) = get("BIFROST_LOGS_S3_BUCKET") else {
+        return Ok(vec![]);
+    };
+
+    let prefix = match get("BIFROST_LOGS_S3_PREFIX") {
+        Some(explicit) => {
+            let explicit = explicit.trim_matches('/').to_string();
+            // `swarm7/...` or `swarm-host/...` would be swept by backup
+            // retention (see LOGS_S3_ROOT).
+            if explicit.is_empty() || explicit.starts_with("swarm") {
+                return Err(format!(
+                    "BIFROST_LOGS_S3_PREFIX {:?} is empty or under a backup prefix \
+                     (swarm...), whose old objects backup retention deletes",
+                    explicit
+                ));
+            }
+            explicit
+        }
+        None => match get("HOST") {
+            Some(host) => format!("{}/{}", LOGS_S3_ROOT, swarm_prefix_for_host(&host)),
+            None => {
+                return Err("BIFROST_LOGS_S3_BUCKET is set but neither \
+                     BIFROST_LOGS_S3_PREFIX nor HOST is, and a shared default \
+                     prefix would mix swarms' logs"
+                    .to_string())
+            }
+        },
+    };
+
+    let access_key_id = get("BIFROST_LOGS_S3_ACCESS_KEY_ID");
+    let secret_access_key = get("BIFROST_LOGS_S3_SECRET_ACCESS_KEY");
+    if access_key_id.is_some() != secret_access_key.is_some() {
+        return Err("only one of BIFROST_LOGS_S3_ACCESS_KEY_ID / \
+             BIFROST_LOGS_S3_SECRET_ACCESS_KEY is set (both or neither)"
+            .to_string());
+    }
+
+    let mut env = vec![
+        format!("BIFROST_LOGS_S3_BUCKET={}", bucket),
+        format!("BIFROST_LOGS_S3_PREFIX={}", prefix),
+    ];
+    if let Some(region) = get("BIFROST_LOGS_S3_REGION").or_else(|| get("AWS_REGION")) {
+        env.push(format!("BIFROST_LOGS_S3_REGION={}", region));
+    }
+    if let Some(endpoint) = get("BIFROST_LOGS_S3_ENDPOINT") {
+        env.push(format!("BIFROST_LOGS_S3_ENDPOINT={}", endpoint));
+    }
+    if let (Some(id), Some(secret)) = (access_key_id, secret_access_key) {
+        env.push(format!("BIFROST_LOGS_S3_ACCESS_KEY_ID={}", id));
+        env.push(format!("BIFROST_LOGS_S3_SECRET_ACCESS_KEY={}", secret));
+    }
+    Ok(env)
 }
 
 fn strarr(i: Vec<&str>) -> Vec<String> {
@@ -351,6 +460,7 @@ mod tests {
         std::env::remove_var("OPENROUTER_API_KEY");
         std::env::remove_var("GOOGLE_API_KEY");
         std::env::remove_var("XAI_API_KEY");
+        std::env::remove_var("BIFROST_LOGS_S3_BUCKET");
 
         let img = test_bifrost_image();
         let config = bifrost(&img, &None, &None, &None);
@@ -612,5 +722,164 @@ mod tests {
         assert!(json.contains("\"enforce_budgets\":true"));
         let back: BifrostImage = serde_json::from_str(&json).unwrap();
         assert_eq!(back.enforce_budgets, Some(true));
+    }
+
+    // logs_s3_env tests read a fixed map, not the process env, so they
+    // don't race the tests above (or other modules reading HOST).
+    fn logs_env(pairs: &[(&str, &str)]) -> Result<Vec<String>, String> {
+        let map: std::collections::HashMap<String, String> = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        logs_s3_env(|key| map.get(key).cloned())
+    }
+
+    const HOST_ENV: [(&str, &str); 2] =
+        [("HOST", "swarm42.sphinx.chat"), ("AWS_REGION", "us-east-1")];
+
+    #[test]
+    fn test_logs_s3_off_by_default() {
+        // Every swarm host has HOST / AWS_REGION / AWS_S3_BUCKET_NAME;
+        // none of them turns offload on.
+        let mut pairs = HOST_ENV.to_vec();
+        pairs.push(("AWS_S3_BUCKET_NAME", "sphinx-swarm"));
+        assert_eq!(logs_env(&pairs), Ok(vec![]));
+        assert_eq!(logs_env(&[]), Ok(vec![]));
+
+        let mut empty = pairs.clone();
+        empty.push(("BIFROST_LOGS_S3_BUCKET", ""));
+        assert_eq!(logs_env(&empty), Ok(vec![]), "empty bucket is off");
+    }
+
+    #[test]
+    fn test_logs_s3_on_with_derived_prefix() {
+        let mut pairs = HOST_ENV.to_vec();
+        pairs.push(("BIFROST_LOGS_S3_BUCKET", "fleet-logs"));
+        assert_eq!(
+            logs_env(&pairs),
+            Ok(vec![
+                "BIFROST_LOGS_S3_BUCKET=fleet-logs".to_string(),
+                // Same host slug as backups, but under its own root so
+                // backup retention never sweeps it.
+                "BIFROST_LOGS_S3_PREFIX=bifrost-logs/swarm-swarm42-sphinx-chat".to_string(),
+                "BIFROST_LOGS_S3_REGION=us-east-1".to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_logs_s3_explicit_prefix_wins() {
+        let mut pairs = HOST_ENV.to_vec();
+        pairs.push(("BIFROST_LOGS_S3_BUCKET", "fleet-logs"));
+        pairs.push(("BIFROST_LOGS_S3_PREFIX", "/bifrost-logs/custom/"));
+        let env = logs_env(&pairs).unwrap();
+        assert!(env.contains(&"BIFROST_LOGS_S3_PREFIX=bifrost-logs/custom".to_string()));
+        assert_eq!(
+            env.iter()
+                .filter(|e| e.starts_with("BIFROST_LOGS_S3_PREFIX="))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn test_logs_s3_explicit_prefix_under_backups_refused() {
+        for prefix in ["swarm42", "swarm-swarm42-sphinx-chat/logs"] {
+            let mut pairs = HOST_ENV.to_vec();
+            pairs.push(("BIFROST_LOGS_S3_BUCKET", "fleet-logs"));
+            pairs.push(("BIFROST_LOGS_S3_PREFIX", prefix));
+            assert!(
+                logs_env(&pairs).is_err(),
+                "{} is under a backup prefix",
+                prefix
+            );
+        }
+    }
+
+    #[test]
+    fn test_logs_s3_region_fallback() {
+        let base = [
+            ("BIFROST_LOGS_S3_BUCKET", "fleet-logs"),
+            ("HOST", "swarm42.sphinx.chat"),
+        ];
+
+        let mut pairs = base.to_vec();
+        pairs.push(("AWS_REGION", "us-east-1"));
+        assert!(logs_env(&pairs)
+            .unwrap()
+            .contains(&"BIFROST_LOGS_S3_REGION=us-east-1".to_string()));
+
+        pairs.push(("BIFROST_LOGS_S3_REGION", "eu-west-1"));
+        let env = logs_env(&pairs).unwrap();
+        assert!(env.contains(&"BIFROST_LOGS_S3_REGION=eu-west-1".to_string()));
+        assert!(!env.contains(&"BIFROST_LOGS_S3_REGION=us-east-1".to_string()));
+
+        // Neither: no region var, the gateway falls back to its own default.
+        let env = logs_env(&base).unwrap();
+        assert!(!env.iter().any(|e| e.starts_with("BIFROST_LOGS_S3_REGION=")));
+    }
+
+    #[test]
+    fn test_logs_s3_no_prefix_available_passes_nothing() {
+        // Bucket set but no HOST and no explicit prefix: the gateway's own
+        // default (`bifrost`) would put every such swarm under one prefix.
+        let result = logs_env(&[
+            ("BIFROST_LOGS_S3_BUCKET", "fleet-logs"),
+            ("AWS_REGION", "us-east-1"),
+        ]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_logs_s3_endpoint_and_keys_only_when_set() {
+        let mut pairs = HOST_ENV.to_vec();
+        pairs.push(("BIFROST_LOGS_S3_BUCKET", "fleet-logs"));
+        let env = logs_env(&pairs).unwrap();
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("BIFROST_LOGS_S3_ENDPOINT=")
+                || e.starts_with("BIFROST_LOGS_S3_ACCESS_KEY_ID=")
+                || e.starts_with("BIFROST_LOGS_S3_SECRET_ACCESS_KEY=")));
+
+        pairs.push(("BIFROST_LOGS_S3_ENDPOINT", "https://r2.example.com"));
+        pairs.push(("BIFROST_LOGS_S3_ACCESS_KEY_ID", "AKIDEXAMPLE"));
+        pairs.push(("BIFROST_LOGS_S3_SECRET_ACCESS_KEY", "secretexample"));
+        let env = logs_env(&pairs).unwrap();
+        assert!(env.contains(&"BIFROST_LOGS_S3_ENDPOINT=https://r2.example.com".to_string()));
+        assert!(env.contains(&"BIFROST_LOGS_S3_ACCESS_KEY_ID=AKIDEXAMPLE".to_string()));
+        assert!(env.contains(&"BIFROST_LOGS_S3_SECRET_ACCESS_KEY=secretexample".to_string()));
+    }
+
+    #[test]
+    fn test_logs_s3_half_credentials_passes_nothing() {
+        let mut pairs = HOST_ENV.to_vec();
+        pairs.push(("BIFROST_LOGS_S3_BUCKET", "fleet-logs"));
+        pairs.push(("BIFROST_LOGS_S3_ACCESS_KEY_ID", "AKIDEXAMPLE"));
+        assert!(logs_env(&pairs).is_err());
+    }
+
+    #[test]
+    fn test_bifrost_logs_s3_env_wired_into_container() {
+        // End to end through bifrost() and the process env. Touches only
+        // BIFROST_LOGS_S3_* (explicit prefix and region), never HOST or
+        // AWS_REGION, which other modules' tests may read.
+        let _lock = ENV_LOCK.lock().unwrap();
+        let img = test_bifrost_image();
+
+        std::env::remove_var("BIFROST_LOGS_S3_BUCKET");
+        let env = bifrost(&img, &None, &None, &None).env.unwrap();
+        assert!(!env.iter().any(|e| e.starts_with("BIFROST_LOGS_S3_")));
+
+        std::env::set_var("BIFROST_LOGS_S3_BUCKET", "fleet-logs");
+        std::env::set_var("BIFROST_LOGS_S3_PREFIX", "bifrost-logs/test-swarm");
+        std::env::set_var("BIFROST_LOGS_S3_REGION", "eu-west-1");
+        let env = bifrost(&img, &None, &None, &None).env.unwrap();
+        std::env::remove_var("BIFROST_LOGS_S3_BUCKET");
+        std::env::remove_var("BIFROST_LOGS_S3_PREFIX");
+        std::env::remove_var("BIFROST_LOGS_S3_REGION");
+
+        assert!(env.contains(&"BIFROST_LOGS_S3_BUCKET=fleet-logs".to_string()));
+        assert!(env.contains(&"BIFROST_LOGS_S3_PREFIX=bifrost-logs/test-swarm".to_string()));
+        assert!(env.contains(&"BIFROST_LOGS_S3_REGION=eu-west-1".to_string()));
     }
 }
