@@ -9,6 +9,7 @@ use crate::images::jarvis::JarvisImage;
 use crate::images::maple::MapleImage;
 use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
+use crate::images::s3_offload::S3Offload;
 use crate::images::traefik::shared_host;
 use crate::images::treasury::TreasuryImage;
 use crate::images::voice::VoiceImage;
@@ -98,6 +99,25 @@ impl DockerHubImage for Repo2GraphImage {
         }
     }
 }
+
+/// Strut's archive tier (contract owned by stakwork/strut). Strut runs inside
+/// repo2graph (stakgraph's mcp embeds it under `/lab`), so its env goes here.
+/// With a bucket set, strut uploads each finished run's event log to
+/// `<prefix>/runs/<workflow>/<runId>/events.jsonl.gz`, drops the local copy
+/// after a window, and restores it on read. Rules in `S3Offload::env`; the
+/// default prefix is `strut-archive/swarm-<host-slug>`, a root apart from
+/// `bifrost-logs/` so the two can have different lifecycle rules.
+///
+/// Off unless the host sets `STRUT_ARCHIVE_S3_BUCKET`, independent of the
+/// gateway's switch. Strut verifies an upload before deleting anything
+/// locally and keeps running when the bucket is unreachable.
+pub const STRUT_ARCHIVE: S3Offload = S3Offload {
+    vars: "STRUT_ARCHIVE_S3",
+    root: "strut-archive",
+    service: "repo2graph",
+    what: "strut's run archive",
+    if_off: "strut keeps runs local",
+};
 
 fn repo2graph(
     img: &Repo2GraphImage,
@@ -195,6 +215,9 @@ fn repo2graph(
     if let Ok(strut_llm_model) = getenv("STRUT_LLM_MODEL") {
         env.push(format!("STRUT_LLM_MODEL={}", strut_llm_model));
     }
+    // Strut's archive tier (see `STRUT_ARCHIVE`). Off unless this host's env
+    // has STRUT_ARCHIVE_S3_BUCKET.
+    env.extend(STRUT_ARCHIVE.host_env());
     if let Ok(node_options) = getenv("REPO2GRAPH_NODE_OPTIONS") {
         env.push(format!("NODE_OPTIONS={}", node_options));
     }
@@ -810,6 +833,200 @@ mod tests {
             with.labels.unwrap().get("traefik.docker.network"),
             Some(&"sphinx-swarm".to_string()),
             "traefik is on the default network only"
+        );
+    }
+
+    // STRUT_ARCHIVE tests read a fixed map, not the process env, so they
+    // don't race the tests above (or other modules reading HOST).
+    fn archive_env(pairs: &[(&str, &str)]) -> Result<Vec<String>, String> {
+        let map: std::collections::HashMap<String, String> = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        STRUT_ARCHIVE.env(|key| map.get(key).cloned())
+    }
+
+    const HOST_ENV: [(&str, &str); 2] =
+        [("HOST", "swarm42.sphinx.chat"), ("AWS_REGION", "us-east-1")];
+
+    fn with(extra: &[(&'static str, &'static str)]) -> Vec<(&'static str, &'static str)> {
+        let mut pairs = HOST_ENV.to_vec();
+        pairs.extend_from_slice(extra);
+        pairs
+    }
+
+    #[test]
+    fn test_strut_archive_off_by_default() {
+        // Every swarm host has HOST / AWS_REGION / AWS_S3_BUCKET_NAME, and a
+        // swarm may have the gateway's offload on: none of them turns
+        // strut's archive on.
+        let pairs = with(&[
+            ("AWS_S3_BUCKET_NAME", "sphinx-swarm"),
+            ("BIFROST_LOGS_S3_BUCKET", "fleet-logs"),
+        ]);
+        assert_eq!(archive_env(&pairs), Ok(vec![]));
+        assert_eq!(archive_env(&[]), Ok(vec![]));
+
+        let empty = with(&[("STRUT_ARCHIVE_S3_BUCKET", "")]);
+        assert_eq!(archive_env(&empty), Ok(vec![]), "empty bucket is off");
+    }
+
+    #[test]
+    fn test_strut_archive_on_with_derived_prefix() {
+        let pairs = with(&[("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive")]);
+        assert_eq!(
+            archive_env(&pairs),
+            Ok(vec![
+                "STRUT_ARCHIVE_S3_BUCKET=fleet-archive".to_string(),
+                // Same host slug as backups, under a root of its own, apart
+                // from both the backups and bifrost-logs/.
+                "STRUT_ARCHIVE_S3_PREFIX=strut-archive/swarm-swarm42-sphinx-chat".to_string(),
+                "STRUT_ARCHIVE_S3_REGION=us-east-1".to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_strut_archive_explicit_prefix_wins() {
+        let pairs = with(&[
+            ("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive"),
+            ("STRUT_ARCHIVE_S3_PREFIX", "/strut-archive/custom/"),
+        ]);
+        let env = archive_env(&pairs).unwrap();
+        let prefixes: Vec<&String> = env
+            .iter()
+            .filter(|e| e.starts_with("STRUT_ARCHIVE_S3_PREFIX="))
+            .collect();
+        assert_eq!(
+            prefixes,
+            vec!["STRUT_ARCHIVE_S3_PREFIX=strut-archive/custom"]
+        );
+    }
+
+    #[test]
+    fn test_strut_archive_region_fallback() {
+        let base = [
+            ("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive"),
+            ("HOST", "swarm42.sphinx.chat"),
+        ];
+
+        let mut pairs = base.to_vec();
+        pairs.push(("AWS_REGION", "us-east-1"));
+        assert!(archive_env(&pairs)
+            .unwrap()
+            .contains(&"STRUT_ARCHIVE_S3_REGION=us-east-1".to_string()));
+
+        pairs.push(("STRUT_ARCHIVE_S3_REGION", "eu-west-1"));
+        let env = archive_env(&pairs).unwrap();
+        assert!(env.contains(&"STRUT_ARCHIVE_S3_REGION=eu-west-1".to_string()));
+        assert!(!env.contains(&"STRUT_ARCHIVE_S3_REGION=us-east-1".to_string()));
+
+        // Neither: nothing passed, the S3 client has no region default.
+        assert!(archive_env(&base).is_err());
+    }
+
+    #[test]
+    fn test_strut_archive_prefix_under_backups_refused() {
+        for prefix in ["swarm42", "swarm-swarm42-sphinx-chat/strut", "/"] {
+            let pairs = with(&[
+                ("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive"),
+                ("STRUT_ARCHIVE_S3_PREFIX", prefix),
+            ]);
+            assert!(archive_env(&pairs).is_err(), "{:?} must be refused", prefix);
+        }
+    }
+
+    #[test]
+    fn test_strut_archive_one_key_only_passes_nothing() {
+        for key in [
+            "STRUT_ARCHIVE_S3_ACCESS_KEY_ID",
+            "STRUT_ARCHIVE_S3_SECRET_ACCESS_KEY",
+        ] {
+            let pairs = with(&[("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive"), (key, "x")]);
+            assert!(
+                archive_env(&pairs).is_err(),
+                "{} alone must be refused",
+                key
+            );
+        }
+    }
+
+    #[test]
+    fn test_strut_archive_endpoint_and_keys_only_when_set() {
+        let env = archive_env(&with(&[("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive")])).unwrap();
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("STRUT_ARCHIVE_S3_ENDPOINT=")
+                || e.starts_with("STRUT_ARCHIVE_S3_ACCESS_KEY_ID=")
+                || e.starts_with("STRUT_ARCHIVE_S3_SECRET_ACCESS_KEY=")));
+
+        let env = archive_env(&with(&[
+            ("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive"),
+            ("STRUT_ARCHIVE_S3_ENDPOINT", "https://r2.example.com"),
+            ("STRUT_ARCHIVE_S3_ACCESS_KEY_ID", "AKIDEXAMPLE"),
+            ("STRUT_ARCHIVE_S3_SECRET_ACCESS_KEY", "secretexample"),
+        ]))
+        .unwrap();
+        assert!(env.contains(&"STRUT_ARCHIVE_S3_ENDPOINT=https://r2.example.com".to_string()));
+        assert!(env.contains(&"STRUT_ARCHIVE_S3_ACCESS_KEY_ID=AKIDEXAMPLE".to_string()));
+        assert!(env.contains(&"STRUT_ARCHIVE_S3_SECRET_ACCESS_KEY=secretexample".to_string()));
+    }
+
+    #[test]
+    fn test_strut_archive_no_prefix_available_passes_nothing() {
+        // Bucket set but no HOST and no explicit prefix: strut's own default
+        // (`strut`) would put every such swarm under one prefix.
+        let result = archive_env(&[
+            ("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive"),
+            ("AWS_REGION", "us-east-1"),
+        ]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_strut_archive_env_wired_into_container() {
+        // End to end through repo2graph() and the process env. Touches only
+        // STRUT_ARCHIVE_S3_* (explicit prefix and region), never HOST or
+        // AWS_REGION, which other modules' tests may read.
+        let _lock = ENV_LOCK.lock().unwrap();
+        let img = test_repo2graph_image();
+        let neo4j = test_neo4j_image();
+        let archive_vars = |env: &Vec<String>| -> Vec<String> {
+            env.iter()
+                .filter(|e| e.starts_with("STRUT_ARCHIVE_S3_"))
+                .cloned()
+                .collect()
+        };
+
+        std::env::remove_var("STRUT_ARCHIVE_S3_BUCKET");
+        let env = repo2graph(
+            &img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None,
+        )
+        .unwrap()
+        .env
+        .unwrap();
+        assert_eq!(archive_vars(&env), Vec::<String>::new());
+
+        std::env::set_var("STRUT_ARCHIVE_S3_BUCKET", "fleet-archive");
+        std::env::set_var("STRUT_ARCHIVE_S3_PREFIX", "strut-archive/test-swarm");
+        std::env::set_var("STRUT_ARCHIVE_S3_REGION", "eu-west-1");
+        let env = repo2graph(
+            &img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None,
+        )
+        .unwrap()
+        .env
+        .unwrap();
+        std::env::remove_var("STRUT_ARCHIVE_S3_BUCKET");
+        std::env::remove_var("STRUT_ARCHIVE_S3_PREFIX");
+        std::env::remove_var("STRUT_ARCHIVE_S3_REGION");
+
+        assert_eq!(
+            archive_vars(&env),
+            vec![
+                "STRUT_ARCHIVE_S3_BUCKET=fleet-archive".to_string(),
+                "STRUT_ARCHIVE_S3_PREFIX=strut-archive/test-swarm".to_string(),
+                "STRUT_ARCHIVE_S3_REGION=eu-west-1".to_string(),
+            ]
         );
     }
 }

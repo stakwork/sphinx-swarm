@@ -31,6 +31,7 @@ pub mod relay;
 pub mod repo2graph;
 pub mod rqbit;
 pub mod runner;
+pub mod s3_offload;
 pub mod stakgraph;
 pub mod tome;
 pub mod traefik;
