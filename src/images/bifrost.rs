@@ -293,13 +293,17 @@ const LOGS_S3_ROOT: &str = "bifrost-logs";
 /// index row. `lookup` reads this host's env.
 ///
 /// - Off (`Ok(vec![])`) unless `BIFROST_LOGS_S3_BUCKET` is set. It is never
-///   derived from `AWS_S3_BUCKET_NAME`: the gateway's uploads are
-///   fire-and-forget, so a role without the bucket permissions loses every
-///   payload while the gateway looks healthy. Switching it on is a
-///   deliberate per-host act.
+///   derived from `AWS_S3_BUCKET_NAME`. A bucket the gateway can't reach at
+///   boot only makes it fall back to no offload, but uploads after that are
+///   fire-and-forget, so a role that passes the boot check yet can't write
+///   or tag objects loses every payload while the gateway looks healthy.
+///   Switching it on is a deliberate per-host act.
 /// - The prefix is the host's `BIFROST_LOGS_S3_PREFIX`, else
 ///   `bifrost-logs/swarm-<host-slug>` from `HOST`.
 /// - The region is the host's `BIFROST_LOGS_S3_REGION`, else `AWS_REGION`.
+///   The gateway's S3 client needs one even with an endpoint (R2 takes
+///   `auto`); without it the gateway would fail its boot check and run
+///   without offload on every start, so it is refused here instead.
 /// - Endpoint and access keys pass through only when set (hosts not on
 ///   AWS); neither key means the instance role.
 ///
@@ -350,13 +354,18 @@ fn logs_s3_env(lookup: impl Fn(&str) -> Option<String>) -> Result<Vec<String>, S
             .to_string());
     }
 
+    let Some(region) = get("BIFROST_LOGS_S3_REGION").or_else(|| get("AWS_REGION")) else {
+        return Err("BIFROST_LOGS_S3_BUCKET is set but neither \
+             BIFROST_LOGS_S3_REGION nor AWS_REGION is, and the gateway's S3 \
+             client needs a region"
+            .to_string());
+    };
+
     let mut env = vec![
         format!("BIFROST_LOGS_S3_BUCKET={}", bucket),
         format!("BIFROST_LOGS_S3_PREFIX={}", prefix),
+        format!("BIFROST_LOGS_S3_REGION={}", region),
     ];
-    if let Some(region) = get("BIFROST_LOGS_S3_REGION").or_else(|| get("AWS_REGION")) {
-        env.push(format!("BIFROST_LOGS_S3_REGION={}", region));
-    }
     if let Some(endpoint) = get("BIFROST_LOGS_S3_ENDPOINT") {
         env.push(format!("BIFROST_LOGS_S3_ENDPOINT={}", endpoint));
     }
@@ -814,9 +823,9 @@ mod tests {
         assert!(env.contains(&"BIFROST_LOGS_S3_REGION=eu-west-1".to_string()));
         assert!(!env.contains(&"BIFROST_LOGS_S3_REGION=us-east-1".to_string()));
 
-        // Neither: no region var, the gateway falls back to its own default.
-        let env = logs_env(&base).unwrap();
-        assert!(!env.iter().any(|e| e.starts_with("BIFROST_LOGS_S3_REGION=")));
+        // Neither: nothing passed. The gateway's S3 client has no region
+        // default and would fail its boot check on every start.
+        assert!(logs_env(&base).is_err());
     }
 
     #[test]
