@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
     // runtime env writes can never repoint the GetHostStorage collector).
     sphinx_swarm::host_stats::init_node_exporter_target();
 
-    dotenv::dotenv().ok();
+    sphinx_swarm::utils::load_dotenv();
 
     // Pin after dotenv so a `.env` FLUENTBIT_METRICS_URL override is visible
     // (e.g. second-brain-2.yml mounts the host `.env`). Do not move

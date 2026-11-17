@@ -567,17 +567,18 @@ pub fn extract_swarm_number(host: String) -> String {
 }
 
 pub fn update_or_write_to_env_file(updates: &HashMap<String, String>) -> Result<()> {
-    let env_path_string = ".env";
-    let env_path = Path::new(env_path_string);
+    update_env_file(Path::new(".env"), updates)
+}
 
+fn update_env_file(env_path: &Path, updates: &HashMap<String, String>) -> Result<()> {
     // Read existing file
     let content = if env_path.exists() {
         read_to_string(env_path)?
     } else {
-        log::error!("Could not find env file at path: {}", env_path_string);
+        log::error!("Could not find env file at path: {}", env_path.display());
         return Err(anyhow!(format!(
             "Could not find env file at path: {}",
-            env_path_string
+            env_path.display()
         )));
     };
 
@@ -588,7 +589,7 @@ pub fn update_or_write_to_env_file(updates: &HashMap<String, String>) -> Result<
     for line in content.lines() {
         if let Some((key, _)) = line.split_once('=') {
             if let Some(new_val) = updates.get(key.trim()) {
-                lines.push(format!("{}={}", key.trim(), new_val));
+                lines.push(format!("{}={}", key.trim(), env_value(new_val)));
                 keys_handled.insert(key.trim().to_string(), true);
             } else {
                 lines.push(line.to_string());
@@ -601,12 +602,175 @@ pub fn update_or_write_to_env_file(updates: &HashMap<String, String>) -> Result<
     // Add any new keys that weren't in the original file
     for (k, v) in updates {
         if !keys_handled.contains_key(k) {
-            lines.push(format!("{}={}", k, v));
+            lines.push(format!("{}={}", k, env_value(v)));
         }
     }
 
-    // Write back
-    write(env_path, lines.join("\n"))?;
+    // Write back, ending in a newline so a later `>> .env` starts its own line
+    write(env_path, lines.join("\n") + "\n")?;
 
     Ok(())
+}
+
+/// `value` written so dotenv 0.15 reads it back exactly. Unquoted, a space
+/// is a parse error and `dotenv()` drops that line and every line below it
+/// (2026-11-17: `TWITTER_BEARER=Bearer xyz` cost 11 swarms OWNER_PUBKEY and
+/// the rest on restart). Single quotes keep everything but `'` and a newline;
+/// double quotes take `\\`, `\"`, `\$` and `\n` escapes.
+fn env_value(value: &str) -> String {
+    if !value.contains(|c: char| c.is_whitespace() || "'\"\\$#".contains(c)) {
+        return value.to_string();
+    }
+    if !value.contains(['\'', '\n']) {
+        return format!("'{}'", value);
+    }
+    let mut quoted = String::from("\"");
+    for c in value.chars() {
+        match c {
+            '\\' | '"' | '$' => {
+                quoted.push('\\');
+                quoted.push(c);
+            }
+            '\n' => quoted.push_str("\\n"),
+            _ => quoted.push(c),
+        }
+    }
+    quoted.push('"');
+    quoted
+}
+
+/// Load the `.env` that `dotenv::dotenv()` finds (the working directory or
+/// a parent), past any line it can't parse. `dotenv()` returns at the first
+/// bad line, and `.ok()` hid it, so no key below that line was ever set.
+pub fn load_dotenv() {
+    let dir = env::current_dir().unwrap_or_default();
+    if let Some(path) = dir
+        .ancestors()
+        .map(|d| d.join(".env"))
+        .find(|p| p.is_file())
+    {
+        load_env_file(&path);
+    }
+}
+
+/// Set each pair in `path` the way dotenv's `Iter::load` does (only if the
+/// variable isn't set yet), and log each line it can't parse by number and
+/// key, never the value.
+#[allow(deprecated)]
+pub fn load_env_file(path: &Path) {
+    let Ok(pairs) = dotenv::from_path_iter(path) else {
+        return;
+    };
+    // dotenv yields one item for each line that is not blank or a comment
+    let content = String::from_utf8_lossy(&std::fs::read(path).unwrap_or_default()).into_owned();
+    let mut lines = content.lines().enumerate().filter(|(_, l)| {
+        let l = l.trim();
+        !l.is_empty() && !l.starts_with('#')
+    });
+    for pair in pairs {
+        let (i, line) = lines.next().unwrap_or_default();
+        match pair {
+            Ok((key, value)) => {
+                if env::var(&key).is_err() {
+                    env::set_var(&key, value);
+                }
+            }
+            Err(_) => {
+                let key = line.split_once('=').map_or("", |(k, _)| k.trim());
+                let key = key.strip_prefix("export ").unwrap_or(key).trim();
+                let key_like = |c: char| c.is_ascii_alphanumeric() || c == '_' || c == '.';
+                let key = if !key.is_empty() && key.chars().all(key_like) {
+                    key
+                } else {
+                    "?"
+                };
+                eprintln!(
+                    "{}: line {} ({}) can't be parsed, skipped",
+                    path.display(),
+                    i + 1,
+                    key
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod env_file_tests {
+    use super::*;
+
+    fn temp_env(name: &str, content: &str) -> std::path::PathBuf {
+        let path = env::temp_dir().join(format!("swarm-{}-{}.env", name, std::process::id()));
+        write(&path, content).unwrap();
+        path
+    }
+
+    #[allow(deprecated)]
+    fn read_back(path: &Path) -> HashMap<String, String> {
+        dotenv::from_path_iter(path)
+            .unwrap()
+            .map(|p| p.unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn values_read_back_exactly() {
+        let values = [
+            "plain",
+            "",
+            "a=b",
+            "Bearer xyz",
+            "  padded  ",
+            "tab\there",
+            "--max-old-space-size=4096 --expose-gc",
+            "it's",
+            "say \"hi\"",
+            "back\\slash",
+            "$HOME and ${PATH}",
+            "#not a comment",
+            "a#b",
+            "two\nlines",
+            "it's $5 \"really\" \\ ok\n",
+        ];
+        let updates: HashMap<String, String> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| (format!("SWARM_TEST_{}", i), v.to_string()))
+            .collect();
+        let path = temp_env("values", "# swarm\nKEPT=1\nSWARM_TEST_0=old");
+        update_env_file(&path, &updates).unwrap();
+
+        let content = read_to_string(&path).unwrap();
+        assert!(content.starts_with("# swarm\nKEPT=1\nSWARM_TEST_0=plain\n"));
+        assert!(content.ends_with('\n'));
+        let mut read = read_back(&path);
+        assert_eq!(read.remove("KEPT").as_deref(), Some("1"));
+        assert_eq!(read, updates);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn a_bad_line_does_not_hide_the_lines_below() {
+        let path = temp_env(
+            "bad-line",
+            "SWARM_LOAD_A=1\n# comment\n\nSWARM_LOAD_BAD=Bearer xyz\nSWARM_LOAD_B='b c'\n",
+        );
+        load_env_file(&path);
+        assert_eq!(env::var("SWARM_LOAD_A").as_deref(), Ok("1"));
+        assert!(env::var("SWARM_LOAD_BAD").is_err());
+        assert_eq!(env::var("SWARM_LOAD_B").as_deref(), Ok("b c"));
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn load_keeps_variables_already_set() {
+        env::set_var("SWARM_LOAD_SET", "from the process");
+        let path = temp_env("already-set", "SWARM_LOAD_SET=from the file\n");
+        load_env_file(&path);
+        assert_eq!(
+            env::var("SWARM_LOAD_SET").as_deref(),
+            Ok("from the process")
+        );
+        std::fs::remove_file(path).unwrap();
+    }
 }

@@ -61,7 +61,7 @@ use tokio::sync::Mutex;
 
 #[rocket::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    sphinx_swarm::utils::load_dotenv();
 
     sphinx_swarm::utils::setup_logs();
 
