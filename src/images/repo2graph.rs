@@ -218,6 +218,15 @@ fn repo2graph(
     // Strut's archive tier (see `STRUT_ARCHIVE`). Off unless this host's env
     // has STRUT_ARCHIVE_S3_BUCKET.
     env.extend(STRUT_ARCHIVE.host_env());
+    // Strut's retention window (stakwork/strut plans/retention.md): how long a
+    // finished run's log stays on this disk when its workflow sets no
+    // `retain:`. `7d` (a duration, s m h d w) or `20` (the newest N runs).
+    // Unset: 7 days with the archive on, else nothing is evicted. With no
+    // archive, past the window a log is deleted, not uploaded. Strut warns
+    // about an invalid value and ignores it.
+    if let Ok(strut_retention) = getenv("STRUT_RETENTION") {
+        env.push(format!("STRUT_RETENTION={}", strut_retention));
+    }
     if let Ok(node_options) = getenv("REPO2GRAPH_NODE_OPTIONS") {
         env.push(format!("NODE_OPTIONS={}", node_options));
     }
