@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rocket::tokio;
-use sphinx_swarm::config::{Clients, Node, Stack};
+use sphinx_swarm::config::{Node, Stack};
 use sphinx_swarm::dock::*;
 use sphinx_swarm::images::cln::ClnPlugin;
 use sphinx_swarm::images::{
@@ -8,7 +8,7 @@ use sphinx_swarm::images::{
     lnd::LndImage, mixer::MixerImage, tribes::TribesImage, Image,
 };
 use sphinx_swarm::rocket_utils::CmdRequest;
-use sphinx_swarm::setup::{get_pubkey_cln, mine_blocks, setup_cln_chans, setup_lnd_chans};
+use sphinx_swarm::setup::{mine_blocks, setup_cln_chans, setup_lnd_chans, try_check_2_hops};
 use sphinx_swarm::utils::domain;
 use sphinx_swarm::{builder, events, handler, logs, routes};
 use std::sync::Arc;
@@ -115,29 +115,8 @@ pub async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn try_check_2_hops(clients: &mut Clients, node1: &str, node3: &str) {
-    for i in 0..200 {
-        let res = check_2_hops(clients, node1, node3).await;
-        if res.is_ok() {
-            return;
-        }
-        log::info!("retrying get_route to CLN3: {}...", i);
-        sleep(2).await;
-    }
-}
-
 async fn sleep(secs: u64) {
     tokio::time::sleep(tokio::time::Duration::from_secs(secs)).await;
-}
-
-async fn check_2_hops(clients: &mut Clients, node1: &str, node3: &str) -> Result<()> {
-    let cln3_pubkey = get_pubkey_cln(clients, node3).await?;
-    let cln1 = clients.cln.get_mut(node1).unwrap();
-    let res = cln1.get_route(&cln3_pubkey, 1000).await?;
-    if res.route.len() < 2 {
-        return Err(anyhow::anyhow!("no route found"));
-    }
-    Ok(())
 }
 
 fn make_stack() -> Stack {
