@@ -22,7 +22,7 @@ use sphinx_swarm::cmd::{
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::conn::boltwall::ApiToken;
 use sphinx_swarm::conn::swarm::ChangePasswordBySuperAdminResponse;
-use sphinx_swarm::utils::{getenv, make_reqwest_client};
+use sphinx_swarm::utils::{env_value, getenv, make_reqwest_client};
 
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
@@ -423,11 +423,25 @@ pub fn get_descriptive_instance_type(instance_value: Option<String>) -> String {
 }
 
 /// What a new swarm's .env gets of the super's own settings: each of `keys`
-/// this super has set, as a user-data line.
+/// this super has set, as a user-data line. The value is quoted the way
+/// `update_or_write_to_env_file` quotes it, then escaped for the user data's
+/// two shells, an `echo "…"` inside `su - admin -c '…'`, so the line lands in
+/// .env exactly.
 fn passed_env_lines(keys: &[&str]) -> String {
     keys.iter()
         .filter_map(|key| getenv(key).ok().map(|value| (key, value)))
-        .map(|(key, value)| format!(r#"echo "{key}={value}" >> .env && \"#))
+        .map(|(key, value)| {
+            let line = format!("{key}={}", env_value(&value));
+            let mut echoed = String::new();
+            for c in line.chars() {
+                match c {
+                    '\\' | '"' | '$' | '`' => echoed.extend(['\\', c]),
+                    '\'' => echoed.push_str(r"'\''"),
+                    _ => echoed.push(c),
+                }
+            }
+            format!(r#"echo "{echoed}" >> .env && \"#)
+        })
         .collect::<Vec<_>>()
         .join("\n          ")
 }
@@ -441,6 +455,15 @@ pub const LIVEKIT_ENV: [&str; 3] = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_A
 /// when a warm swarm is nuked): with it the swarm runs Maple's inference proxy
 /// beside strut (src/images/maple.rs), and strut sends the key per request.
 pub const MAPLE_ENV: [&str; 1] = ["MAPLE_API_KEY"];
+
+/// Strut's run archive bucket, passed from the super to every swarm it creates
+/// (and kept when a warm swarm is nuked): with it the swarm's strut uploads
+/// finished runs' logs before retention drops them (`STRUT_ARCHIVE` in
+/// src/images/repo2graph.rs). The super has it when its host's .env does
+/// (superadmin.yml passes it in). Never the prefix: each swarm's default is
+/// its own. The swarm reaches the bucket through the `SwarmStrutArchive`
+/// policy on its instance role (`AWS_USER_ROLE`), never a key.
+pub const STRUT_ARCHIVE_ENV: [&str; 1] = ["STRUT_ARCHIVE_S3_BUCKET"];
 
 pub async fn create_ec2_instance(
     swarm_name: Option<String>,
@@ -521,6 +544,10 @@ pub async fn create_ec2_instance(
     // Maple's API key, for the swarm's inference proxy (src/images/maple.rs),
     // when this super has one. A swarm whose .env has none runs without it.
     let maple_env_lines = passed_env_lines(&MAPLE_ENV);
+
+    // Strut's run archive bucket, when this super has one. A swarm whose .env
+    // has none keeps its strut runs local only.
+    let strut_archive_env_lines = passed_env_lines(&STRUT_ARCHIVE_ENV);
 
     let workspace_env_lines = r#"echo "SECOND_BRAIN_ONLY=true" >> .env && \"#.to_string();
 
@@ -654,6 +681,7 @@ pub async fn create_ec2_instance(
           {anthropic_api_key_env}
           {livekit_env_lines}
           {maple_env_lines}
+          {strut_archive_env_lines}
           {port_based_ssl}
           
           sleep 60 && \
@@ -1965,5 +1993,70 @@ mod tests {
             lines,
             "echo \"LIVEKIT_API_KEY=APIkey\" >> .env && \\\n          echo \"LIVEKIT_API_SECRET=secret\" >> .env && \\"
         );
+    }
+
+    #[test]
+    fn strut_archive_bucket_reaches_a_new_swarm_env_only_when_the_super_has_it() {
+        // the only test that touches this variable
+        std::env::remove_var("STRUT_ARCHIVE_S3_BUCKET");
+        assert_eq!(passed_env_lines(&STRUT_ARCHIVE_ENV), "", "nothing set, nothing written");
+
+        std::env::set_var("STRUT_ARCHIVE_S3_BUCKET", "sphinx-swarm-strut-archive");
+        let lines = passed_env_lines(&STRUT_ARCHIVE_ENV);
+        std::env::remove_var("STRUT_ARCHIVE_S3_BUCKET");
+        assert_eq!(
+            lines,
+            "echo \"STRUT_ARCHIVE_S3_BUCKET=sphinx-swarm-strut-archive\" >> .env && \\"
+        );
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn passed_values_land_in_a_new_swarm_env_exactly() {
+        let values = [
+            "plain",
+            "two words",
+            "it's",
+            "say \"hi\"",
+            "$HOME and `id`",
+            "back\\slash",
+            "a#b",
+            "line1\nline2",
+            "all ' \" $x \\ `y` # of them",
+        ];
+        // keys only this test uses
+        let keys: Vec<String> = (0..values.len())
+            .map(|i| format!("SUPER_TEST_PASSED_ENV_{}", i))
+            .collect();
+        for (key, value) in keys.iter().zip(values) {
+            std::env::set_var(key, value);
+        }
+        let key_refs: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
+        let lines = passed_env_lines(&key_refs);
+        for key in &keys {
+            std::env::remove_var(key);
+        }
+
+        // the user data's two shells: `su - admin -c '…'`, then the echo
+        let dir = std::env::temp_dir().join(format!("super-passed-env-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let _ = std::fs::remove_file(dir.join(".env"));
+        let script = format!("bash -c '\n          {lines}\n          true\n        '");
+        let status = std::process::Command::new("bash")
+            .arg("-c")
+            .arg(&script)
+            .current_dir(&dir)
+            .status()
+            .unwrap();
+        assert!(status.success());
+
+        let read: HashMap<String, String> = dotenv::from_path_iter(dir.join(".env"))
+            .unwrap()
+            .map(|pair| pair.unwrap())
+            .collect();
+        std::fs::remove_dir_all(&dir).unwrap();
+        for (key, value) in keys.iter().zip(values) {
+            assert_eq!(read.get(key).map(|v| v.as_str()), Some(value), "{}", key);
+        }
     }
 }

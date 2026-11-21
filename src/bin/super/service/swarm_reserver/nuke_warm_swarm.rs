@@ -1,10 +1,10 @@
 use anyhow::Result;
-use sphinx_swarm::utils::getenv;
+use sphinx_swarm::utils::{env_value, getenv};
 use std::collections::HashMap;
 
 use crate::cmd::SuperSwarmResponse;
 use crate::state::{AvailableInstances, Super};
-use crate::util::{LIVEKIT_ENV, MAPLE_ENV};
+use crate::util::{LIVEKIT_ENV, MAPLE_ENV, STRUT_ARCHIVE_ENV};
 
 pub async fn nuke_single_warm_swarm(
     swarm: &AvailableInstances,
@@ -45,12 +45,13 @@ pub async fn nuke_single_warm_swarm(
         "BACKUP_KEY",
     ];
 
-    // and the central LiveKit's, for the swarm's voice service, and Maple's
-    // key, for its inference proxy, when set here
+    // and the central LiveKit's, for the swarm's voice service, Maple's key,
+    // for its inference proxy, and strut's run archive bucket, when set here
     for key in env_keys
         .iter()
         .chain(LIVEKIT_ENV.iter())
         .chain(MAPLE_ENV.iter())
+        .chain(STRUT_ARCHIVE_ENV.iter())
     {
         if let Ok(val) = getenv(key) {
             env_vars.insert(key.to_string(), val);
@@ -97,6 +98,13 @@ pub async fn nuke_single_warm_swarm(
     };
 
     let url = format!("http://{}:3003/nuke", ip_address);
+
+    // restarter.js writes each pair into .env as `k=v`, so each value goes
+    // quoted the way update_or_write_to_env_file quotes it
+    let env_vars: HashMap<String, String> = env_vars
+        .into_iter()
+        .map(|(k, v)| (k, env_value(&v)))
+        .collect();
 
     let body = serde_json::json!({
         "password": swarm_updater_password,

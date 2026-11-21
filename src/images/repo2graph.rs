@@ -109,8 +109,10 @@ impl DockerHubImage for Repo2GraphImage {
 /// `bifrost-logs/` so the two can have different lifecycle rules.
 ///
 /// Off unless the host sets `STRUT_ARCHIVE_S3_BUCKET`, independent of the
-/// gateway's switch. Strut verifies an upload before deleting anything
-/// locally and keeps running when the bucket is unreachable.
+/// gateway's switch. The super writes it into a new swarm's `.env` when it is
+/// set in its own (`STRUT_ARCHIVE_ENV` in src/bin/super/util.rs). Strut
+/// verifies an upload before deleting anything locally and keeps running when
+/// the bucket is unreachable.
 pub const STRUT_ARCHIVE: S3Offload = S3Offload {
     vars: "STRUT_ARCHIVE_S3",
     root: "strut-archive",
