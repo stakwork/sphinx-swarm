@@ -76,6 +76,7 @@
   let coverage: {
     host: string;
     keys?: { [k: string]: string };
+    anthropic_wif?: boolean;
     error?: string;
   }[] = [];
   let duplicate_keys: { [k: string]: boolean } = {};
@@ -214,7 +215,11 @@
               45000
             );
             if (res.success && res.data) {
-              return { host, keys: res.data.keys };
+              return {
+                host,
+                keys: res.data.keys,
+                anthropic_wif: res.data.anthropic_workload_identity === true,
+              };
             }
             return { host, error: res.message || "no data" };
           } catch (error) {
@@ -346,6 +351,8 @@
                         ? " (shared)"
                         : ""}</td
                     >
+                  {:else if provider.env === "ANTHROPIC_API_KEY" && row.anthropic_wif}
+                    <td class="mono has_key">workload identity</td>
                   {:else}
                     <td class="empty_cell">—</td>
                   {/if}

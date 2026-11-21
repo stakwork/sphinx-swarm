@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sphinx_swarm::utils::{env_value, getenv};
+use sphinx_swarm::utils::{env_value, getenv, ANTHROPIC_FEDERATION_ENV};
 use std::collections::HashMap;
 
 use crate::cmd::SuperSwarmResponse;
@@ -81,6 +81,15 @@ pub async fn nuke_single_warm_swarm(
 
     if let Some(ref key) = anthropic_api_key {
         env_vars.insert("ANTHROPIC_API_KEY".to_string(), key.clone());
+    } else {
+        // No key in the pool: keep Anthropic workload identity federation,
+        // when this super has it (same as create_ec2_instance). The pool
+        // being empty is not an error.
+        for key in ANTHROPIC_FEDERATION_ENV {
+            if let Ok(val) = getenv(key) {
+                env_vars.insert(key.to_string(), val);
+            }
+        }
     }
 
     let ip_address = match &swarm.ip_address {

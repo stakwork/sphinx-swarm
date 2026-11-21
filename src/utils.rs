@@ -126,6 +126,34 @@ mod tests {
     static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
+    fn host_env_entries_skip_unset_and_empty() {
+        let map: std::collections::HashMap<&str, &str> =
+            [("A", "1"), ("B", ""), ("D", "4")].into_iter().collect();
+        let got = entries_from(&["A", "B", "C", "D"], |k| map.get(k).map(|v| v.to_string()));
+        assert_eq!(got, vec!["A=1".to_string(), "D=4".to_string()]);
+        assert!(entries_from(&["A"], |_| None).is_empty());
+    }
+
+    #[test]
+    fn federation_env_needs_no_key_and_three_ids() {
+        let ids: Vec<String> = vec![
+            "ANTHROPIC_FEDERATION_RULE_ID=r".into(),
+            "ANTHROPIC_ORGANIZATION_ID=o".into(),
+            "ANTHROPIC_SERVICE_ACCOUNT_ID=s".into(),
+        ];
+        assert!(env_is_anthropic_federation(&ids));
+        let mut with_key = ids.clone();
+        with_key.push("ANTHROPIC_API_KEY=k".into());
+        assert!(!env_is_anthropic_federation(&with_key));
+        assert!(!env_is_anthropic_federation(&ids[..2]));
+        assert!(!env_is_anthropic_federation(&[]));
+        // workspace alone is not enough, and is not required
+        assert!(!env_is_anthropic_federation(&[
+            "ANTHROPIC_WORKSPACE_ID=w".to_string()
+        ]));
+    }
+
+    #[test]
     fn test_fluentd_with_explicit_env_vars() {
         let _guard = ENV_MUTEX.lock().unwrap();
         env::set_var("RUST_ENV", "fluentd");
@@ -557,6 +585,53 @@ pub fn getenv(envname: &str) -> Result<String> {
         Err(anyhow!("{} is empty", envname))
     }
 }
+
+/// The Anthropic workload identity federation settings (the gateway's
+/// `gateway/README.md`, "Anthropic workload identity federation"): with
+/// ANTHROPIC_API_KEY empty and the first three set, the gateway (Bifrost)
+/// authenticates to Anthropic through the EC2 instance profile, and the
+/// stakgraph mcp sends the gateway a placeholder key instead of a real one.
+/// The workspace id is optional. `AWS_REGION` (the STS region, the gateway
+/// only) is passed to the gateway beside them.
+pub const ANTHROPIC_FEDERATION_ENV: [&str; 4] = [
+    "ANTHROPIC_FEDERATION_RULE_ID",
+    "ANTHROPIC_ORGANIZATION_ID",
+    "ANTHROPIC_SERVICE_ACCOUNT_ID",
+    "ANTHROPIC_WORKSPACE_ID",
+];
+
+/// `KEY=value` for each of `keys` this host has set (non-empty), in order.
+/// A container's env pass-through, as for the provider keys.
+pub fn host_env_entries(keys: &[&str]) -> Vec<String> {
+    entries_from(keys, |k| getenv(k).ok())
+}
+
+fn entries_from(keys: &[&str], get: impl Fn(&str) -> Option<String>) -> Vec<String> {
+    keys.iter()
+        .filter_map(|k| get(k).filter(|v| !v.is_empty()).map(|v| format!("{k}={v}")))
+        .collect()
+}
+
+/// Whether a container env (`KEY=value` entries) is in federation mode: no
+/// ANTHROPIC_API_KEY and the rule, organization and service-account ids. The
+/// same rule as `isAnthropicFederation()` in stakgraph's mcp and the
+/// gateway's wrapper.
+pub fn env_is_anthropic_federation(env: &[String]) -> bool {
+    let has = |k: &str| {
+        env.iter().any(|e| {
+            e.strip_prefix(k)
+                .and_then(|r| r.strip_prefix('='))
+                .is_some_and(|v| !v.is_empty())
+        })
+    };
+    !has("ANTHROPIC_API_KEY") && ANTHROPIC_FEDERATION_ENV[..3].iter().all(|k| has(k))
+}
+
+/// Serializes the tests that read or write provider keys in the process env
+/// (shared by `images::bifrost` and `images::repo2graph`: one lock, since
+/// their tests run in parallel with each other).
+#[cfg(test)]
+pub static ENV_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 pub fn extract_swarm_number(host: String) -> String {
     if let Some(pos) = host.find("swarm") {

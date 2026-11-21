@@ -101,6 +101,9 @@
 
   let show_llm_keys = false;
   let llm_keys: { [k: string]: string } = null;
+  // Anthropic through workload identity federation (the gateway holds the
+  // credential), so no Anthropic key is expected on the swarm
+  let llm_anthropic_wif = false;
   let llm_keys_loading = false;
   let llm_keys_error = "";
 
@@ -531,6 +534,7 @@
     child_nodes = [];
     show_llm_keys = false;
     llm_keys = null;
+    llm_anthropic_wif = false;
     llm_keys_error = "";
   }
 
@@ -546,6 +550,7 @@
       });
       if (res.success && res.data) {
         llm_keys = res.data.keys || {};
+        llm_anthropic_wif = res.data.anthropic_workload_identity === true;
       } else {
         llm_keys_error = res.message || "could not fetch LLM keys";
       }
@@ -1013,6 +1018,10 @@
               <span class="llm_key_name">{provider.env}</span>
               {#if llm_keys[provider.env]}
                 <span class="llm_key_value">{llm_keys[provider.env]}</span>
+              {:else if provider.env === "ANTHROPIC_API_KEY" && llm_anthropic_wif}
+                <span class="llm_key_unset"
+                  >not set (workload identity)</span
+                >
               {:else}
                 <span class="llm_key_unset">not set</span>
               {/if}
