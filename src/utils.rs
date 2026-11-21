@@ -617,7 +617,7 @@ fn update_env_file(env_path: &Path, updates: &HashMap<String, String>) -> Result
 /// (2026-11-17: `TWITTER_BEARER=Bearer xyz` cost 11 swarms OWNER_PUBKEY and
 /// the rest on restart). Single quotes keep everything but `'` and a newline;
 /// double quotes take `\\`, `\"`, `\$` and `\n` escapes.
-fn env_value(value: &str) -> String {
+pub fn env_value(value: &str) -> String {
     if !value.contains(|c: char| c.is_whitespace() || "'\"\\$#".contains(c)) {
         return value.to_string();
     }
