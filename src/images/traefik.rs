@@ -94,6 +94,24 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
         cmd.push("--log.level=DEBUG");
         cmd.push("--api.insecure=true");
     }
+    // access log to stdout (shipped to CloudWatch by Fluent Bit); opt out with TRAEFIK_ACCESS_LOG=false
+    // NOTE: if a load balancer or CDN is in front of Traefik, add
+    // `--entrypoints.web.forwardedHeaders.trustedIPs=<CIDRs>` and
+    // `--entrypoints.websecure.forwardedHeaders.trustedIPs=<CIDRs>` (or proxyProtocol.trustedIPs
+    // for an L4 balancer) so the logged address is the real client's.
+    let access_log = match std::env::var("TRAEFIK_ACCESS_LOG") {
+        Ok(v) => !v.trim().eq_ignore_ascii_case("false"),
+        Err(_) => true,
+    };
+    if access_log {
+        // defaultmode=drop keeps Authorization, Cookie, etc. out of the logs
+        cmd.push("--accesslog=true");
+        cmd.push("--accesslog.format=json");
+        cmd.push("--accesslog.fields.headers.defaultmode=drop");
+        cmd.push("--accesslog.fields.headers.names.User-Agent=keep");
+        cmd.push("--accesslog.fields.headers.names.X-Forwarded-For=keep");
+        cmd.push("--accesslog.fields.headers.names.X-Real-Ip=keep");
+    }
     let add_ulimits = true;
     let add_log_limit = true;
     let awsenv = _aws_env();
