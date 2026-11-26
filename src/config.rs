@@ -331,7 +331,6 @@ pub async fn load_config_file(project: &str) -> Result<Stack> {
                 None => return Err(e),
             },
         };
-        println!("STACK! {:?}", s);
         Ok(s)
     }
 }
