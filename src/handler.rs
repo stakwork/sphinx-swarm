@@ -183,6 +183,28 @@ async fn attach_container_stats(
     }
 }
 
+// safe summary of a command for logging: variant names only, never the payload
+fn variant_name<T: std::fmt::Debug>(v: &T) -> String {
+    // the Debug output starts with the variant name; the payload is dropped immediately
+    format!("{:?}", v)
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .next()
+        .unwrap_or("")
+        .to_string()
+}
+
+fn command_kind(cmd: &Cmd) -> String {
+    match cmd {
+        Cmd::Swarm(c) => format!("Swarm::{}", variant_name(c)),
+        Cmd::Relay(c) => format!("Relay::{}", variant_name(c)),
+        Cmd::Bitcoind(c) => format!("Bitcoind::{}", variant_name(c)),
+        Cmd::Lnd(c) => format!("Lnd::{}", variant_name(c)),
+        Cmd::Cln(c) => format!("Cln::{}", variant_name(c)),
+        Cmd::Proxy(c) => format!("Proxy::{}", variant_name(c)),
+        Cmd::Hsmd(c) => format!("Hsmd::{}", variant_name(c)),
+    }
+}
+
 // tag is the service name
 pub async fn handle(
     proj: &str,
@@ -202,7 +224,7 @@ pub async fn handle(
         return Err(anyhow!("cant run this command yet..."));
     }
 
-    log::info!("=> CMD: {:?}", cmd);
+    log::info!("=> CMD: {}", command_kind(&cmd));
 
     let ret: Option<String> = match cmd {
         Cmd::Swarm(c) => match c {
@@ -555,13 +577,13 @@ pub async fn handle(
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::UpdateFeatureFlags(body) => {
-                log::info!("Update Feature Flags ===> {:?}", body);
+                log::info!("Update Feature Flags");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 let response = crate::conn::boltwall::update_feature_flags(&boltwall, body).await?;
                 Some(serde_json::to_string(&response)?)
             }
             SwarmCmd::SignUpAdminPubkey(body) => {
-                log::info!("Signup Admin Pubkey ===> {:?}", body);
+                log::info!("Signup Admin Pubkey");
                 let response = sign_up_admin_pubkey(proj, body).await?;
                 return Ok(serde_json::to_string(&response)?);
             }
@@ -581,7 +603,7 @@ pub async fn handle(
                 return Ok(serde_json::to_string(&image_versions)?);
             }
             SwarmCmd::UpdateUser(body) => {
-                log::info!("Update users details ===> {:?}", body);
+                log::info!("Update users details");
                 let boltwall = config::stack_read(|s| find_boltwall(&s.nodes)).await?;
                 // HTTP call with no lock held
                 let (response_text, status) = crate::conn::boltwall::update_user_http(&boltwall, &body.pubkey, &body.name, body.id, body.role).await?;
@@ -833,7 +855,7 @@ pub async fn handle(
                 Some(serde_json::to_string(&res)?)
             }
             SwarmCmd::UpdateNeo4jConfig(body) => {
-                log::info!("Update Neo4j config ===> {:?}", body);
+                log::info!("Update Neo4j config");
                 let res = config::stack_write(proj, |s| {
                     let mut updated = false;
                     for node in s.nodes.iter_mut() {
