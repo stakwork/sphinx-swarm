@@ -3,6 +3,7 @@ use super::*;
 use crate::config::Node;
 use crate::dock::{BROWSER_NETWORK, DEFAULT_NETWORK};
 use crate::images::boltwall::BoltwallImage;
+use crate::images::bifrost::BifrostImage;
 use crate::images::browser::BrowserImage;
 use crate::images::hermes::HermesImage;
 use crate::images::jarvis::JarvisImage;
@@ -13,7 +14,10 @@ use crate::images::s3_offload::S3Offload;
 use crate::images::traefik::shared_host;
 use crate::images::treasury::TreasuryImage;
 use crate::images::voice::VoiceImage;
-use crate::utils::{domain, exposed_ports, extra_networks, getenv, host_config, volume_string};
+use crate::utils::{
+    domain, env_is_anthropic_federation, exposed_ports, extra_networks, getenv, host_config,
+    host_env_entries, volume_string, ANTHROPIC_FEDERATION_ENV,
+};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -82,11 +86,34 @@ impl DockerConfig for Repo2GraphImage {
         let voice = li.find_voice();
         let maple = li.find_maple();
         let treasury = li.find_treasury();
-        Ok(repo2graph(
-            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser, &voice, &maple,
-            &treasury,
-        )?)
+        let mut config = repo2graph(
+            self, &neo4j, &boltwall, &jarvis, &hermes, &redis, &browser, &voice, &maple, &treasury,
+        )?;
+        if let (Some(env), Some(bifrost)) = (config.env.as_mut(), li.find_bifrost()) {
+            if let Some(url) = federation_gateway_env(env, &bifrost) {
+                env.push(url);
+            }
+        }
+        Ok(config)
     }
+}
+
+/// `LLM_GATEWAY_URL=<the linked gateway>` for an mcp in Anthropic workload
+/// identity federation, else None. In that mode the swarm holds no Anthropic
+/// key, the gateway (bifrost) does, and the mcp only works through it
+/// (stakgraph mcp/src/anthropic-federation.ts: it refuses to start an
+/// Anthropic call without LLM_GATEWAY_URL). Nothing else sets that variable
+/// here, so with a key set (or an operator's own LLM_GATEWAY_URL) the env is
+/// left exactly as it was.
+fn federation_gateway_env(env: &[String], bifrost: &BifrostImage) -> Option<String> {
+    if !env_is_anthropic_federation(env) || env.iter().any(|e| e.starts_with("LLM_GATEWAY_URL=")) {
+        return None;
+    }
+    Some(format!(
+        "LLM_GATEWAY_URL=http://{}:{}",
+        domain(&bifrost.name),
+        bifrost.port
+    ))
 }
 
 impl DockerHubImage for Repo2GraphImage {
@@ -202,6 +229,11 @@ fn repo2graph(
     if let Ok(anthropic_api_key) = getenv("ANTHROPIC_API_KEY") {
         env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
+    // Anthropic workload identity federation (see `federation_gateway_env`):
+    // the mcp decides its mode from these. Not AWS_REGION: only the gateway
+    // calls STS, and the mcp's own AWS clients (strut's archive) must not
+    // have their region changed by it.
+    env.extend(host_env_entries(&ANTHROPIC_FEDERATION_ENV));
     if let Ok(openrouter_api_key) = getenv("OPENROUTER_API_KEY") {
         env.push(format!("OPENROUTER_API_KEY={}", openrouter_api_key));
     }
@@ -327,9 +359,8 @@ fn repo2graph(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // one lock for every test that touches provider keys (see utils)
+    use crate::utils::ENV_TEST_LOCK as ENV_LOCK;
 
     fn test_repo2graph_image() -> Repo2GraphImage {
         Repo2GraphImage::new("repo2graph", "latest", "8888")
@@ -337,6 +368,102 @@ mod tests {
 
     fn test_neo4j_image() -> Neo4jImage {
         Neo4jImage::new("neo4j", "5.19.0")
+    }
+
+    fn clear_anthropic_env() {
+        for k in [
+            "ANTHROPIC_API_KEY",
+            "ANTHROPIC_FEDERATION_RULE_ID",
+            "ANTHROPIC_ORGANIZATION_ID",
+            "ANTHROPIC_SERVICE_ACCOUNT_ID",
+            "ANTHROPIC_WORKSPACE_ID",
+            "AWS_REGION",
+        ] {
+            std::env::remove_var(k);
+        }
+    }
+
+    fn make_env() -> Vec<String> {
+        let neo4j = test_neo4j_image();
+        let img = test_repo2graph_image();
+        repo2graph(
+            &img, &neo4j, &None, &None, &None, &None, &None, &None, &None, &None,
+        )
+        .unwrap()
+        .env
+        .unwrap()
+    }
+
+    #[test]
+    fn test_anthropic_key_set_is_unchanged() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_anthropic_env();
+        std::env::set_var("ANTHROPIC_API_KEY", "test-anthropic-key");
+        let env = make_env();
+        clear_anthropic_env();
+        assert!(env.contains(&"ANTHROPIC_API_KEY=test-anthropic-key".to_string()));
+        assert!(!env.iter().any(|e| e.starts_with("ANTHROPIC_FEDERATION_")));
+    }
+
+    #[test]
+    fn test_anthropic_federation_vars_pass_through_without_key() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_anthropic_env();
+        std::env::set_var("ANTHROPIC_FEDERATION_RULE_ID", "fdrl_1");
+        std::env::set_var("ANTHROPIC_ORGANIZATION_ID", "org-1");
+        std::env::set_var("ANTHROPIC_SERVICE_ACCOUNT_ID", "svac_1");
+        std::env::set_var("ANTHROPIC_WORKSPACE_ID", "wrkspc_1");
+        std::env::set_var("AWS_REGION", "us-east-2");
+        let env = make_env();
+        clear_anthropic_env();
+        for want in [
+            "ANTHROPIC_FEDERATION_RULE_ID=fdrl_1",
+            "ANTHROPIC_ORGANIZATION_ID=org-1",
+            "ANTHROPIC_SERVICE_ACCOUNT_ID=svac_1",
+            "ANTHROPIC_WORKSPACE_ID=wrkspc_1",
+        ] {
+            assert!(env.contains(&want.to_string()), "missing {want}: {env:?}");
+        }
+        assert!(!env.iter().any(|e| e.starts_with("ANTHROPIC_API_KEY=")));
+        // the mcp has no use for the STS region; its own AWS clients keep theirs
+        assert!(!env.iter().any(|e| e.starts_with("AWS_REGION=")));
+    }
+
+    #[test]
+    fn test_no_anthropic_settings_means_none_in_env() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_anthropic_env();
+        let env = make_env();
+        assert!(!env.iter().any(|e| e.starts_with("ANTHROPIC_")));
+    }
+
+    #[test]
+    fn test_federation_points_the_mcp_at_the_linked_gateway() {
+        let bifrost = BifrostImage::new("bifrost", "latest");
+        let fed: Vec<String> = vec![
+            "ANTHROPIC_FEDERATION_RULE_ID=r".into(),
+            "ANTHROPIC_ORGANIZATION_ID=o".into(),
+            "ANTHROPIC_SERVICE_ACCOUNT_ID=s".into(),
+        ];
+        assert_eq!(
+            federation_gateway_env(&fed, &bifrost),
+            Some(format!(
+                "LLM_GATEWAY_URL=http://{}:{}",
+                domain("bifrost"),
+                bifrost.port
+            ))
+        );
+        // a key set: nothing added, the mcp talks to Anthropic as before
+        let mut with_key = fed.clone();
+        with_key.push("ANTHROPIC_API_KEY=k".into());
+        assert_eq!(federation_gateway_env(&with_key, &bifrost), None);
+        // incomplete ids, or nothing: nothing
+        assert_eq!(federation_gateway_env(&fed[..2], &bifrost), None);
+        assert_eq!(federation_gateway_env(&[], &bifrost), None);
+        // an operator's own gateway URL stays
+        let mut own = fed.clone();
+        own.push("LLM_GATEWAY_URL=http://elsewhere".into());
+        assert_eq!(federation_gateway_env(&own, &bifrost), None);
     }
 
     #[test]

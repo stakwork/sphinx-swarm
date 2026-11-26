@@ -6,7 +6,9 @@ use crate::images::neo4j::Neo4jImage;
 use crate::images::redis::RedisImage;
 use crate::images::s3_offload::S3Offload;
 use crate::secrets;
-use crate::utils::{domain, exposed_ports, getenv, host_config};
+use crate::utils::{
+    domain, exposed_ports, getenv, host_config, host_env_entries, ANTHROPIC_FEDERATION_ENV,
+};
 use anyhow::Result;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -229,6 +231,12 @@ pub fn bifrost(
     if let Ok(anthropic_api_key) = getenv("ANTHROPIC_API_KEY") {
         env.push(format!("ANTHROPIC_API_KEY={}", anthropic_api_key));
     }
+    // Anthropic workload identity federation: with no ANTHROPIC_API_KEY the
+    // gateway authenticates to Anthropic through this instance's profile (it
+    // reads these itself; with a key set it ignores them). AWS_REGION is the
+    // STS region.
+    env.extend(host_env_entries(&ANTHROPIC_FEDERATION_ENV));
+    env.extend(host_env_entries(&["AWS_REGION"]));
     if let Ok(openrouter_api_key) = getenv("OPENROUTER_API_KEY") {
         env.push(format!("OPENROUTER_API_KEY={}", openrouter_api_key));
     }
@@ -290,9 +298,8 @@ fn strarr(i: Vec<&str>) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // one lock for every test that touches provider keys (see utils)
+    use crate::utils::ENV_TEST_LOCK as ENV_LOCK;
 
     fn test_bifrost_image() -> BifrostImage {
         BifrostImage::new("bifrost", "latest")
@@ -336,6 +343,87 @@ mod tests {
         // Each construction generates a fresh password.
         let img2 = test_bifrost_image();
         assert_ne!(img.admin_password, img2.admin_password);
+    }
+
+    fn clear_federation_env() {
+        for k in [
+            "ANTHROPIC_FEDERATION_RULE_ID",
+            "ANTHROPIC_ORGANIZATION_ID",
+            "ANTHROPIC_SERVICE_ACCOUNT_ID",
+            "ANTHROPIC_WORKSPACE_ID",
+            "AWS_REGION",
+        ] {
+            std::env::remove_var(k);
+        }
+    }
+
+    #[test]
+    fn test_bifrost_env_key_set_has_no_federation_entries() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_federation_env();
+        std::env::set_var("ANTHROPIC_API_KEY", "test-anthropic-key");
+
+        let env = bifrost(&test_bifrost_image(), &None, &None, &None)
+            .env
+            .unwrap();
+        std::env::remove_var("ANTHROPIC_API_KEY");
+
+        assert!(env.contains(&"ANTHROPIC_API_KEY=test-anthropic-key".to_string()));
+        assert!(!env.iter().any(|e| e.starts_with("ANTHROPIC_FEDERATION_")
+            || e.starts_with("ANTHROPIC_ORGANIZATION_")
+            || e.starts_with("ANTHROPIC_SERVICE_ACCOUNT_")
+            || e.starts_with("ANTHROPIC_WORKSPACE_")
+            || e.starts_with("AWS_REGION=")));
+    }
+
+    #[test]
+    fn test_bifrost_env_federation_without_key() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        std::env::set_var("ANTHROPIC_FEDERATION_RULE_ID", "fdrl_1");
+        std::env::set_var("ANTHROPIC_ORGANIZATION_ID", "org-1");
+        std::env::set_var("ANTHROPIC_SERVICE_ACCOUNT_ID", "svac_1");
+        std::env::set_var("ANTHROPIC_WORKSPACE_ID", "wrkspc_1");
+        std::env::set_var("AWS_REGION", "us-east-2");
+
+        let env = bifrost(&test_bifrost_image(), &None, &None, &None)
+            .env
+            .unwrap();
+        clear_federation_env();
+
+        for want in [
+            "ANTHROPIC_FEDERATION_RULE_ID=fdrl_1",
+            "ANTHROPIC_ORGANIZATION_ID=org-1",
+            "ANTHROPIC_SERVICE_ACCOUNT_ID=svac_1",
+            "ANTHROPIC_WORKSPACE_ID=wrkspc_1",
+            "AWS_REGION=us-east-2",
+        ] {
+            assert!(env.contains(&want.to_string()), "missing {want}: {env:?}");
+        }
+        assert!(!env.iter().any(|e| e.starts_with("ANTHROPIC_API_KEY=")));
+    }
+
+    #[test]
+    fn test_bifrost_env_federation_workspace_is_optional_and_none_means_none() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        std::env::remove_var("ANTHROPIC_API_KEY");
+        clear_federation_env();
+
+        let env = bifrost(&test_bifrost_image(), &None, &None, &None)
+            .env
+            .unwrap();
+        assert!(!env
+            .iter()
+            .any(|e| e.starts_with("ANTHROPIC_") || e.starts_with("AWS_REGION=")));
+
+        std::env::set_var("ANTHROPIC_FEDERATION_RULE_ID", "fdrl_1");
+        std::env::set_var("ANTHROPIC_WORKSPACE_ID", ""); // empty counts as unset
+        let env = bifrost(&test_bifrost_image(), &None, &None, &None)
+            .env
+            .unwrap();
+        clear_federation_env();
+        assert!(env.contains(&"ANTHROPIC_FEDERATION_RULE_ID=fdrl_1".to_string()));
+        assert!(!env.iter().any(|e| e.starts_with("ANTHROPIC_WORKSPACE_ID")));
     }
 
     #[test]

@@ -113,10 +113,18 @@ async fn handle_get_child_swarm_llm_keys(
             }
         }
 
+        // `keys` keeps its shape (a swarm without an Anthropic key just has
+        // no ANTHROPIC_API_KEY entry, as before); the flag says that absence
+        // is by design.
+        let anthropic_workload_identity = anthropic_uses_workload_identity(&envs);
+
         return Ok(SuperSwarmResponse {
             success: true,
             message: "LLM keys retrieved".to_string(),
-            data: Some(serde_json::json!({ "keys": keys })),
+            data: Some(serde_json::json!({
+                "keys": keys,
+                "anthropic_workload_identity": anthropic_workload_identity,
+            })),
         });
     }
 
@@ -124,4 +132,53 @@ async fn handle_get_child_swarm_llm_keys(
         "no LLM-consuming container (bifrost/repo2graph) running — keys can't be verified remotely"
             .to_string()
     })))
+}
+
+/// Whether a container's env has Anthropic through workload identity
+/// federation instead of a key: no ANTHROPIC_API_KEY, and the federation
+/// rule, organization and service-account ids (the gateway's own rule).
+fn anthropic_uses_workload_identity(envs: &HashMap<String, String>) -> bool {
+    let set = |k: &str| envs.get(k).is_some_and(|v| !v.is_empty());
+    !set("ANTHROPIC_API_KEY")
+        && set("ANTHROPIC_FEDERATION_RULE_ID")
+        && set("ANTHROPIC_ORGANIZATION_ID")
+        && set("ANTHROPIC_SERVICE_ACCOUNT_ID")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn envs(pairs: &[(&str, &str)]) -> HashMap<String, String> {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    const FED: [(&str, &str); 3] = [
+        ("ANTHROPIC_FEDERATION_RULE_ID", "fdrl_1"),
+        ("ANTHROPIC_ORGANIZATION_ID", "org-1"),
+        ("ANTHROPIC_SERVICE_ACCOUNT_ID", "svac_1"),
+    ];
+
+    #[test]
+    fn workload_identity_is_no_key_plus_the_three_ids() {
+        assert!(anthropic_uses_workload_identity(&envs(&FED)));
+        assert!(anthropic_uses_workload_identity(&envs(&[
+            FED[0],
+            FED[1],
+            FED[2],
+            ("ANTHROPIC_API_KEY", ""),
+            ("ANTHROPIC_WORKSPACE_ID", "wrkspc_1"),
+        ])));
+        assert!(!anthropic_uses_workload_identity(&envs(&[
+            FED[0],
+            FED[1],
+            FED[2],
+            ("ANTHROPIC_API_KEY", "sk-ant-x"),
+        ])));
+        assert!(!anthropic_uses_workload_identity(&envs(&FED[..2])));
+        assert!(!anthropic_uses_workload_identity(&envs(&[])));
+    }
 }

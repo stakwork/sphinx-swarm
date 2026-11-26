@@ -22,7 +22,7 @@ use sphinx_swarm::cmd::{
 use sphinx_swarm::config::Stack;
 use sphinx_swarm::conn::boltwall::ApiToken;
 use sphinx_swarm::conn::swarm::ChangePasswordBySuperAdminResponse;
-use sphinx_swarm::utils::{env_value, getenv, make_reqwest_client};
+use sphinx_swarm::utils::{env_value, getenv, make_reqwest_client, ANTHROPIC_FEDERATION_ENV};
 
 use crate::aws_util::make_aws_client;
 use crate::cmd::{
@@ -528,11 +528,14 @@ pub async fn create_ec2_instance(
 
     let github_pat = getenv("GITHUB_PAT")?;
 
-    let mut anthropic_api_key_env: String = "".to_string();
-
-    if let Some(api_key) = anthropic_api_key {
-        anthropic_api_key_env = format!(r#"echo "ANTHROPIC_API_KEY={api_key}" >> .env && \"#)
-    }
+    let anthropic_api_key_env: String = match anthropic_api_key {
+        Some(api_key) => format!(r#"echo "ANTHROPIC_API_KEY={api_key}" >> .env && \"#),
+        // No key in the pool: a super that has Anthropic workload identity
+        // federation set up passes it on, so the swarm's gateway
+        // authenticates through its instance profile. (AWS_REGION is already
+        // written above.) Never beside a key: the key wins in the gateway.
+        None => passed_env_lines(&ANTHROPIC_FEDERATION_ENV),
+    };
 
     let boltwall_api_secret = generate_random_secret(32);
 
@@ -1992,6 +1995,32 @@ mod tests {
         assert_eq!(
             lines,
             "echo \"LIVEKIT_API_KEY=APIkey\" >> .env && \\\n          echo \"LIVEKIT_API_SECRET=secret\" >> .env && \\"
+        );
+    }
+
+    #[test]
+    fn anthropic_federation_reaches_a_new_swarm_env_only_when_the_super_has_it() {
+        // the only test that touches these variables
+        for key in ANTHROPIC_FEDERATION_ENV {
+            std::env::remove_var(key);
+        }
+        assert_eq!(
+            passed_env_lines(&ANTHROPIC_FEDERATION_ENV),
+            "",
+            "nothing set, nothing written"
+        );
+
+        std::env::set_var("ANTHROPIC_FEDERATION_RULE_ID", "fdrl_1");
+        std::env::set_var("ANTHROPIC_ORGANIZATION_ID", "org-1");
+        std::env::set_var("ANTHROPIC_SERVICE_ACCOUNT_ID", "svac_1");
+        let lines = passed_env_lines(&ANTHROPIC_FEDERATION_ENV);
+        for key in ANTHROPIC_FEDERATION_ENV {
+            std::env::remove_var(key);
+        }
+        // the workspace id is optional: not set, not written
+        assert_eq!(
+            lines,
+            "echo \"ANTHROPIC_FEDERATION_RULE_ID=fdrl_1\" >> .env && \\\n          echo \"ANTHROPIC_ORGANIZATION_ID=org-1\" >> .env && \\\n          echo \"ANTHROPIC_SERVICE_ACCOUNT_ID=svac_1\" >> .env && \\"
         );
     }
 
