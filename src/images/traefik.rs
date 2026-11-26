@@ -1,5 +1,5 @@
 use super::*;
-use crate::utils::{domain, getenv, manual_host_config};
+use crate::utils::{domain, getenv, local_log_config, manual_host_config};
 use bollard::container::Config;
 use std::collections::HashMap;
 
@@ -94,7 +94,7 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
         cmd.push("--log.level=DEBUG");
         cmd.push("--api.insecure=true");
     }
-    // access log to stdout (shipped to CloudWatch by Fluent Bit); opt out with TRAEFIK_ACCESS_LOG=false
+    // access log to stdout (shipped via the same log driver as the other services: awslogs by default in cloud, fluentd when RUST_ENV=fluentd); opt out with TRAEFIK_ACCESS_LOG=false
     // NOTE: if a load balancer or CDN is in front of Traefik, add
     // `--entrypoints.web.forwardedHeaders.trustedIPs=<CIDRs>` and
     // `--entrypoints.websecure.forwardedHeaders.trustedIPs=<CIDRs>` (or proxyProtocol.trustedIPs
@@ -113,7 +113,9 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
         cmd.push("--accesslog.fields.headers.names.X-Real-Ip=keep");
     }
     let add_ulimits = true;
-    let add_log_limit = true;
+    // log_config is set below to local_log_config, same as the other services
+    let add_log_limit = false;
+    let swarm_number = getenv("SWARM_NUMBER").unwrap_or("".to_string());
     let awsenv = _aws_env();
     if let Some(ae) = &awsenv {
         log::info!("traefik: using AWS REGION env {:?}", ae.get(0));
@@ -123,15 +125,20 @@ fn _traefik(img: &TraefikImage) -> Config<String> {
 
     log::error!("traefik: MISSING AWS ENV!");
 
+    let mut host_config = manual_host_config(
+        strarr(ports),
+        Some(strarr(extra_vols)),
+        add_ulimits,
+        add_log_limit,
+    );
+    if let Some(hc) = host_config.as_mut() {
+        hc.log_config = local_log_config(&swarm_number);
+    }
+
     Config {
         image: Some(image.to_string()),
         hostname: Some(domain(&name)),
-        host_config: manual_host_config(
-            strarr(ports),
-            Some(strarr(extra_vols)),
-            add_ulimits,
-            add_log_limit,
-        ),
+        host_config,
         env: awsenv,
         cmd: Some(strarr(cmd)),
         ..Default::default()

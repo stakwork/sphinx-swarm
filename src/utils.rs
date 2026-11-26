@@ -61,7 +61,7 @@ pub fn add_gpus_to_host_config(hc: &mut HostConfig, count: i64) {
     }]);
 }
 
-fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
+pub(crate) fn local_log_config(swarm_id: &str) -> Option<HostConfigLogConfig> {
     let mut h = HashMap::new();
 
     match get_environment() {
