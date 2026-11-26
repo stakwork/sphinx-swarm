@@ -30,6 +30,19 @@ services:
       - "--entrypoints.port8800.address=:8800"
       - "--entrypoints.port9000.address=:9000"
       - "--entrypoints.port8181.address=:8181"
+      # Access log (JSON on stdout -> CloudWatch). Only User-Agent, X-Forwarded-For
+      # and X-Real-Ip headers are kept; all others (Authorization, Cookie...) are dropped.
+      # If a load balancer or CDN sits in front of Traefik, add
+      # --entrypoints.web.forwardedHeaders.trustedIPs=<CIDRs> and
+      # --entrypoints.websecure.forwardedHeaders.trustedIPs=<CIDRs> (or
+      # proxyProtocol.trustedIPs for an L4 balancer) so the logged address is the
+      # real client's. Note: the access log adds CloudWatch ingestion volume.
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+      - "--accesslog.fields.headers.defaultmode=drop"
+      - "--accesslog.fields.headers.names.User-Agent=keep"
+      - "--accesslog.fields.headers.names.X-Forwarded-For=keep"
+      - "--accesslog.fields.headers.names.X-Real-Ip=keep"
     ports:
       # The HTTP port
       - 80:80
@@ -51,6 +64,13 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/admin/certs:/certs
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-group: "/swarms/${SWARM_NUMBER}"
+        awslogs-create-group: "true"
+        tag: "{{.Name}}"
 
   sphinx-swarm:
     image: sphinxlightning/sphinx-swarm
