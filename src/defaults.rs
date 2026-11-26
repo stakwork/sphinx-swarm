@@ -2,8 +2,8 @@ use crate::config::*;
 use crate::graphmindset::*;
 use crate::images::cln::{ClnImage, ClnPlugin};
 use crate::images::{
-    btc::BtcImage, cache::CacheImage, lnd::LndImage, lss::LssImage, proxy::ProxyImage,
-    relay::RelayImage, Image,
+    bifrost::BifrostImage, btc::BtcImage, cache::CacheImage, hermes::HermesImage, lnd::LndImage,
+    lss::LssImage, proxy::ProxyImage, relay::RelayImage, runner::RunnerImage, Image,
 };
 use crate::secondbrain::*;
 use crate::secrets;
@@ -153,6 +153,8 @@ impl Default for Stack {
             internal_nodes.extend(second_brain_nodes);
         }
 
+        add_optional_services(&mut internal_nodes, host.clone());
+
         let mut nodes: Vec<Node> = internal_nodes
             .iter()
             .map(|n| Node::Internal(n.to_owned()))
@@ -195,6 +197,31 @@ impl Default for Stack {
             ssl_cert_last_modified: None,
             instance_id: None,
         }
+    }
+}
+
+// ADD_HERMES=true, ADD_RUNNER=true, ADD_BIFROST=true add hermes.sphinx,
+// runner.sphinx and bifrost.sphinx. Skipped if a node with that name already exists
+// (the second brain stack already includes hermes and bifrost).
+fn add_optional_services(internal_nodes: &mut Vec<Image>, host: Option<String>) {
+    let exists = |nodes: &Vec<Image>, name: &str| nodes.iter().any(|n| n.name() == name);
+
+    if env_is_true("ADD_HERMES") && !exists(internal_nodes, "hermes") {
+        internal_nodes.push(Image::Hermes(HermesImage::new("hermes", "latest", "8645")));
+    }
+    if env_is_true("ADD_RUNNER") && !exists(internal_nodes, "runner") {
+        let mut runner = RunnerImage::new("runner", "latest", "8070");
+        runner.broker_url =
+            env_no_empty("RUNNER_BROKER_URL").unwrap_or("http://broker.sphinx:1883".to_string());
+        runner.host(host.clone());
+        runner.links(vec!["jarvis"]);
+        internal_nodes.push(Image::Runner(runner));
+    }
+    if env_is_true("ADD_BIFROST") && !exists(internal_nodes, "bifrost") {
+        let mut bifrost = BifrostImage::new("bifrost", "latest");
+        bifrost.host(host.clone());
+        bifrost.links(vec!["boltwall", "redis", "neo4j"]);
+        internal_nodes.push(Image::Bifrost(bifrost));
     }
 }
 
